@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora ROI | FisioTool Financial</title>
+    
+    <!-- CSS Maestro (Asegúrate de haber actualizado belleza_insuperable.css) -->
+    <link rel="stylesheet" href="belleza_insuperable.css">
+    
+    <!-- FUENTES CROPE/LUJO -->
+    <link href="https://fonts.googleapis.com/css2?family=Mulish:wght@300;400;600&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* ESTILOS ESPECÍFICOS ROI (Oscuro, Dorado, Rojo de Alerta) */
+        :root {
+            --clr-bg-dark: #0D0D0D;      /* Fondo del simulador */
+            --clr-card-bg: #1A1A1A;      /* Fondo de la tarjeta de cálculo */
+            --clr-accent-gold: #C5A059;  /* DORADO para el resultado */
+            --clr-accent-red: #E63946;   /* ROJO para el input de No-Show (Peligro) */
+            --clr-text-light: #FFFFFF;
+            --font-tech: 'Poppins', sans-serif;
+            --font-body: 'Mulish', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background-color: var(--clr-bg-dark);
+            color: var(--clr-text-light);
+            margin: 0;
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background-color: var(--clr-card-bg);
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.7);
+            max-width: 550px;
+            width: 100%;
+            border: 1px solid #222;
+        }
+        h1 {
+            color: var(--clr-accent-gold); 
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 5px;
+            font-family: var(--font-tech);
+        }
+        p.subtitle {
+            text-align: center;
+            color: #AAAAAA;
+            margin-bottom: 30px;
+        }
+        label {
+            display: block;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: var(--clr-text-light);
+        }
+        
+        /* SLIDERS DE ALTO IMPACTO (Estilo CROPE/Lujo) */
+        .input-group { margin-bottom: 30px; }
+        .label-flex {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 10px;
+        }
+        .value-display {
+            font-family: var(--font-tech);
+            color: var(--clr-accent-gold);
+            font-weight: bold;
+            background: rgba(197, 160, 89, 0.1);
+            padding: 2px 10px;
+            border-radius: 5px;
+            border: 1px solid var(--clr-accent-gold);
+        }
+        input[type="range"] {
+            -webkit-appearance: none; width: 100%; background: transparent;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 20px; width: 20px;
+            border-radius: 50%; background: var(--clr-accent-gold); /* Pulgar Dorado */
+            cursor: pointer; margin-top: -8px;
+            box-shadow: 0 0 15px rgba(197, 160, 89, 0.5);
+        }
+        input[type="range"]::-webkit-slider-runnable-track {
+            width: 100%; height: 5px; background: #333; border-radius: 5px;
+        }
+
+        /* ZONA DE RESULTADO (ROI) */
+        .result-box {
+            background: var(--clr-bg-dark);
+            border: 2px solid var(--clr-accent-gold);
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            margin-top: 40px;
+            box-shadow: 0 0 30px rgba(197, 160, 89, 0.3);
+        }
+        .result-title {
+            color: #AAAAAA; text-transform: uppercase; 
+            letter-spacing: 1px; font-size: 0.8rem; font-weight: 600;
+        }
+        #valorAhorro {
+            font-family: var(--font-tech);
+            font-size: 3.5rem;
+            color: var(--clr-accent-gold);
+            display: block;
+            margin: 10px 0;
+            text-shadow: 0 0 25px rgba(197, 160, 89, 0.7);
+        }
+        .note { color: var(--clr-accent-red); font-size: 0.8rem; margin-top: 15px; font-weight: 600; }
+
+        /* BOTÓN DE ACCIÓN FINAL */
+        .cta-btn {
+            display: block; width: 100%; padding: 18px; margin-top: 30px;
+            background: var(--clr-accent-gold); color: var(--clr-bg-dark); font-weight: 800;
+            text-align: center; border-radius: 50px; text-decoration: none;
+            text-transform: uppercase; font-size: 1.1rem; border: none;
+            box-shadow: 0 0 20px rgba(197, 160, 89, 0.5);
+            cursor: pointer; transition: 0.3s;
+        }
+        .cta-btn:hover {
+            transform: scale(1.01); box-shadow: 0 0 40px rgba(197, 160, 89, 0.9);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    
+    <!-- 1. VIDEO DE AUTORIDAD (Placeholder Elegante) -->
+    <div class="video-wrapper" style="border: 1px solid #333; box-shadow: 0 0 20px rgba(0,0,0,0.5);">
+        <div style="position: absolute; top:0; left:0; width:100%; height:100%; opacity: 0.5; background: repeating-linear-gradient(0deg, transparent, transparent 2px, #222 3px);"></div>
+        <div class="play-btn" style="color: var(--clr-accent-gold); border-color: var(--clr-accent-gold);">▶</div>
+        <span style="position:absolute; bottom:15px; font-family:'Poppins'; font-size:0.8rem; letter-spacing:2px; color:#999;">PRESENTACIÓN DE VALOR</span>
+    </div>
+
+    <h1>CALCULA TU AHORRO ANUAL</h1>
+    <p class="subtitle">Descubre cuánto dinero y tiempo ganas eliminando la gestión manual.</p>
+
+    <!-- 2. INPUTS TIPO SLIDER (Gamificados) -->
+    
+    <div class="input-group">
+        <div class="label-flex">
+            <label>Citas Mensuales</label>
+            <span class="value-display" id="displayCitas">100</span>
+        </div>
+        <input type="range" id="citasMes" min="20" max="800" value="100" step="10">
+    </div>
+
+    <div class="input-group">
+        <div class="label-flex">
+            <label>Precio por Sesión (€)</label>
+            <span class="value-display" id="displayPrecio">50 €</span>
+        </div>
+        <input type="range" id="precioSesion" min="20" max="150" value="50" step="5">
+    </div>
+    
+    <div class="input-group">
+        <div class="label-flex">
+            <label>Tasa de 'No-Shows' (%)</label>
+            <span class="value-display" style="color:var(--clr-accent-red); border-color:var(--clr-accent-red); background:rgba(230, 57, 70, 0.1);" id="displayNoShow">8 %</span>
+        </div>
+        <!-- Barra de No-Show en Rojo para indicar peligro -->
+        <input type="range" id="porcentajeNoShow" min="0" max="30" value="8" step="1" style="filter: hue-rotate(330deg);"> 
+        <small style="color:#888; font-size:0.75rem;">*La IA evita el 80% de estas pérdidas.</small>
+    </div>
+
+    <!-- 3. CAJA DE RESULTADO (ROI) -->
+    <div class="result-box">
+        <span class="result-title">Ahorro Anual Estimado (12 Meses)</span>
+        <span id="valorAhorro">0 €</span>
+        <p style="color:#888; font-size:0.8rem; margin:0;">
+            Esto es dinero que se queda en tu clínica.
+        </p>
+    </div>
+
+    <!-- 4. CALL TO ACTION -->
+    <a href="onboarding.html" class="cta-btn">
+        INICIAR MI PRUEBA GRATUITA
+    </a>
+
+</div>
+
+<!-- 5. LÓGICA DE JAVASCRIPT (LA TUYA - CON SLIDERS INTERACTIVOS) -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Elementos (Sliders y Displays)
+        const inputCitas = document.getElementById('citasMes');
+        const displayCitas = document.getElementById('displayCitas');
+        
+        const inputPrecio = document.getElementById('precioSesion');
+        const displayPrecio = document.getElementById('displayPrecio');
+
+        const inputNoShow = document.getElementById('porcentajeNoShow');
+        const displayNoShow = document.getElementById('displayNoShow');
+        
+        const valorAhorro = document.getElementById('valorAhorro');
+
+        // TU ALGORITMO ORIGINAL (V-3)
+        function calcularROI() {
+            // Actualizar Displays visuales junto a las barras
+            displayCitas.textContent = inputCitas.value;
+            displayPrecio.textContent = inputPrecio.value + ' €';
+            displayNoShow.textContent = inputNoShow.value + ' %';
+
+            // Matemáticas (FisioTool salva el 80% del No-Show)
+            const citasMes = parseFloat(inputCitas.value) || 0;
+            const precioSesion = parseFloat(inputPrecio.value) || 0;
+            const porcentajeNoShow = parseFloat(inputNoShow.value) || 0;
+            const porcentajeEvitado = 0.8; 
+
+            const citasPerdidas = (citasMes * (porcentajeNoShow / 100));
+            const citasSalvadas = citasPerdidas * porcentajeEvitado;
+            const ahorroAnual = (citasSalvadas * precioSesion) * 12;
+
+            // Formatear y aplicar estilo Dorado/Brillo
+            valorAhorro.textContent = new Intl.NumberFormat('es-ES', { 
+                style: 'currency', 
+                currency: 'EUR', 
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(ahorroAnual);
+            
+            if(ahorroAnual > 5000) {
+                valorAhorro.style.textShadow = "0 0 30px var(--clr-accent-gold)";
+            } else {
+                valorAhorro.style.textShadow = "0 0 15px rgba(197, 160, 89, 0.5)";
+            }
+        }
+
+        // Eventos: Escuchar el deslizamiento en tiempo real
+        inputCitas.addEventListener('input', calcularROI);
+        inputPrecio.addEventListener('input', calcularROI);
+        inputNoShow.addEventListener('input', calcularROI);
+
+        // Cálculo inicial al cargar
+        calcularROI();
+    });
+</script>
+
+</body>
+</html>

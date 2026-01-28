@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro Fisiotool</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .card { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 550px; }
+        h2 { text-align: center; color: #1a1a1a; margin-bottom: 30px; font-weight: 600; }
+        .step { display: none; animation: fadeIn 0.4s; }
+        .step.active { display: block; }
+        
+        label { display: block; margin-top: 20px; font-weight: 600; font-size: 0.9em; color: #4a4a4a; margin-bottom: 8px; }
+        input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 15px; transition: 0.3s; }
+        input:focus { border-color: #007bff; outline: none; box-shadow: 0 0 0 3px rgba(0,123,255,0.1); }
+        
+        /* Checkboxes bonitos */
+        .checkbox-group { display: flex; gap: 15px; flex-wrap: wrap; margin-top: 10px; }
+        .checkbox-card { border: 1px solid #ddd; padding: 10px 15px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.2s; }
+        .checkbox-card:hover { background: #f9f9f9; }
+        .checkbox-card input { width: auto; margin: 0; }
+
+        /* Botones */
+        .btn-box { margin-top: 30px; display: flex; justify-content: space-between; }
+        button { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 15px; transition: 0.2s; }
+        .btn-next { background: #007bff; color: white; }
+        .btn-next:hover { background: #0056b3; }
+        .btn-prev { background: #e4e6eb; color: #333; }
+        .btn-prev:hover { background: #d8dadf; }
+        
+        .referral-banner { background: #e8f0fe; color: #1967d2; padding: 15px; border-radius: 8px; margin-bottom: 25px; text-align: center; font-weight: 500; display: none; }
+        
+        /* Helper text */
+        .hint { font-size: 0.8em; color: #888; margin-top: 5px; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div id="referralMsg" class="referral-banner">🎁 ¡Genial! Tienes un 50% de descuento por venir invitado.</div>
+    
+    <form id="regForm">
+        <!-- PASO 1: DATOS CUENTA -->
+        <div class="step active" id="step1">
+            <h2>1. Crea tu Cuenta</h2>
+            <label>Nombre de tu Clínica *</label>
+            <input type="text" name="nombre_clinica" required placeholder="Ej: Fisioterapia Avanzada">
+            
+            <label>Email de Acceso *</label>
+            <input type="email" name="email" required>
+            
+            <label>Contraseña *</label>
+            <input type="password" name="password" required>
+
+            <label>Código de Invitación (Opcional)</label>
+            <input type="text" id="codInvitacion" name="codigo_invitacion" placeholder="Pégalo aquí si lo tienes">
+            
+            <div class="btn-box" style="justify-content: flex-end;">
+                <button type="button" class="btn-next" onclick="nextStep(2)">Siguiente ➡</button>
+            </div>
+        </div>
+
+        <!-- PASO 2: UBICACIÓN (AQUÍ ESTABA EL ERROR) -->
+        <div class="step" id="step2">
+            <h2>2. Ubicación Principal</h2>
+            
+            <div style="display: flex; gap: 15px;">
+                <div style="flex: 3;">
+                    <label>Calle *</label>
+                    <input type="text" name="calle" required placeholder="Av. de la Libertad">
+                </div>
+                <div style="flex: 1;">
+                    <label>Número *</label>
+                    <!-- ¡ESTE CAMPO FALTABA! -->
+                    <input type="text" name="numero" required placeholder="123">
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 15px;">
+                <div style="flex:1">
+                    <label>Código Postal *</label>
+                    <input type="text" name="cp" required>
+                </div>
+                <div style="flex:1">
+                    <label>Ciudad *</label>
+                    <input type="text" name="ciudad" required>
+                </div>
+            </div>
+            
+            <label>Provincia *</label>
+            <input type="text" name="provincia" required>
+            
+            <div class="btn-box">
+                <button type="button" class="btn-prev" onclick="nextStep(1)">⬅ Atrás</button>
+                <button type="button" class="btn-next" onclick="nextStep(3)">Siguiente ➡</button>
+            </div>
+        </div>
+
+        <!-- PASO 3: CEREBRO IA -->
+        <div class="step" id="step3">
+            <h2>3. Configuración Inteligente</h2>
+            <p class="hint">Esto enseña a Ana cómo trabajar.</p>
+            
+            <div style="display: flex; gap: 15px;">
+                <div style="flex:1">
+                    <label>Precio Sesión (€)</label>
+                    <input type="number" name="precio" value="50" required>
+                </div>
+                <div style="flex:1">
+                    <label>Duración (min)</label>
+                    <input type="number" name="duracion" value="45" required>
+                </div>
+            </div>
+
+            <label>¿Cómo cobras en la consulta?</label>
+            <div class="checkbox-group">
+                <div class="checkbox-card"><input type="checkbox" name="pago_efectivo" value="Efectivo" checked> Efectivo</div>
+                <div class="checkbox-card"><input type="checkbox" name="pago_tarjeta" value="Tarjeta"> Tarjeta</div>
+                <div class="checkbox-card"><input type="checkbox" name="pago_bizum" value="Bizum"> Bizum</div>
+            </div>
+
+            <label>Política Anti No-Show (Fianza)</label>
+            <input type="number" name="fianza" placeholder="Ej: 15 (Déjalo vacío o 0 para desactivar)">
+            <p class="hint">Si pones cantidad, Ana pedirá tarjeta antes de confirmar.</p>
+
+            <label>Banderas Rojas (Filtro de pacientes)</label>
+            <input type="text" name="banderas_rojas" placeholder="Ej: accidente tráfico, seguro, adeslas">
+            <p class="hint">Si el paciente menciona esto, Ana le pedirá que llame por teléfono.</p>
+
+            <div style="margin-top:20px; padding: 10px; background: #f9f9f9; border-radius: 8px;">
+                <label style="margin-top:0"><input type="checkbox" name="acepta_bonos"> Activar Sistema de Bonos</label>
+            </div>
+
+            <div class="btn-box">
+                <button type="button" class="btn-prev" onclick="nextStep(2)">⬅ Atrás</button>
+                <button type="submit" class="btn-next" style="background: #28a745;">🚀 LANZAR APP</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    const params = new URLSearchParams(window.location.search);
+    const refCode = params.get('ref');
+    if(refCode) {
+        document.getElementById('codInvitacion').value = refCode;
+        document.getElementById('referralMsg').style.display = 'block';
+    }
+
+    function nextStep(step) {
+        document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+        document.getElementById('step' + step).classList.add('active');
+    }
+
+    document.getElementById('regForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+        
+        // Arrays manuales
+        data.metodos_pago = [];
+        if(document.querySelector('input[name="pago_efectivo"]').checked) data.metodos_pago.push('Efectivo');
+        if(document.querySelector('input[name="pago_tarjeta"]').checked) data.metodos_pago.push('Tarjeta');
+        if(document.querySelector('input[name="pago_bizum"]').checked) data.metodos_pago.push('Bizum');
+        data.acepta_bonos = document.querySelector('input[name="acepta_bonos"]').checked;
+
+        const btn = document.querySelector('button[type="submit"]');
+        btn.innerHTML = "Configurando Servidor...";
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('/api/register', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+            
+            if(result.success) {
+                alert("✅ ¡Todo listo! Te redirigimos a tu panel de control.");
+                window.location.href = result.dashboard_url;
+            } else {
+                alert("⚠️ Error: " + result.error);
+                btn.innerHTML = "Reintentar";
+                btn.disabled = false;
+            }
+        } catch(err) {
+            console.error(err);
+            alert("Error de conexión con el servidor.");
+            btn.innerHTML = "Reintentar";
+            btn.disabled = false;
+        }
+    });
+</script>
+
+</body>
+</html>

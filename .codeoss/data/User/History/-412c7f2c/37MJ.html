@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración FisioTool</title>
+    
+    <!-- FUENTES Y FRAMEWORK -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        :root { --color-primary: #237bfd; --color-text: #555; --bg-body: #f4f7fa; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-body); color: var(--color-text); min-height: 100vh; display: flex; flex-direction: column; }
+        
+        .wizard-card { background: #fff; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.05); padding: 40px; margin-top: 40px; }
+        
+        /* PROGRESS BAR */
+        .progress-wrapper { position: relative; margin-bottom: 40px; }
+        .progress { height: 6px; background: #eef2f7; border-radius: 10px; overflow: visible; }
+        .progress-bar { background: var(--color-primary); position: relative; border-radius: 10px; transition: width 0.4s ease; }
+        
+        /* STEPS */
+        .step { display: none; animation: fadeIn 0.4s ease; }
+        .step.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* INPUTS */
+        .custom-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: block; color: #1e2022; }
+        .custom-input { width: 100%; border: 2px solid #eaefff; background: #fcfcfc; border-radius: 12px; padding: 12px 15px; outline: none; transition: 0.3s; color: #333; }
+        .custom-input:focus { border-color: var(--color-primary); background: #fff; }
+
+        /* CHECKBOX CARDS (Payment & Flags) */
+        .check-card-label { display: block; position: relative; cursor: pointer; }
+        .check-card-input { position: absolute; opacity: 0; }
+        .check-card-inner { border: 2px solid #eaefff; border-radius: 12px; padding: 15px; text-align: center; transition: 0.2s; background: #fff; }
+        .check-card-input:checked + .check-card-inner { border-color: var(--color-primary); background: rgba(35,123,253,0.04); color: var(--color-primary); font-weight: 600; }
+
+        /* BUTTONS */
+        .btn-main { background: var(--color-primary); color: #fff; border: none; padding: 12px 30px; border-radius: 50px; font-weight: 600; transition: 0.3s; }
+        .btn-main:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(35,123,253,0.2); }
+        .btn-back { background: transparent; border: none; color: #999; font-weight: 500; padding: 10px 20px; }
+        .btn-back:hover { color: #666; }
+
+        /* LOADER */
+        #loaderOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 9999; display: none; align-items: center; justify-content: center; flex-direction: column; }
+    </style>
+</head>
+<body>
+
+<div class="container pb-5">
+    <div class="text-center pt-5">
+        <h2 class="fw-bold text-dark">Configura tu Clínica</h2>
+        <p class="text-muted">Ana se encargará de rellenar tu agenda</p>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="wizard-card">
+                
+                <!-- PROGRESS BAR -->
+                <div class="progress-wrapper">
+                    <div class="d-flex justify-content-between mb-2 small fw-bold text-muted text-uppercase">
+                        <span>Datos</span>
+                        <span>Negocio</span>
+                        <span>Pagos</span>
+                        <span>IA</span>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar" id="progressBar" style="width: 25%"></div>
+                    </div>
+                </div>
+
+                <!-- FORMULARIO REAL -->
+                <form id="setup-form" onsubmit="finalSubmit(event)"> 
+                    
+                    <!-- ================= PASO 1: DATOS (CRÍTICO: Validaciones y Multi-Clínica) ================= -->
+                    <div id="step1" class="step active">
+                        <div class="mb-4">
+                            <!-- Banner Promocional -->
+                            <div class="alert alert-primary bg-light border-primary d-flex align-items-center justify-content-between rounded-3 p-3 mb-4">
+                                <div>
+                                    <h6 class="mb-0 fw-bold text-primary"><i class="fa-solid fa-gift me-2"></i>¿Código de Invitado?</h6>
+                                    <small class="text-muted">Desbloquea 1 Mes Pro al 50%</small>
+                                </div>
+                                <input type="text" id="referral_code" class="form-control form-control-sm text-uppercase fw-bold text-center border-primary" style="width: 100px;" placeholder="CODE">
+                            </div>
+
+                            <label class="custom-label">Nombre de tu Clínica</label>
+                            <input type="text" id="clinic_name" class="custom-input mb-3" placeholder="Ej: Centro de Fisioterapia Vital" required>
+
+                            <label class="custom-label">Móvil Vinculado (Whatsapp Business)</label>
+                            <input type="tel" id="meta_phone" class="custom-input mb-3" placeholder="+34 600 000 000" required>
+                            <small class="text-muted d-block mb-3">*Este será el número desde el que 'Ana' contestará.</small>
+                            
+                            <!-- Email ID -->
+                            <label class="custom-label">Email de Administrador</label>
+                            <input type="email" id="user_email" class="custom-input mb-3" placeholder="Tu Email (Usado como ID de Usuario)" required>
+                            
+                            <label class="custom-label">Dirección (Para facturación)</label>
+                            <div class="row g-2">
+                                <div class="col-8"><input type="text" id="addr_street" class="custom-input" placeholder="Calle / Avda" required></div>
+                                <div class="col-4"><input type="text" id="addr_num" class="custom-input" placeholder="Nº" required></div>
+                                <div class="col-6"><input type="text" id="addr_city" class="custom-input" placeholder="Ciudad" required></div>
+                                <div class="col-6"><input type="text" id="addr_cp" class="custom-input" placeholder="C.P." required></div>
+                            </div>
+                        </div>
+
+                        <div class="text-end pt-3">
+                            <button class="btn-main" type="button" onclick="validateStep1AndNext(2)">Siguiente <i class="fa-solid fa-arrow-right ms-2"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- ================= PASO 2: NEGOCIO (Rellenado para que funcione el ID) ================= -->
+                    <div id="step2" class="step">
+                        <h5 class="fw-bold mb-4">Configuración de Sesiones</h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="custom-label">Precio por Sesión (€)</label>
+                                <input type="number" id="price" class="custom-input" placeholder="50" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="custom-label">Duración Estándar (min)</label>
+                                <input type="number" id="duration" class="custom-input" value="45" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="custom-label text-primary">Fianza/Señal (€)</label>
+                            <input type="number" id="deposit" class="custom-input" placeholder="0" value="0">
+                            <small class="text-muted">Si pones una cantidad > 0, Ana enviará un enlace de pago antes de confirmar la cita.</small>
+                        </div>
+
+                        <div class="d-flex justify-content-between pt-3">
+                            <button class="btn-back" type="button" onclick="nextStep(1)">Atrás</button>
+                            <button class="btn-main" type="button" onclick="nextStep(3)">Siguiente <i class="fa-solid fa-arrow-right ms-2"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- ================= PASO 3: PAGOS (Checkboxes tag-check) ================= -->
+                    <div id="step3" class="step">
+                        <h5 class="fw-bold mb-4">Métodos de Pago en Clínica</h5>
+                        <div class="row g-3" id="payment-methods">
+                            <div class="col-6">
+                                <label class="check-card-label">
+                                    <input type="checkbox" class="check-card-input tag-check" value="Efectivo" checked>
+                                    <div class="check-card-inner"><i class="fa-solid fa-coins mb-2"></i><br>Efectivo</div>
+                                </label>
+                            </div>
+                            <div class="col-6">
+                                <label class="check-card-label">
+                                    <input type="checkbox" class="check-card-input tag-check" value="Tarjeta" checked>
+                                    <div class="check-card-inner"><i class="fa-regular fa-credit-card mb-2"></i><br>Tarjeta</div>
+                                </label>
+                            </div>
+                            <div class="col-6">
+                                <label class="check-card-label">
+                                    <input type="checkbox" class="check-card-input tag-check" value="Bizum">
+                                    <div class="check-card-inner"><i class="fa-solid fa-mobile-screen mb-2"></i><br>Bizum</div>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between pt-4">
+                            <button class="btn-back" type="button" onclick="nextStep(2)">Atrás</button>
+                            <button class="btn-main" type="button" onclick="nextStep(4)">Siguiente <i class="fa-solid fa-arrow-right ms-2"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- ================= PASO 4: IA SETTINGS (Red Flags) ================= -->
+                    <div id="step4" class="step">
+                        <h5 class="fw-bold mb-3">Instrucciones para Ana (Red Flags)</h5>
+                        <p class="text-muted small mb-4">Si el paciente menciona esto, Ana NO dará cita y pedirá que llamen.</p>
+                        
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label class="check-card-label">
+                                    <input type="checkbox" class="check-card-input redflag" value="Accidente Tráfico">
+                                    <div class="check-card-inner text-danger border-danger-subtle"><i class="fa-solid fa-car-crash mb-2"></i><br>Accidente Tráfico</div>
+                                </label>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="check-card-label">
+                                    <input type="checkbox" class="check-card-input redflag" value="Post-Operatorio Reciente">
+                                    <div class="check-card-inner text-danger border-danger-subtle"><i class="fa-solid fa-hospital-user mb-2"></i><br>Post-Operatorio</div>
+                                </label>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="check-card-label">
+                                    <input type="checkbox" class="check-card-input redflag" value="Seguro Escolar">
+                                    <div class="check-card-inner text-danger border-danger-subtle"><i class="fa-solid fa-child-reaching mb-2"></i><br>Seguro Escolar</div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between pt-2">
+                            <button class="btn-back" type="button" onclick="nextStep(3)">Atrás</button>
+                            <button class="btn-main w-50" type="submit">
+                                FINALIZAR Y PAGAR <i class="fa-solid fa-check ms-2"></i>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- LOADER -->
+<div id="loaderOverlay">
+    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
+    <h5 class="fw-bold text-dark">Configurando tu Clínica...</h5>
+    <p class="text-muted">Conectando con Stripe</p>
+</div>
+
+<!-- JS VANILLA (LÓGICA COMPLETADA) -->
+<script>
+    // 1. CONTROL DE PASOS
+    function nextStep(targetStep) {
+        // Ocultar todos
+        document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
+        // Mostrar target
+        document.getElementById('step' + targetStep).classList.add('active');
+        
+        // Actualizar Barra
+        const percent = targetStep * 25;
+        document.getElementById('progressBar').style.width = percent + '%';
+    }
+
+    // 2. VALIDACIÓN PASO 1
+    function validateStep1AndNext(targetStep) {
+        const requiredFields = ['clinic_name', 'meta_phone', 'user_email', 'addr_street', 'addr_num', 'addr_city', 'addr_cp'];
+        for (const fieldId of requiredFields) {
+            const field = document.getElementById(fieldId);
+            if (!field.value.trim()) {
+                alert(`Por favor, rellena el campo obligatorio.`);
+                field.focus();
+                return;
+            }
+        }
+        nextStep(targetStep);
+    }
+
+    // 3. ENVÍO FINAL
+    async function finalSubmit(event) {
+        event.preventDefault(); 
+        document.getElementById('loaderOverlay').style.display = 'flex';
+
+        // RECOLECCIÓN DE DATOS UNIFICADA
+        const dataToSave = {
+            // Paso 1
+            nombre_clinica: document.getElementById('clinic_name').value,
+            telefono_contacto: document.getElementById('meta_phone').value,
+            owner_user_email: document.getElementById('user_email').value, 
+            direccion_completa: `${document.getElementById('addr_street').value}, ${document.getElementById('addr_num').value}, ${document.getElementById('addr_city').value} - ${document.getElementById('addr_cp').value}`,
+            
+            // Paso 2
+            precio_sesion: document.getElementById('price').value,
+            default_duration: document.getElementById('duration').value,
+            fianza_reserva: document.getElementById('deposit').value,
+            
+            // Paso 3 (Checkboxes)
+            payment_types: Array.from(document.querySelectorAll('.tag-check:checked')).map(cb => cb.value),
+            
+            // Paso 4 (Red Flags)
+            banderas_rojas: Array.from(document.querySelectorAll('.redflag:checked')).map(cb => cb.value),
+            
+            // Extra
+            referral_code: document.getElementById('referral_code').value.trim()
+        };
+
+        try {
+            // LLAMAR AL BACKEND UNIFICADO
+            const response = await fetch('/onboarding/save-and-pay', { 
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dataToSave)
+            });
+
+            const result = await response.json();
+
+            if (result.status === 'success' && result.redirect_url) {
+                // REDIRIGIR A STRIPE
+                window.location.href = result.redirect_url;
+            } else {
+                alert(`Error: ${result.message || 'Error desconocido'}`);
+                document.getElementById('loaderOverlay').style.display = 'none';
+            }
+        } catch(error) {
+            console.error(error);
+            alert("Fallo de conexión con el servidor.");
+            document.getElementById('loaderOverlay').style.display = 'none';
+        }
+    }
+</script>
+
+</body>
+</html>

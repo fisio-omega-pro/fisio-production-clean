@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro Fisiotool</title>
+    <style>
+        body { font-family: sans-serif; background: #f4f7f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .card { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
+        h2 { text-align: center; color: #333; margin-bottom: 20px; }
+        .step { display: none; }
+        .step.active { display: block; }
+        label { display: block; margin-top: 15px; font-weight: bold; font-size: 0.9em; color: #555; }
+        input, select { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+        .checkbox-group { margin-top: 5px; }
+        .checkbox-group label { display: inline-block; margin-right: 15px; font-weight: normal; }
+        .btn-box { margin-top: 25px; display: flex; justify-content: space-between; }
+        button { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-next { background: #007bff; color: white; }
+        .btn-prev { background: #ccc; color: #333; }
+        .referral-banner { background: #e3f2fd; padding: 10px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #bbdefb; font-size: 0.9em; color: #0d47a1; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div id="referralMsg" class="referral-banner">🎉 ¡Vienes invitado! Tienes un 50% de descuento.</div>
+    
+    <form id="regForm">
+        <!-- PASO 1: DATOS CUENTA -->
+        <div class="step active" id="step1">
+            <h2>1. Tu Cuenta</h2>
+            <label>Nombre de la Clínica *</label>
+            <input type="text" name="nombre_clinica" required placeholder="Ej: Fisioterapia Diego">
+            
+            <label>Email *</label>
+            <input type="email" name="email" required>
+            
+            <label>Contraseña *</label>
+            <input type="password" name="password" required>
+
+            <label>Código de Invitación (Opcional)</label>
+            <input type="text" id="codInvitacion" name="codigo_invitacion" placeholder="Si te invitó un colega">
+            
+            <div class="btn-box" style="justify-content: flex-end;">
+                <button type="button" class="btn-next" onclick="nextStep(2)">Siguiente ➡</button>
+            </div>
+        </div>
+
+        <!-- PASO 2: UBICACIÓN -->
+        <div class="step" id="step2">
+            <h2>2. ¿Dónde estás?</h2>
+            <label>Dirección (Calle y Nº) *</label>
+            <input type="text" name="calle" required>
+            
+            <div style="display: flex; gap: 10px;">
+                <div style="flex:1">
+                    <label>Código Postal *</label>
+                    <input type="text" name="cp" required>
+                </div>
+                <div style="flex:1">
+                    <label>Ciudad *</label>
+                    <input type="text" name="ciudad" required>
+                </div>
+            </div>
+            
+            <label>Provincia *</label>
+            <input type="text" name="provincia" required>
+            
+            <div class="btn-box">
+                <button type="button" class="btn-prev" onclick="nextStep(1)">⬅ Atrás</button>
+                <button type="button" class="btn-next" onclick="nextStep(3)">Siguiente ➡</button>
+            </div>
+        </div>
+
+        <!-- PASO 3: CEREBRO IA -->
+        <div class="step" id="step3">
+            <h2>3. Configura tu IA</h2>
+            
+            <div style="display: flex; gap: 10px;">
+                <div style="flex:1">
+                    <label>Precio Sesión (€) *</label>
+                    <input type="number" name="precio" value="50" required>
+                </div>
+                <div style="flex:1">
+                    <label>Duración (min) *</label>
+                    <input type="number" name="duracion" value="45" required>
+                </div>
+            </div>
+
+            <label>Métodos de Cobro</label>
+            <div class="checkbox-group">
+                <label><input type="checkbox" name="pago_efectivo" value="Efectivo" checked> Efectivo</label>
+                <label><input type="checkbox" name="pago_tarjeta" value="Tarjeta"> Tarjeta</label>
+                <label><input type="checkbox" name="pago_bizum" value="Bizum"> Bizum</label>
+            </div>
+
+            <label>Fianza Anti No-Show (€)</label>
+            <input type="number" name="fianza" placeholder="Ej: 10 (Pon 0 para desactivar)">
+
+            <label>Banderas Rojas (Separadas por coma)</label>
+            <input type="text" name="banderas_rojas" placeholder="Ej: accidente, seguro, mutua">
+
+            <div style="margin-top:15px;">
+                <label><input type="checkbox" name="acepta_bonos"> Ofrezco Bonos de Sesiones</label>
+            </div>
+
+            <div class="btn-box">
+                <button type="button" class="btn-prev" onclick="nextStep(2)">⬅ Atrás</button>
+                <button type="submit" class="btn-next" style="background: #28a745;">FINALIZAR REGISTRO ✅</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Detectar si viene con referido en la URL (?ref=FISIO-123)
+    const params = new URLSearchParams(window.location.search);
+    const refCode = params.get('ref');
+    if(refCode) {
+        document.getElementById('codInvitacion').value = refCode;
+        document.getElementById('referralMsg').style.display = 'block';
+    }
+
+    function nextStep(step) {
+        document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+        document.getElementById('step' + step).classList.add('active');
+    }
+
+    document.getElementById('regForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+        
+        // Procesar checkboxes manualmente
+        data.metodos_pago = [];
+        if(document.querySelector('input[name="pago_efectivo"]').checked) data.metodos_pago.push('Efectivo');
+        if(document.querySelector('input[name="pago_tarjeta"]').checked) data.metodos_pago.push('Tarjeta');
+        if(document.querySelector('input[name="pago_bizum"]').checked) data.metodos_pago.push('Bizum');
+        data.acepta_bonos = document.querySelector('input[name="acepta_bonos"]').checked;
+
+        // Enviar al servidor
+        try {
+            const res = await fetch('/api/register', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+            
+            if(result.success) {
+                alert("¡Bienvenido a Fisiotool! Tu IA se está configurando.");
+                window.location.href = result.dashboard_url; // Redirigir al panel
+            } else {
+                alert("Error: " + result.error);
+            }
+        } catch(err) {
+            alert("Error de conexión");
+        }
+    });
+</script>
+
+</body>
+</html>

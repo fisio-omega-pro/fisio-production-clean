@@ -1,0 +1,1437 @@
+const express = require('express');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+const path = require('path');
+const fs = require('fs');
+const admin = require('firebase-admin');
+const { initializeApp, applicationDefault } = require('firebase-admin/app');
+const { getFirestore, FieldValue, Timestamp } = require('firebase-admin/firestore');
+const { GoogleAuth } = require('google-auth-library');
+const nodemailer = require('nodemailer');
+const multer = require('multer');
+const axios = require('axios');
+const { VertexAI } = require('@google-cloud/vertexai');
+
+// ==========================================
+// 🏭 1. CONFIGURACIÓN TÉCNICA GLOBAL
+// ==========================================
+const PROJECT_ID_FIXED = 'spatial-victory-480409-b7';
+const REGION_FIXED = 'europe-west1'; 
+const DEV_MODE = process.env.DEV_MODE === 'true'; 
+const CLINIC_ID_DEFAULT = "5MQYJxwAXUn879OahUfc";
+const VERIFY_TOKEN = process.env.VERIFY_TOKEN || "fisio_prod_secure_2026";
+const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID || "";
+const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN || "";
+
+// --- MAPEADO DE PLANES STRIPE ---
+const PLANES_STRIPE = {
+    'solo':   'price_1Sjy5kDRyuQXtENNfJ0YWOfh', // 100€
+    'team':   'price_1Sm7MfDRyuQXtENNWCWL4WLH', // 300€
+    'clinic': 'price_1Sm7NyDRyuQXtENNYF8wf0oQ'  // 500€
+};
+
+// --- INICIALIZACIÓN FIREBASE ADC ---
+if (!admin.apps.length) {
+    initializeApp({ 
+        credential: applicationDefault(), 
+        projectId: PROJECT_ID_FIXED 
+    });
+}
+const db = getFirestore();
+
+// --- CONFIGURACIÓN MOTOR IA (SDK OFICIAL) ---
+const auth = new GoogleAuth({ scopes: ['https://www.googleapis.com/auth/cloud-platform'] });
+const vertex_ai = new VertexAI({ project: PROJECT_ID_FIXED, location: REGION_FIXED });
+
+const model = vertex_ai.getGenerativeModel({ 
+  model: 'gemini-2.5-flash',
+  generationConfig: { 
+    maxOutputTokens: 2048, 
+    temperature: 0.2,
+    topP: 0.8,
+    topK: 40
+  }
+});
+
+// --- MOTOR DE PAGOS (STRIPE) ---
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
+let stripe;
+if (STRIPE_SECRET_KEY) {
+    stripe = require('stripe')(STRIPE_SECRET_KEY);
+    console.log("✅ STRIPE ENGINE: CONECTADO");
+}
+
+// --- CONFIGURACIÓN CORREO SMTP ---
+const transporter = nodemailer.createTransport({
+    host: "mail.fisiotool.com",
+    port: 465,
+    secure: true,
+    auth: { user: "ana@fisiotool.com", pass: process.env.EMAIL_PASS }
+});
+
+// --- INICIALIZACIÓN EXPRESS ---
+const app = express();
+app.use(cors());
+// El orden de los body-parsers es vital para el Webhook de Stripe después
+const jsonParser = bodyParser.json();
+
+// --- SINCRONIZACIÓN CARROCERÍA NEXT.JS ---
+let nextOutPath = path.join(__dirname, 'public-next/out');
+if (!fs.existsSync(nextOutPath)) {
+    nextOutPath = path.join(__dirname, 'out');
+}
+// ==========================================
+// 🛠️ 2. UTILIDADES DE INGENIERÍA (NASA PRECISION)
+// ==========================================
+
+// Limpieza de teléfonos: asegura formato puro para WhatsApp y CRM
+function normalizarTelefono(tlf) {
+  if (!tlf) return "";
+  let limpio = tlf.replace(/\D/g, ''); // Quitamos todo lo que no sea número
+  if (limpio.startsWith('34') && limpio.length > 9) {
+    limpio = limpio.substring(2); // Quitamos prefijo español
+  }
+  return limpio.trim();
+}
+
+// Detector dinámico de Host: garantiza que Stripe y los links siempre apunten al sitio correcto
+function getDynamicHost(req) {
+  const host = req.get('host');
+  if (host.includes('run.app') || process.env.NODE_ENV === 'production') {
+    return `https://${host}`;
+  }
+  return `${req.protocol}://${host}`;
+}
+
+// FUNCIÓN MAESTRA DE COMUNICACIÓN IA (Sovereign SDK)
+async function callVertexAI(contents) {
+  try {
+    console.log("🤖 Ana está procesando información conductual...");
+    
+    // Formateamos para cumplir el protocolo estricto de Google (role: user)
+    const formattedContents = contents.map(c => ({
+      role: c.role || "user",
+      parts: c.parts
+    }));
+
+    const result = await model.generateContent({ contents: formattedContents });
+    
+    // NAVEGACIÓN DEFENSIVA: Ruta física del microchip (Gemini 2.5 Flash)
+    const candidate = result.response.candidates && result.response.candidates[0];
+    if (!candidate || !candidate.content || !candidate.content.parts) {
+      console.warn("⚠️ IA bloqueada por filtros de seguridad.");
+      return "Disculpa, no he podido procesar esa consulta por seguridad médica. ¿Podrías explicarlo de otra forma?";
+    }
+
+    // Usamos el acceso directo que confirmamos en el test de estrés
+    const text = candidate.content.parts[0].text;
+    console.log("✅ Respuesta de Ana generada con éxito.");
+    return text;
+  } catch (e) {
+    console.error("❌ ERROR CRÍTICO MOTOR IA:", e.message);
+    throw e; 
+  }
+}
+
+// ==========================================
+// 🧠 3. CEREBRO DE ANA (DISERTACIÓN CONDUCTUAL)
+// ==========================================
+
+async function crearContextoAna(idClinicaActual) {
+  // Localización soberana de la clínica (por ID o por Slug)
+  let doc = await db.collection('clinicas').doc(idClinicaActual).get();
+  if (!doc.exists) {
+    const q = await db.collection('clinicas').where('slug', '==', idClinicaActual).limit(1).get();
+    if(!q.empty) doc = q.docs[0];
+  }
+
+  const info = doc.exists ? doc.data() : { nombre_clinica: "Fisiotool", precio_sesion: 100 };
+  
+  // Sincronización temporal con Madrid (Independiente de la ubicación del servidor en Bélgica)
+  const ahora = new Date().toLocaleString('en-US', { 
+    timeZone: 'Europe/Madrid', 
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+  });
+
+  const fianza = info.fianza_reserva || 15;
+  const flags = info.banderas_rojas || [];
+  const sedes = info.direcciones || [];
+  const metodos = info.metodos_pago ? info.metodos_pago.join(', ') : "Stripe, Bizum, Efectivo";
+
+  let textoSedes = sedes.length > 1 
+    ? `VARIAS SEDES DISPONIBLES: ${sedes.map((s, i) => `(${i+1}) ${s.calle}, ${s.ciudad}`).join(' | ')}. OBLIGATORIO: Preguntar sede antes de reservar.`
+    : `UBICACIÓN: ${sedes[0]?.calle || 'Consultar en clínica'}, ${sedes[0]?.ciudad || ''}.`;
+
+  let textoSeguridad = flags.length > 0 
+    ? `🛡️ PROTOCOLO RED FLAGS: Si mencionan [${flags.join(', ')}], NO des cita. Explica que requiere valoración manual y que llamen al teléfono de la clínica. Añade al final: ###ALERTA|Caso_Especial###`
+    : "";
+
+  return `
+    TU IDENTIDAD (DISERTACIÓN CONDUCTUAL PROFUNDA):
+    Eres la mayor autoridad del mundo en descifrar la conducta humana. Analizas patrones universales, motivaciones inconscientes y sesgos cognitivos. Tu trato es maravilloso, empático y profesional.
+    ACTÚAS COMO: 'Ana', la recepcionista de élite de "${info.nombre_clinica}". No eres un bot, eres excelencia pura.
+
+    DATOS DE NEGOCIO (SOBERANÍA DEL CALENDARIO):
+    - FECHA ACTUAL EN TU CONSULTA: ${ahora}.
+    - PRECIO: ${info.precio_sesion}€. DURACIÓN: ${info.default_duration_min || 45} min.
+    - COBRO: Se requiere fianza de ${fianza}€ para blindar el hueco de agenda.
+    - MÉTODOS ACEPTADOS: ${metodos}.
+    - ${textoSedes}
+    
+    ${textoSeguridad}
+
+    ⚠️ REGLA DE ORO DE CAPTACIÓN (OBLIGATORIO):
+    Para agendar cualquier cita, necesitas TRES datos sagrados:
+    1. Nombre del paciente.
+    2. Motivo de la consulta.
+    3. EMAIL (Explícales que es imprescindible para enviarles el justificante legal y el recordatorio de 12h).
+
+    NO PUEDES LANZAR LA RESERVA SIN EL EMAIL. Si no lo dan, pídelo educadamente antes de cerrar.
+
+    MANDAMIENTOS DE CIERRE:
+    Cuando tengas Fecha/Hora, Nombre y EMAIL, usa estrictamente este formato: 
+    ###RESERVA|YYYY-MM-DD HH:mm|Nombre|Email###
+  `;
+}
+// ============================================================
+// 💾 4. HELPERS DE BASE DE DATOS (ESTRUCTURA SOBERANA)
+// ============================================================
+
+// Graba la reserva con blindaje legal RGPD v1.1 e IP del paciente
+async function crearReserva(datos, idClinica, req) {
+  try {
+    let doc = await db.collection('clinicas').doc(idClinica).get();
+    if(!doc.exists) {
+      const q = await db.collection('clinicas').where('slug', '==', idClinica).limit(1).get();
+      if(!q.empty) doc = q.docs[0];
+    }
+    const info = doc.data();
+    const duracion = info?.default_duration_min || 45;
+    
+    // Captura de IP Real para el rastro legal (Compatible con Cloud Run)
+    const clientIp = req?.headers['x-forwarded-for'] || req?.ip || "unknown";
+
+    const ref = await db.collection('citas').add({ 
+      ...datos, 
+      clinic_id: idClinica, 
+      nombre_clinica: info?.nombre_clinica || "FisioTool",
+      fecha_hora_inicio: datos.fecha, // Guardado como String "YYYY-MM-DD HH:mm"
+      duracion_minutos: duracion, 
+      creado: admin.firestore.Timestamp.now(), 
+      status: datos.status || 'pendiente_confirmacion',
+      recordatorio_enviado: false,
+      aceptacion_rgpd: {
+        aceptado: true,
+        fecha: admin.firestore.Timestamp.now(),
+        version: "1.1",
+        ip: clientIp
+      }
+    }); 
+    
+    console.log("✅ Cita Sincronizada en el Palacio (ID):", ref.id);
+    return ref.id;
+  } catch (e) { 
+    console.error("❌ ERROR EN GRABACIÓN DE RESERVA:", e); 
+    return null; 
+  }
+}
+
+// Registro histórico de la conversación para el CRM
+async function guardarLogChat(tlf, usr, ia, idClinica) {
+  try {
+    await db.collection('chats').add({ 
+      tlf, usr, ia, clinic_id: idClinica, ts: admin.firestore.Timestamp.now() 
+    });
+  } catch (e) { console.error("❌ Error en Log de Inteligencia:", e); }
+}
+
+// Emisión de alertas por Banderas Rojas (Triaje)
+async function crearAlerta(tlf, iaReply, idClinica, motivo) {
+  try {
+    await db.collection('alertas_red_flag').add({
+      paciente_tlf: tlf,
+      mensaje_ia: iaReply,
+      clinic_id: idClinica,
+      motivo: motivo,
+      creado: admin.firestore.Timestamp.now(),
+      status: 'pendiente'
+    });
+    console.log("🚨 Alerta de seguridad emitida por Ana.");
+  } catch (e) { console.error("❌ Error en Sistema de Alertas:", e); }
+}
+
+// Gestión de Bonos (Fidelización Activa)
+async function consultarYDescontarBono(tlf, idClinica) {
+  try {
+    const snap = await db.collection('bonos')
+      .where('clinic_id', '==', idClinica)
+      .where('paciente_tlf', '==', tlf)
+      .where('status', '==', 'activo')
+      .where('sesiones_disponibles', '>', 0)
+      .limit(1).get();
+
+    if (snap.empty) return { bonoUsado: false };
+
+    const bonoDoc = snap.docs[0];
+    const nuevas = bonoDoc.data().sesiones_disponibles - 1;
+    await bonoDoc.ref.update({
+      sesiones_disponibles: nuevas,
+      status: nuevas <= 0 ? 'consumido' : 'activo'
+    });
+    console.log(`🎟️ Bono detectado: -1 sesión. Restan: ${nuevas}`);
+    return { bonoUsado: true, sesionesRestantes: nuevas };
+  } catch (e) { return { bonoUsado: false }; }
+}
+
+// ============================================================
+// 📅 5. AGENDA SOBERANA (CALIBRACIÓN NASA)
+// ============================================================
+
+async function checkAgendaDeterminista(idClinica, fechaIntentoStr) {
+  let clinicaDoc = await db.collection('clinicas').doc(idClinica).get();
+  if(!clinicaDoc.exists) {
+    const q = await db.collection('clinicas').where('slug', '==', idClinica).limit(1).get();
+    if(!q.empty) clinicaDoc = q.docs[0];
+    else return { available: false, reason: "clínica no encontrada" };
+  }
+  
+  const data = clinicaDoc.data();
+  const fechaSoloDia = fechaIntentoStr.split(' ')[0]; // Extrae YYYY-MM-DD
+
+  // 1. COMPROBACIÓN DE BLOQUEOS GRANULARES (VACACIONES O HORAS SUELTAS)
+  const bloqueosSnap = await db.collection('bloqueos')
+    .where('clinic_id', '==', idClinica)
+    .get();
+
+  const [y, m, d] = fechaSoloDia.split('-').map(Number);
+  const [hh, mm] = fechaIntentoStr.split(' ')[1].split(':').map(Number);
+  const citaInicioTotalMin = hh * 60 + mm;
+  const duracionMinutos = data.default_duration_min || 45;
+  const citaFinTotalMin = citaInicioTotalMin + duracionMinutos;
+
+  for (const doc of bloqueosSnap.docs) {
+    const b = doc.data();
+    // Bloqueo de día completo
+    if (!b.hora_inicio && fechaSoloDia >= b.inicio && fechaSoloDia <= b.fin) {
+      return { available: false, reason: `Cerrado por: ${b.motivo}` };
+    }
+    // Bloqueo por horas en un día específico
+    if (b.hora_inicio && fechaSoloDia === b.inicio) {
+      const [bh_ini, bm_ini] = b.hora_inicio.split(':').map(Number);
+      const [bh_fin, bm_fin] = b.hora_fin.split(':').map(Number);
+      const blockStart = bh_ini * 60 + bm_ini;
+      const blockEnd = bh_fin * 60 + bm_fin;
+      
+      // Colisión: (CitaIn < BloqueoFin) Y (BloqueoIn < CitaFin)
+      if (citaInicioTotalMin < blockEnd && blockStart < citaFinTotalMin) {
+        return { available: false, reason: `Bloqueo horario: ${b.motivo}` };
+      }
+    }
+  }
+
+  // 2. HORARIO COMERCIAL SEMANAL (Sincro Madrid)
+  const diaSemana = new Date(y, m - 1, d).getDay().toString();
+  const horarioDia = data.weekly_schedule?.[diaSemana];
+  if (!horarioDia || horarioDia.length === 0) return { available: false, reason: "Día no laborable" };
+
+  let dentroDeHorario = false;
+  for (const slot of horarioDia) {
+    const [sh, sm] = slot.start.split(':').map(Number);
+    const [eh, em] = slot.end.split(':').map(Number);
+    if (citaInicioTotalMin >= (sh * 60 + sm) && citaFinTotalMin <= (eh * 60 + em)) {
+      dentroDeHorario = true;
+      break;
+    }
+  }
+  if (!dentroDeHorario) return { available: false, reason: "Fuera de horario comercial" };
+
+  // 3. COLISIONES CON OTRAS CITAS (Eficiencia de costes: solo consultamos hoy)
+  // Usamos UTC puro para evitar desfases de la máquina del servidor
+  const inicioMs = Date.UTC(y, m - 1, d, hh, mm);
+  const finMs = inicioMs + (duracionMinutos * 60000);
+
+  const citasHoy = await db.collection('citas')
+    .where('clinic_id', '==', idClinica)
+    .where('fecha_hora_inicio', '>=', fechaSoloDia) 
+    .get();
+
+  for (const doc of citasHoy.docs) {
+    const c = doc.data();
+    if (c.status === 'cancelada_por_expiracion' || c.status === 'cancelada') continue;
+    
+    // Ignorar citas amarillas expiradas
+    if(c.status === 'pendiente_pago' && c.expira_el && Date.now() > c.expira_el.toMillis()) continue;
+
+    const [cY, cM, cD] = c.fecha_hora_inicio.split(' ')[0].split('-').map(Number);
+    const [cH, cMi] = c.fecha_hora_inicio.split(' ')[1].split(':').map(Number);
+    const cIni = Date.UTC(cY, cM - 1, cD, cH, cMi);
+    const cDur = c.duracion_minutos || 45;
+    const cFin = cIni + (cDur * 60000);
+
+    if (inicioMs < cFin && cIni < finMs) return { available: false, reason: "Hueco ya ocupado" };
+  }
+
+  return { available: true };
+}
+// ============================================================
+// 🔄 6. PROCESAMIENTO UNIFICADO (ANA ENGINE - MODO ACCIÓN)
+// ============================================================
+
+async function procesarMensajeUnificado(idClinica, tlf, msg, isWhatsapp, req) {
+  try {
+    let currentID = idClinica;
+    const tlfLimpio = normalizarTelefono(tlf);
+
+    // 1. IDENTIFICACIÓN SOBERANA (¿Quién llama?)
+    // Buscamos en la colección de pacientes usando el ID único [clinic_tlf]
+    const pacienteRef = db.collection('pacientes').doc(`${currentID}_${tlfLimpio}`);
+    const pacienteDoc = await pacienteRef.get();
+    
+    let identityMsg = "El paciente es nuevo. Pide su nombre y EMAIL obligatoriamente.";
+    let nombreReconocido = null;
+
+    if (pacienteDoc.exists) {
+      nombreReconocido = pacienteDoc.data().nombre;
+      identityMsg = `IMPORTANTE: Reconoces al paciente, se llama ${nombreReconocido}. No le preguntes su nombre. Salúdalo de forma cercana. Ya tienes su email en ficha.`;
+      console.log(`👤 Identidad detectada en el palacio: ${nombreReconocido}`);
+    }
+
+    // 2. RECUPERACIÓN DE HISTORIAL (MEMORIA RECIENTE)
+    const promptBase = await crearContextoAna(currentID);
+    const chatsSnap = await db.collection('chats')
+      .where('clinic_id', '==', currentID)
+      .where('tlf', '==', tlfLimpio)
+      .orderBy('ts', 'desc')
+      .limit(6)
+      .get();
+    
+    let historyTxt = "";
+    chatsSnap.docs.reverse().forEach(d => {
+      const data = d.data();
+      historyTxt += `Usuario: ${data.usr}\nAna: ${data.ia}\n`;
+    });
+
+    // 3. CONSTRUCCIÓN DEL PROMPT FINAL Y LLAMADA AL CEREBRO
+    const promptFinal = `${promptBase}\n\nSITUACIÓN DE IDENTIDAD:\n${identityMsg}\n\nHISTORIAL RECIENTE:\n${historyTxt}\nMENSAJE ACTUAL DEL USUARIO: "${msg}"`;
+
+    const contents = [{ role: "user", parts: [{ text: promptFinal }] }];
+    const iaReply = await callVertexAI(contents);
+    let finalReply = iaReply;
+
+    // 4. LÓGICA DE COMANDOS (RESERVA | ALERTA)
+    // Captura: [1]Fecha, [2]Nombre, [3]Email
+    const matchReserva = iaReply.match(/###\s*RESERVA\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*###/i);
+    const matchAlerta = iaReply.match(/###\s*ALERTA\s*\|\s*(.*?)\s*###/i); 
+
+    if (matchAlerta) {
+      await crearAlerta(tlfLimpio, iaReply, currentID, matchAlerta[1].trim());
+      finalReply = iaReply.replace(matchAlerta[0], "").trim();
+    }
+
+    if (matchReserva) {
+      const fechaIntento = matchReserva[1].trim();
+      const pacNombre = nombreReconocido || matchReserva[2].trim();
+      const pacEmail = matchReserva[3].trim();
+
+      // Validación de agenda física
+      const check = await checkAgendaDeterminista(currentID, fechaIntento);
+
+      if (!check.available) {
+        finalReply = `Vaya, acabo de revisar la agenda y ese hueco no está disponible (${check.reason}). ¿Te viene bien probar otra hora?`;
+      } else {
+        // --- GESTIÓN DE BONOS (PAGO PREVIO) ---
+        const bonoResult = await consultarYDescontarBono(tlfLimpio, currentID); 
+
+        const citaData = { 
+            paciente_telefono: tlfLimpio, 
+            fecha: fechaIntento, 
+            paciente_nombre: pacNombre,
+            paciente_email: pacEmail,
+            tipo_pago: bonoResult.bonoUsado ? 'Bono' : 'Pendiente',
+            status: bonoResult.bonoUsado ? 'confirmada' : 'pendiente_pago',
+            expira_el: Timestamp.fromDate(new Date(Date.now() + 12*3600000))
+        };
+
+        const citaId = await crearReserva(citaData, currentID, req);
+        
+        // Notificación inmediata al email (Confirmación o Recibo de solicitud)
+        await enviarConfirmacionInmediata(citaData, currentID);
+
+        if (bonoResult.bonoUsado) {
+          finalReply = iaReply.replace(matchReserva[0], "").trim() + `\n\n✅ ¡Cita confirmada! Se ha descontado de tu bono activo. Te quedan ${bonoResult.sesionesRestantes} sesiones.`;
+        } else {
+          // --- PROCESAMIENTO DE COBRO HÍBRIDO (STRIPE / BIZUM / CASH) ---
+          const clinicaDoc = await db.collection('clinicas').doc(currentID).get();
+          const cData = clinicaDoc.data();
+          const fianza = parseInt(cData?.fianza_reserva || "15");
+
+          // Escenario A: Stripe Connect (Automático)
+          if (stripe && cData?.stripe_account_id) {
+            try {
+              const host = getDynamicHost(req);
+              const session = await stripe.checkout.sessions.create({
+                payment_method_types: ['card'],
+                line_items: [{
+                  price_data: { 
+                    currency: 'eur', 
+                    product_data: { name: `Reserva Cita - ${cData.nombre_clinica}` }, 
+                    unit_amount: fianza * 100 
+                  },
+                  quantity: 1,
+                }],
+                mode: 'payment',
+                success_url: `${host}/dashboard?id=${currentID}&pago=ok`,
+                cancel_url: `${host}/agenda/${currentID}`,
+                metadata: { cita_id: citaId, tipo: "reserva_cita", clinic_id: currentID }
+              });
+              finalReply = iaReply.replace(matchReserva[0], "").trim() + `\n\n💳 **Para confirmar, abona la señal de ${fianza}€ aquí:**\n${session.url}\n\n(El hueco se liberará en 12h si no se completa el pago).`;
+            } catch(e) {
+              console.error("Fallo Stripe en reserva:", e.message);
+              await db.collection('citas').doc(citaId).update({ status: 'confirmada', tipo_pago: 'Presencial' });
+              finalReply = iaReply.replace(matchReserva[0], "").trim() + `\n\n✅ ¡Listo ${pacNombre}! Tu cita está confirmada. Abonarás la sesión directamente en la clínica.`;
+            }
+          } else {
+            // Escenario B: Bizum o Efectivo (Manual)
+            const prefiereBizum = cData?.metodos_pago?.includes('Bizum');
+            const instruccion = prefiereBizum 
+                ? `Por favor, haz un Bizum de ${fianza}€ al teléfono de la clínica para confirmar tu hueco. Avísame cuando lo tengas.`
+                : `Tu cita ha sido pre-reservada con éxito. El pago se realizará en la clínica. ¡Te esperamos!`;
+            
+            finalReply = iaReply.replace(matchReserva[0], "").trim() + `\n\n✅ ${instruccion}`;
+          }
+        }
+      }
+    }
+
+    // 5. LIMPIEZA FINAL Y ENVÍO POR CANAL
+    const cleanText = finalReply.replace(/###.*?###/g, '').trim();
+
+    if (isWhatsapp && WHATSAPP_TOKEN) {
+      await axios.post(`https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/messages`, {
+        messaging_product: 'whatsapp', to: tlfLimpio, type: 'text', text: { body: cleanText }
+      }, { headers: { 'Authorization': `Bearer ${WHATSAPP_TOKEN}` } });
+    }
+
+    await guardarLogChat(tlfLimpio, msg, cleanText, currentID);
+    return { reply: cleanText };
+
+  } catch (e) {
+    console.error("❌ Error en Procesamiento Unificado:", e);
+    return { reply: "Lo siento, mi conexión con el servidor de la clínica ha tenido un parpadeo. ¿Podrías repetirme para qué día querías la cita?" };
+  }
+}
+
+// --- AYUDANTE DE NOTIFICACIÓN (PLAN A) ---
+async function enviarConfirmacionInmediata(cita, idClinica) {
+  try {
+    const doc = await db.collection('clinicas').doc(idClinica).get();
+    const info = doc.data();
+    await transporter.sendMail({
+      from: '"Ana de FisioTool" <ana@fisiotool.com>',
+      to: cita.paciente_email,
+      subject: `✅ Reserva recibida: ${info.nombre_clinica}`,
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; border-radius: 15px; padding: 30px;">
+          <h2 style="color: #0066ff;">¡Hola ${cita.paciente_nombre}!</h2>
+          <p>Hemos registrado tu solicitud de cita para el día <strong>${cita.fecha}</strong>.</p>
+          <p>Ubicación: ${info.direcciones?.[0]?.calle || 'Consultar clínica'}</p>
+          <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+          <p style="font-size: 11px; color: #999;">FisioTool Pro Edition - Gestión de Salud Superior</p>
+        </div>`
+    });
+  } catch (err) { console.error("❌ Error enviando mail de bienvenida:", err.message); }
+}
+// ============================================================
+// 📲 7. FUNCIÓN ASÍNCRONA PARA WHATSAPP (CONEXIÓN EXTERNA)
+// ============================================================
+
+// Esta función procesa los mensajes de WhatsApp en segundo plano para no bloquear a Meta
+async function procesarMensajeAsync(reqBody, clinicId) {
+  try {
+    if (!reqBody.entry?.[0]?.changes?.[0]?.value?.messages?.[0]) return;
+    
+    const messageData = reqBody.entry[0].changes[0].value.messages[0];
+    const tlf = messageData.from;
+    const msg = messageData.text?.body;
+
+    if (tlf && msg) {
+      // Llamamos al motor unificado con flag de WhatsApp (isWhatsapp = true)
+      await procesarMensajeUnificado(clinicId, tlf, msg, true, null);
+    }
+  } catch (e) {
+    console.error("❌ Error en Procesador Async WhatsApp:", e.message);
+  }
+}
+
+// ============================================================
+// 🌐 8. ENDPOINTS DE INTERACCIÓN (CHATS Y CONFIG)
+// ============================================================
+
+// --- WEBHOOK WHATSAPP: VERIFICACIÓN (PASO OBLIGATORIO DE META) ---
+app.get('/webhook', (req, res) => {
+  const mode = req.query['hub.mode'];
+  const token = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+
+  if (mode && token) {
+    if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+      console.log("✅ WEBHOOK VERIFICADO POR META");
+      res.status(200).send(challenge);
+    } else {
+      res.sendStatus(403);
+    }
+  }
+});
+
+// --- WEBHOOK WHATSAPP: RECEPCIÓN DE MENSAJES (PLAN B) ---
+app.post('/webhook', async (req, res) => {
+  // 📨 RESPONDER 200 OK INMEDIATAMENTE (Evita reenvíos de Meta por timeout)
+  res.sendStatus(200); 
+
+  const reqBody = req.body;
+  
+  // Detectamos a qué ID de teléfono va dirigido el mensaje (Soporte Multi-Sede Plan B)
+  const phoneIDReceptor = reqBody.entry?.[0]?.changes?.[0]?.value?.metadata?.phone_number_id;
+  
+  try {
+    let currentID = CLINIC_ID_DEFAULT;
+
+    // LÓGICA PLAN B: Buscamos qué clínica es dueña de este PhoneID de Meta
+    if (phoneIDReceptor) {
+      const q = await db.collection('clinicas').where('wa_phone_id_pro', '==', phoneIDReceptor).limit(1).get();
+      if (!q.empty) currentID = q.docs[0].id;
+    }
+
+    // El trabajo pesado se hace en segundo plano
+    procesarMensajeAsync(reqBody, currentID);
+    
+  } catch (e) { console.error("Error identificando clínica en Webhook:", e); }
+});
+
+// --- API CHAT: EL MOTOR DE LA LANDING DE NEXT.JS (PLAN A) ---
+app.post('/api/chat/:clinicId', async (req, res) => {
+  const { message, patient_tlf } = req.body;
+  const { clinicId } = req.params;
+
+  if (!message || !patient_tlf) {
+    return res.status(400).send({ error: "Faltan parámetros críticos (message, patient_tlf)." });
+  }
+
+  try {
+    // El flag isWhatsapp es false (Plan A: Web)
+    const result = await procesarMensajeUnificado(clinicId, patient_tlf, message, false, req); 
+    res.json(result); 
+  } catch (e) {
+    res.status(500).json({ error: "Error en la transmisión con Ana." });
+  }
+});
+
+// --- API CONFIG: ENTREGA DATOS DE MARCA AL FRONTEND ---
+app.get('/api/config/:clinicId', async (req, res) => {
+  const { clinicId } = req.params;
+  try {
+    let doc = await db.collection('clinicas').doc(clinicId).get();
+    
+    // Fallback por slug para permitir URLs amigables (fisiotool.com/clinica-murillo)
+    if (!doc.exists) {
+      const q = await db.collection('clinicas').where('slug', '==', clinicId).limit(1).get();
+      if(!q.empty) doc = q.docs[0];
+    }
+
+    if (!doc.exists) return res.status(404).send({ error: "Clínica no encontrada en el sistema soberano." });
+
+    const data = doc.data();
+    res.json({
+      id: doc.id,
+      nombre_clinica: data.nombre_clinica,
+      logo_url: data.logo_url,
+      phone: data.phone,
+      address: data.direcciones?.[0]?.calle || "Consultar clínica",
+      weekly_schedule: data.weekly_schedule,
+      default_duration_min: data.default_duration_min || 45,
+      mi_codigo_referido: data.mi_codigo_referido || doc.id.substring(0,8).toUpperCase()
+    });
+  } catch (e) {
+    res.status(500).send({ error: "Error al cargar configuración de palacio." });
+  }
+});
+// ============================================================
+// 📝 9. REGISTRO DE NUEVA CLÍNICA (ESTRATEGIA 100/300/500 + TRIAL)
+// ============================================================
+
+app.post('/api/register', async (req, res) => {
+  const d = req.body;
+  
+  try {
+    // 1. GENERACIÓN DE IDENTIDAD ÚNICA (SLUG)
+    // Limpiamos el nombre para la URL: "Clínica Murillo" -> "clinica-murillo"
+    let slug = d.nombre_clinica.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    
+    // Verificación de colisión: Si el slug existe, añadimos un sufijo aleatorio
+    const existe = await db.collection('clinicas').where('slug', '==', slug).get();
+    if (!existe.empty) {
+      slug = `${slug}-${Math.floor(1000 + Math.random() * 9000)}`;
+    }
+
+    // 2. CONFIGURACIÓN DE REGLAS DE NEGOCIO
+    // Lógica de Descanso: Si hace descanso, creamos dos slots, si no, uno corrido.
+    const slots = d.hace_descanso === true 
+      ? [{start: d.apertura, end: d.descanso_inicio}, {start: d.descanso_fin, end: d.cierre}] 
+      : [{start: d.apertura, end: d.cierre}];
+
+    // Generamos un código de referido único para esta nueva clínica
+    const miCodigoReferido = 'FT-' + Math.random().toString(36).substr(2, 5).toUpperCase();
+
+    const newClinicData = {
+      nombre_clinica: d.nombre_clinica, 
+      slug, 
+      email: d.email, 
+      password: d.password, 
+      precio_sesion: parseInt(d.precio || 100), 
+      fianza_reserva: parseInt(d.fianza || 15),
+      default_duration_min: 45,
+      banderas_rojas: d.flags || [],
+      metodos_pago: d.metodos_pago || ['Efectivo'],
+      weekly_schedule: { "1": slots, "2": slots, "3": slots, "4": slots, "5": slots, "6": [], "0": [] },
+      direcciones: [{ 
+        calle: d.calle, 
+        numero: d.numero || "", 
+        cp: d.cp || "", 
+        ciudad: d.ciudad || "", 
+        provincia: d.provincia || "", 
+        principal: true 
+      }],
+      mi_codigo_referido: miCodigoReferido,
+      plan: d.plan || 'solo', // 'solo', 'team' o 'clinic'
+      created_at: admin.firestore.Timestamp.now(), 
+      status: 'pendiente_pago', // Se activará cuando el Webhook reciba la señal de Stripe
+      aceptacion_legal: { 
+        aceptado: true, 
+        fecha: admin.firestore.Timestamp.now(),
+        version: "1.1"
+      }
+    };
+
+    const ref = await db.collection('clinicas').add(newClinicData);
+
+    // 3. GENERACIÓN DE PASARELA STRIPE (ESTILO FERRARI)
+    if (stripe) {
+      const planElegido = d.plan || 'solo';
+      const priceId = PLANES_STRIPE[planElegido];
+
+      const sessionConfig = {
+        payment_method_types: ['card'],
+        customer_email: d.email,
+        line_items: [{
+          price: priceId,
+          quantity: 1,
+        }],
+        mode: 'subscription',
+        subscription_data: {
+          trial_period_days: 30, // 🎁 La magia: 30 días de prueba gratuita (Hoy paga 0€)
+          trial_settings: { end_behavior: { missing_payment_method: 'cancel' } },
+          metadata: {
+            clinic_id: ref.id,
+            referente_id: (planElegido === 'solo' && d.codigo_invitacion) ? d.codigo_invitacion : ""
+          }
+        },
+        payment_method_collection: 'always', // Obligamos a dejar la tarjeta para el cobro automático
+        success_url: `${getDynamicHost(req)}/dashboard?id=${ref.id}&pago=ok`,
+        cancel_url: `${getDynamicHost(req)}/setup?error=pago_cancelado`,
+        metadata: { 
+            clinic_id: ref.id, 
+            tipo: 'suscripcion',
+            referente_id: (planElegido === 'solo' && d.codigo_invitacion) ? d.codigo_invitacion : "" 
+        }
+      };
+
+      // Si es el plan Base y tiene invitación, aplicamos el cupón del 50%
+      if (planElegido === 'solo' && d.codigo_invitacion) {
+        console.log(`🎟️ Aplicando descuento de referido (50%) a: ${d.nombre_clinica}`);
+        sessionConfig.subscription_data.discounts = [{
+          coupon: 'feMDHJlj', // Tu ID de cupón en Stripe
+        }];
+      }
+
+      const session = await stripe.checkout.sessions.create(sessionConfig);
+      
+      console.log(`🚀 Checkout generado con éxito para: ${d.nombre_clinica} (Plan: ${planElegido})`);
+      return res.json({ success: true, payment_url: session.url });
+    }
+
+    // Fallback para modo desarrollo sin Stripe
+    res.json({ success: true, dashboard_url: `/dashboard?id=${ref.id}` });
+
+  } catch(e) { 
+    console.error("❌ ERROR CRÍTICO EN REGISTRO:", e.message);
+    res.status(500).json({ error: "Fallo en el sistema de alta. Reintente." }); 
+  }
+});
+// ============================================================
+// 🔄 10. WEBHOOK VIGILANTE DE STRIPE (CIERRE DE CICLO PRO)
+// ============================================================
+
+app.post('/stripe-webhook', express.raw({type: 'application/json'}), async (req, res) => {
+  if (DEV_MODE) return res.status(200).send("Webhook ignorado en modo Desarrollo.");
+
+  const sig = req.headers['stripe-signature'];
+  let event;
+
+  try {
+    // Verificación de Firma: El sello de autenticidad de Stripe
+    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+  } catch (err) {
+    console.error("❌ Error de Firma en Webhook:", err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  try {
+    // --- EVENTO A: ALTA INICIAL (Checkout Completado) ---
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object;
+      const { tipo, cita_id, clinic_id, referente_id } = session.metadata;
+
+      // 1. Caso Pago de Cita (Fianza de Paciente)
+      if (tipo === 'reserva_cita') {
+        const citaRef = db.collection('citas').doc(cita_id);
+        const snap = await citaRef.get();
+        await citaRef.update({ 
+          status: 'confirmada', 
+          tipo_pago: 'Stripe Online', 
+          pagado_el: admin.firestore.Timestamp.now() 
+        });
+        if (snap.exists) await enviarConfirmacionInmediata(snap.data(), clinic_id);
+        console.log(`✅ Cita confirmada mediante pago: ${cita_id}`);
+      } 
+      
+      // 2. Caso Alta de Suscripción (Nuevo Fisioterapeuta)
+      else if (tipo === 'suscripcion') {
+        const clinicaRef = db.collection('clinicas').doc(clinic_id);
+        const snap = await clinicaRef.get();
+        const cData = snap.data();
+
+        await clinicaRef.update({ 
+          status: 'activo', 
+          suscripcion_id: session.subscription,
+          stripe_customer_id: session.customer,
+          activado_el: admin.firestore.Timestamp.now(),
+          referente_id_pendiente: referente_id || "" // Huella guardada para cuando pague de verdad
+        });
+
+        if (cData && cData.email) {
+          await enviarEmailBienvenida(cData.email, cData.nombre_clinica, clinic_id);
+        }
+        console.log(`🚀 Nueva clínica activada: ${cData?.nombre_clinica}`);
+      }
+    }
+
+    // --- EVENTO B: PAGO DE FACTURA REAL (RECOMPENSA AL REFERENTE) ---
+    // Este evento salta cuando el trial de 30 días termina y se cobra la primera cuota
+    if (event.type === 'invoice.paid') {
+      const factura = event.data.object;
+
+      // Solo recompensamos si hay dinero real entrando (> 0€) y es una suscripción
+      if (factura.subscription && factura.amount_paid > 0) {
+        // Recuperamos la suscripción del "amigo" para leer quién le invitó
+        const suscripcionAmigo = await stripe.subscriptions.retrieve(factura.subscription);
+        const idReferente = suscripcionAmigo.metadata.referente_id;
+
+        if (idReferente && idReferente !== "") {
+          console.log(`💰 Pago real detectado de un referido. Recompensando al referente: ${idReferente}`);
+          
+          const refDoc = await db.collection('clinicas').doc(idReferente).get();
+          const refData = refDoc.data();
+
+          if (refDoc.exists && refData.suscripcion_id) {
+            // Aplicamos el cupón de 50% a la suscripción activa del referente
+            // El descuento se verá en su PRÓXIMA factura automáticamente
+            await stripe.subscriptions.update(refData.suscripcion_id, {
+              coupon: 'feMDHJlj', // Tu ID de cupón del 50% en Stripe
+            });
+            console.log(`🎟️ ¡BUM! Descuento del 50% aplicado con éxito a: ${refData.nombre_clinica}`);
+            
+            // Opcional: Avisar al referente por email de su premio
+            await transporter.sendMail({
+              from: '"Ana de FisioTool" <ana@fisiotool.com>',
+              to: refData.email,
+              subject: "🎁 ¡Tu regalo FisioTool ha llegado!",
+              text: `Hola, tu amigo ha realizado su primer pago. Tu próxima factura será un 50% más barata. ¡Gracias por compartir!`
+            });
+          }
+        }
+      }
+    }
+
+    res.json({ received: true });
+
+  } catch (error) {
+    console.error("🔥 Error interno en el Webhook:", error.message);
+    res.status(500).send("Fallo en el procesamiento de la señal de pago.");
+  }
+});
+// ============================================================
+// 👥 11. GESTIÓN DE EQUIPOS Y ESPECIALISTAS (PLAN TEAM / CLINIC)
+// ============================================================
+
+// Dar de alta a un compañero en la clínica
+app.post('/api/dashboard/add-especialista', async (req, res) => {
+  const { clinic_id, nombre, especialidad, email } = req.body;
+  if (!clinic_id || !nombre) return res.status(400).send("Datos incompletos.");
+
+  try {
+    // 1. Verificación de Soberanía y Plan
+    const clinicaRef = db.collection('clinicas').doc(clinic_id);
+    const doc = await clinicaRef.get();
+    const clinica = doc.data();
+    
+    // Contamos cuántos especialistas tiene ya
+    const equipoSnap = await clinicaRef.collection('especialistas').get();
+    
+    // Lógica de Negocio: Restricción por Plan
+    if (clinica.plan === 'solo' && equipoSnap.size >= 1) {
+        return res.status(403).json({ error: "Límite alcanzado. Tu Plan Solo solo permite 1 especialista." });
+    }
+    if (clinica.plan === 'team' && equipoSnap.size >= 5) {
+        return res.status(403).json({ error: "Límite alcanzado. Tu Plan Team permite hasta 5 especialistas." });
+    }
+
+    // 2. Registro del Profesional
+    await clinicaRef.collection('especialistas').add({
+      nombre: nombre.trim(),
+      especialidad: especialidad || "Fisioterapia General",
+      email: email || "",
+      activo: true,
+      creado_el: admin.firestore.Timestamp.now()
+    });
+
+    res.json({ success: true });
+  } catch (e) { res.status(500).send(e.message); }
+});
+
+// Obtener la lista del equipo para el Dashboard OMEGA
+app.get('/api/dashboard/equipo', async (req, res) => {
+  try {
+    const { clinic_id } = req.query;
+    const snap = await db.collection('clinicas').doc(clinic_id).collection('especialistas').get();
+    const equipo = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json(equipo);
+  } catch (e) { res.status(500).send(e.message); }
+});
+
+// ============================================================
+// 💳 12. MOTOR STRIPE CONNECT (ALTA RÁPIDA DE COBROS)
+// ============================================================
+
+app.post('/api/stripe/onboard', async (req, res) => {
+  const { clinic_id } = req.body;
+  try {
+    // 1. Creamos cuenta Express para el fisio (Stripe maneja el KYC)
+    const account = await stripe.accounts.create({ type: 'express' });
+
+    // 2. Generamos link de 5 minutos para que el fisio ponga su IBAN
+    const host = getDynamicHost(req);
+    const accountLink = await stripe.accountLinks.create({
+      account: account.id,
+      refresh_url: `${host}/dashboard?id=${clinic_id}&stripe=retry`,
+      return_url: `${host}/dashboard?id=${clinic_id}&stripe=success`,
+      type: 'account_onboarding',
+    });
+
+    // 3. Guardamos el ID en su ficha para que Ana sepa dónde enviar el dinero
+    await db.collection('clinicas').doc(clinic_id).update({ 
+        stripe_connect_id: account.id,
+        cobros_configurados: false 
+    });
+
+    res.json({ url: accountLink.url });
+  } catch (e) { res.status(500).send(e.message); }
+});
+
+// ============================================================
+// 🕵️‍♂️ 13. THE FOUNDRY: MONITORIZACIÓN ESTRATÉGICA (GOD VIEW)
+// ============================================================
+
+app.get('/api/admin/stats-globales', async (req, res) => {
+  try {
+    const clinicasSnap = await db.collection('clinicas').get();
+    const citasSnap = await db.collection('citas').get();
+    
+    let mrr = 0; 
+    const listaClinicas = [];
+
+    clinicasSnap.forEach(doc => {
+      const d = doc.data();
+      listaClinicas.push({
+        id: doc.id,
+        nombre: d.nombre_clinica,
+        email: d.email,
+        status: d.status,
+        plan: d.plan || 'solo',
+        fecha: d.created_at?.toDate().toLocaleDateString() || 'Legacy'
+      });
+      // Cálculo de Ingresos Mensuales Recurrentes
+      if (d.status === 'activo') {
+          if (d.plan === 'solo') mrr += 100;
+          else if (d.plan === 'team') mrr += 300;
+          else if (d.plan === 'clinic') mrr += 500;
+      }
+    });
+
+    res.json({
+      success: true,
+      stats: {
+        totalClinicas: clinicasSnap.size,
+        totalCitasAna: citasSnap.size,
+        mrr: mrr + "€"
+      },
+      clinicas: listaClinicas
+    });
+  } catch (e) { res.status(500).send(e.message); }
+});
+
+// ============================================================
+// 🧠 14. ANA STRATEGIC ASSISTANT (CONSULTORÍA 24/7)
+// ============================================================
+
+app.post('/api/dashboard/ana-assistant', async (req, res) => {
+  const { clinic_id, message } = req.body;
+  try {
+    const doc = await db.collection('clinicas').doc(clinic_id).get();
+    const info = doc.data();
+    
+    const promptAssistant = `
+      Eres la Consultora Estratégica de Élite para el dueño de "${info.nombre_clinica}".
+      Tu misión es analizar el negocio y dar pautas de crecimiento basadas en psicología conductual.
+      CONTEXTO: Precio sesión ${info.precio_sesion}€. Localización ${info.direcciones?.[0]?.ciudad}.
+      
+      Duda del profesional: "${message}"
+      Responde con autoridad, elegancia y visión de negocio.
+    `;
+
+    const reply = await callVertexAI([{ role: 'user', parts: [{ text: promptAssistant }] }]);
+    res.json({ success: true, reply });
+  } catch (e) { res.status(500).send("Error en la consultoría de Ana."); }
+});
+// ============================================================
+// 📊 15. ENDPOINTS DEL DASHBOARD: CRM Y OPERACIONES
+// ============================================================
+
+// --- LISTADO DE PACIENTES (OPTIMIZACIÓN NASA) ---
+app.get('/api/dashboard/pacientes', async (req, res) => {
+  const { clinic_id } = req.query;
+  if (!clinic_id) return res.status(400).send("ID de clínica requerido.");
+
+  try {
+    // Leemos directamente de la colección soberana de pacientes
+    const snap = await db.collection('pacientes')
+      .where('clinic_id', '==', clinic_id)
+      .orderBy('creado_el', 'desc')
+      .get();
+
+    const lista = snap.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      fecha_alta: doc.data().creado_el?.toDate().toLocaleDateString() || 'N/A'
+    }));
+
+    res.json(lista);
+  } catch (e) {
+    console.error("❌ Error en lectura de CRM:", e.message);
+    res.status(500).json([]);
+  }
+});
+
+// --- FICHA TÉCNICA DEL PACIENTE (NOTAS + CHATS) ---
+app.get('/api/dashboard/paciente-info', async (req, res) => {
+  const { clinic_id, telefono } = req.query;
+  const tlfLimpio = normalizarTelefono(telefono);
+
+  try {
+    // 1. Recuperamos las Notas de Evolución (Dictadas por voz)
+    const notasSnap = await db.collection('notas_clinicas')
+      .where('clinic_id', '==', clinic_id)
+      .where('paciente_tlf', '==', tlfLimpio)
+      .orderBy('creado', 'desc')
+      .get();
+
+    const notas = notasSnap.docs.map(d => ({
+      contenido: d.data().contenido,
+      creado: d.data().creado?.toDate().toISOString()
+    }));
+
+    // 2. Recuperamos el rastro de la conversación con Ana
+    const chatsSnap = await db.collection('chats')
+      .where('clinic_id', '==', clinic_id)
+      .where('tlf', '==', tlfLimpio)
+      .orderBy('ts', 'desc')
+      .limit(20)
+      .get();
+
+    const chats = chatsSnap.docs.map(d => ({
+      msg: d.data().usr,
+      reply: d.data().ia,
+      ts: d.data().ts?.toDate().toISOString()
+    }));
+
+    res.json({ notas, chats });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// --- MOTOR DE IMPORTACIÓN MASIVA (FRACCIONADOR DE LOTES) ---
+app.post('/api/dashboard/importar-pacientes', async (req, res) => {
+  const { clinic_id, pacientes } = req.body; 
+  if (!pacientes || !Array.isArray(pacientes)) return res.status(400).send("Munición de datos inválida.");
+
+  try {
+    // Google Firestore limita a 500 escrituras por lote. Fraccionamos el ataque:
+    const chunks = [];
+    for (let i = 0; i < pacientes.length; i += 500) {
+      chunks.push(pacientes.slice(i, i + 500));
+    }
+
+    for (const chunk of chunks) {
+      const batch = db.batch();
+      chunk.forEach(p => {
+        const tlf = normalizarTelefono(p.telefono);
+        if (tlf) {
+          const ref = db.collection('pacientes').doc(`${clinic_id}_${tlf}`);
+          batch.set(ref, {
+            clinic_id,
+            nombre: p.nombre.trim(),
+            telefono: tlf,
+            email: p.email?.toLowerCase().trim() || "",
+            creado_el: Timestamp.now(),
+            origen: "importacion_masiva",
+            status: "activo"
+          }, { merge: true });
+        }
+      });
+      await batch.commit();
+    }
+
+    console.log(`📦 Importación masiva completada: ${pacientes.length} pacientes.`);
+    res.json({ success: true, total: pacientes.length });
+  } catch (e) { res.status(500).send(e.message); }
+});
+
+// --- GUARDADO DE NOTA CLÍNICA (SINCRO T-2) ---
+app.post('/api/dashboard/guardar-nota', async (req, res) => {
+  const { clinic_id, telefono, nombre, texto } = req.body;
+  try {
+    const tlfLimpio = normalizarTelefono(telefono);
+    await db.collection('notas_clinicas').add({
+      clinic_id,
+      paciente_tlf: tlfLimpio,
+      paciente_nombre: nombre,
+      contenido: texto.trim(),
+      creado: Timestamp.now(),
+      metodo: 'dictado_voz'
+    });
+
+    // Sincronizamos la "Última Visita" en la ficha del CRM
+    await db.collection('pacientes').doc(`${clinic_id}_${tlfLimpio}`).set({
+      ultima_visita: Timestamp.now()
+    }, { merge: true });
+
+    res.json({ success: true });
+  } catch (e) { res.status(500).send(e.message); }
+});
+
+// --- MOTOR DE BALANCE ECONÓMICO (KPIs REALES) ---
+app.get('/api/dashboard/balance', async (req, res) => {
+  const { clinic_id } = req.query;
+  try {
+    const citasSnap = await db.collection('citas').where('clinic_id', '==', clinic_id).get();
+    
+    let ingresosReales = 0;
+    let ingresosPendientes = 0;
+    let totalCitas = 0;
+
+    citasSnap.forEach(doc => {
+      const c = doc.data();
+      const precio = c.precio_sesion || 100;
+      if (c.status === 'confirmada') {
+        ingresosReales += precio;
+        totalCitas++;
+      } else if (c.status === 'pendiente_pago') {
+        ingresosPendientes += precio;
+      }
+    });
+
+    res.json({
+      success: true,
+      real: ingresosReales,
+      potencial: ingresosPendientes,
+      citas_exito: totalCitas,
+      roi: (ingresosReales / 100 * 100).toFixed(0) // ROI basado en inversión de 100€/mes
+    });
+  } catch (e) { res.status(500).send(e.message); }
+});
+
+// ============================================================
+// 💡 16. MOTOR DE SUGERENCIAS (MEJORA CONTINUA)
+// ============================================================
+app.post('/api/dashboard/enviar-sugerencia', async (req, res) => {
+  const { clinic_id, texto } = req.body;
+  if (!texto || texto.length < 5) return res.status(400).send("Idea demasiado breve.");
+  try {
+    await db.collection('sugerencias').add({
+      clinic_id,
+      contenido: texto.trim(),
+      creado: Timestamp.now(),
+      status: 'pendiente_revision'
+    });
+    res.json({ success: true });
+  } catch (e) { res.status(500).send(e.message); }
+});
+// ============================================================
+// ⏰ 17. MOTOR CENTINELA PRO: EL SHERIFF DE LA ESCUDERÍA
+// ============================================================
+
+app.post('/api/tasks/centinela', async (req, res) => {
+  console.log("👁️ Centinela: Iniciando patrulla de mantenimiento y ventas...");
+  
+  try {
+    const ahora = new Date();
+    // Sincronización horaria con Madrid (8 AM a 9 PM para envíos)
+    const horaMadrid = parseInt(new Intl.DateTimeFormat('es-ES', {
+      timeZone: 'Europe/Madrid', hour: '2-digit', hour12: false
+    }).format(ahora));
+
+    const esHorarioComercial = (horaMadrid >= 8 && horaMadrid < 21);
+
+    // --- FASE A: LIMPIEZA TÉCNICA (24/7) ---
+    // Cancelamos citas que superaron las 12h sin pago
+    const expiradasSnap = await db.collection('citas')
+      .where('status', '==', 'pendiente_pago')
+      .where('expira_el', '<=', ahora)
+      .get();
+
+    for (const doc of expiradasSnap.docs) {
+      await doc.ref.update({ 
+        status: 'cancelada_por_expiracion',
+        cancelado_el: admin.firestore.Timestamp.now()
+      });
+      console.log(`🗑️ Agenda Liberada: Cita ${doc.id} eliminada por impago.`);
+    }
+
+    let recordatoriosCount = 0;
+    let prospeccionEnviada = 0;
+
+    // --- FASES B Y C: COMUNICACIONES ACTIVAS (SOLO DE DÍA) ---
+    if (esHorarioComercial) {
+      
+      // 1. EL AVISO DEL JUICIO FINAL (1h antes de expirar)
+      const proximaHora = new Date(ahora.getTime() + (60 * 60 * 1000));
+      const urgentesSnap = await db.collection('citas')
+        .where('status', '==', 'pendiente_pago')
+        .where('recordatorio_enviado', '==', false)
+        .where('expira_el', '<=', proximaHora)
+        .get();
+
+      for (const doc of urgentesSnap.docs) {
+        const cita = doc.data();
+        await enviarAvisoJuicioFinal(cita);
+        await doc.ref.update({ recordatorio_enviado: true });
+        recordatoriosCount++;
+      }
+
+      // 2. GOTEO DE VENTAS AUTOMÁTICO (ASG)
+      // Enviamos 3 mensajes cada 30 min para evitar bloqueos de WhatsApp
+      const prospectosSnap = await db.collection('prospectos')
+        .where('estado', '==', 'frio')
+        .limit(3)
+        .get();
+
+      for (const doc of prospectosSnap.docs) {
+        const p = doc.data();
+        try {
+          if (p.canal_primario === 'whatsapp') {
+            await enviarPlantillaProspeccion(p);
+            await doc.ref.update({ estado: 'wa_enviado', ultima_accion: admin.firestore.Timestamp.now() });
+          } else {
+            await enviarEmailVenta(p);
+            await doc.ref.update({ estado: 'email_enviado', ultima_accion: admin.firestore.Timestamp.now() });
+          }
+          prospeccionEnviada++;
+        } catch (e) { console.error("❌ Error en goteo ASG:", e.message); }
+      }
+    }
+
+    res.json({ 
+      success: true, 
+      mantenimiento: expiradasSnap.size, 
+      comunicaciones: recordatoriosCount,
+      ventas_asg: prospeccionEnviada,
+      huso_horario: horaMadrid + "h"
+    });
+
+  } catch (e) {
+    console.error("🔥 ERROR CRÍTICO CENTINELA:", e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ============================================================
+// 🎯 18. HELPERS DEL MOTOR DE VENTAS Y NOTIFICACIONES
+// ============================================================
+
+// Envío de Plantilla WhatsApp (Aprobada por Meta)
+async function enviarPlantillaProspeccion(p) {
+  const URL = `https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/messages`;
+  await axios.post(URL, {
+    messaging_product: "whatsapp",
+    to: p.telefono,
+    type: "template",
+    template: {
+      name: "mensaje_prospeccion_1",
+      language: { code: "es" },
+      components: [{
+        type: "body",
+        parameters: [
+          { type: "text", text: p.nombre_contacto }, // {{1}}
+          { type: "text", text: p.ciudad }            // {{2}}
+        ]
+      }]
+    }
+  }, { headers: { 'Authorization': `Bearer ${WHATSAPP_TOKEN}` } });
+}
+
+// Email de Venta Conductual (The Foundry)
+async function enviarEmailVenta(p) {
+  const promptVenta = `Redacta un email de prospección para el Dr. ${p.nombre_contacto}. Usa psicología de escasez y dolor sobre no-shows.`;
+  const texto = await callVertexAI([{ role: 'user', parts: [{ text: promptVenta }] }]);
+  
+  await transporter.sendMail({
+    from: '"Ana de FisioTool" <ana@fisiotool.com>',
+    to: p.email,
+    subject: `Propuesta estratégica para ${p.nombre_clinica}`,
+    html: `
+      <div style="font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: auto; background: #fff; border-radius: 20px; overflow: hidden; border: 1px solid #eee;">
+        <div style="background: #0066ff; padding: 40px; text-align: center; color: white;"><h1>FISIOTOOL PRO</h1></div>
+        <div style="padding: 40px; line-height: 1.8; color: #333;">
+          ${texto.replace(/\n/g, '<br>')}
+          <div style="text-align: center; margin-top: 40px;">
+            <a href="https://fisiotool.com/?promo=PROSPECT" style="background: #0066ff; color: white; padding: 15px 30px; text-decoration: none; border-radius: 50px; font-weight: bold;">RECLAMAR MI MES GRATIS ➜</a>
+          </div>
+        </div>
+        <div style="background: #f8fafc; padding: 30px; border-top: 1px solid #eee;">
+          <strong>Ana</strong><br><span style="font-size:12px; color:#666;">Directora de Inteligencia Operativa</span><br>
+          <a href="https://wa.me/34615200612" style="color:#25D366; text-decoration:none; font-weight:bold;">WhatsApp Directo: +34 615 200 612</a>
+        </div>
+      </div>`
+  });
+}
+
+// El Aviso del Juicio Final (Email + Push)
+async function enviarAvisoJuicioFinal(cita) {
+  try {
+    await transporter.sendMail({
+      from: '"Ana de FisioTool" <ana@fisiotool.com>',
+      to: cita.paciente_email,
+      subject: "⚠️ ÚLTIMA HORA: Tu cita en 60 minutos",
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 40px; border: 1px solid #ef4444; border-radius: 20px; text-align: center;">
+          <h2 style="color: #ef4444;">¡Hola ${cita.paciente_nombre}!</h2>
+          <p>Solo queda <strong>1 HORA</strong> para confirmar tu reserva del día ${cita.fecha_hora_inicio}.</p>
+          <p>Para evitar que el sistema libere tu hueco, abona la señal ahora mismo:</p>
+          <a href="https://fisiotool.com/agenda/${cita.clinic_id}" style="background: #0066ff; color: white; padding: 15px 30px; text-decoration: none; border-radius: 50px; font-weight: bold; display: inline-block; margin-top: 20px;">CONFIRMAR AHORA ➜</a>
+        </div>`
+    });
+    console.log(`📧 Sheriff: Aviso de Juicio Final enviado a ${cita.paciente_nombre}`);
+  } catch (e) { console.error("Error aviso final:", e.message); }
+}
+// ============================================================
+// 🔑 19. MOTOR DE ACCESO Y SEGURIDAD (LOGIN PRO)
+// ============================================================
+
+app.post('/api/login', async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) return res.status(400).json({ error: "Credenciales incompletas." });
+
+  try {
+    const q = await db.collection('clinicas')
+      .where('email', '==', email.toLowerCase().trim())
+      .where('password', '==', password)
+      .limit(1).get();
+
+    if (q.empty) {
+      console.log(`⚠️ Intento de acceso fallido: ${email}`);
+      return res.status(401).json({ success: false, error: "Email o contraseña incorrectos." });
+    }
+
+    const clinica = q.docs[0];
+    console.log(`🔑 Acceso concedido a: ${clinica.data().nombre_clinica}`);
+    
+    res.json({ 
+      success: true, 
+      clinicId: clinica.id,
+      nombre: clinica.data().nombre_clinica 
+    });
+  } catch (e) { res.status(500).send("Error en el sistema de seguridad."); }
+});
+
+// ============================================================
+// 🎨 20. MOTOR VISUAL UNIFICADO (NEXT.JS SUPREME SYNC)
+// ============================================================
+
+// 1. Prioridad absoluta a los archivos estáticos (CSS, JS, Imágenes)
+app.use(express.static(nextOutPath));
+
+// 2. Ruta específica para el LandingBot de pacientes (Plan A)
+app.get('/agenda/:clinicId', (req, res) => {
+  const botPath = path.join(nextOutPath, 'landingbot.html');
+  if (fs.existsSync(botPath)) {
+    res.sendFile(botPath);
+  } else {
+    res.status(404).send("Error 404: El motor visual de Ana no ha sido ensamblado.");
+  }
+});
+
+// 3. RUTA SOBERANA (CATCH-ALL): El cerebro de navegación de Next.js
+app.get('*', (req, res, next) => {
+  // Las llamadas a la API o Webhooks NO entran en la visualización
+  if (req.path.startsWith('/api') || req.path.startsWith('/webhook') || req.path.startsWith('/stripe-webhook')) {
+    return next();
+  }
+
+  // Lógica de traducción de URL a archivo .html (Next.js Static Export)
+  let targetFile = req.path === '/' ? 'index.html' : req.path;
+  if (!targetFile.includes('.')) {
+    targetFile = `${targetFile.replace(/\/$/, "")}.html`;
+  }
+
+  const fullPath = path.join(nextOutPath, targetFile.replace(/^\//, ''));
+
+  if (fs.existsSync(fullPath)) {
+    res.sendFile(fullPath);
+  } else {
+    // Si la página exacta no existe (ej: un refresco en /dashboard), enviamos al index
+    // para que el chasis de Next.js tome el mando del enrutamiento.
+    res.sendFile(path.join(nextOutPath, 'index.html'));
+  }
+});
+
+// ============================================================
+// 🚀 21. ARRANQUE FINAL DEL FERRARI (PUERTO 8080)
+// ============================================================
+
+const PORT = process.env.PORT || 8080;
+
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`
+╔═══════════════════════════════════════════════════════════╗
+║                                                           ║
+║          🏎️  FERRARI FISIOTOOL ONLINE: 100%               ║
+║                                                           ║
+║  Puerto: ${PORT}                                           ║
+║  Estado: OPERATIVO (Grado Omega)                          ║
+║  Proyecto: ${PROJECT_ID_FIXED}                ║
+║  Región: ${REGION_FIXED} (Soberanía Bélgica)              ║
+║  IA Engine: Gemini 2.5 Flash                              ║
+║  Marketing: Motor ASG Activo                              ║
+║  Seguridad: SSL/TLS + Secret Manager                      ║
+║                                                           ║
+╚═══════════════════════════════════════════════════════════╝
+    `);
+});

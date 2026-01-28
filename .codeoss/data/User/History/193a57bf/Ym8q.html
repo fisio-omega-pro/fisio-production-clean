@@ -1,0 +1,126 @@
+document.addEventListener('DOMContentLoaded', async () => {
+    // 1. OBTENER EL SLUG DE LA URL (Ej: 'clinica-ers')
+    // Esto funciona tanto para /agenda/ID como para /nombre-clinica
+    const pathParts = window.location.pathname.split('/').filter(p => p.length > 0);
+    const clinicSlug = pathParts[pathParts.length - 1]; // Toma la última parte de la URL
+
+    console.log("🔍 Buscando clínica:", clinicSlug);
+
+    const ui = {
+        title: document.getElementById('pageTitle'),
+        clinicName: document.getElementById('clinicName'),
+        logo: document.getElementById('clinicLogo'),
+        anaImg: document.getElementById('anaImage'),
+        address: document.getElementById('infoAddress'),
+        phone: document.getElementById('infoPhone'),
+        schedule: document.getElementById('infoSchedule'),
+        chatBox: document.getElementById('chatBox'),
+        input: document.getElementById('messageInput'),
+        sendBtn: document.getElementById('sendButton'),
+        tlfInput: document.getElementById('patientTlf')
+    };
+
+    let botName = "Asistente";
+
+    // 2. FUNCIÓN PARA CARGAR LA CONFIGURACIÓN DE LA CLÍNICA
+    async function loadConfig() {
+        try {
+            const response = await fetch(`/api/config/${clinicSlug}`);
+            
+            if (!response.ok) throw new Error("Clínica no encontrada");
+
+            const data = await response.json();
+            
+            // Rellenar datos visuales
+            ui.title.innerText = `Citas - ${data.landing_titulo}`;
+            ui.clinicName.innerText = data.landing_titulo;
+            ui.logo.src = data.logo_url || "https://via.placeholder.com/40"; // Fallback
+            ui.anaImg.src = data.bot_avatar || "https://i.pravatar.cc/150?img=5"; // Fallback
+            ui.address.innerText = data.address || "Dirección no disponible";
+            ui.phone.innerText = data.phone || "Consultar web";
+            botName = data.bot_nombre || "Laura";
+
+            // Formatear el horario (Viene en JSON complejo, lo simplificamos para visual)
+            if (data.weekly_schedule) {
+                // Truco rápido para mostrar si está abierto hoy
+                ui.schedule.innerText = "Consultar disponibilidad en el chat."; 
+            } else {
+                ui.schedule.innerText = "Horario bajo cita previa.";
+            }
+
+            // Habilitar el chat
+            ui.input.disabled = false;
+            ui.sendBtn.disabled = false;
+
+            // Saludo Inicial
+            addMessage(`👋 Hola, soy ${botName}. Estoy conectada con la agenda de ${data.nombre_clinica}. ¿Qué necesitas?`, 'ana');
+
+        } catch (error) {
+            console.error(error);
+            ui.clinicName.innerText = "Error";
+            ui.chatBox.innerHTML = `<div class="message ana" style="background-color:#ffcccc; color:red;">⛔ No hemos podido cargar la clínica '${clinicSlug}'. Verifica la URL.</div>`;
+        }
+    }
+
+    // 3. FUNCIÓN PARA AGREGAR MENSAJES A LA PANTALLA
+    function addMessage(text, sender) {
+        const div = document.createElement('div');
+        div.classList.add('message', sender);
+        div.innerHTML = text.replace(/\n/g, '<br>'); // Respetar saltos de línea
+        ui.chatBox.appendChild(div);
+        ui.chatBox.scrollTop = ui.chatBox.scrollHeight; // Auto-scroll al fondo
+    }
+
+    // 4. FUNCIÓN PARA ENVIAR AL BACKEND
+    async function sendMessage() {
+        const text = ui.input.value.trim();
+        const tlf = ui.tlfInput.value.trim();
+
+        if (!text) return;
+        
+        // Validación básica de teléfono (ES OBLIGATORIO)
+        if (tlf.length < 9) {
+            alert("⚠️ Por favor, introduce tu número de teléfono arriba para poder gestionar tu cita.");
+            ui.tlfInput.focus();
+            return;
+        }
+
+        // 1. Mostrar mensaje del usuario
+        addMessage(text, 'user');
+        ui.input.value = '';
+        ui.input.disabled = true; // Bloquear mientras piensa
+        ui.sendBtn.innerText = "...";
+
+        try {
+            const res = await fetch(`/api/chat/${clinicSlug}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: text, patient_tlf: tlf })
+            });
+
+            if (!res.ok) throw new Error("Error en el servidor");
+
+            const data = await res.json();
+            
+            // 2. Mostrar respuesta de la IA
+            addMessage(data.reply, 'ana');
+
+        } catch (error) {
+            addMessage("❌ Lo siento, he perdido la conexión momentánea. Inténtalo de nuevo.", 'ana');
+            console.error(error);
+        } finally {
+            ui.input.disabled = false;
+            ui.sendBtn.innerText = "Enviar";
+            ui.input.focus();
+        }
+    }
+
+    // Eventos
+    ui.sendBtn.addEventListener('click', sendMessage);
+    ui.input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendMessage();
+    });
+
+    // Arrancamos motores
+    loadConfig();
+});

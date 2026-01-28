@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FisioTool | Panel de Mando del Fisioterapeuta</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* DASHBOARD - ARQUITECTURA VISUAL PROFESIONAL */
+        :root {
+            --color-principal: #00A8E8; /* Azul Fisiotool */
+            --color-secundario: #0B3A64; /* Fondo de barras laterales */
+            --color-fondo: #F0F2F5; /* Gris claro de la App */
+            --color-card-fondo: #FFFFFF;
+            --color-alerta: #D9534F; /* Rojo para el retraso */
+            --color-exito: #5CB85C; /* Verde para citas */
+        }
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--color-fondo);
+            color: #333;
+            margin: 0;
+            display: flex;
+        }
+        aside {
+            width: 250px;
+            background-color: var(--color-secundario);
+            color: white;
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+            min-height: 100vh;
+        }
+        aside h2 {
+            color: var(--color-principal);
+            border-bottom: 2px solid var(--color-principal);
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+        aside ul {
+            list-style: none;
+            padding: 0;
+        }
+        aside ul li {
+            padding: 15px 0;
+            cursor: pointer;
+            border-bottom: 1px solid #1a5e8e;
+            transition: background-color 0.3s;
+        }
+        aside ul li:hover {
+            background-color: #1a5e8e;
+        }
+
+        main {
+            flex-grow: 1;
+            padding: 40px;
+        }
+        h1 {
+            color: #181818;
+            margin-bottom: 30px;
+        }
+        
+        /* CUADRÍCULAS DE DÍA */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr; /* Agenda a la izquierda, Alertas a la derecha */
+            gap: 30px;
+        }
+        .citas-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        /* ESTILO DE CADA CITA */
+        .cita-card {
+            background-color: var(--color-card-fondo);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-left: 5px solid var(--color-principal);
+            text-align: left;
+        }
+        .cita-card h3 {
+            margin: 0 0 5px 0;
+            color: #333;
+            font-size: 1.2em;
+        }
+        .cita-card p {
+            margin: 0 0 5px 0;
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        /* ALERTAS / RETRASOS (B-5) */
+        .alert-panel {
+            background-color: var(--color-card-fondo);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .alerta-retraso {
+            border-left: 5px solid var(--color-alerta);
+            background-color: #FFF2F2;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .alerta-retraso strong {
+            color: var(--color-alerta);
+        }
+        
+        /* MAESTRO DE PROGRAMACIÓN (T-3) */
+        .master-schedule {
+            margin-top: 30px;
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+        }
+        .master-schedule h3 {
+            color: #333;
+        }
+        .master-schedule button {
+            background-color: var(--color-secundario);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+    </style>
+</head>
+<body>
+
+    <aside>
+        <h2>FisioTool Dashboard</h2>
+        <p style="color: white; margin-bottom: 40px; font-weight: 300;">Clínica: [Nombre de la Clínica]</p>
+        
+        <ul>
+            <li>Dashboard / Hoy</li>
+            <li onclick="window.location.href='#master-config'">Programación Maestra (T-3)</li>
+            <li>Listado de Pacientes (Bonos)</li>
+            <li>Archivos (T-5 Desenganche)</li>
+            <li>**Audio-to-Historial (T-2)**</li>
+            <li onclick="window.location.href='landing.html'">Marketing (V-2 / ROI)</li>
+            <li style="margin-top: 50px;"><a href="#" style="color: #F8F8F8;" onclick="alert('Se descargará un .csv')">Descargar Datos (.CSV)</a></li>
+        </ul>
+    </aside>
+
+    <main>
+        <h1>Agenda Diaria y Prioridades</h1>
+        
+        <div class="dashboard-grid">
+            
+            <section class="agenda">
+                <div class="citas-header">
+                    <h2>Citas para Hoy</h2>
+                    <!-- Aquí el Front-End conectaría con la BD y sacaría solo las de hoy -->
+                </div>
+
+                <!-- Simulación de Datos VIVOS de la Colección 'citas' -->
+                <div class="cita-card">
+                    <h3>09:00 - Elena Rodríguez (NUEVO)</h3>
+                    <p>Teléfono: [Leer BD]. Estado: Confirmada (IA). Notas: Fuerte dolor cervical.</p>
+                </div>
+
+                <div class="cita-card alerta-retraso" id="alerta-0945" style="border-left: 5px solid var(--color-alerta);">
+                    <h3><strong>ALERTA TARDÍA (B-5)</strong></h3>
+                    <p><strong>09:45 - Marco Álvarez.</strong></p>
+                    <p>LLegada a: 10:05 (20 min Tarde). Sesión Original: 45 min.</p>
+                    <p><strong>¡Tiempo restante DEBE ser ajustado para no impactar la siguiente cita!</strong></p>
+                </div>
+                
+                <div class="cita-card" style="border-left: 5px solid var(--color-exito);">
+                    <h3>10:30 - Clara Gisbert</h3>
+                    <p>Teléfono: [Leer BD]. Estado: **PAGADO (Bono: 1 disponible)**. Notas: Sesión de seguimiento lumbar.</p>
+                </div>
+
+                <div class="cita-card" style="border-left: 5px solid var(--color-principal);">
+                    <h3>11:15 - Cliente del Sistema</h3>
+                    <p>Acceso desde el dashboard. Pago: Pendiente - Efectivo.</p>
+                </div>
+
+            </section>
+
+            <section class="alertas">
+                <div class="alert-panel" style="margin-bottom: 20px; text-align: left;">
+                    <h3>Estadísticas de la IA</h3>
+                    <p>Reservas Confirmadas por IA Hoy: **3**</p>
+                    <p>Ingreso total proyectado hoy: **250 €**</p>
+                </div>
+
+                <div class="master-schedule" id="master-config">
+                    <h3>Programación Maestra (T-3)</h3>
+                    <p style="color: var(--color-principal); font-weight: 500;">Bloquea días con 1-Click (Actualiza `horario_semanal` en BD)</p>
+
+                    <label for="fechaBloqueo" style="display: block; margin-top: 15px;">Fecha a Bloquear (Vacaciones/Festivo):</label>
+                    <input type="date" id="fechaBloqueo" style="padding: 10px; border-radius: 5px; margin-bottom: 10px;">
+                    
+                    <!-- Botón clave para cumplir T-3 (Esto dispara la actualización en Cloud Run) -->
+                    <button onclick="alert('Funcionalidad T-3: Se llamará a la API de Cloud Run para actualizar el campo Horario_Semanal con este festivo.')">
+                        Bloquear Día Completo (Festivo Local)
+                    </button>
+
+                    <p style="margin-top: 20px;">
+                        <small>El horario IA de WhatsApp (Ana) se actualiza al instante con este cambio.</small>
+                    </p>
+                </div>
+
+            </section>
+        </div>
+        
+    </main>
+</body>
+</html>

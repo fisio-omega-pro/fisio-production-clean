@@ -1,0 +1,21 @@
+{
+  "name": "FisioTool Pro Edition",
+  "short_name": "FisioTool",
+  "description": "IA Conductual para Fisioterapeutas de Élite",
+  "start_url": "/login",
+  "display": "standalone",
+  "background_color": "#030507",
+  "theme_color": "#0066ff",
+  "icons": [
+    {
+      "src": "https://ui-avatars.com/api/?name=F&background=0066ff&color=fff&size=192",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://ui-avatars.com/api/?name=F&background=0066ff&color=fff&size=512",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

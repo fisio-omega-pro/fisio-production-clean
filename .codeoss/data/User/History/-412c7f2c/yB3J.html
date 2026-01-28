@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración FisioTool | Alta Profesional</title>
+    <!-- FUENTES CROPE: Poppins y Muli -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Muli:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+
+    <style>
+        /* ESTILO SOFT TECH LUXURY (CROPE) */
+        :root {
+            --clr-bg-light: #F8F8F8;
+            --clr-card-bg: #FFFFFF;
+            --clr-text-dark: #222222;
+            --clr-accent-gold: #C5A059;
+            --clr-accent-red: #E63946;
+            --clr-blue-tech: #4ECDC4;
+            --border-radius-soft: 8px;
+        }
+
+        body {
+            font-family: 'Muli', sans-serif;
+            background-color: var(--clr-bg-light);
+            color: var(--clr-text-dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 850px;
+            background: var(--clr-card-bg);
+            border: 1px solid #EEEEEE;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+        }
+
+        h1 { font-family: 'Poppins', sans-serif; font-size: 2rem; margin: 0 0 10px 0; text-align: center; }
+        
+        /* BANNER AFILIADO */
+        .discount-banner {
+            background: rgba(197, 160, 89, 0.1);
+            border: 1px dashed var(--clr-accent-gold);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+
+        /* INPUTS */
+        .form-group { margin-bottom: 20px; }
+        label { display: block; color: #64748B; margin-bottom: 5px; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; }
+        input, select {
+            width: 100%; padding: 12px;
+            background: #FAFAFA; border: 1px solid #DDD;
+            border-radius: 6px; font-size: 0.95rem;
+            box-sizing: border-box; transition: 0.3s;
+        }
+        input:focus { border-color: var(--clr-accent-gold); outline: none; background: white; }
+
+        /* GRID PARA DIRECCIONES */
+        .address-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 15px; }
+        .address-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
+
+        /* WIZARD */
+        .wizard-header { display: flex; gap: 10px; margin-bottom: 30px; justify-content: center; }
+        .w-dot { width: 10px; height: 10px; background: #DDD; border-radius: 50%; }
+        .w-dot.active { background: var(--clr-accent-gold); transform: scale(1.3); }
+        .step { display: none; animation: fadeIn 0.4s; }
+        .step.active { display: block; }
+        @keyframes fadeIn { from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+
+        /* CHECKBOXES & BUTTONS */
+        .checkbox-group { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+        .check-item input { display: none; }
+        .check-item span {
+            display: flex; align-items: center; justify-content: center;
+            padding: 10px; background: #F0F0F0; border-radius: 6px; cursor: pointer; border: 1px solid transparent;
+            font-size: 0.85rem;
+        }
+        .check-item input:checked + span { background: var(--clr-accent-gold); color: white; font-weight: bold; }
+        
+        .btn-action {
+            width: 100%; padding: 15px; border-radius: 50px; border: none; font-weight: 700;
+            background: var(--clr-accent-red); color: white; cursor: pointer; margin-top: 20px;
+            font-size: 1rem; letter-spacing: 1px; transition: 0.2s;
+        }
+        .btn-action:hover { background: #d62839; transform: translateY(-2px); }
+        .btn-secondary { background: transparent; border: 1px solid #AAA; color: #333; width: auto; padding: 10px 30px; margin-right: 10px; }
+
+        .red-flag-zone .check-item input:checked + span { background: var(--clr-accent-red); }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>ALTA <span style="color:var(--clr-accent-gold)">PROFESIONAL</span></h1>
+        
+        <!-- CÓDIGO DE INVITADO -->
+        <div class="discount-banner">
+            <div>
+                <strong style="color: var(--clr-accent-gold);">🎁 ¿Tienes Código de Invitado?</strong>
+                <p style="margin:0; font-size:0.8rem; color:#666;">Introduce el código de tu compañero para obtener el 50% Dto.</p>
+            </div>
+            <input type="text" id="referral_code" placeholder="CÓDIGO AQUÍ" style="width: 150px; text-align: center; font-weight: bold; text-transform: uppercase;">
+        </div>
+
+        <div class="wizard-header">
+            <div class="w-dot active" id="dot1"></div>
+            <div class="w-dot" id="dot2"></div>
+            <div class="w-dot" id="dot3"></div>
+            <div class="w-dot" id="dot4"></div>
+        </div>
+
+        <form id="setup-form">
+            
+            <!-- PASO 1: DATOS FISCALES Y UBICACIÓN (DESGLOSADO) -->
+            <div class="step active" id="step1">
+                <h3 style="color:var(--clr-accent-gold); border-bottom: 2px solid #EEE; padding-bottom:10px;">1. Datos de la Clínica</h3>
+                
+                <div class="form-group">
+                    <label>Nombre Comercial de la Clínica</label>
+                    <input type="text" id="clinic_name" placeholder="Ej: Clínica FisioSalud" required>
+                </div>
+
+                <!-- DIRECCIÓN DESGLOSADA (Lo que pediste) -->
+                <label>Dirección Fiscal / Sede Principal</label>
+                <div class="form-group address-grid">
+                    <input type="text" id="addr_street" placeholder="Calle / Avenida / Plaza">
+                    <input type="text" id="addr_num" placeholder="Número">
+                </div>
+                <div class="form-group address-row-3">
+                    <input type="text" id="addr_floor" placeholder="Piso/Puerta">
+                    <input type="text" id="addr_cp" placeholder="C. Postal">
+                    <input type="text" id="addr_city" placeholder="Ciudad">
+                </div>
+                <div class="form-group">
+                    <input type="text" id="addr_prov" placeholder="Provincia">
+                </div>
+
+                <!-- TELÉFONO META API (Lo que pediste) -->
+                <div class="form-group" style="background: #E3F2FD; padding: 15px; border-radius: 8px; border: 1px solid #90CAF9;">
+                    <label style="color:#1565C0;">📱 Teléfono Móvil (Para Vincular con WhatsApp/Meta)</label>
+                    <input type="tel" id="meta_phone" placeholder="+34 600 000 000" style="font-weight: bold;">
+                    <small style="color:#555;">Este será el número donde operará la IA 'Ana'.</small>
+                </div>
+                
+                <button type="button" class="btn-action" onclick="goStep(2)">SIGUIENTE >></button>
+            </div>
+
+            <!-- PASO 2: HISTORIAL DE PACIENTES -->
+            <div class="step" id="step2">
+                <h3 style="color:var(--clr-accent-gold)">2. Migración de Datos</h3>
+                <p style="font-size:0.9rem;">Si tienes un Excel de tu software anterior, súbelo aquí.</p>
+                
+                <div style="border: 2px dashed #CCC; padding: 40px; text-align: center; border-radius: 8px; cursor: pointer; background: #FAFAFA;" onclick="document.getElementById('csv_file').click()">
+                    <i class="fas fa-file-csv" style="font-size:3rem; color:#CCC;"></i>
+                    <p style="margin-top:10px; font-weight:bold; color:#888;">Click para subir CSV / Excel</p>
+                    <input type="file" id="csv_file" hidden>
+                </div>
+
+                <div style="margin-top: 30px;">
+                    <button type="button" class="btn-action btn-secondary" onclick="goStep(1)">Atrás</button>
+                    <button type="button" class="btn-action" style="width: auto; float: right;" onclick="goStep(3)">Siguiente >></button>
+                </div>
+            </div>
+
+            <!-- PASO 3: POLÍTICA DE PRECIOS Y FIANZA -->
+            <div class="step" id="step3">
+                <h3 style="color:var(--clr-accent-red)">3. Configuración Financiera</h3>
+                
+                <div class="address-grid">
+                    <div class="form-group">
+                        <label>Precio Sesión (€)</label>
+                        <input type="number" id="price" value="50">
+                    </div>
+                    <div class="form-group">
+                        <label>Duración (Min)</label>
+                        <select id="duration"><option>30</option><option selected>45</option><option>60</option></select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Métodos de Cobro (En Clínica)</label>
+                    <div class="checkbox-group">
+                        <label class="check-item"><input type="checkbox" class="pay-method" value="Efectivo" checked><span>Efectivo</span></label>
+                        <label class="check-item"><input type="checkbox" class="pay-method" value="Tarjeta" checked><span>Tarjeta</span></label>
+                    </div>
+                </div>
+
+                <div class="form-group" style="background: rgba(230, 57, 70, 0.05); padding: 15px; border-radius: 8px; border: 1px solid var(--clr-accent-red);">
+                    <label style="color:var(--clr-accent-red);">🛡️ Fianza Anti-No-Show (Cobro Online)</label>
+                    <input type="number" id="deposit" placeholder="Ej: 20 (€)" style="border-color: var(--clr-accent-red);">
+                    <small>Cantidad que la IA cobrará por adelantado para confirmar la cita.</small>
+                </div>
+
+                <div style="margin-top: 30px;">
+                    <button type="button" class="btn-action btn-secondary" onclick="goStep(2)">Atrás</button>
+                    <button type="button" class="btn-action" style="width: auto; float: right;" onclick="goStep(4)">Siguiente >></button>
+                </div>
+            </div>
+
+            <!-- PASO 4: RED FLAGS Y FINALIZACIÓN -->
+            <div class="step" id="step4">
+                <h3 style="color:var(--clr-accent-red)">4. Filtros de Seguridad (IA)</h3>
+                
+                <label>⛔ Red Flags (Casos que la IA debe rechazar)</label>
+                <div class="checkbox-group red-flag-zone">
+                    <label class="check-item"><input type="checkbox" class="redflag" value="tráfico"><span>Accidentes</span></label>
+                    <label class="check-item"><input type="checkbox" class="redflag" value="neurología"><span>Neuro</span></label>
+                    <label class="check-item"><input type="checkbox" class="redflag" value="suelo pélvico"><span>S. Pélvico</span></label>
+                    <label class="check-item"><input type="checkbox" class="redflag" value="pediatría"><span>Bebés</span></label>
+                </div>
+
+                <div style="margin-top: 40px; border-top: 1px solid #EEE; padding-top: 20px;">
+                    <p style="font-size: 0.9rem; color: #555;">
+                        <i class="fas fa-lock"></i> <strong>Siguiente Paso: Pasarela de Pago Segura.</strong><br>
+                        Al hacer clic en "Finalizar", guardaremos tu configuración y te redirigiremos para conectar tu banco (Stripe) y activar tu suscripción.
+                    </p>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; margin-top: 20px;">
+                    <button type="button" class="btn-action btn-secondary" onclick="goStep(3)">Atrás</button>
+                    <button type="button" class="btn-action" onclick="saveAndGoToPayment()">FINALIZAR Y CONFIGURAR PAGO 💳</button>
+                </div>
+            </div>
+
+        </form>
+    </div>
+
+    <script>
+        function goStep(n) {
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.w-dot').forEach(d => d.classList.remove('active'));
+            document.getElementById('step'+n).classList.add('active');
+            document.getElementById('dot'+n).classList.add('active');
+        }
+
+        async function saveAndGoToPayment() {
+            const btn = document.querySelector('button[onclick="saveAndGoToPayment()"]');
+            btn.innerHTML = '<i class="fas fa-sync fa-spin"></i> GUARDANDO...';
+            btn.disabled = true;
+
+            // Recopilar Dirección Completa
+            const fullAddress = {
+                calle: document.getElementById('addr_street').value,
+                numero: document.getElementById('addr_num').value,
+                piso: document.getElementById('addr_floor').value,
+                cp: document.getElementById('addr_cp').value,
+                ciudad: document.getElementById('addr_city').value,
+                provincia: document.getElementById('addr_prov').value
+            };
+
+            const data = {
+                clinica: document.getElementById('clinic_name').value,
+                direccion_completa: fullAddress, // NUEVO CAMPO DESGLOSADO
+                telefono_meta: document.getElementById('meta_phone').value, // NUEVO CAMPO TELÉFONO
+                precio: document.getElementById('price').value,
+                duracion: document.getElementById('duration').value,
+                fianza: document.getElementById('deposit').value,
+                banderas_rojas: Array.from(document.querySelectorAll('.redflag:checked')).map(e => e.value),
+                afiliado: document.getElementById('referral_code').value
+            };
+
+            console.log("Enviando configuración:", data);
+
+            // Simulación de envío al servidor
+            // await fetch('/onboarding/save', { method: 'POST', body: JSON.stringify(data)... });
+
+            setTimeout(() => {
+                // REDIRECCIÓN AL DASHBOARD PARA EL PAGO
+                // (En el Dashboard se activará el pop-up de Stripe automáticamente con el botón que pusimos)
+                alert("✅ DATOS GUARDADOS CORRECTAMENTE.\n\nAhora serás redirigido a tu Panel de Control para conectar tu cuenta bancaria.");
+                window.location.href = 'dashboard.html'; 
+            }, 1500);
+        }
+    </script>
+</body>
+</html>

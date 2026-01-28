@@ -1,0 +1,11 @@
+node_modules/
+.next/
+out/
+build/
+.DS_Store
+*.log
+*.zip
+backup_llaves/
+_legacy_backup/
+backend/config/key.json
+backend/config/service-key.json

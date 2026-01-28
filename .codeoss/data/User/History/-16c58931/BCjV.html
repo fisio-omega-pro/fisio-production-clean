@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Control - FisioTool</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- FullCalendar Core y Español -->
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/locales/es.global.min.js'></script>
+    
+    <style>
+        :root { --primary: #007bff; --success: #28a745; --danger: #dc3545; --bg: #f8f9fa; --sidebar: #ffffff; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; display: flex; height: 100vh; overflow: hidden; }
+        
+        /* Sidebar lateral */
+        .sidebar { width: 260px; background: var(--sidebar); border-right: 1px solid #e0e0e0; display: flex; flex-direction: column; padding: 25px; }
+        .logo { font-size: 22px; font-weight: 700; color: var(--primary); margin-bottom: 40px; display: flex; align-items: center; gap: 10px; }
+        .nav-item { padding: 14px 18px; margin-bottom: 8px; border-radius: 12px; cursor: pointer; color: #555; display: flex; align-items: center; gap: 12px; transition: 0.2s; font-weight: 500; }
+        .nav-item:hover { background: #f0f4f8; color: var(--primary); }
+        .nav-item.active { background: #e3f2fd; color: var(--primary); font-weight: 600; }
+
+        /* Contenido Principal */
+        .main { flex: 1; padding: 30px; overflow-y: auto; display: flex; flex-direction: column; }
+        .main-section { display: none; flex-direction: column; height: 100%; animation: fadeIn 0.3s ease; }
+        .main-section.active { display: flex; }
+
+        /* Header de herramientas */
+        .header-tools { display: flex; justify-content: space-between; margin-bottom: 25px; align-items: center; }
+        .whatsapp-link { background: #25D366; color: white; padding: 10px 20px; border-radius: 30px; text-decoration: none; cursor: pointer; font-weight: 600; font-size: 0.9em; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.2); }
+
+        /* Calendario */
+        #calendar { background: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); flex: 1; border: 1px solid #eee; }
+        
+        /* Modales */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(4px); }
+        .modal-content { background: white; padding: 30px; border-radius: 18px; width: 450px; max-width: 95%; box-shadow: 0 20px 50px rgba(0,0,0,0.15); }
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; margin-bottom: 8px; font-size: 13px; color: #666; font-weight: 600; }
+        .form-group input, .form-group textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 25px; }
+        
+        button { padding: 12px 20px; border-radius: 10px; border: none; cursor: pointer; font-weight: 600; transition: 0.2s; }
+        .btn-cancel { background: #f1f1f1; color: #444; }
+        .btn-save { background: var(--primary); color: white; }
+        .btn-save:hover { background: #0056b3; }
+
+        /* Estilos Pestañas Ficha Paciente */
+        .tabs { display: flex; gap: 15px; margin-bottom: 20px; border-bottom: 1px solid #eee; }
+        .tab-btn { background:none; border:none; border-bottom:3px solid transparent; padding: 10px 5px; cursor:pointer; color:#888; font-weight:600; font-size: 14px; }
+        .tab-btn.active { border-bottom-color: var(--primary); color: var(--primary); }
+        
+        /* Voz y Notas */
+        .recording-box { border: 1px solid #eee; background: #fafafa; padding: 15px; border-radius: 12px; position: relative; margin-bottom: 15px; }
+        #btnMicro { border-radius: 50%; width: 45px; height: 45px; border: none; background: var(--primary); color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 10px rgba(0,123,255,0.3); }
+        #btnMicro.recording { background: var(--danger); animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        
+        .nota-card { background: #fff; border: 1px solid #eee; padding: 12px; border-radius: 10px; margin-bottom: 10px; font-size: 13px; }
+        .chat-bubble { padding: 10px; border-radius: 10px; margin-bottom: 8px; font-size: 13px; }
+        .chat-user { background: #e3f2fd; align-self: flex-end; }
+        .chat-ana { background: #f1f1f1; align-self: flex-start; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="logo">⚡ FisioTool</div>
+        <div class="nav-item active" id="menuAgenda" onclick="switchDashboardSection('agenda')">📅 Agenda Visual</div>
+        <div class="nav-item" id="menuPacientes" onclick="switchDashboardSection('pacientes')">👥 Pacientes</div>
+        <div class="nav-item" onclick="alert('Funcionalidad en desarrollo para la fase de Finanzas')">💰 Finanzas</div>
+        <div class="nav-item" onclick="alert('Configuración avanzada próximamente')">⚙️ Ajustes</div>
+    </div>
+
+    <div class="main">
+        <div class="header-tools">
+            <h2 id="sectionTitle">Agenda Semanal</h2>
+            <div class="whatsapp-link" onclick="copyLink()">🔗 Copiar Enlace para Pacientes</div>
+        </div>
+
+        <!-- SECCIÓN AGENDA -->
+        <div id="agenda-section" class="main-section active">
+            <div id="calendar"></div>
+        </div>
+
+        <!-- SECCIÓN PACIENTES -->
+        <div id="pacientes-section" class="main-section">
+            <div id="listaPacientes" style="background:white; padding:25px; border-radius:16px; border:1px solid #eee;">
+                <p style="text-align:center; color:#999;">Cargando pacientes...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL NUEVA CITA MANUAL -->
+    <div id="modalCita" class="modal">
+        <div class="modal-content">
+            <h3 style="margin-top:0">Nueva Cita Manual</h3>
+            <p style="font-size:13px; color:#666; margin-bottom: 20px;">Fecha: <strong id="modalFechaDisplay"></strong></p>
+            <form id="formCita">
+                <input type="hidden" id="modalFechaISO">
+                <div class="form-group"><label>Nombre del Paciente</label><input type="text" id="pacienteNombre" required></div>
+                <div class="form-group"><label>Teléfono (con +34)</label><input type="text" id="pacienteTlf"></div>
+                <div class="form-group"><label>Notas internas</label><textarea id="pacienteNotas" rows="3"></textarea></div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancel" onclick="closeModal('modalCita')">Cancelar</button>
+                    <button type="submit" class="btn-save">Guardar Cita</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL FICHA PACIENTE CON VOZ -->
+    <div id="modalFicha" class="modal">
+        <div class="modal-content" style="width: 650px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h3 style="margin:0">Ficha del Paciente</h3>
+                <button onclick="closeModal('modalFicha')" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
+            </div>
+            
+            <div style="background:var(--bg); padding:15px; border-radius:12px; margin-bottom:20px;">
+                <h4 id="fichaNombre" style="margin:0; font-size:18px;">...</h4>
+                <p id="fichaTlf" style="margin:5px 0 0 0; font-size:13px; color:#666;"></p>
+            </div>
+
+            <div class="tabs">
+                <button class="tab-btn active" id="tabBtnNotas" onclick="switchTab('notas')">📝 NOTAS CLÍNICAS</button>
+                <button class="tab-btn" id="tabBtnChat" onclick="switchTab('chat')">💬 HISTORIAL CHAT IA</button>
+            </div>
+
+            <!-- PESTAÑA NOTAS -->
+            <div id="tab-notas" class="tab-pane">
+                <div class="recording-box">
+                    <label style="font-weight:700; font-size:12px; margin-bottom:10px; display:block;">🎙️ DICTAR NUEVA NOTA</label>
+                    <textarea id="textoTranscripcion" rows="4" style="width:100%; border:none; background:transparent; outline:none; resize:none;" placeholder="Haz clic en el micro y empieza a hablar..."></textarea>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
+                        <span id="statusGrabacion" style="font-size:11px; color:var(--danger); font-weight:600; visibility:hidden;">🔴 ESCUCHANDO...</span>
+                        <button id="btnMicro" onclick="toggleRecording()">🎤</button>
+                    </div>
+                </div>
+                <button onclick="guardarNota()" style="width:100%; background:var(--success); color:white; border:none; padding:12px; border-radius:8px; font-weight:700; cursor:pointer;">💾 GUARDAR EN HISTORIAL</button>
+                <div id="listaNotas" style="margin-top:20px; max-height:180px; overflow-y:auto;"></div>
+            </div>
+
+            <!-- PESTAÑA CHAT -->
+            <div id="tab-chat" class="tab-pane" style="display:none;">
+                <div id="listaChats" style="max-height:350px; overflow-y:auto; display:flex; flex-direction:column; gap:10px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const clinicId = params.get('id');
+        let calendar, recognition, currentPacienteTlf, currentPacienteNombre;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            if(!clinicId) { alert("Error: No se encuentra la ID de la clínica."); return; }
+            
+            // 1. INICIAR CALENDARIO
+            const calendarEl = document.getElementById('calendar');
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'timeGridWeek',
+                locale: 'es',
+                firstDay: 1,
+                buttonText: { today: 'Hoy', month: 'Mes', week: 'Semana', day: 'Día', list: 'Lista' },
+                headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay' },
+                slotMinTime: '08:00:00', slotMaxTime: '21:00:00', allDaySlot: false, height: '100%',
+                nowIndicator: true,
+                events: `/api/dashboard/calendar?clinic_id=${clinicId}`,
+                dateClick: (info) => openModalCita(info.dateStr),
+                eventClick: (info) => openFicha(info.event)
+            });
+            calendar.render();
+
+            // 2. CONFIGURAR RECONOCIMIENTO DE VOZ
+            if ('webkitSpeechRecognition' in window) {
+                recognition = new webkitSpeechRecognition();
+                recognition.lang = 'es-ES';
+                recognition.continuous = false;
+                recognition.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript;
+                    const area = document.getElementById('textoTranscripcion');
+                    area.value += (area.value ? " " : "") + transcript + ".";
+                    stopRecordingUI();
+                };
+                recognition.onend = stopRecordingUI;
+                recognition.onerror = () => { stopRecordingUI(); alert("Error con el micrófono."); };
+            }
+        });
+
+        // --- NAVEGACIÓN ---
+        function switchDashboardSection(section) {
+            document.querySelectorAll('.main-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            document.getElementById(section + '-section').classList.add('active');
+            document.getElementById('menu' + section.charAt(0).toUpperCase() + section.slice(1)).classList.add('active');
+            document.getElementById('sectionTitle').innerText = section === 'agenda' ? 'Agenda Semanal' : 'Listado de Pacientes';
+            if(section === 'pacientes') loadPacientes();
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-pane').forEach(p => p.style.display = 'none');
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-' + tab).style.display = 'block';
+            document.getElementById('tabBtn' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+        }
+
+        // --- MODALES ---
+        function openModalCita(dateStr) {
+            document.getElementById('modalCita').style.display = 'flex';
+            document.getElementById('modalFechaISO').value = dateStr;
+            document.getElementById('modalFechaDisplay').innerText = new Date(dateStr).toLocaleString();
+        }
+
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+        // --- GESTIÓN PACIENTES ---
+        async function loadPacientes() {
+            const container = document.getElementById('listaPacientes');
+            try {
+                const res = await fetch(`/api/dashboard/pacientes?clinic_id=${clinicId}`);
+                const data = await res.json();
+                if(!data.length) { container.innerHTML = '<p style="text-align:center">No hay pacientes registrados.</p>'; return; }
+                
+                let html = '<table style="width:100%; border-collapse:collapse;"><thead><tr style="border-bottom:2px solid #eee; color:#888; font-size:12px;"><th style="text-align:left; padding:10px;">NOMBRE</th><th style="text-align:left;">TELÉFONO</th><th style="text-align:left;">ÚLTIMA CITA</th><th></th></tr></thead><tbody>';
+                data.forEach(p => {
+                    html += `<tr style="border-bottom:1px solid #f9f9f9;"><td style="padding:15px 10px; font-weight:600;">${p.nombre}</td><td>${p.telefono}</td><td>${new Date(p.ultimaCita).toLocaleDateString()}</td><td style="text-align:right;"><button onclick="openFichaManual('${p.telefono}', '${p.nombre}')" style="background:var(--primary); color:white; font-size:12px; padding:6px 12px;">VER FICHA</button></td></tr>`;
+                });
+                container.innerHTML = html + '</tbody></table>';
+            } catch(e) { container.innerHTML = 'Error al cargar pacientes.'; }
+        }
+
+        // --- FICHA Y VOZ ---
+        function openFicha(event) {
+            const props = event.extendedProps;
+            openFichaManual(props.telefono, event.title.replace(/\(.*\)/, '').trim());
+        }
+
+        function openFichaManual(tlf, nombre) {
+            currentPacienteTlf = tlf;
+            currentPacienteNombre = nombre;
+            document.getElementById('modalFicha').style.display = 'flex';
+            document.getElementById('fichaNombre').innerText = nombre;
+            document.getElementById('fichaTlf').innerText = tlf;
+            document.getElementById('textoTranscripcion').value = "";
+            switchTab('notas');
+            loadPacienteData();
+        }
+
+        async function loadPacienteData() {
+            const nList = document.getElementById('listaNotas');
+            const cList = document.getElementById('listaChats');
+            nList.innerHTML = 'Cargando...';
+            try {
+                const res = await fetch(`/api/dashboard/paciente-info?clinic_id=${clinicId}&telefono=${currentPacienteTlf}`);
+                const data = await res.json();
+                nList.innerHTML = data.notas.length ? data.notas.map(n => `<div class="nota-card"><small style="color:var(--primary)">${new Date(n.creado._seconds*1000).toLocaleString()}</small><p style="margin:5px 0 0 0">${n.contenido}</p></div>`).join('') : '<p style="font-size:12px; color:#999; text-align:center;">No hay notas médicas.</p>';
+                cList.innerHTML = data.chats.length ? data.chats.map(c => `<div class="chat-bubble chat-user"><strong>Paciente:</strong> ${c.msg || c.usr}</div><div class="chat-bubble chat-ana"><strong>Ana:</strong> ${c.reply || c.ia}</div>`).join('') : '<p style="font-size:12px; color:#999; text-align:center;">Sin historial de chat.</p>';
+            } catch(e) { nList.innerHTML = 'Error de carga.'; }
+        }
+
+        function toggleRecording() {
+            if(!recognition) return alert("Voz no soportada.");
+            const btn = document.getElementById('btnMicro');
+            if(btn.classList.contains('recording')) { recognition.stop(); }
+            else { recognition.start(); btn.classList.add('recording'); document.getElementById('statusGrabacion').style.visibility = 'visible'; }
+        }
+
+        function stopRecordingUI() {
+            document.getElementById('btnMicro').classList.remove('recording');
+            document.getElementById('statusGrabacion').style.visibility = 'hidden';
+        }
+
+        async function guardarNota() {
+            const txt = document.getElementById('textoTranscripcion').value;
+            if(!txt.trim()) return;
+            await fetch('/api/dashboard/guardar-nota', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ clinic_id: clinicId, telefono: currentPacienteTlf, nombre: currentPacienteNombre, texto: txt })
+            });
+            document.getElementById('textoTranscripcion').value = "";
+            loadPacienteData();
+        }
+
+        // --- CITA MANUAL ---
+        document.getElementById('formCita').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await fetch('/api/dashboard/cita-manual', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    clinic_id: clinicId,
+                    fecha: document.getElementById('modalFechaISO').value,
+                    nombre: document.getElementById('pacienteNombre').value,
+                    telefono: document.getElementById('pacienteTlf').value,
+                    notas: document.getElementById('pacienteNotas').value
+                })
+            });
+            closeModal('modalCita');
+            calendar.refetchEvents();
+        });
+
+        function copyLink() {
+            const link = `${window.location.protocol}//${window.location.host}/agenda/${clinicId}`;
+            navigator.clipboard.writeText(link);
+            alert("Enlace copiado correctamente.");
+        }
+    </script>
+</body>
+</html>

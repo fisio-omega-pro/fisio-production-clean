@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FisioTool | Configuración Inicial</title>
+    
+    <!-- CDN para Estructura y Fuentes (Garantizado que carga siempre) -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- ESTILOS "DOODLE" INTEGRADOS (Sin errores de rutas) -->
+    <style>
+        :root {
+            --color-primary: #237bfd;
+            --color-heading: #1e2022;
+            --color-text: #555555;
+            --bg-body: #f4f7fa;
+            --radius: 12px;
+            --shadow-card: 0 20px 50px rgba(0,0,0,0.06);
+        }
+
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-body); color: var(--color-text); min-height: 100vh; }
+        h1, h2, h3, h4 { font-family: 'Poppins', sans-serif; color: var(--color-heading); font-weight: 700; }
+
+        /* --- Header Minimalista --- */
+        .simple-header { background: #fff; padding: 20px 0; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.03); margin-bottom: 40px; }
+        .logo-text { font-size: 26px; font-weight: 800; color: var(--color-heading); text-decoration: none; letter-spacing: -1px; }
+        .logo-text span { color: var(--color-primary); }
+
+        /* --- Wizard Card Container --- */
+        .wizard-card {
+            background: #fff;
+            border-radius: 20px;
+            padding: 40px 50px;
+            box-shadow: var(--shadow-card);
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 50px;
+        }
+
+        /* --- Progress Bar --- */
+        .progress-area { margin-bottom: 40px; }
+        .progress-base { background: #f0f2f5; height: 8px; border-radius: 10px; width: 100%; position: relative; }
+        .progress-fill { background: var(--color-primary); height: 100%; width: 25%; border-radius: 10px; transition: width 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); box-shadow: 0 2px 10px rgba(35,123,253,0.4); }
+
+        /* --- Formularios --- */
+        .custom-label { font-weight: 600; font-size: 14px; margin-bottom: 8px; color: var(--color-heading); display: block;}
+        .custom-input { width: 100%; border: 2px solid #eaeaea; border-radius: var(--radius); padding: 12px 15px; font-size: 15px; transition: 0.3s; color: #333; }
+        .custom-input:focus { border-color: var(--color-primary); outline: none; box-shadow: 0 0 0 4px rgba(35,123,253,0.1); background: #fff; }
+
+        /* --- Tag Selectors (Red Flags / Payments) --- */
+        .tag-container { display: flex; flex-wrap: wrap; gap: 10px; }
+        .tag-check { display: none; } /* Ocultar checkbox real */
+        .tag-box {
+            border: 1px solid #e0e0e0; border-radius: 30px; padding: 10px 20px;
+            font-size: 14px; font-weight: 500; color: #666; cursor: pointer;
+            transition: 0.2s; background: #fff; user-select: none;
+            display: inline-flex; align-items: center; gap: 8px;
+        }
+        .tag-box:hover { background: #f9f9f9; border-color: #ccc; }
+        .tag-check:checked + .tag-box {
+            background: var(--color-primary); color: white; border-color: var(--color-primary);
+            box-shadow: 0 5px 15px rgba(35,123,253,0.25);
+        }
+
+        /* --- Upload Box --- */
+        .upload-area { border: 2px dashed #dce0e5; border-radius: 15px; padding: 40px; text-align: center; cursor: pointer; transition: 0.3s; background: #fbfbfc; }
+        .upload-area:hover { border-color: var(--color-primary); background: #f0f7ff; }
+
+        /* --- Animaciones de Pasos --- */
+        .step { display: none; opacity: 0; transform: translateY(10px); transition: opacity 0.4s ease, transform 0.4s ease; }
+        .step.active { display: block; opacity: 1; transform: translateY(0); }
+        
+        /* Botones */
+        .btn-main { background: var(--color-heading); color: #fff; padding: 12px 35px; border-radius: 50px; font-weight: 600; border: none; transition: 0.3s; }
+        .btn-main:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.15); background: black; color: white;}
+        .btn-back { color: #888; background: transparent; border: 2px solid #eee; padding: 10px 25px; border-radius: 50px; font-weight: 600; margin-right: 10px; transition: 0.3s; }
+        .btn-back:hover { background: #f5f5f5; color: #333; }
+        .btn-primary-finish { background: var(--color-primary); color: white; }
+        .btn-primary-finish:hover { background: #186bd9; }
+
+        /* Loader */
+        #loaderOverlay { position: fixed; inset: 0; background: rgba(255,255,255,0.95); z-index: 9999; display: none; justify-content: center; align-items: center; flex-direction: column; }
+    </style>
+</head>
+
+<body>
+
+    <!-- Header simplificado para enfocar al usuario -->
+    <header class="simple-header">
+        <div class="container">
+            <a href="index.html" class="logo-text">FISIO<span>TOOL</span></a>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                
+                <div class="text-center mb-5">
+                    <h2 class="mb-2">Vamos a configurar tu entorno</h2>
+                    <p class="text-muted">Personaliza la IA de FisioTool en 4 sencillos pasos</p>
+                </div>
+
+                <div class="wizard-card">
+                    <!-- Progress Bar -->
+                    <div class="progress-area">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="small fw-bold text-primary" id="step-counter">PASO 01/04</span>
+                            <span class="small text-muted" id="step-name">Datos Corporativos</span>
+                        </div>
+                        <div class="progress-base">
+                            <div class="progress-fill" id="progressBar"></div>
+                        </div>
+                    </div>
+
+                    <form id="setup-form" onsubmit="return false;">
+                        
+                        <!-- ================= PASO 1: DATOS ================= -->
+                        <div id="step1" class="step active">
+                            <div class="mb-4">
+                                <!-- Banner Promocional -->
+                                <div class="alert alert-primary bg-light border-primary d-flex align-items-center justify-content-between rounded-3 p-3 mb-4">
+                                    <div>
+                                        <h6 class="mb-0 fw-bold text-primary"><i class="fa-solid fa-gift me-2"></i>¿Código de Invitado?</h6>
+                                        <small class="text-muted">Desbloquea 1 Mes Pro Gratis</small>
+                                    </div>
+                                    <input type="text" id="referral_code" class="form-control form-control-sm text-uppercase fw-bold text-center border-primary" style="width: 100px;" placeholder="CODE">
+                                </div>
+
+                                <label class="custom-label">Nombre de tu Clínica</label>
+                                <input type="text" id="clinic_name" class="custom-input mb-3" placeholder="Ej: Centro de Fisioterapia Vital">
+
+                                <label class="custom-label">Móvil Vinculado (Whatsapp Business)</label>
+                                <input type="tel" id="meta_phone" class="custom-input mb-3" placeholder="+34 600 000 000">
+                                <small class="text-muted d-block mb-3">*Este será el número desde el que 'Ana' contestará.</small>
+                                
+                                <label class="custom-label">Dirección Fiscal</label>
+                                <div class="row g-2">
+                                    <div class="col-8"><input type="text" id="addr_street" class="custom-input" placeholder="Calle / Avda"></div>
+                                    <div class="col-4"><input type="text" id="addr_num" class="custom-input" placeholder="Nº"></div>
+                                    <div class="col-6"><input type="text" id="addr_city" class="custom-input" placeholder="Ciudad"></div>
+                                    <div class="col-6"><input type="text" id="addr_cp" class="custom-input" placeholder="C.P."></div>
+                                </div>
+                            </div>
+
+                            <div class="text-end pt-3">
+                                <button class="btn-main" onclick="nextStep(2)">Siguiente <i class="fa-solid fa-arrow-right ms-2"></i></button>
+                            </div>
+                        </div>
+
+                        <!-- ================= PASO 2: IMPORTACIÓN ================= -->
+                        <div id="step2" class="step">
+                            <h4 class="mb-3">Base de Datos de Pacientes</h4>
+                            <p class="text-muted mb-4">Importa tu historial para entrenar al algoritmo desde el minuto uno. Soporta Excel/CSV.</p>
+                            
+                            <div class="upload-area mb-4" onclick="document.getElementById('csv_file').click()">
+                                <i class="fa-solid fa-cloud-arrow-up fa-3x text-primary mb-3 opacity-50"></i>
+                                <h5>Haz clic para subir archivo</h5>
+                                <p class="small text-muted mb-0">Encriptación E2EE Garantizada</p>
+                                <input type="file" id="csv_file" hidden>
+                            </div>
+
+                            <div class="d-flex justify-content-between pt-3">
+                                <button class="btn-back" onclick="nextStep(1)">Atrás</button>
+                                <button class="btn-main" onclick="nextStep(3)">Continuar <i class="fa-solid fa-arrow-right ms-2"></i></button>
+                            </div>
+                        </div>
+
+                        <!-- ================= PASO 3: MODELO NEGOCIO ================= -->
+                        <div id="step3" class="step">
+                            <h4 class="mb-3">Modelo Económico</h4>
+                            
+                            <div class="row mb-4">
+                                <div class="col-6">
+                                    <label class="custom-label">Precio Sesión (€)</label>
+                                    <input type="number" id="price" value="50" class="custom-input fw-bold text-end">
+                                </div>
+                                <div class="col-6">
+                                    <label class="custom-label">Duración (Min)</label>
+                                    <select id="duration" class="custom-input form-select text-end">
+                                        <option value="30">30 min</option>
+                                        <option value="45">45 min</option>
+                                        <option value="60" selected>60 min</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <label class="custom-label mb-2">Métodos de Cobro Aceptados</label>
+                            <div class="tag-container mb-4">
+                                <label>
+                                    <input type="checkbox" class="tag-check" value="efectivo" checked>
+                                    <span class="tag-box"><i class="fa-solid fa-coins"></i> Efectivo</span>
+                                </label>
+                                <label>
+                                    <input type="checkbox" class="tag-check" value="tarjeta" checked>
+                                    <span class="tag-box"><i class="fa-regular fa-credit-card"></i> Tarjeta</span>
+                                </label>
+                                <label>
+                                    <input type="checkbox" class="tag-check" value="bizum">
+                                    <span class="tag-box"><i class="fa-solid fa-mobile-screen"></i> Bizum</span>
+                                </label>
+                            </div>
+
+                            <div class="bg-light p-3 rounded-3 border">
+                                <label class="custom-label text-danger mb-1"><i class="fa-solid fa-shield-halved"></i> Fianza Anti No-Show (€)</label>
+                                <input type="number" id="deposit" class="custom-input" placeholder="Ej: 20">
+                                <small class="text-muted mt-2 d-block text-small" style="font-size:12px;">Importe que se cobrará online para reservar.</small>
+                            </div>
+
+                            <div class="d-flex justify-content-between pt-4">
+                                <button class="btn-back" onclick="nextStep(2)">Atrás</button>
+                                <button class="btn-main" onclick="nextStep(4)">Continuar <i class="fa-solid fa-arrow-right ms-2"></i></button>
+                            </div>
+                        </div>
+
+                        <!-- ================= PASO 4: IA SETTINGS ================= -->
+                        <div id="step4" class="step">
+                            <h4 class="mb-2">Entrenamiento IA</h4>
+                            <p class="text-muted mb-4 small">Selecciona qué patologías o casos la IA debe rechazar o derivar ("Red Flags").</p>
+
+                            <div class="tag-container mb-5">
+                                <label>
+                                    <input type="checkbox" class="tag-check redflag" value="trafico">
+                                    <span class="tag-box"><i class="fa-solid fa-car-burst text-danger"></i> Accidentes Tráfico</span>
+                                </label>
+                                <label>
+                                    <input type="checkbox" class="tag-check redflag" value="neurologia">
+                                    <span class="tag-box"><i class="fa-solid fa-brain text-warning"></i> Neurología</span>
+                                </label>
+                                <label>
+                                    <input type="checkbox" class="tag-check redflag" value="suelo_pelvico">
+                                    <span class="tag-box"><i class="fa-solid fa-person-pregnant text-success"></i> Suelo Pélvico</span>
+                                </label>
+                                <label>
+                                    <input type="checkbox" class="tag-check redflag" value="respiratorio">
+                                    <span class="tag-box"><i class="fa-solid fa-lungs text-info"></i> Respiratorio</span>
+                                </label>
+                                <label>
+                                    <input type="checkbox" class="tag-check redflag" value="seguros">
+                                    <span class="tag-box"><i class="fa-solid fa-file-contract"></i> Mutuas/Seguros</span>
+                                </label>
+                            </div>
+
+                            <div class="alert alert-light border text-center p-3 mb-4">
+                                <p class="mb-0 small text-muted">Al finalizar, tus datos se guardarán de forma segura y pasarás a la pasarela de activación.</p>
+                            </div>
+
+                            <div class="d-flex justify-content-between pt-2">
+                                <button class="btn-back" onclick="nextStep(3)">Atrás</button>
+                                <button class="btn-main btn-main btn-primary-finish px-4 w-50" onclick="finalSubmit()">
+                                    FINALIZAR CONFIGURACIÓN
+                                </button>
+                            </div>
+                        </div>
+
+                    </form>
+                </div>
+                
+                <p class="text-center text-muted small">&copy; 2024 FisioTool Cloud System</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- PANTALLA DE CARGA -->
+    <div id="loaderOverlay">
+        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
+        <h5 class="fw-bold animate-pulse">GUARDANDO CONFIGURACIÓN...</h5>
+        <p class="text-muted">Creando instancia segura en Google Cloud</p>
+    </div>
+
+    <!-- JS VANILLA (Ligero y compatible) -->
+    <script>
+        function nextStep(targetStep) {
+            // Validaciones básicas (Opcional, se puede ampliar)
+            if(targetStep > 1 && document.getElementById('clinic_name').value.trim() === '') {
+                alert('Por favor, indica al menos el nombre de tu clínica.');
+                return;
+            }
+
+            // Ocultar todos
+            document.querySelectorAll('.step').forEach(el => {
+                el.classList.remove('active');
+            });
+
+            // Mostrar target
+            const target = document.getElementById('step' + targetStep);
+            target.classList.add('active');
+
+            // Actualizar Progress Bar
+            const bar = document.getElementById('progressBar');
+            const counter = document.getElementById('step-counter');
+            const title = document.getElementById('step-name');
+
+            // Actualizar textos y barra
+            counter.innerText = `PASO 0${targetStep}/04`;
+            bar.style.width = (targetStep * 25) + '%';
+
+            // Titulos dinámicos para feedback
+            const titles = ["Datos Corporativos", "Migración Datos", "Modelo Económico", "Inteligencia Artificial"];
+            title.innerText = titles[targetStep - 1];
+        }
+
+        async function finalSubmit() {
+            // Mostrar Loader
+            document.getElementById('loaderOverlay').style.display = 'flex';
+
+            // RECOLECCION DE DATOS (Preservando lógica original)
+            const formData = {
+                clinic: document.getElementById('clinic_name').value,
+                phone: document.getElementById('meta_phone').value,
+                address: {
+                    street: document.getElementById('addr_street').value,
+                    city: document.getElementById('addr_city').value
+                },
+                pricing: {
+                    price: document.getElementById('price').value,
+                    duration: document.getElementById('duration').value,
+                    deposit: document.getElementById('deposit').value
+                },
+                redflags: Array.from(document.querySelectorAll('.redflag:checked')).map(cb => cb.value)
+            };
+
+            console.log("Datos Listos para Envío:", formData);
+
+            // SIMULACION GUARDADO (Reemplazar con fetch real a tu API Node)
+            // await fetch('/api/setup', {method: 'POST', body: ...});
+
+            setTimeout(() => {
+                // Redirigir al Dashboard principal tras guardar
+                window.location.href = 'dashboard.html'; 
+            }, 2500);
+        }
+    </script>
+
+</body>
+</html>

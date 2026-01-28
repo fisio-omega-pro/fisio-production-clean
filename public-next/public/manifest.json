@@ -1,0 +1,21 @@
+{
+  "name": "FisioTool Pro",
+  "short_name": "FisioTool",
+  "description": "El gestor de clínicas con IA más avanzado. Tu CFO y Asistente 24/7.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#05070a",
+  "theme_color": "#d4af37",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

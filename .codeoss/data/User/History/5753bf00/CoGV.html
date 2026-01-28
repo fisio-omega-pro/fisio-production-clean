@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FisioTool | Módulo Prospección IA</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&family=Muli:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+    <style>
+        :root { 
+            --bg-dark: #121318;
+            --bg-card: #191c26;
+            --bg-sidebar: #070a11;
+            --accent: #DD4242;
+            --accent-email: #4ecdc4; /* Color diferenciador para Email */
+            --text-main: #FFFFFF;
+            --text-muted: #A9AFC3;
+        }
+        body { font-family: 'Poppins', sans-serif; background-color: var(--bg-dark); color: var(--text-muted); overflow-x: hidden; height: 100vh; margin: 0; }
+        
+        .left-sidebar { width: 280px; background-color: var(--bg-sidebar); height: 100vh; position: fixed; top: 0; left: 0; padding: 40px 30px; border-right: 1px solid rgba(255,255,255,0.02); }
+        .wrapper { margin-left: 280px; padding: 60px; width: calc(100% - 280px); }
+        .crope-card { background: var(--bg-card); padding: 40px; margin-bottom: 30px; border-radius: 8px; }
+        .card-head { font-size: 20px; color: #fff; font-weight: 500; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        h1 { color: #fff; font-weight: 700; font-size: 40px; margin-bottom: 5px; }
+
+        /* Drag Zone */
+        .drag-zone { border: 2px dashed #393f4f; background: rgba(25, 28, 38, 0.5); padding: 40px; text-align: center; cursor: pointer; border-radius: 8px; transition:0.3s;}
+        .drag-zone:hover { border-color: var(--accent); background: rgba(221, 66, 66, 0.05); }
+        
+        /* Botones Acción */
+        .btn-launch { background: linear-gradient(45deg, var(--accent), #ff5e5e); color: white; border: none; padding: 15px 30px; border-radius: 50px; font-weight: 700; letter-spacing: 1px; width: 100%; margin-bottom: 15px; opacity: 1; transition: 0.3s; }
+        .btn-launch:disabled { background: #393f4f; opacity: 0.5; cursor: not-allowed; }
+        
+        .btn-email { background: linear-gradient(45deg, var(--accent-email), #2b9eb3); } /* Variación Azul */
+
+        /* Console Log */
+        #console-log { background:#15171e; padding:20px; border-radius:8px; font-family:'monospace'; color:#aaa; font-size:12px; height:200px; overflow-y:auto; margin-top:20px;}
+        
+        .kpi-box { background: #0f1014; padding: 15px; border-radius: 6px; border: 1px solid #333; margin-bottom: 10px;}
+        .kpi-val { font-size: 24px; font-weight: 700; color: #fff; display: block; }
+        .kpi-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* Loader Overlay */
+        #loader { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:999; display:none; align-items:center; justify-content:center; flex-direction:column;}
+    </style>
+</head>
+<body>
+
+    <div id="loader"><h3 style="color:#fff">PROCESANDO IA...</h3></div>
+
+    <!-- SIDEBAR -->
+    <div class="left-sidebar">
+        <h2 style="color:#fff;">FISIO<span style="color:var(--accent)">TOOL</span></h2>
+        <div style="margin-top: 50px; color: var(--accent); font-weight: 700;">PROSPECCIÓN V.2</div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="wrapper">
+        <header class="mb-5">
+            <h1>Módulo AOLS</h1>
+            <p>Captación de Leads por WhatsApp (Móvil) y Email (SiteGround SMTP)</p>
+        </header>
+
+        <div class="row">
+            <!-- COL IZQ: SUBIDA -->
+            <div class="col-lg-4">
+                <div class="crope-card">
+                    <div class="card-head">1. Carga de Base de Datos</div>
+                    <div class="drag-zone" id="dropArea">
+                        <h4>Arrastra tu CSV aquí</h4>
+                        <input type="file" id="fileInput" accept=".csv" style="display:none">
+                    </div>
+                </div>
+            </div>
+
+            <!-- COL DER: EJECUCIÓN -->
+            <div class="col-lg-4">
+                <div class="crope-card">
+                    <div class="card-head">2. Estrategia Móvil (WhatsApp)</div>
+                    <div class="kpi-box"><span class="kpi-val" id="val-wa">0</span><span class="kpi-lbl" style="color:var(--accent)">Candidatos WhatsApp</span></div>
+                    <button id="btnWa" class="btn-launch" disabled onclick="lanzarWhatsapp()">LANZAR CAMPAÑA WHATSAPP</button>
+                    <small>Requiere plantilla Meta aprobada.</small>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="crope-card">
+                    <div class="card-head">3. Estrategia Desktop (Email)</div>
+                    <div class="kpi-box"><span class="kpi-val" id="val-mail">0</span><span class="kpi-lbl" style="color:var(--accent-email)">Candidatos Email</span></div>
+                    <!-- BOTÓN NUEVO PARA SITEGROUND -->
+                    <button id="btnEmail" class="btn-launch btn-email" disabled onclick="lanzarEmail()">LANZAR CAMPAÑA EMAIL</button>
+                    <small>Vía SiteGround SMTP.</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- LOG -->
+        <div class="crope-card">
+            <div class="card-head">Registro de Operaciones</div>
+            <div id="console-log">> Esperando datos...</div>
+        </div>
+    </div>
+
+    <script>
+        const dropArea = document.getElementById('dropArea');
+        const fileInput = document.getElementById('fileInput');
+        
+        let dbLeads = []; // Memoria temporal del navegador
+
+        // DRAG & DROP
+        dropArea.addEventListener('click', () => fileInput.click());
+        dropArea.addEventListener('dragover', (e) => { e.preventDefault(); dropArea.style.borderColor = '#DD4242'; });
+        dropArea.addEventListener('dragleave', (e) => { e.preventDefault(); dropArea.style.borderColor = '#393f4f'; });
+        dropArea.addEventListener('drop', (e) => { e.preventDefault(); if(e.dataTransfer.files.length) uploadFile(e.dataTransfer.files[0]); });
+        fileInput.addEventListener('change', (e) => { if(e.target.files.length) uploadFile(e.target.files[0]); });
+
+        // FUNCIÓN 1: SUBIDA CSV
+        async function uploadFile(file) {
+            log("> Subiendo archivo...");
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                const res = await fetch('/aols/upload-leads', { method: 'POST', body: formData });
+                const data = await res.json();
+                
+                if(data.status === 'success') {
+                    document.getElementById('val-wa').innerText = data.analisis.whatsapp_candidatos;
+                    document.getElementById('val-mail').innerText = data.analisis.email_only;
+                    
+                    if(data.analisis.whatsapp_candidatos > 0) document.getElementById('btnWa').disabled = false;
+                    if(data.analisis.email_only > 0) document.getElementById('btnEmail').disabled = false;
+
+                    // Guardamos una referencia local rápida (simulada) para saber a quién enviar el email test
+                    // Nota: En producción real, llamaríamos a la DB. Aquí hacemos un bucle rápido.
+                    log(`> ANÁLISIS COMPLETO: ${data.total} leads procesados.`);
+                }
+            } catch(e) { log("> ERROR DE SUBIDA: " + e.message); }
+        }
+
+        // FUNCIÓN 2: WHATSAPP (Llama al endpoint antiguo)
+        async function lanzarWhatsapp() {
+            if(!confirm("¿Enviar plantillas WhatsApp? Coste Meta aplicable.")) return;
+            log("> Iniciando envío masivo WA...");
+            const res = await fetch('/aols/lanzar-campana', {
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({cantidad: 50})
+            });
+            const data = await res.json();
+            log(`> WHATSAPP FIN: ${data.enviados_wa} enviados.`);
+        }
+
+        // FUNCIÓN 3: EMAIL (NUEVA CONEXIÓN SITEGROUND)
+        async function lanzarEmail() {
+            // Pedimos el email para probar la demo
+            const testEmail = prompt("MODO PRUEBA: Escribe TU EMAIL REAL para ver cómo llega el correo de SiteGround:");
+            if(!testEmail || !testEmail.includes('@')) return;
+
+            log(`> Conectando con SiteGround SMTP para: ${testEmail}...`);
+            document.getElementById('btnEmail').disabled = true;
+            document.getElementById('btnEmail').innerText = "ENVIANDO...";
+
+            try {
+                const res = await fetch('/aols/enviar-email-frio', {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({
+                        emailDestino: testEmail, // Usamos tu input para asegurar que lo recibes
+                        nombreCliente: "Doctor Test", 
+                        tipoDolor: "no-show" // Ana elegirá el script de "Ausentismo"
+                    })
+                });
+                const data = await res.json();
+
+                if(data.status === 'sent') {
+                    log(`✅ ÉXITO SMTP: Email entregado. ID: ${data.id}`);
+                    log(`> Revisa tu bandeja de entrada (${testEmail}).`);
+                    alert("¡CORREO ENVIADO CON ÉXITO VÍA SITEGROUND!");
+                } else {
+                    log(`❌ ERROR SITEGROUND: ${data.msg || data.reason}`);
+                }
+            } catch(e) {
+                log(`❌ FALLO DE RED: ${e.message}`);
+            }
+            document.getElementById('btnEmail').disabled = false;
+            document.getElementById('btnEmail').innerText = "LANZAR CAMPAÑA EMAIL";
+        }
+
+        function log(msg) { 
+            const box = document.getElementById('console-log');
+            box.innerHTML += msg + "<br>"; 
+            box.scrollTop = box.scrollHeight;
+        }
+    </script>
+</body>
+</html>

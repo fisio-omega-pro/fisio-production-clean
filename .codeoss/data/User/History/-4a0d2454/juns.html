@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="FisioTool: El recepcionista inteligente que blinda tu agenda, elimina los no-shows y es 100% accesible para invidentes.">
+    <title>FisioTool Pro | La Inteligencia que Libera tu Clínica</title>
+    
+    <!-- SEO & SOCIAL -->
+    <meta property="og:title" content="FisioTool Pro | Recepcionista IA 24/7">
+    <meta property="og:description" content="Elimina cancelaciones y recupera 1h al día con nuestra IA conductual.">
+    <meta property="og:type" content="website">
+
+    <!-- FUENTES -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #0066ff;
+            --dark: #0f172a;
+            --accent: #10b981;
+            --glass: rgba(255, 255, 255, 0.9);
+        }
+        body { font-family: 'Poppins', sans-serif; color: var(--dark); background: #f8fafc; overflow-x: hidden; }
+        
+        /* HERO PREMIUM */
+        .h5_header-area { padding: 20px 0; background: var(--glass); backdrop-filter: blur(10px); border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 1000; }
+        .logo-text { font-weight: 900; font-size: 24px; color: var(--dark); text-decoration: none; }
+        .logo-text span { color: var(--primary); }
+
+        .hero-section { padding: 100px 0 60px; background: radial-gradient(circle at top right, #eef2ff, #f8fafc); }
+        .hero-title { font-weight: 900; font-size: clamp(2.5rem, 5vw, 4rem); line-height: 1.1; letter-spacing: -2px; }
+        .hero-subtitle { font-size: 1.2rem; color: #64748b; margin: 25px 0 40px; max-width: 700px; margin-inline: auto; }
+
+        /* BOTONES FERRARI */
+        .cta-button { background: var(--primary); color: white; padding: 18px 35px; border-radius: 50px; font-weight: 700; text-decoration: none; display: inline-block; transition: 0.3s; box-shadow: 0 10px 25px rgba(0,102,255,0.2); }
+        .cta-button:hover { transform: translateY(-3px); box-shadow: 0 15px 30px rgba(0,102,255,0.3); color: white; }
+        .outline-button { border: 2px solid var(--dark); color: var(--dark); padding: 16px 35px; border-radius: 50px; font-weight: 700; text-decoration: none; transition: 0.3s; }
+        .outline-button:hover { background: var(--dark); color: white; }
+
+        /* TRUST BAR */
+        .trust-bar { background: white; padding: 30px 0; border-y: 1px solid #e2e8f0; }
+        .trust-item { color: #94a3b8; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 10px; justify-content: center; }
+
+        /* SECCIÓN VIDEO TESTIMONIO */
+        .video-container { position: relative; border-radius: 30px; overflow: hidden; box-shadow: 0 30px 60px rgba(0,0,0,0.15); background: var(--dark); }
+        .video-wrapper { position: relative; padding-bottom: 56.25%; height: 0; }
+        .video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+
+        /* SECCIÓN ACCESIBILIDAD (EL DIFERENCIADOR) */
+        .access-section { background: var(--dark); color: white; padding: 80px 0; border-radius: 50px 50px 0 0; margin-top: 50px; }
+        .access-badge { background: #1e293b; color: #38bdf8; padding: 8px 20px; border-radius: 50px; font-size: 12px; font-weight: 800; border: 1px solid #334155; }
+
+        /* CARDS */
+        .service-card { background: white; padding: 40px; border-radius: 24px; border: 1px solid #e2e8f0; transition: 0.3s; height: 100%; }
+        .service-card:hover { border-color: var(--primary); transform: translateY(-10px); }
+        .icon-box { width: 60px; height: 60px; background: #eef5ff; color: var(--primary); border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 20px; }
+
+        .animate-up { opacity: 0; transform: translateY(30px); transition: 0.8s ease-out; }
+        .animate-up.visible { opacity: 1; transform: translateY(0); }
+    </style>
+</head>
+
+<body>
+
+    <!-- === HEADER === -->
+    <header class="h5_header-area">
+        <div class="container">
+            <div class="row align-items-center justify-content-between">
+                <div class="col-md-3 col-6">
+                    <a href="/" class="logo-text">FISIO<span>TOOL</span></a>
+                </div>
+                <div class="col-md-6 d-none d-lg-block text-center">
+                    <nav class="d-flex justify-content-center gap-4">
+                        <a href="#video" class="text-dark text-decoration-none fw-bold small">Testimonios</a>
+                        <a href="#access" class="text-dark text-decoration-none fw-bold small">Accesibilidad</a>
+                        <a href="roi_calculator.html" class="text-dark text-decoration-none fw-bold small">ROI</a>
+                    </nav>
+                </div>
+                <div class="col-md-3 col-6 text-end">
+                    <a href="login.html" class="fw-bold text-dark text-decoration-none me-3 small">Entrar</a>
+                    <a href="onboarding.html" class="cta-button py-2 px-4 shadow-none small">Probar Gratis</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- === HERO SECTION === -->
+        <section class="hero-section text-center">
+            <div class="container animate-up">
+                <span class="badge bg-primary-subtle text-primary px-3 py-2 rounded-pill mb-3 fw-bold">NUEVA ERA: IA CONDUCTUAL 2.5</span>
+                <h1 class="hero-title">La Inteligencia que <br><span class="text-primary">Blinda tu Agenda.</span></h1>
+                <p class="hero-subtitle">Ana es mucho más que un bot. Es tu nueva recepcionista de élite que reconoce a tus pacientes, cobra fianzas automáticamente y gestiona tu clínica con psicología persuasiva.</p>
+                
+                <div class="d-flex justify-content-center gap-3 flex-wrap">
+                    <a href="onboarding.html" class="cta-button">Activar mi IA Ahora ➜</a>
+                    <a href="roi_calculator.html" class="outline-button">Calcular Ahorro Anual</a>
+                </div>
+
+                <!-- Preview Principal con Video -->
+                <div class="container mt-5 pt-4" id="video">
+                    <div class="row justify-content-center">
+                        <div class="col-lg-10">
+                            <div class="video-container">
+                                <div class="video-wrapper">
+                                    <!-- SUSTITUIR 'URL_DE_TU_VIDEO_AQUI' POR EL ID DE YOUTUBE -->
+                                    <iframe src="https://www.youtube.com/embed/URL_DE_TU_VIDEO_AQUI?rel=0&showinfo=0" allowfullscreen></iframe>
+                                </div>
+                            </div>
+                            <p class="mt-4 fw-bold text-muted"><i class="fa-solid fa-play-circle text-primary"></i> Mira cómo FisioTool transformó la clínica del Dr. Murillo</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- === TRUST BAR === -->
+        <div class="trust-bar">
+            <div class="container">
+                <div class="row g-4">
+                    <div class="col-md-4 trust-item"><i class="fa-solid fa-shield-halved"></i> Datos protegidos (RGPD Salud)</div>
+                    <div class="col-md-4 trust-item"><i class="fa-brands fa-stripe-s"></i> Pagos Seguros vía Stripe</div>
+                    <div class="col-md-4 trust-item"><i class="fa-brands fa-google"></i> Infraestructura Google Cloud</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- === SECCIÓN ACCESIBILIDAD (EL ALMA) === -->
+        <section class="access-section" id="access">
+            <div class="container">
+                <div class="row align-items-center">
+                    <div class="col-lg-6 mb-5 mb-lg-0 animate-up">
+                        <span class="access-badge mb-3 d-inline-block">INCLUSIÓN NIVEL ÉLITE</span>
+                        <h2 class="display-5 fw-bold mb-4">Diseñado para el Talento, <br>no para la Vista.</h2>
+                        <p class="lead opacity-75">FisioTool es la primera plataforma de gestión médica con <strong>Accesibilidad de Grado Superior</strong>.</p>
+                        <ul class="list-unstyled mt-4 d-flex flex-column gap-3">
+                            <li><i class="fa-solid fa-check text-info me-2"></i> Navegación Táctil y Teclado Blindada.</li>
+                            <li><i class="fa-solid fa-check text-info me-2"></i> Narración de eventos y confirmaciones por voz.</li>
+                            <li><i class="fa-solid fa-check text-info me-2"></i> Dictado clínico de historial (Manos Libres).</li>
+                        </ul>
+                    </div>
+                    <div class="col-lg-6 text-center animate-up">
+                        <img src="https://ui-kit.co/files/shot_clean_saas.jpg" class="img-fluid rounded-5 shadow-lg border border-secondary" alt="Accesibilidad">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- === PAIN POINTS === -->
+        <section class="section-padding py-5" id="pain">
+            <div class="container py-5">
+                <div class="text-center mb-5 animate-up">
+                    <h5 class="text-primary fw-bold">DIAGNÓSTICO</h5>
+                    <h2 class="fw-bold">¿Cuánto te está costando gestionar a mano?</h2>
+                </div>
+                <div class="row g-4">
+                    <div class="col-md-4 animate-up">
+                        <div class="service-card">
+                            <div class="icon-box"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+                            <h4 class="fw-bold">Ingresos Asegurados</h4>
+                            <p class="text-muted">Se acabó perder dinero por olvidos ajenos. Ana cobra fianzas automáticas de 15€ para blindar cada hueco de tu agenda.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 animate-up">
+                        <div class="service-card">
+                            <div class="icon-box"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                            <h4 class="fw-bold">Tiempo Recuperado</h4>
+                            <p class="text-muted">Dicta la evolución de tus pacientes por voz. Ahórrate 1 hora de papeleo al día y dedícate a lo que de verdad importa.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 animate-up">
+                        <div class="service-card">
+                            <div class="icon-box"><i class="fa-solid fa-brain"></i></div>
+                            <h4 class="fw-bold">Memoria de Identidad</h4>
+                            <p class="text-muted">Ana reconoce a tus pacientes por su nombre y dolencia antes de que hablen. Crea una fidelidad imbatible desde el primer saludo.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- === SECCIÓN DE PRECIOS (LOS DOS PLANES) === -->
+<section class="py-5" id="pricing" style="background: #f1f5f9;">
+    <div class="container py-5">
+        <div class="text-center mb-5 animate-up">
+            <h5 class="text-primary fw-bold">PLANES DE ÉLITE</h5>
+            <h2 class="fw-bold">Invierte en tu Tiempo, Asegura tu Futuro</h2>
+            <p class="text-muted">Sin permanencia. Sin comisiones ocultas. Solo resultados.</p>
+        </div>
+
+        <div class="row g-4 justify-content-center">
+            <!-- PLAN 1: ANA LANDING -->
+            <div class="col-lg-5 animate-up">
+                <div class="service-card p-5 border-0 shadow-sm" style="position: relative; overflow: hidden;">
+                    <div style="position: absolute; top: 20px; right: -30px; background: #e2e8f0; color: #475569; padding: 5px 40px; transform: rotate(45deg); font-size: 10px; font-weight: 800;">STANDARD</div>
+                    <h3 class="fw-bold">Ana Landing</h3>
+                    <p class="text-muted small">Ideal para clínicas que quieren digitalizar su agenda con elegancia.</p>
+                    <div class="my-4">
+                        <span style="font-size: 3.5rem; font-weight: 900;">100€</span>
+                        <span class="text-muted">/mes</span>
+                    </div>
+                    <ul class="list-unstyled mb-5 d-flex flex-column gap-3">
+                        <li><i class="fa-solid fa-check text-primary me-2"></i> Recepcionista IA en Landing Page propia.</li>
+                        <li><i class="fa-solid fa-check text-primary me-2"></i> Reconocimiento de Pacientes (CRM).</li>
+                        <li><i class="fa-solid fa-check text-primary me-2"></i> Cobro de fianzas anti-NoShow.</li>
+                        <li><i class="fa-solid fa-check text-primary me-2"></i> Historial clínico por voz.</li>
+                        <li><i class="fa-solid fa-check text-primary me-2"></i> 100% Accesible para invidentes.</li>
+                    </ul>
+                    <a href="onboarding.html?plan=landing" class="outline-button w-100 text-center">Elegir Ana Landing</a>
+                </div>
+            </div>
+
+            <!-- PLAN 2: ANA WHATSAPP PRO -->
+            <div class="col-lg-5 animate-up">
+                <div class="service-card p-5 border-primary shadow-lg" style="border: 3px solid var(--primary) !important; transform: scale(1.05); background: white; z-index: 10;">
+                    <div style="position: absolute; top: 20px; right: -30px; background: var(--primary); color: white; padding: 5px 40px; transform: rotate(45deg); font-size: 10px; font-weight: 800;">MÁS POPULAR</div>
+                    <h3 class="fw-bold">Ana WhatsApp <span class="text-primary">PRO</span></h3>
+                    <p class="text-muted small">La experiencia total: Ana vive dentro de tu número de WhatsApp real.</p>
+                    <div class="my-4">
+                        <span style="font-size: 3.5rem; font-weight: 900; color: var(--primary);">150€</span>
+                        <span class="text-muted">/mes</span>
+                    </div>
+                    <ul class="list-unstyled mb-5 d-flex flex-column gap-3">
+                        <li><i class="fa-solid fa-star text-warning me-2"></i> <strong>Integración en TU número de WhatsApp.</strong></li>
+                        <li><i class="fa-solid fa-check text-primary me-2"></i> Agendamiento directo sin salir de la App.</li>
+                        <li><i class="fa-solid fa-check text-primary me-2"></i> Máxima conversión (Cero fricción).</li>
+                        <li><i class="fa-solid fa-check text-primary me-2"></i> Todo lo incluido en el Plan Landing.</li>
+                        <li><i class="fa-solid fa-check text-primary me-2"></i> Soporte prioritario 24/7.</li>
+                    </ul>
+                    <a href="onboarding.html?plan=whatsapp" class="cta-button w-100 text-center">Activar WhatsApp PRO ➜</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+</body>
+</html>

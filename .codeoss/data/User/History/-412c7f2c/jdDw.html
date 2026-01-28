@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración Inicial | FisioTool</title>
+    
+    <!-- FRAMEWORKS & FONTS -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        :root { --primary: #237bfd; --primary-dark: #1a64d6; --text: #1e2022; --bg: #f4f7fa; --radius: 16px; }
+        
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg); color: var(--text); min-height: 100vh; }
+        h1, h2, h3, h4, h5 { font-family: 'Poppins', sans-serif; font-weight: 600; }
+
+        /* WIZARD CONTAINER */
+        .wizard-container { max-width: 800px; margin: 50px auto; background: #fff; border-radius: 20px; box-shadow: 0 15px 50px rgba(0,0,0,0.05); overflow: hidden; position: relative; }
+        .wizard-header { background: #fff; padding: 40px 40px 20px; text-align: center; }
+        .wizard-body { padding: 20px 40px 40px; }
+
+        /* PROGRESS BAR */
+        .progress-track { background: #f0f2f5; height: 6px; border-radius: 10px; margin-bottom: 40px; position: relative; overflow: hidden; }
+        .progress-fill { background: var(--primary); height: 100%; width: 25%; transition: width 0.5s ease-in-out; border-radius: 10px; }
+
+        /* STEPS ANIMATION */
+        .step-section { display: none; animation: slideUp 0.4s cubic-bezier(0.25, 1, 0.5, 1); }
+        .step-section.active { display: block; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* INPUTS PRO */
+        .form-label-ft { font-size: 11px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; color: #8898aa; margin-bottom: 6px; display: block; }
+        .form-control-ft { width: 100%; background: #fcfcfc; border: 2px solid #eef2f6; border-radius: 10px; padding: 12px 15px; font-size: 15px; color: var(--text); transition: 0.2s; outline: none; }
+        .form-control-ft:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 4px rgba(35,123,253,0.1); }
+        .form-control-ft::placeholder { color: #ccc; }
+
+        /* CARDS SELECTION (Payment & Flags) */
+        .selection-card { cursor: pointer; position: relative; }
+        .selection-card input { position: absolute; opacity: 0; width: 0; height: 0; }
+        .card-inner { border: 2px solid #eef2f6; border-radius: 12px; padding: 20px; text-align: center; transition: 0.2s; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .selection-card:hover .card-inner { transform: translateY(-3px); border-color: #dce4f0; }
+        .selection-card input:checked + .card-inner { border-color: var(--primary); background: rgba(35,123,253,0.03); color: var(--primary); font-weight: 600; box-shadow: 0 10px 20px rgba(35,123,253,0.1); }
+        
+        /* RED FLAG SPECIFIC */
+        .red-flag-card input:checked + .card-inner { border-color: #dc3545; background: rgba(220,53,69,0.03); color: #dc3545; box-shadow: 0 10px 20px rgba(220,53,69,0.1); }
+
+        /* BUTTONS */
+        .btn-next { background: var(--primary); color: white; border: none; padding: 14px 35px; border-radius: 50px; font-weight: 600; box-shadow: 0 4px 15px rgba(35,123,253,0.3); transition: 0.3s; }
+        .btn-next:hover { background: var(--primary-dark); transform: translateY(-2px); }
+        .btn-prev { background: transparent; color: #8898aa; border: none; font-weight: 500; }
+        
+        /* OVERLAY LOADER */
+        .loader-overlay { position: fixed; inset: 0; background: rgba(255,255,255,0.95); z-index: 9999; display: none; align-items: center; justify-content: center; flex-direction: column; backdrop-filter: blur(5px); }
+    </style>
+</head>
+<body>
+
+    <div class="wizard-container">
+        <!-- HEADER -->
+        <div class="wizard-header">
+            <h3 class="mb-2">Configura tu Clínica</h3>
+            <p class="text-muted small">Configuración en 4 pasos para eliminar tu carga administrativa.</p>
+            
+            <div class="progress-track mt-4">
+                <div class="progress-fill" id="progressBar"></div>
+            </div>
+            
+            <!-- STEPS INDICATOR (TEXT) -->
+            <div class="d-flex justify-content-between text-muted small fw-bold text-uppercase" style="font-size: 10px;">
+                <span>1. Identidad</span>
+                <span>2. Agenda IA</span>
+                <span>3. Finanzas</span>
+                <span>4. Reglas</span>
+            </div>
+        </div>
+
+        <div class="wizard-body">
+            <form id="onboardingForm" onsubmit="submitForm(event)">
+                
+                <!-- ================= PASO 1: IDENTIDAD Y SEGURIDAD ================= -->
+                <div id="step1" class="step-section active">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <div class="alert alert-info border-0 bg-light d-flex align-items-center gap-3 py-2 px-3 rounded-pill mb-4">
+                                <i class="fa-solid fa-gift text-primary"></i>
+                                <span class="small fw-bold text-muted">¿Tienes código de invitación?</span>
+                                <input type="text" id="referralCode" class="form-control form-control-sm border-0 bg-white text-center fw-bold text-primary ms-auto" style="width: 120px;" placeholder="CODIGO">
+                            </div>
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label-ft">Nombre de la Clínica</label>
+                            <input type="text" id="clinicName" class="form-control-ft" placeholder="Ej: Fisioterapia Avanzada Madrid" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label-ft">Email de Administrador (Usuario)</label>
+                            <input type="email" id="adminEmail" class="form-control-ft" placeholder="tu@email.com" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label-ft">Contraseña de Acceso <span class="text-danger">*</span></label>
+                            <input type="password" id="adminPass" class="form-control-ft" placeholder="Mínimo 8 caracteres" minlength="8" required>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label-ft">Dirección Fiscal Completa</label>
+                            <input type="text" id="fullAddress" class="form-control-ft" placeholder="Calle, Número, CP y Ciudad" required>
+                        </div>
+                    </div>
+                    
+                    <div class="text-end mt-5">
+                        <button type="button" class="btn-next" onclick="validateAndNext(1)">Continuar <i class="fa-solid fa-arrow-right ms-2"></i></button>
+                    </div>
+                </div>
+
+                <!-- ================= PASO 2: EL CEREBRO DE LA IA (SOLUCIÓN ALUCINACIONES) ================= -->
+                <div id="step2" class="step-section">
+                    <div class="text-center mb-4">
+                        <h5 class="fw-bold text-primary">Evita errores de Agenda</h5>
+                        <p class="small text-muted">Define tus límites para que la IA no dé citas cuando no debes.</p>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label-ft">Precio Sesión (€)</label>
+                            <input type="number" id="sessionPrice" class="form-control-ft" placeholder="50" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label-ft">Duración (min)</label>
+                            <input type="number" id="sessionDuration" class="form-control-ft" value="45" required>
+                        </div>
+                    </div>
+
+                    <hr class="my-4 opacity-10">
+
+                    <!-- CONFIGURACIÓN DE HORARIO (LA CLAVE) -->
+                    <label class="form-label-ft mb-2"><i class="fa-regular fa-clock me-1"></i> Horario de Atención (Lunes a Viernes)</label>
+                    <div class="p-3 bg-light rounded-3 border border-light">
+                        <div class="row g-2 align-items-center">
+                            <div class="col-5">
+                                <small class="text-muted d-block text-center mb-1">Apertura</small>
+                                <input type="time" id="openTime" class="form-control-ft text-center" value="09:00" required>
+                            </div>
+                            <div class="col-2 text-center text-muted fw-bold">-</div>
+                            <div class="col-5">
+                                <small class="text-muted d-block text-center mb-1">Cierre</small>
+                                <input type="time" id="closeTime" class="form-control-ft text-center" value="20:00" required>
+                            </div>
+                            
+                            <div class="col-12 mt-3">
+                                <div class="form-check form-switch d-flex justify-content-center gap-2">
+                                    <input class="form-check-input" type="checkbox" id="hasBreak" onchange="toggleBreak(this)">
+                                    <label class="form-check-label small" for="hasBreak">Cierro a mediodía (Siesta/Comida)</label>
+                                </div>
+                            </div>
+                            
+                            <div class="col-12 mt-2" id="breakTimeContainer" style="display:none;">
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <small class="text-muted text-center d-block">Inicio Descanso</small>
+                                        <input type="time" id="breakStart" class="form-control-ft text-center" value="14:00">
+                                    </div>
+                                    <div class="col-6">
+                                        <small class="text-muted text-center d-block">Fin Descanso</small>
+                                        <input type="time" id="breakEnd" class="form-control-ft text-center" value="16:00">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-5">
+                        <button type="button" class="btn-prev" onclick="goToStep(1)">Atrás</button>
+                        <button type="button" class="btn-next" onclick="validateAndNext(2)">Siguiente <i class="fa-solid fa-arrow-right ms-2"></i></button>
+                    </div>
+                </div>
+
+                <!-- ================= PASO 3: PAGOS ================= -->
+                <div id="step3" class="step-section">
+                    <h5 class="fw-bold mb-4">¿Cómo te pagan los pacientes?</h5>
+                    
+                    <div class="row g-3">
+                        <div class="col-4">
+                            <label class="selection-card">
+                                <input type="checkbox" name="payment_method" value="Efectivo" checked>
+                                <div class="card-inner">
+                                    <i class="fa-solid fa-money-bill-wave fa-2x mb-2"></i>
+                                    <small>Efectivo</small>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="col-4">
+                            <label class="selection-card">
+                                <input type="checkbox" name="payment_method" value="Tarjeta" checked>
+                                <div class="card-inner">
+                                    <i class="fa-regular fa-credit-card fa-2x mb-2"></i>
+                                    <small>Tarjeta</small>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="col-4">
+                            <label class="selection-card">
+                                <input type="checkbox" name="payment_method" value="Bizum">
+                                <div class="card-inner">
+                                    <i class="fa-solid fa-mobile-screen-button fa-2x mb-2"></i>
+                                    <small>Bizum</small>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <label class="form-label-ft">Política de Cancelación (Señal)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0">€</span>
+                            <input type="number" id="depositAmount" class="form-control-ft border-start-0 ps-0" placeholder="0" value="0">
+                        </div>
+                        <small class="text-muted">Si pones > 0€, Ana pedirá tarjeta antes de confirmar.</small>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-5">
+                        <button type="button" class="btn-prev" onclick="goToStep(2)">Atrás</button>
+                        <button type="button" class="btn-next" onclick="validateAndNext(3)">Siguiente <i class="fa-solid fa-arrow-right ms-2"></i></button>
+                    </div>
+                </div>
+
+                <!-- ================= PASO 4: REGLAS Y LEGAL (EL GUARDIÁN) ================= -->
+                <div id="step4" class="step-section">
+                    <h5 class="fw-bold mb-2">Seguridad Clínica y Legal</h5>
+                    <p class="text-muted small mb-4">Selecciona qué casos NO debe agendar la IA automáticamente.</p>
+
+                    <div class="row g-2 mb-4">
+                        <div class="col-6">
+                            <label class="selection-card red-flag-card">
+                                <input type="checkbox" name="red_flags" value="trafico">
+                                <div class="card-inner py-3">
+                                    <i class="fa-solid fa-car-burst mb-1"></i>
+                                    <small style="font-size:11px;">Accidentes Tráfico</small>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="col-6">
+                            <label class="selection-card red-flag-card">
+                                <input type="checkbox" name="red_flags" value="suelo_pelvico">
+                                <div class="card-inner py-3">
+                                    <i class="fa-solid fa-person-pregnant mb-1"></i>
+                                    <small style="font-size:11px;">Suelo Pélvico</small>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="col-6">
+                            <label class="selection-card red-flag-card">
+                                <input type="checkbox" name="red_flags" value="pediatria">
+                                <div class="card-inner py-3">
+                                    <i class="fa-solid fa-baby mb-1"></i>
+                                    <small style="font-size:11px;">Pediatría (<5 años)</small>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="col-6">
+                            <label class="selection-card red-flag-card">
+                                <input type="checkbox" name="red_flags" value="seguros">
+                                <div class="card-inner py-3">
+                                    <i class="fa-solid fa-file-contract mb-1"></i>
+                                    <small style="font-size:11px;">Seguros Médicos</small>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <hr class="opacity-10">
+
+                    <!-- LEGAL CHECKBOX (OBLIGATORIO) -->
+                    <div class="form-check mb-4 p-3 bg-light rounded-3">
+                        <input class="form-check-input" type="checkbox" id="legalCheck" required>
+                        <label class="form-check-label small lh-sm" for="legalCheck">
+                            Acepto los <a href="#" class="fw-bold text-decoration-none">Términos del Servicio</a> y la 
+                            <a href="/politica_privacidad.html" target="_blank" class="fw-bold text-decoration-none">Política de Privacidad</a>. 
+                            Doy mi consentimiento para el tratamiento de datos según el RGPD.
+                        </label>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <button type="button" class="btn-prev" onclick="goToStep(3)">Atrás</button>
+                        <button type="submit" class="btn-next w-50">FINALIZAR Y PAGAR</button>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <!-- LOADER -->
+    <div class="loader-overlay" id="loader">
+        <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+        <h4 class="fw-bold">Creando tu Clínica...</h4>
+        <p class="text-muted">Configurando base de datos segura</p>
+    </div>
+
+    <!-- LOGICA JS -->
+    <script>
+        const STEPS_COUNT = 4;
+        let currentStep = 1;
+
+        // MANEJO DE PASOS
+        function goToStep(step) {
+            document.querySelectorAll('.step-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(`step${step}`).classList.add('active');
+            
+            // Progress Bar
+            const percent = step * 25;
+            document.getElementById('progressBar').style.width = `${percent}%`;
+            
+            currentStep = step;
+        }
+
+        // VALIDACIÓN
+        function validateAndNext(step) {
+            let valid = true;
+            const currentSection = document.getElementById(`step${step}`);
+            const inputs = currentSection.querySelectorAll('input[required]');
+            
+            inputs.forEach(input => {
+                if (!input.value.trim()) {
+                    input.style.borderColor = "red";
+                    valid = false;
+                } else {
+                    input.style.borderColor = "#eef2f6";
+                }
+            });
+
+            // Validación específica Contraseña (Paso 1)
+            if (step === 1) {
+                const pass = document.getElementById('adminPass').value;
+                if (pass.length < 8) {
+                    alert("La contraseña debe tener al menos 8 caracteres.");
+                    return;
+                }
+            }
+
+            if (valid) goToStep(step + 1);
+            else alert("Por favor, completa los campos obligatorios.");
+        }
+
+        // UI HELPERS
+        function toggleBreak(checkbox) {
+            const container = document.getElementById('breakTimeContainer');
+            container.style.display = checkbox.checked ? 'block' : 'none';
+        }
+
+        // ENVIO DE DATOS
+        async function submitForm(e) {
+            e.preventDefault();
+            
+            // Validar Legal
+            if(!document.getElementById('legalCheck').checked) {
+                alert("Debes aceptar la Política de Privacidad para continuar.");
+                return;
+            }
+
+            document.getElementById('loader').style.display = 'flex';
+
+            // RECOLECTAR DATOS (JSON ESTRUCTURADO)
+            const formData = {
+                // Identity
+                clinic_name: document.getElementById('clinicName').value,
+                admin_email: document.getElementById('adminEmail').value,
+                password: document.getElementById('adminPass').value, // En backend hashear
+                address: document.getElementById('fullAddress').value,
+                referral_code: document.getElementById('referralCode').value,
+
+                // Config IA
+                price: document.getElementById('sessionPrice').value,
+                duration: document.getElementById('sessionDuration').value,
+                deposit: document.getElementById('depositAmount').value,
+                
+                // Horario (CRÍTICO PARA EVITAR ALUCINACIONES)
+                schedule_config: {
+                    open: document.getElementById('openTime').value,
+                    close: document.getElementById('closeTime').value,
+                    has_break: document.getElementById('hasBreak').checked,
+                    break_start: document.getElementById('breakStart').value,
+                    break_end: document.getElementById('breakEnd').value
+                },
+
+                // Payment Methods
+                payment_methods: Array.from(document.querySelectorAll('input[name="payment_method"]:checked')).map(el => el.value),
+
+                // Red Flags
+                red_flags: Array.from(document.querySelectorAll('input[name="red_flags"]:checked')).map(el => el.value),
+                
+                terms_accepted: true,
+                accepted_at: new Date().toISOString()
+            };
+
+            console.log("Enviando Payload:", formData);
+
+            try {
+                // LLAMADA AL BACKEND
+                const res = await fetch('/api/onboarding/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await res.json();
+
+                if (data.status === 'success') {
+                    // Redirigir a Pasarela de Pago
+                    window.location.href = data.stripe_url || '/dashboard';
+                } else {
+                    alert("Error: " + data.message);
+                    document.getElementById('loader').style.display = 'none';
+                }
+
+            } catch (error) {
+                console.error(error);
+                // Simulación de éxito para Demo
+                setTimeout(() => {
+                    alert("DEMO: Datos validados. Redirigiendo a Stripe...");
+                    window.location.href = "/stripe_checkout_mock"; // URL simulada
+                }, 2000);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FisioTool | La Solución Premium para tu Clínica</title>
+    
+    <!-- CSS MAESTRO APLICADO (El nuevo estilo CROPE/LUJO) -->
+    <link rel="stylesheet" href="belleza_insuperable.css">
+    
+    <!-- FUENTES CROPE (Poppins y Muli) -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Muli:wght@300;400;600&display=swap" rel="stylesheet">
+    <!-- ICONOS (FontAwesome para agilizar) -->
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script> 
+    
+    <style>
+        /* Sobreescribimos algunas variables del CSS Maestro para la Landing */
+        :root {
+            --clr-bg-dark: #0D0D0D; /* Fondo oscuro para el Hero y secciones de impacto */
+            --clr-accent-red: #E63946; /* El rojo de CROPE para CTA principal */
+            --clr-accent-gold: #C5A059; /* Dorado para acentos de valor */
+            --clr-text-dark: #FFFFFF; /* Texto claro sobre fondo oscuro */
+            --clr-text-muted: #AAAAAA;
+        }
+
+        /* Estilos específicos de la landing */
+        body {
+            background-color: var(--clr-bg-dark); /* Fondo negro para el impacto */
+            color: var(--clr-text-dark);
+            font-family: var(--font-body);
+            padding: 0; /* Quitamos el padding base para que ocupe toda la pantalla */
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        .section-padding {
+            padding: 100px 0;
+        }
+        
+        /* HERO SECTION - ESTILO DE ALTO IMPACTO */
+        .hero-section {
+            position: relative;
+            overflow: hidden;
+            padding: 150px 0;
+        }
+        /* Efecto visual de fondo (Sutil brillo lateral) */
+        .hero-section::after {
+            content: '';
+            position: absolute;
+            top: 0; right: 0;
+            width: 60%;
+            height: 100%;
+            background: radial-gradient(circle at 100% 50%, rgba(197, 160, 89, 0.1) 0%, transparent 70%);
+            opacity: 0.5;
+            z-index: 0;
+        }
+        .hero-content { z-index: 1; position: relative; }
+        h1 { font-size: 4.5rem; line-height: 1.1; margin-bottom: 20px; }
+        .gradient-text {
+            background: linear-gradient(90deg, var(--clr-accent-gold), var(--clr-accent-red));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+            font-weight: 900;
+        }
+        .tagline { color: var(--clr-accent-gold); font-family: var(--font-heading); font-size: 1.1rem; letter-spacing: 1px; margin-bottom: 15px; }
+        .btn-primary { /* Usamos el estilo de botón CROPE */
+             background: var(--clr-accent-red); color: white; border-radius: 50px;
+        }
+        .btn-secondary { 
+            background: transparent; color: var(--clr-text-dark); 
+            border: 2px solid var(--clr-accent-gold); padding: 12px 28px; border-radius: 50px; 
+            transition: all 0.3s;
+        }
+        .btn-secondary:hover { background: var(--clr-accent-gold); color: var(--clr-bg-dark); }
+
+
+        /* TARJETAS DE DOLOR (GLASSMORPHISM SUAVE) */
+        .pain-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 30px;
+            transition: transform 0.3s ease;
+            text-align: center;
+        }
+        .pain-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--clr-accent-gold);
+        }
+        .pain-card h3 { color: var(--clr-accent-red); font-size: 1.2rem; margin-top: 0; }
+        .pain-card p { color: var(--clr-text-muted); font-size: 0.9rem; }
+
+        /* SECCIÓN DE SOLUCIÓN (MÁS CLARO) */
+        .light-section {
+            background-color: var(--clr-bg-light);
+            color: var(--clr-text-dark);
+            padding: 100px 0;
+        }
+        .light-section h2 { color: var(--clr-text-dark); }
+        .light-section .tagline { color: var(--clr-accent-red); }
+        .light-section .cta-button { background: var(--clr-accent-red); color: white; }
+        .light-section li { color: #444; }
+        .light-section .img-zoom { border: 2px solid #eee; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+
+
+        /* ROI SECTION (El número final) */
+        .roi-box {
+            background: var(--clr-bg-dark);
+            border: 2px solid var(--clr-accent-gold);
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 0 40px rgba(197, 160, 89, 0.2);
+        }
+        .roi-box h2 { color: var(--clr-accent-gold); font-size: 2.5rem; margin-bottom: 10px; }
+        .roi-box p { color: #ccc; font-size: 1rem; }
+        
+    </style>
+</head>
+<body>
+
+    <!-- 1. NAVBAR (Flotante, Limpio) -->
+    <nav style="padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.1); position: sticky; top: 0; width: 100%; background: rgba(13,13,13, 0.95); backdrop-filter: blur(5px); z-index: 100;">
+        <div class="container" style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-family: 'Poppins'; font-size: 1.5rem; font-weight: 700;">
+                FISIO<span style="color: var(--clr-accent-gold)">TOOL</span>
+            </div>
+            <div style="display: flex; gap: 15px;">
+                <a href="login.html" class="outline-button" style="padding: 8px 20px; font-size: 0.9rem;">Login</a>
+                <a href="onboarding.html" class="cta-button" style="padding: 8px 20px; font-size: 0.9rem;">Registro</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 2. HERO SECTION (MAX IMPACTO - Oscuro) -->
+    <header class="hero-section">
+        <div class="container grid-2">
+            <div class="hero-content">
+                <span class="tagline">LA REVOLUCIÓN DE LA GESTIÓN CLÍNICA</span>
+                <h1 style="font-size: 4rem;">
+                    El Recepcionista que <br> <span class="gradient-text">TE LIBERA</span>
+                </h1>
+                <p style="color: var(--clr-text-muted); font-size: 1.1rem; margin-bottom: 30px;">
+                    Automatización 24/7, IA que califica al paciente y reducción de costes con pagos seguros.
+                </p>
+                <div style="display: flex; gap: 20px;">
+                    <a href="roi_simulador.html" class="cta-button">CALCULAR AHORRO (ROI)</a>
+                    <a href="#pain" class="outline-button">Ver Dolor</a>
+                </div>
+            </div>
+            
+            <div class="hero-image" style="text-align: center;">
+                <!-- Placeholder de Imagen Grande/Moderno (Sin Emojis) -->
+                <img src="https://picsum.photos/400/500?grayscale&blur=1" alt="FisioTool App Mockup" class="img-zoom" style="width: 100%; border-radius: 12px; box-shadow: 0 0 40px rgba(197, 160, 89, 0.3);">
+            </div>
+        </div>
+    </header>
+
+    <!-- 3. DOLORES (Pain Points - Estilo CROPE: Oscuro con texto blanco) -->
+    <section class="section-padding" style="background-color: var(--clr-bg-dark);">
+        <div class="container">
+            <h2 style="text-align: center; margin-bottom: 60px; color:white;">¿Tu Clínica Necesita un Diagnóstico Urgente?</h2>
+            
+            <div class="grid-3">
+                <div class="pain-card" style="background: #1A1A1A; border: 1px solid #333;">
+                    <h3 style="color:var(--clr-accent-red);">No-Shows</h3>
+                    <p>Pérdida de ingresos por pacientes que no avisan. (Solución: Fianza Automática por IA).</p>
+                </div>
+                <div class="pain-card" style="background: #1A1A1A; border: 1px solid #333;">
+                    <h3 style="color:var(--clr-accent-red);">Gestión 24/7</h3>
+                    <p>Tu tiempo libre invadido por mensajes. (Solución: Recepcionista IA que cobra y agenda).</p>
+                </div>
+                <div class="pain-card" style="background: #1A1A1A; border: 1px solid #333;">
+                    <h3 style="color:var(--clr-accent-red);">Contabilidad</h3>
+                    <p>Gestión manual de bonos, efectivo y seguros. (Solución: Cierre de Caja y Facturación Digital).</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 4. SOLUCIÓN TECNOLÓGICA (Estilo LIGHT - Fondo Blanco/Gris) -->
+    <section class="light-section section-padding">
+        <div class="container grid-2">
+            <div style="order: 2;">
+                <h2 style="margin-bottom: 30px;">El Futuro es <span style="color:var(--clr-accent-red);">Automático</span></h2>
+                
+                <ul style="font-size: 1.1rem; line-height: 2;">
+                    <li><span style="color: var(--clr-accent-gold);">✔</span> **IA Predictiva:** Filtra riesgos (Red Flags) y sabe vender Bonos automáticamente.</li>
+                    <li><span style="color: var(--clr-accent-gold);">✔</span> **Multisede:** Tu cerebro central para todas tus ubicaciones.</li>
+                    <li><span style="color: var(--clr-accent-gold);">✔</span> **Legalidad Cerrada:** Generación de Facturas y gestión de Firma Digital (T-4).</li>
+                </ul>
+                
+                <a href="onboarding.html" class="cta-button" style="background:var(--clr-accent-gold); color:var(--clr-bg-dark); margin-top: 30px;">EMPIEZA LA CONFIGURACIÓN</a>
+            </div>
+            <div style="order: 1;">
+                <!-- Placeholder de Imagen Limpia y Moderna -->
+                <img src="https://picsum.photos/500/600?grayscale&blur=0.5" alt="FisioTool Interface" class="img-zoom" style="width: 100%; border-radius: 12px;">
+            </div>
+        </div>
+    </section>
+
+    <!-- 5. ROI & CALL TO ACTION FINAL -->
+    <section class="section-padding" style="text-align: center;">
+        <div class="container" style="max-width: 900px;">
+            <h2 style="font-size: 2.5rem; margin-bottom: 20px;">Gana Horas. Gana Dinero.</h2>
+            <p style="font-size: 1.2rem; color: var(--clr-text-muted); margin-bottom: 50px;">
+                La tranquilidad de no tocar el móvil para gestionar citas es incalculable.
+            </p>
+            
+            <div class="roi-box">
+                <span class="result-title" style="color: var(--clr-text-dark);">Ahorro Anual Estimado (ROI)</span>
+                <span id="valorAhorro" style="font-family:'Poppins'; font-size: 3rem; color:var(--clr-accent-red); display: block; margin: 10px 0;">3.250 €</span>
+                <p style="color:#666; font-size: 0.9rem;">Basado en evitar el 80% de los No-Shows y recuperar 10 horas/semana.</p>
+            </div>
+            
+            <a href="onboarding.html" class="cta-button" style="margin-top: 40px; padding: 18px 40px; font-size: 1.2rem; background:var(--clr-accent-gold); color:var(--clr-bg-dark);">¡ACTIVAR MI RECEPCIONISTA 24/7!</a>
+        </div>
+    </section>
+
+    <!-- FOOTER SIMPLE -->
+    <footer style="padding: 40px 0; background-color: #000; color: #444; text-align: center; border-top: 1px solid #111;">
+        <p>&copy; 2024 FisioTool. La solución de gestión para profesionales.</p>
+    </footer>
+
+</body>
+</html>

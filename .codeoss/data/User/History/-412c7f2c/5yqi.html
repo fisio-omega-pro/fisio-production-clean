@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Configuración Avanzada | FisioTool</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Manrope:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #0F172A; --gold: #C5A059; --bg: #F8FAFC; --card: #FFFFFF; }
+        body { font-family: 'Manrope', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #334155; }
+        .container { max-width: 700px; margin: 0 auto; background: var(--card); padding: 40px; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.05); }
+        h1 { font-family: 'Playfair Display', serif; color: var(--primary); text-align: center; }
+        h3 { border-bottom: 2px solid #E2E8F0; padding-bottom: 10px; margin-top: 30px; color: var(--gold); font-size: 18px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 14px; color: var(--primary); }
+        input, select, textarea { width: 100%; padding: 15px; border: 1px solid #E2E8F0; border-radius: 8px; outline: none; transition:0.3s; font-family:'Manrope'; }
+        input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(197,160,89,0.1); }
+        
+        /* Checks GRID */
+        .checkbox-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .check-item { background: #F1F5F9; padding: 12px; border-radius: 6px; font-size: 14px; display:flex; align-items:center; cursor: pointer; transition:0.2s; border:1px solid transparent; }
+        .check-item:hover { background: #E2E8F0; }
+        .check-item input { width: auto; margin-right: 12px; accent-color: var(--gold); transform: scale(1.2); }
+
+        .btn-save { width: 100%; padding: 18px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; margin-top: 30px; font-size: 16px; transition:0.3s; }
+        .btn-save:hover { background: #1E293B; transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        
+        .alert-box { background: #FFF7ED; border-left: 4px solid #C5A059; padding: 15px; font-size: 13px; color: #78350F; margin-bottom: 20px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Cerebro Clínico FisioTool 🧠</h1>
+        <p style="text-align:center; color:#64748B;">Versión 2.1: Gestión Financiera & Seguridad</p>
+        
+        <form id="full-form">
+            <!-- BLOQUE 1: IDENTIDAD -->
+            <h3>1. Datos de la Clínica</h3>
+            <div class="form-group"><label>Nombre Comercial</label><input type="text" id="clinic_name" placeholder="Ej: Clínica FisioSalud" required></div>
+            <div class="form-group" style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+                <div><label>Precio Sesión (€)</label><input type="number" id="price" value="50"></div>
+                <div><label>Duración (min)</label><select id="duration"><option value="30">30 min</option><option value="45" selected>45 min</option><option value="60">60 min</option></select></div>
+            </div>
+
+            <!-- BLOQUE 2: FINANZAS (CRÍTICO NUEVO) -->
+            <h3>2. Finanzas y Pagos</h3>
+            <div class="alert-box">
+                💡 <b>Estrategia Anti No-Show:</b> Si configuras una fianza, Ana la pedirá antes de confirmar la cita.
+            </div>
+            
+            <div class="form-group">
+                <label>Métodos de Pago Aceptados (Selecciona varios)</label>
+                <div class="checkbox-group">
+                    <label class="check-item"><input type="checkbox" class="pay-method" value="Efectivo" checked> 💵 Efectivo</label>
+                    <label class="check-item"><input type="checkbox" class="pay-method" value="Tarjeta" checked> 💳 Tarjeta / Datáfono</label>
+                    <label class="check-item"><input type="checkbox" class="pay-method" value="Bizum" checked> 📱 Bizum</label>
+                    <label class="check-item"><input type="checkbox" class="pay-method" value="Transferencia"> 🏦 Transferencia</label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Fianza / Señal por Adelantado (€)</label>
+                <input type="number" id="deposit" placeholder="0 (Escribe cantidad para activar, ej: 10)">
+                <small style="color:#64748B">Si pones "0", la reserva será directa sin pago previo.</small>
+            </div>
+
+            <!-- BLOQUE 3: SEGUROS -->
+            <h3>3. Seguros y Mutuas</h3>
+            <div class="form-group">
+                <label>Política de Seguros</label>
+                <select id="insurance_type" onchange="toggleMutuas()">
+                    <option value="privado">100% Privado (Solo pago directo)</option>
+                    <option value="mixto">Híbrido (Privado + Seguros)</option>
+                </select>
+            </div>
+            <div class="form-group" id="mutuas-box" style="display:none;">
+                <label>Mutuas Aceptadas (Sanitas, Asisa, Mapfre...)</label>
+                <textarea id="insurance_list" rows="2"></textarea>
+            </div>
+
+            <!-- BLOQUE 4: BANDERAS ROJAS -->
+            <h3>4. Cribado (Red Flags) 🚩</h3>
+            <div class="checkbox-group">
+                <label class="check-item"><input type="checkbox" class="redflag" value="accidentes de tráfico"> 🚗 Accidentes Tráfico</label>
+                <label class="check-item"><input type="checkbox" class="redflag" value="bebés o pediátrico"> 👶 Bebés / Pediatría</label>
+                <label class="check-item"><input type="checkbox" class="redflag" value="suelo pélvico"> 🧘 Suelo Pélvico</label>
+                <label class="check-item"><input type="checkbox" class="redflag" value="drenaje linfático"> 💧 Drenaje Linfático</label>
+                <label class="check-item"><input type="checkbox" class="redflag" value="neurología"> 🧠 Neurológico</label>
+                <label class="check-item"><input type="checkbox" class="redflag" value="ATM/Mandíbula"> 🦷 ATM</label>
+            </div>
+
+            <button type="submit" class="btn-save">GUARDAR Y ACTIVAR 🚀</button>
+            <p id="msg" style="text-align: center; margin-top: 15px; font-weight: bold; font-size:14px;"></p>
+        </form>
+    </div>
+
+    <script>
+        function toggleMutuas() {
+            document.getElementById('mutuas-box').style.display = 
+                (document.getElementById('insurance_type').value === 'mixto') ? 'block' : 'none';
+        }
+
+        document.getElementById('full-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.querySelector('.btn-save'); btn.disabled=true; btn.innerText="Guardando...";
+            
+            // Recoger Métodos Pago
+            let pays = [];
+            document.querySelectorAll('.pay-method:checked').forEach((cb) => pays.push(cb.value));
+
+            // Recoger RedFlags
+            let flags = [];
+            document.querySelectorAll('.redflag:checked').forEach((cb) => flags.push(cb.value));
+
+            const data = {
+                nombre_comercial: document.getElementById('clinic_name').value,
+                precio_sesion: document.getElementById('price').value,
+                duracion: document.getElementById('duration').value,
+                
+                // NUEVOS CAMPOS
+                metodos_pago: pays,
+                fianza_reserva: document.getElementById('deposit').value || "0",
+                
+                politica_seguros: document.getElementById('insurance_type').value, 
+                lista_seguros: document.getElementById('insurance_list').value || "Ninguno",
+                banderas_rojas: flags
+            };
+
+            try {
+                const res = await fetch('/onboarding/save', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                if(res.ok) window.location.href = '/panel';
+            } catch(err) {
+                document.getElementById('msg').innerText = "Error conexión."; btn.disabled=false;
+            }
+        });
+    </script>
+</body>
+</html>

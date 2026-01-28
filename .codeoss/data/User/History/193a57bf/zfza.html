@@ -1,0 +1,150 @@
+document.addEventListener('DOMContentLoaded', async () => {
+    
+    // --- 1. DETECTAR QUIÉN ES LA CLÍNICA (Slug de la URL) ---
+    // Coge la última parte: tudominio.com/clinica-ers -> 'clinica-ers'
+    const pathParts = window.location.pathname.split('/').filter(p => p.length > 0);
+    const clinicSlug = pathParts[pathParts.length - 1]; 
+
+    console.log("🔍 Inicializando Landing para:", clinicSlug);
+
+    // Referencias a los elementos del HTML
+    const ui = {
+        title: document.getElementById('pageTitle'),
+        clinicName: document.getElementById('clinicName'),
+        logo: document.getElementById('clinicLogo'),
+        anaImg: document.getElementById('anaImage'),
+        address: document.getElementById('infoAddress'),
+        phone: document.getElementById('infoPhone'),
+        schedule: document.getElementById('infoSchedule'),
+        chatBox: document.getElementById('chatBox'),
+        input: document.getElementById('messageInput'),
+        sendBtn: document.getElementById('sendButton'),
+        tlfInput: document.getElementById('patientTlf')
+    };
+
+    let botName = "Asistente"; // Nombre por defecto
+
+    // --- 2. FUNCIÓN PARA PINTAR MENSAJES (Burbujas) ---
+    function renderMessage(text, sender) {
+        const div = document.createElement('div');
+        div.className = `message ${sender}`; // 'user' (verde) o 'ana' (gris)
+        div.innerHTML = text.replace(/\n/g, '<br>'); // Respeta saltos de línea
+        ui.chatBox.appendChild(div);
+        ui.chatBox.scrollTop = ui.chatBox.scrollHeight; // Baja el scroll automáticamente
+    }
+
+    // --- 3. FUNCIÓN MAESTRA: CARGAR CONFIGURACIÓN ---
+    async function loadConfig() {
+        if (!clinicSlug) {
+            renderMessage("⛔ Error Crítico: No se ha especificado ninguna clínica en la URL.", 'ana');
+            return;
+        }
+
+        try {
+            // Llamamos a nuestro Backend Inteligente
+            const response = await fetch(`/api/config/${clinicSlug}`);
+            
+            if (!response.ok) throw new Error("Clínica no encontrada en la Base de Datos");
+
+            const data = await response.json();
+
+            // === APLICAR DATOS A LA PANTALLA ===
+            ui.title.innerText = `Citas - ${data.nombre_clinica}`;
+            ui.clinicName.innerText = data.nombre_clinica;
+            
+            // Si no hay logo, ponemos uno genérico médico
+            ui.logo.src = data.logo_url && data.logo_url.startsWith('http') 
+                          ? data.logo_url 
+                          : "https://cdn-icons-png.flaticon.com/512/3774/3774299.png";
+            
+            // Si no hay avatar, ponemos una chica generada por IA (borra esto y pon tu URL real luego)
+            ui.anaImg.src = data.bot_avatar || "https://i.pravatar.cc/150?u=receptionist";
+            
+            ui.address.innerText = data.address || "Dirección no disponible";
+            ui.phone.innerText = data.phone || "Consultar web";
+            botName = data.bot_nombre || "Laura";
+
+            // Mostrar horario de forma elegante
+            if (data.weekly_schedule) {
+                // Simplificación visual
+                ui.schedule.innerText = "📅 Abierto: Consulta disponibilidad en el chat.";
+            } else {
+                ui.schedule.innerText = "Cita Previa";
+            }
+
+            // DESBLOQUEAR EL CHAT (Ahora que sabemos que la clínica existe)
+            ui.input.disabled = false;
+            ui.sendBtn.disabled = false;
+            ui.input.placeholder = "Escribe aquí...";
+
+            // SALUDO AUTOMÁTICO
+            renderMessage(`👋 ¡Hola! Soy ${botName}, la recepcionista virtual de ${data.nombre_clinica}. ¿En qué puedo ayudarte?`, 'ana');
+
+        } catch (error) {
+            console.error(error);
+            ui.clinicName.innerText = "Error 404";
+            renderMessage(`❌ Lo sentimos, no encontramos la clínica: ${clinicSlug}. Verifica la URL.`, 'ana');
+        }
+    }
+
+    // --- 4. FUNCIÓN PARA ENVIAR EL MENSAJE ---
+    async function sendMessage() {
+        const text = ui.input.value.trim();
+        const tlf = ui.tlfInput.value.trim(); // Teléfono sin validar estricto
+
+        if (!text) return;
+
+        // Validación suave del teléfono (solo pedimos que tenga números)
+        if (tlf.length < 6) {
+            alert("⚠️ Por favor, escribe tu nº de móvil en la casilla pequeña antes de enviar el mensaje. Lo necesitamos para la reserva.");
+            ui.tlfInput.style.borderColor = "red";
+            ui.tlfInput.focus();
+            return;
+        } else {
+            ui.tlfInput.style.borderColor = "#ccc"; // Quitar rojo si estaba
+        }
+
+        // 1. Pintar mensaje del usuario
+        renderMessage(text, 'user');
+        ui.input.value = '';
+        ui.input.disabled = true; // Bloquear para que no envíe doble
+        ui.sendBtn.innerText = "...";
+
+        try {
+            // Enviamos al backend
+            const res = await fetch(`/api/chat/${clinicSlug}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: text, patient_tlf: tlf })
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || "Error servidor");
+            }
+
+            const data = await res.json();
+            
+            // 2. Respuesta de Ana
+            renderMessage(data.reply, 'ana');
+
+        } catch (error) {
+            renderMessage("🔌 Ups, he tenido un micro-corte de conexión. ¿Puedes repetírmelo?", 'ana');
+            console.error(error);
+        } finally {
+            // Reactivar controles
+            ui.input.disabled = false;
+            ui.sendBtn.innerText = "Enviar";
+            ui.input.focus();
+        }
+    }
+
+    // Eventos (Clicks y Enter)
+    ui.sendBtn.addEventListener('click', sendMessage);
+    ui.input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendMessage();
+    });
+
+    // ARRANCAR
+    loadConfig();
+});

@@ -1,0 +1,143 @@
+/* ======================================================= */
+/* FISIOTOOL MASTER STYLESHEET - V5.0 (SOFT TECH LUXURY)    */
+/* Inspiración: CROPE/LUMARA - Blanco, Dorado, Animación   */
+/* ======================================================= */
+
+/* --- 1. CONFIGURACIÓN DEL UNIVERSO (VARIABLES) --- */
+:root {
+    /* COLORES: ELEGANCIA SUAVE */
+    --clr-bg-dark: #0D0D0D;     /* Fondo Oscuro (Para Dashboard/Secciones de Impacto) */
+    --clr-bg-light: #F8F8F8;    /* Fondo Principal (Claro, para Landing/Onboarding) */
+    --clr-card-bg: #FFFFFF;     /* Fondo de tarjetas (Blanco puro) */
+    --clr-text-dark: #222222;   /* Texto principal (Gris oscuro) */
+    --clr-text-light: #FFFFFF;  /* Texto sobre fondos oscuros */
+
+    /* ACENTOS: Lujo y Llamada a la Acción */
+    --clr-accent-gold: #C5A059; /* Dorado/Ámbar (Premium, KPI) */
+    --clr-accent-red: #E63946;  /* Rojo vibrante (CTA Principal, Alertas) */
+    --clr-accent-red-hover: #D62839;
+
+    /* FUENTES (Basado en CROPE) */
+    --font-heading: 'Poppins', sans-serif; /* Títulos */
+    --font-body: 'Mulish', 'Muli', sans-serif; /* Párrafos */
+    
+    /* EFECTOS */
+    --shadow-soft: 0 10px 40px rgba(0, 0, 0, 0.05); /* Sombra muy sutil */
+    --border-radius-soft: 8px; /* Bordes redondeados para todo */
+}
+
+/* --- 2. BASE --- */
+body {
+    font-family: var(--font-body);
+    background-color: var(--clr-bg-light); /* FONDO CLARO por defecto */
+    color: var(--clr-text-dark);
+    line-height: 1.6;
+    margin: 0;
+    padding: 0; /* Quitamos el padding base del body, lo pondremos en las secciones */
+}
+
+h1, h2, h3, h4 {
+    font-family: var(--font-heading);
+    color: var(--clr-text-dark);
+    font-weight: 700;
+}
+
+a { text-decoration: none; color: var(--clr-accent-red); transition: 0.3s; }
+a:hover { color: var(--clr-accent-red-hover); }
+ul { list-style: none; padding: 0; }
+
+
+/* --- 3. COMPONENTES CLAVE (Estilo CROPE) --- */
+
+/* Botón Principal (CTA) */
+.cta-button {
+    display: inline-block;
+    padding: 14px 35px;
+    background: var(--clr-accent-red);
+    color: var(--clr-white);
+    border-radius: 50px; /* Bordes muy redondeados */
+    font-weight: 700;
+    font-size: 1rem;
+    transition: background-color 0.3s ease, transform 0.2s;
+    letter-spacing: 1px;
+    border: none;
+    cursor: pointer;
+}
+.cta-button:hover {
+    background-color: var(--clr-accent-red-hover);
+    transform: translateY(-2px);
+}
+
+/* Botón Secundario / Outline (Para Login/Menu) */
+.outline-button {
+    background: transparent;
+    color: var(--clr-text-dark);
+    border: 2px solid var(--clr-accent-gold);
+    padding: 12px 30px;
+    border-radius: 50px;
+    font-weight: 600;
+    transition: 0.3s;
+    cursor: pointer;
+}
+.outline-button:hover {
+    background: var(--clr-accent-gold);
+    color: var(--clr-bg-dark);
+    border-color: var(--clr-accent-gold);
+}
+
+
+/* TARJETAS (Estilo Blanco/Gris con Sombra Suave) */
+.premium-card {
+    background: var(--clr-card-bg);
+    border-radius: var(--border-radius-soft);
+    padding: 30px; /* Reducido para secciones más compactas */
+    box-shadow: var(--shadow-soft); 
+    border: 1px solid #EEEEEE; /* Borde muy claro */
+}
+
+/* --- 4. ELEMENTOS DE DISEÑO AVANZADO --- */
+
+/* IMÁGENES CON ZOOM (Requisito CROPE) */
+.img-zoom {
+    object-fit: cover;
+    transition: transform 0.4s ease;
+    border-radius: var(--border-radius-soft);
+}
+.img-zoom:hover {
+    transform: scale(1.05);
+}
+
+/* EFECTO DE MOVIMIENTO/FADE ON SCROLL (Requisito CROPE) */
+.fade-in {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+}
+.fade-in.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* ESTILO PARA BACKGROUNDS OSCUROS (Usado en Landing Hero) */
+.bg-dark-panel {
+    background-color: var(--clr-bg-dark);
+    color: var(--clr-text-light);
+    padding: 40px;
+    border-radius: var(--border-radius-soft);
+}
+
+/* --- 5. ESTRUCTURA LAYOUT --- */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+.section-padding {
+    padding: 100px 0;
+}
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; align-items: center; }
+.grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; }
+
+@media (max-width: 992px) {
+    .grid-2 { grid-template-columns: 1fr; }
+}

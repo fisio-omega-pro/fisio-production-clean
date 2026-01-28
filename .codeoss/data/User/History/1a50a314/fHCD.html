@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fisiotool - Calculadora de ROI (V-3)</title>
+    <style>
+        /* Estilos de Marca de Lujo - Dark Mode (Tono profesional) */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212; /* Fondo oscuro elegante */
+            color: #E0E0E0; /* Texto claro */
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background-color: #1E1E1E; /* Contenedor más oscuro */
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            max-width: 500px;
+            width: 100%;
+        }
+        h1 {
+            color: #00A8E8; /* Azul Fisiotool llamativo */
+            text-align: center;
+            font-size: 1.8em;
+            margin-bottom: 5px;
+            border-bottom: 2px solid #00A8E8;
+            padding-bottom: 10px;
+        }
+        p.subtitle {
+            text-align: center;
+            color: #AAAAAA;
+            margin-bottom: 30px;
+        }
+        label {
+            display: block;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #333;
+            border-radius: 6px;
+            background-color: #2D2D2D;
+            color: #E0E0E0;
+            box-sizing: border-box;
+        }
+        .result-box {
+            background-color: #00A8E8;
+            color: #121212;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 30px;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        .result-box small {
+            display: block;
+            font-size: 0.6em;
+            font-weight: normal;
+            color: #121212;
+        }
+        /* Estilos para el video y la prueba social (simulada) */
+        .video-placeholder {
+            background-color: #333;
+            height: 250px;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.2em;
+            color: #AAA;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="video-placeholder">
+        [VÍDEO CENTRAL DE AUTORIDAD Y PRUEBA SOCIAL - REQUISITO V1]
+    </div>
+
+    <h1>¿Cuánto te cuesta la ineficiencia?</h1>
+    <p class="subtitle">Calcula el ROI (Retorno de la Inversión) que Fisiotool te garantiza por año.</p>
+
+    <label for="citasMes">1. Número de Citas Mensuales de tu clínica</label>
+    <input type="number" id="citasMes" value="100" min="0">
+
+    <label for="precioSesion">2. Precio Medio por Sesión (€)</label>
+    <input type="number" id="precioSesion" value="50" min="0">
+    
+    <label for="porcentajeNoShow">3. % de Pacientes que NO se presentan (No-Show)</label>
+    <input type="number" id="porcentajeNoShow" value="8" min="0" max="100">
+
+    <div class="result-box" id="resultadoROI">
+        Ahorro Anual Estimado: <br>
+        <span id="valorAhorro">0 €</span>
+        <small>Este ahorro anual cubre el coste de Fisiotool y te devuelve horas libres.</small>
+    </div>
+
+    <p class="subtitle" style="margin-top: 20px;">
+        <small style="color: #00A8E8;">*Nota: Fisiotool reduce el No-Show en un 80% con su IA. Este cálculo es conservador.</small>
+    </p>
+    
+    <!-- Este es el espacio para la captura del email del prospecto -->
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const inputCitas = document.getElementById('citasMes');
+        const inputPrecio = document.getElementById('precioSesion');
+        const inputNoShow = document.getElementById('porcentajeNoShow');
+        const valorAhorro = document.getElementById('valorAhorro');
+
+        function calcularROI() {
+            // Requisito V-3: (Citas/mes * Precio * % No-Show Evitado) * 12
+            const citasMes = parseFloat(inputCitas.value) || 0;
+            const precioSesion = parseFloat(inputPrecio.value) || 0;
+            const porcentajeNoShow = parseFloat(inputNoShow.value) || 0;
+            
+            // Fisiotool evita un 80% del No-Show (la métrica de la app)
+            const porcentajeEvitado = 0.8; 
+
+            // Citas perdidas al mes
+            const citasPerdidas = (citasMes * (porcentajeNoShow / 100));
+            
+            // Citas que Fisiotool salva al mes
+            const citasSalvadas = citasPerdidas * porcentajeEvitado;
+            
+            // Ahorro Bruto Anual
+            const ahorroAnual = (citasSalvadas * precioSesion) * 12;
+
+            // Mostrar resultado en formato de moneda
+            valorAhorro.textContent = new Intl.NumberFormat('es-ES', { 
+                style: 'currency', 
+                currency: 'EUR', 
+                minimumFractionDigits: 0 
+            }).format(ahorroAnual);
+        }
+
+        // Ejecutar cálculo inicial y añadir listeners
+        calcularROI();
+        inputCitas.addEventListener('input', calcularROI);
+        inputPrecio.addEventListener('input', calcularROI);
+        inputNoShow.addEventListener('input', calcularROI);
+    });
+</script>
+
+</body>
+</html>

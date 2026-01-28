@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora ROI | FisioTool Financial</title>
+    
+    <!-- CSS de la Web Madre (Doodle) -->
+    <link rel="stylesheet" href="assets/css/bootstrap.min.css">
+    <link rel="stylesheet" href="assets/css/fontAwesome5Pro.css"> <!-- Asumo que tienes esto por la plantilla -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Estilos específicos para ajustar tu calculadora al tema Doodle -->
+    <style>
+        .roi-card {
+            background: #fff;
+            box-shadow: 0px 30px 60px 0px rgba(0, 4, 48, 0.08); /* Sombra estilo Doodle */
+            border-radius: 20px;
+            padding: 50px;
+            border: 1px solid #f0f0f0;
+        }
+        
+        /* Ajuste del área de video para que coincida con el estilo rounded de la plantilla */
+        .video-highlight {
+            border-radius: 16px;
+            overflow: hidden;
+            position: relative;
+            height: 250px;
+            background-color: #f9f9f9;
+            background-image: url('assets/images/about/home2/bg.png'); /* Usando imagen placeholder de la plantilla */
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .video-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+        }
+
+        /* Botón de play estilo Doodle (recreado para tu lógica) */
+        .play-video-btn {
+            width: 80px; height: 80px;
+            background: #fff;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            position: relative;
+            z-index: 2;
+            transition: all 0.3s ease;
+            color: #237bfd; /* Azul Doodle */
+        }
+        .play-video-btn:hover {
+            transform: scale(1.1);
+            color: #12141d;
+        }
+        .play-video-btn::before {
+            content: "";
+            position: absolute;
+            width: 100%; height: 100%;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            animation: pulse-border 2s infinite;
+        }
+
+        @keyframes pulse-border {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+
+        /* Estilos para los sliders y resultados */
+        .control-value {
+            font-weight: 700;
+            color: #237bfd; /* Azul Doodle */
+            font-size: 1.1rem;
+        }
+        
+        .result-box {
+            background-color: #f8f9fa;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            border: 1px solid #e1e1e1;
+        }
+        
+        .result-amount {
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: #12141d;
+            line-height: 1;
+            margin-bottom: 5px;
+        }
+        
+        .result-period {
+            color: #237bfd;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.9rem;
+        }
+
+        /* Estilo para el input range de Bootstrap para que se vea más 'Doodle' */
+        .form-range::-webkit-slider-thumb {
+            background: #237bfd;
+        }
+        .form-range::-webkit-slider-runnable-track {
+            background-color: #e9ecef;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Cursor start (Componente de la Web Madre) -->
+    <?php include './partials/cursor_start.php' ?>
+    <!-- Cursor end -->
+
+    <!-- Back to top start (Componente de la Web Madre) -->
+    <?php include './partials/back_to_start.php' ?>
+    <!-- Back to top end -->
+
+    <!-- Sidebar (Componente de la Web Madre) -->
+    <?php include './partials/sidebar_information.php' ?>
+    <!-- Sidebar end -->
+
+    <div class="has-smooth" id="has_smooth"></div>
+    
+    <div id="smooth-wrapper">
+        <div id="smooth-content">
+            <div class="body-wrapper">
+
+                <!-- Header (Copiado de la estructura de team.php / login.php) -->
+                <header class="h5_header-area">
+                    <div class="h5_header-bottom header-sticky">
+                        <div class="container">
+                            <div class="row align-items-center justify-content-between">
+                                <div class="col-xl-2 col-lg-2 col-4">
+                                    <div class="h5_header-logo">
+                                        <a href="index.php"><img src="assets/images/logo/logo.png" alt="Logo"></a>
+                                    </div>
+                                </div>
+                                <div class="col-xl-7 col-lg-6 d-none d-lg-block text-center">
+                                    <div class="h5_header-menu">
+                                        <nav class="h5_header-nav-menu" id="mobile-menu">
+                                            <ul>
+                                                <li><a href="index.php">Home</a></li>
+                                                <li><a href="about.php">About</a></li>
+                                                <li><a href="service.php">Services</a></li>
+                                                <li><a href="contact.php">Contact</a></li>
+                                            </ul>
+                                        </nav>
+                                    </div>
+                                </div>
+                                <div class="col-xl-3 col-lg-4 col-8">
+                                    <div class="h5_header-action-wrap d-flex align-items-center justify-content-end">
+                                        <div class="h5_header-action d-none d-sm-flex">
+                                            <a href="#" class="h5_header-action-btn">
+                                                Get Started<i class="fa-light fa-angle-right"></i>                                
+                                            </a>
+                                        </div>
+                                        <div class="header-menu-bar d-lg-none ml-10">
+                                            <span class="header-menu-bar-icon side-toggle">
+                                                <i class="fa-light fa-bars"></i>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+
+                <main>
+                    <!-- Breadcrumb Area (Estilo Web Madre) -->
+                    <section class="breadcrumb-area bg-default" data-background="assets/images/breadcrumb/breadcrumb-bg.jpg">
+                        <div class="container">
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="breadcrumb-content text-center">
+                                        <h2 class="breadcrumb-title tp_has_text_reveal_anim">Calculadora ROI</h2>
+                                        <div class="breadcrumb-list tp_fade_bottom">
+                                            <a href="index.php">Home</a>
+                                            <span>Calculadora</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Calculator Area Start -->
+                    <section class="login-area pt-140 pb-140">
+                        <div class="container">
+                            <div class="row justify-content-center">
+                                <div class="col-xl-8 col-lg-10">
+                                    
+                                    <div class="roi-card tp_fade_bottom">
+                                        <!-- Header Interno -->
+                                        <div class="text-center mb-50">
+                                            <span class="inner_section-subtitle tp_subtitle_anim">FisioTool Financial</span>
+                                            <h2 class="inner_section-title mb-10">Descubre tu potencial de ahorro</h2>
+                                            <p>Descubre cuánto capital libera la automatización de FisioTool en tu clínica.</p>
+                                        </div>
+
+                                        <!-- Video Component (Tu lógica + Estilo Web Madre) -->
+                                        <div class="video-highlight mb-50">
+                                            <div class="video-overlay"></div>
+                                            <div class="play-video-div play-video-btn" onclick="playVideoPresentation()">
+                                                <i class="fa-solid fa-play"></i>
+                                            </div>
+                                        </div>
+                                        <p id="loading-text" class="text-center" style="display:none;">Cargando presentación de resultados...</p>
+
+                                        <!-- Formulario de Calculadora -->
+                                        <form id="calculator" class="mb-50">
+                                            
+                                            <!-- Control 1: Pacientes -->
+                                            <div class="mb-40">
+                                                <div class="d-flex justify-content-between mb-2">
+                                                    <label for="citasMes" class="form-label fw-bold text-dark">PACIENTES / MES</label>
+                                                    <span class="control-value" id="displayCitas">100</span>
+                                                </div>
+                                                <input type="range" class="form-range" id="citasMes" min="20" max="800" value="100" step="10">
+                                            </div>
+
+                                            <!-- Control 2: Ticket Medio -->
+                                            <div class="mb-40">
+                                                <div class="d-flex justify-content-between mb-2">
+                                                    <label for="precioSesion" class="form-label fw-bold text-dark">TICKET MEDIO (€)</label>
+                                                    <span class="control-value" id="displayPrecio">50 €</span>
+                                                </div>
+                                                <input type="range" class="form-range" id="precioSesion" min="20" max="150" value="50" step="5">
+                                            </div>
+
+                                            <!-- Control 3: Tasa Ausentismo -->
+                                            <div class="mb-20">
+                                                <div class="d-flex justify-content-between mb-2">
+                                                    <label for="porcentajeNoShow" class="form-label fw-bold text-dark">TASA AUSENTISMO (NO-SHOW)</label>
+                                                    <span class="control-value text-danger" id="displayNoShow">8%</span>
+                                                </div>
+                                                <input type="range" class="form-range" id="porcentajeNoShow" min="0" max="30" value="8" step="1">
+                                                <div class="form-text mt-2">
+                                                    <i class="fa-light fa-info-circle"></i> El 80% de estas ausencias se recuperan automáticamente.
+                                                </div>
+                                            </div>
+
+                                        </form>
+
+                                        <!-- Panel de Resultados (Estilo Pricing) -->
+                                        <div class="result-box mb-40">
+                                            <span class="d-block text-muted text-uppercase mb-2" style="letter-spacing: 2px; font-size: 12px;">Recuperación Estimada</span>
+                                            <span id="valorAhorro" class="result-amount">0 €</span>
+                                            <span class="d-block saving-period">Extra Anual</span>
+                                        </div>
+
+                                        <!-- CTA -->
+                                        <div class="text-center">
+                                            <a href="onboarding.html" class="theme-btn-2 w-100">Comenzar Prueba Gratuita</a>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    <!-- Calculator Area End -->
+
+                </main>
+            
+                <!-- Footer (Componente de la Web Madre) -->
+                <?php include './partials/footer.php' ?>
+                <!-- Footer end -->
+
+            </div>
+        </div>
+    </div>
+
+    <!-- jQuery Js & Plugins (Web Madre) -->
+    <script src="assets/js/jquery-3.6.0.min.js"></script>
+    <script src="assets/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/js/meanmenu.js"></script>
+    <script src="assets/js/swiper-bundle.min.js"></script>
+    <script src="assets/js/slick.min.js"></script>
+    <script src="assets/js/magnific-popup.js"></script>
+    <script src="assets/js/backtotop.js"></script>
+    <script src="assets/js/nice-select.js"></script>
+    <script src="assets/js/counterup.js"></script>
+    <script src="assets/js/wow.js"></script>
+    <script src="assets/js/isotope-pkgd.js"></script>
+    <script src="assets/js/imagesloaded-pkgd.js"></script>
+    <script src="assets/js/ajax-form.js"></script>
+    <script src="assets/js/main.js"></script>
+
+    <!-- SCRIPT ORIGINAL (Tu lógica intacta) -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const inputCitas = document.getElementById('citasMes');
+            const displayCitas = document.getElementById('displayCitas');
+            
+            const inputPrecio = document.getElementById('precioSesion');
+            const displayPrecio = document.getElementById('displayPrecio');
+
+            const inputNoShow = document.getElementById('porcentajeNoShow');
+            const displayNoShow = document.getElementById('displayNoShow');
+            
+            const valorAhorro = document.getElementById('valorAhorro');
+
+            function calcularROI() {
+                // Actualización Visual
+                displayCitas.textContent = inputCitas.value;
+                displayPrecio.textContent = inputPrecio.value + ' €';
+                displayNoShow.textContent = inputNoShow.value + '%';
+
+                // Cálculo Matemático (Tu algoritmo V3)
+                const citasMes = parseFloat(inputCitas.value) || 0;
+                const precioSesion = parseFloat(inputPrecio.value) || 0;
+                const porcentajeNoShow = parseFloat(inputNoShow.value) || 0;
+                
+                const porcentajeEvitado = 0.80; // Eficiencia FisioTool
+
+                // Dinero perdido actualmente
+                const citasPerdidas = (citasMes * (porcentajeNoShow / 100));
+                // Dinero recuperado con IA
+                const citasSalvadas = citasPerdidas * porcentajeEvitado;
+                const ahorroAnual = (citasSalvadas * precioSesion) * 12;
+
+                // Renderizado
+                valorAhorro.textContent = new Intl.NumberFormat('es-ES', { 
+                    style: 'currency', 
+                    currency: 'EUR', 
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                }).format(ahorroAnual);
+            }
+
+            inputCitas.addEventListener('input', calcularROI);
+            inputPrecio.addEventListener('input', calcularROI);
+            inputNoShow.addEventListener('input', calcularROI);
+
+            // Init
+            calcularROI();
+        });
+
+        // Dummy function para simular interacción de video (Tu función original)
+        function playVideoPresentation() {
+            // He ajustado el selector querySelector para que apunte al nuevo botón con icono
+            document.querySelector('.play-video-div').style.transform = "scale(0.9)";
+            document.getElementById('loading-text').style.display = 'block';
+            setTimeout(() => {
+                alert("Simulación: Aquí se abriría el popup de video explicativo (html5lightbox)");
+                document.querySelector('.play-video-div').style.transform = "scale(1)";
+                document.getElementById('loading-text').style.display = 'none';
+            }, 500);
+        }
+    </script>
+ 
+  </body>
+</html>

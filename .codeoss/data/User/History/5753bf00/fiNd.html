@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FisioTool | Módulo Prospección IA</title>
+    
+    <!-- Mismas fuentes que tu Dashboard -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100&family=Muli:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+    <style>
+        /* REUTILIZAMOS EXACTAMENTE TU CSS CROPE DEL DASHBOARD */
+        :root { 
+            --bg-dark: #121318;
+            --bg-card: #191c26;
+            --bg-sidebar: #070a11;
+            --accent: #DD4242;
+            --text-main: #FFFFFF;
+            --text-muted: #A9AFC3;
+            --border-color: #393f4f;
+        }
+        body { font-family: 'Poppins', sans-serif; background-color: var(--bg-dark); color: var(--text-muted); overflow-x: hidden; height: 100vh; margin: 0; }
+        a, button { transition: all 0.4s ease-in-out; text-decoration: none; outline: none; cursor:pointer;}
+        ul { list-style: none; padding: 0; margin: 0; }
+        
+        .left-sidebar {
+            width: 280px; background-color: var(--bg-sidebar); height: 100vh; position: fixed; top: 0; left: 0; z-index: 999;
+            padding: 40px 30px; display: flex; flex-direction: column; border-right: 1px solid rgba(255,255,255,0.02);
+        }
+        .wrapper { margin-left: 280px; padding: 60px; width: calc(100% - 280px); min-height: 100vh; }
+
+        /* Nav Items Estilo Dashboard */
+        .nav-item { display: block; margin-bottom: 25px; cursor: pointer; position: relative; padding-left: 20px; }
+        .nav-item:hover, .nav-item.active { opacity: 1; }
+        .nav-item svg { width: 24px; margin-right: 15px; fill: #A9AFC3; transition: 0.3s; vertical-align: middle; }
+        .nav-item span { font-family: 'Muli', sans-serif; font-size: 16px; color: var(--text-muted); vertical-align: middle; font-weight: 600; }
+        .nav-item.active svg { fill: var(--accent); }
+        .nav-item.active span { color: #fff; }
+
+        /* Cards & Typos */
+        .crope-card { background: var(--bg-card); padding: 40px; margin-bottom: 30px; position: relative; border-bottom: 1px solid transparent; transition: 0.3s; }
+        .card-head { font-size: 20px; color: #fff; font-weight: 500; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        h1 { font-size: 48px; color: #fff; font-weight: 700; margin-bottom: 10px; line-height: 1.1; }
+        
+        /* Drag Zone Especial Prospector */
+        .drag-zone {
+            border: 2px dashed var(--border-color);
+            background: rgba(25, 28, 38, 0.5);
+            padding: 60px 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.3s;
+            border-radius: 8px;
+        }
+        .drag-zone:hover { border-color: var(--accent); background: rgba(221, 66, 66, 0.05); }
+        .drag-icon { font-size: 40px; color: var(--text-muted); margin-bottom: 15px; display:block;}
+        .drag-zone:hover .drag-icon { color: var(--accent); transform: scale(1.1); transition:0.3s;}
+
+        /* Botón Acción (Launch) */
+        .btn-launch {
+            background: linear-gradient(45deg, var(--accent), #ff5e5e);
+            color: white; border: none; padding: 15px 40px; border-radius: 50px;
+            font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(221,66,66,0.4);
+            display: inline-flex; align-items: center; gap: 10px;
+        }
+        .btn-launch:disabled { background: #393f4f; color: #aaa; box-shadow: none; cursor: not-allowed;}
+        
+        /* Status Tags */
+        .badge-kpi {
+            background: #111319; border: 1px solid var(--border-color); 
+            padding: 10px 20px; border-radius: 8px; margin-right: 15px; display: inline-block;
+        }
+        .val { color: #fff; font-weight: 700; font-size: 24px; display:block; }
+        .lbl { font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 1px;}
+        .accent { color: var(--accent); }
+
+        /* Loader Overlay */
+        #loader-overlay {
+            position: fixed; top:0; left:0; width:100%; height:100%; 
+            background: rgba(18,19,24,0.9); z-index: 9999; 
+            display: none; align-items: center; justify-content: center; flex-direction: column;
+        }
+        @keyframes pulse { 0% { opacity:0.6; transform:scale(1);} 50% { opacity:1; transform:scale(1.05);} 100% { opacity:0.6; transform:scale(1);} }
+    </style>
+</head>
+<body>
+
+    <!-- OVERLAY CARGA (Visual Tech) -->
+    <div id="loader-overlay">
+        <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#DD4242" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 2s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>
+        <p style="color:#fff; font-family:'Muli'; margin-top:20px; font-weight:300;">ANALIZANDO BIG DATA & NEURAL NET...</p>
+    </div>
+
+    <!-- SIDEBAR IGUAL AL DASHBOARD -->
+    <div class="left-sidebar">
+        <div class="logo">
+            <h2 style="color:#fff; font-weight:700; font-size:24px;">FISIO<span style="color:#DD4242">AI</span></h2>
+        </div>
+        <nav style="margin-top: 20px; flex-grow: 1;">
+            <a href="/panel" class="nav-item">
+                <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+                <span>Agenda IA</span>
+            </a>
+            <!-- NUEVO ITEM ACTIVO -->
+            <div class="nav-item active">
+                <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                <span>Prospección</span>
+            </div>
+        </nav>
+        <div style="padding: 20px 0; color:rgba(255,255,255,0.3); font-size:12px; font-family:'Muli'">
+            FisioTool v2.0 - Module AOLS
+        </div>
+    </div>
+
+    <!-- MAIN AREA -->
+    <div class="wrapper">
+        <header class="mb-5">
+            <span style="color: var(--accent); font-size: 14px; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; display: block; margin-bottom: 10px;">
+                Módulo AOLS
+            </span>
+            <h1>Centro de Comando Ventas</h1>
+            <p style="color: #A9AFC3; font-family:'Muli'; max-width:600px;">
+                Carga bases de datos y deja que la IA clasifique, filtre y contacte automáticamente. Sin esfuerzo humano.
+            </p>
+        </header>
+
+        <div class="row">
+            <!-- Columna Izq: INGESTA DATOS -->
+            <div class="col-lg-5">
+                <div class="crope-card">
+                    <div class="card-head">1. Ingesta de Leads (CSV)</div>
+                    <p style="font-size:13px; font-family:'Muli'; margin-bottom:20px;">
+                        El sistema espera columnas: <strong>Nombre, Telefono, Ciudad</strong>. Detectará móviles automáticos.
+                    </p>
+                    
+                    <div class="drag-zone" id="dropArea">
+                        <span class="drag-icon">⬇️</span>
+                        <h4 style="color:#fff; font-size:18px; margin-bottom:5px;">Arrastra tu CSV aquí</h4>
+                        <span style="font-size:12px;">o haz clic para explorar</span>
+                        <input type="file" id="fileInput" accept=".csv" style="display:none">
+                    </div>
+
+                    <div id="uploadStatus" style="display:none; margin-top:20px; padding:15px; background:rgba(76, 205, 196, 0.1); border-left:4px solid #4ecdc4; color:#fff;">
+                        ✅ Archivo cargado a Memoria
+                    </div>
+                </div>
+            </div>
+
+            <!-- Columna Der: ESTADÍSTICAS & LANZAMIENTO -->
+            <div class="col-lg-7">
+                <div class="crope-card">
+                    <div class="card-head">2. Análisis de Viabilidad (Inteligencia Capa 1)</div>
+                    
+                    <div style="margin-bottom:30px;">
+                        <div class="badge-kpi">
+                            <span class="val" id="count-wa">0</span>
+                            <span class="lbl accent">WhatsApp Directo</span>
+                        </div>
+                        <div class="badge-kpi">
+                            <span class="val" id="count-mail">0</span>
+                            <span class="lbl">Solo Email (Fijos)</span>
+                        </div>
+                        <div class="badge-kpi">
+                            <span class="val" id="count-total">0</span>
+                            <span class="lbl">Total Procesados</span>
+                        </div>
+                    </div>
+
+                    <div style="background:#15171e; padding:20px; border-radius:8px; margin-bottom:30px; font-family:'monospace'; color:#aaa; font-size:12px; height:150px; overflow-y:auto;" id="console-log">
+                        > Sistema en espera de datos...<br>
+                        > Ready.
+                    </div>
+
+                    <button id="btnLaunch" class="btn-launch" disabled onclick="lanzarCampana()">
+                        <svg viewBox="0 0 24 24" width="20" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                        EJECUTAR CAMPAÑA AOLS
+                    </button>
+                    
+                    <p style="font-size:11px; margin-top:15px; opacity:0.5;">
+                        *Al ejecutar, se enviarán plantillas WhatsApp a los candidatos aptos. Coste por envío aplica según tarifa Meta.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- LOGICA JS -->
+    <script>
+        const dropArea = document.getElementById('dropArea');
+        const fileInput = document.getElementById('fileInput');
+        const overlay = document.getElementById('loader-overlay');
+        
+        // --- 1. GESTIÓN ARRASTRAR ARCHIVOS ---
+        dropArea.addEventListener('click', () => fileInput.click());
+        dropArea.addEventListener('dragover', (e) => { e.preventDefault(); dropArea.style.borderColor = '#DD4242'; });
+        dropArea.addEventListener('dragleave', (e) => { e.preventDefault(); dropArea.style.borderColor = '#393f4f'; });
+        
+        dropArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropArea.style.borderColor = '#393f4f';
+            if(e.dataTransfer.files.length) handleFiles(e.dataTransfer.files[0]);
+        });
+        fileInput.addEventListener('change', (e) => { if(e.target.files.length) handleFiles(e.target.files[0]); });
+
+        // --- 2. LOGICA SUBIDA A API ---
+        async function handleFiles(file) {
+            logConsole(`> Analizando archivo: ${file.name}...`);
+            overlay.style.display = 'flex'; // Efecto carga tech
+
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            // Clinic ID Header se envía implícito en tu arquitectura SaaS
+            // (Podríamos enviarlo explícitamente si tu middleware auth lo requiere)
+
+            try {
+                const res = await fetch('/aols/upload-leads', { method: 'POST', body: formData });
+                const data = await res.json();
+                
+                setTimeout(() => { // Pequeño delay dramático para sensación de proceso IA
+                    overlay.style.display = 'none';
+                    if(data.status === 'success') {
+                        document.getElementById('uploadStatus').style.display = 'block';
+                        
+                        // Actualizar KPIs
+                        const total = data.total;
+                        const wa = data.analisis.whatsapp_candidatos;
+                        const mail = data.analisis.email_only;
+
+                        animateValue("count-total", 0, total, 1000);
+                        animateValue("count-wa", 0, wa, 1000);
+                        animateValue("count-mail", 0, mail, 1000);
+
+                        logConsole(`> IMPORTACIÓN EXITOSA. ${total} leads cargados.`);
+                        logConsole(`> FILTRO CAPA 1: ${wa} números son móviles aptos para WA.`);
+                        
+                        document.getElementById('btnLaunch').disabled = false;
+                        document.getElementById('btnLaunch').innerHTML = `DISPARAR ${wa} WHATSAPPS`;
+                    } else {
+                        logConsole(`> ERROR CRÍTICO: ${data}`);
+                    }
+                }, 800);
+
+            } catch(e) {
+                overlay.style.display = 'none';
+                console.error(e);
+                logConsole(`> ERROR DE CONEXIÓN CON SERVIDOR NODE.`);
+            }
+        }
+
+        // --- 3. LOGICA DISPARO CAMPAÑA ---
+        async function lanzarCampana() {
+            if(!confirm("⚠️ CONFIRMACIÓN REQUERIDA:\nEstás a punto de enviar mensajes reales.\n¿Deseas proceder?")) return;
+
+            logConsole(`> INICIANDO SECUENCIA DE ENVÍO MASIVO...`);
+            const btn = document.getElementById('btnLaunch');
+            btn.innerHTML = "ENVIANDO..."; 
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/aols/lanzar-campana', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ cantidad: 50 }) // Lote de seguridad
+                });
+                const data = await res.json();
+
+                logConsole(`> ==========================`);
+                logConsole(`> RESULTADO DEL LOTE:`);
+                logConsole(`> ✅ Enviados (Meta API 200 OK): ${data.exitos_wa}`);
+                logConsole(`> ❌ Fallidos (Rebotados a Email): ${data.fallos_revertidos_email}`);
+                logConsole(`> Ciclo terminado.`);
+
+                btn.innerHTML = "CAMPAÑA COMPLETADA";
+
+            } catch (e) {
+                logConsole(`> ERROR DE EJECUCIÓN.`);
+            }
+        }
+
+        // Helpers Visuales
+        function logConsole(text) {
+            const consoleDiv = document.getElementById('console-log');
+            consoleDiv.innerHTML += text + "<br>";
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+
+        function animateValue(id, start, end, duration) {
+            const obj = document.getElementById(id);
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                obj.innerHTML = Math.floor(progress * (end - start) + start);
+                if (progress < 1) window.requestAnimationFrame(step);
+            };
+            window.requestAnimationFrame(step);
+        }
+        
+        // CSS inyectado para spin
+        document.head.appendChild(document.createElement("style")).innerHTML = `@keyframes spin { 100% { transform:rotate(360deg); } }`;
+
+    </script>
+</body>
+</html>

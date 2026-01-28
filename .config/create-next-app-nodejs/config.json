@@ -1,0 +1,9 @@
+{
+	"preferences": {
+		"linter": "eslint",
+		"eslint": true,
+		"reactCompiler": false,
+		"srcDir": false,
+		"app": true
+	}
+}

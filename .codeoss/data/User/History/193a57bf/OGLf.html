@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cita Previa - FisioTool</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0066ff;
+            --bg-chat: #f0f4f8;
+            --bubble-user: #0066ff;
+            --bubble-ia: #ffffff;
+            --text-main: #0f172a;
+        }
+
+        body { font-family: 'Inter', sans-serif; background: var(--bg-chat); margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        
+        /* HEADER CLÍNICA */
+        .header { background: white; padding: 15px 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; align-items: center; gap: 15px; z-index: 10; }
+        .logo { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; background: #eee; }
+        .info { flex: 1; }
+        .info h1 { margin: 0; font-size: 16px; font-weight: 700; color: var(--text-main); }
+        .status { font-size: 12px; color: #10b981; display: flex; align-items: center; gap: 5px; font-weight: 500; margin-top: 2px; }
+        .dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; display: inline-block; animation: pulse 2s infinite; }
+
+        /* CHAT AREA */
+        #chatBox { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; scroll-behavior: smooth; }
+        
+        .msg { max-width: 80%; padding: 12px 16px; border-radius: 18px; font-size: 15px; line-height: 1.5; position: relative; word-wrap: break-word; animation: fadeIn 0.3s ease; }
+        .msg.ia { align-self: flex-start; background: var(--bubble-ia); color: #334155; border-bottom-left-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); }
+        .msg.user { align-self: flex-end; background: var(--bubble-user); color: white; border-bottom-right-radius: 4px; }
+        
+        /* INPUT AREA */
+        .input-area { background: white; padding: 15px; border-top: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 10px; }
+        .tlf-box { display: flex; align-items: center; gap: 10px; background: #f8fafc; padding: 10px; border-radius: 12px; border: 1px solid #e2e8f0; }
+        .tlf-box input { border: none; background: transparent; font-size: 14px; width: 100%; outline: none; font-weight: 600; color: #475569; }
+        
+        .msg-box { display: flex; gap: 10px; }
+        .msg-box input { flex: 1; padding: 14px; border-radius: 25px; border: 1px solid #cbd5e1; font-size: 16px; outline: none; transition: 0.3s; }
+        .msg-box input:focus { border-color: var(--primary); }
+        .send-btn { background: var(--primary); color: white; border: none; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; transition: 0.2s; }
+        .send-btn:disabled { background: #cbd5e1; cursor: not-allowed; }
+
+        /* DETALLES DE CONTACTO */
+        .drawer { font-size: 12px; color: #64748b; text-align: center; margin-top: 5px; }
+
+        @keyframes pulse { 0% { opacity: 1; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); } 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* ESTILOS PARA ENLACES DE PAGO */
+        a.pay-link { display: block; margin-top: 10px; background: #10b981; color: white; text-decoration: none; padding: 10px 15px; border-radius: 8px; text-align: center; font-weight: 700; }
+    </style>
+</head>
+<body>
+
+    <!-- CABECERA -->
+    <div class="header">
+        <img src="https://via.placeholder.com/50" id="clinicLogo" class="logo" alt="Logo">
+        <div class="info">
+            <h1 id="clinicName">Cargando Clínica...</h1>
+            <div class="status">
+                <span class="dot" id="statusDot"></span>
+                <span id="statusLabel">Online - Ana (IA)</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- CHAT -->
+    <div id="chatBox">
+        <div class="msg ia">👋 Hola, soy Ana. Estoy revisando la agenda en tiempo real. ¿Cómo te llamas y qué día te gustaría venir?</div>
+    </div>
+
+    <!-- INPUTS -->
+    <div class="input-area">
+        <!-- Campo Teléfono (Crucial para identificar al paciente) -->
+        <div class="tlf-box">
+            <span>📱</span>
+            <input type="tel" id="patientTlf" placeholder="Tu Teléfono (Obligatorio para reservar)" required>
+        </div>
+        
+        <div class="msg-box">
+            <input type="text" id="messageInput" placeholder="Escribe aquí..." autocomplete="off">
+            <button id="sendButton" class="send-btn">➤</button>
+        </div>
+        <div class="drawer">
+            <span id="infoAddress">...</span> • <span id="infoPhone">...</span>
+        </div>
+    </div>
+
+    <script>
+        // ===============================================
+        // AQUÍ ESTÁ EL CÓDIGO QUE ME PREGUNTASTE
+        // ===============================================
+        
+        // 1. Detectar Clínica y Referencias UI
+        const pathParts = window.location.pathname.split('/').filter(p => p.length > 0);
+        const clinicSlug = pathParts[pathParts.length - 1]; // Coge lo último de la URL
+
+        const ui = {
+            clinicName: document.getElementById('clinicName'),
+            clinicLogo: document.getElementById('clinicLogo'),
+            statusDot: document.getElementById('statusDot'),
+            statusLabel: document.getElementById('statusLabel'),
+            infoPhone: document.getElementById('infoPhone'),
+            infoAddress: document.getElementById('infoAddress'),
+            chatBox: document.getElementById('chatBox'),
+            input: document.getElementById('messageInput'),
+            sendBtn: document.getElementById('sendButton'),
+            tlfInput: document.getElementById('patientTlf')
+        };
+
+        // 2. Cargar Configuración de la Clínica
+        async function loadConfig() {
+            try {
+                // Llamamos al backend que acabamos de arreglar
+                const res = await fetch(`/api/config/${clinicSlug}`);
+                if (!res.ok) throw new Error("Clínica no encontrada");
+                
+                const data = await res.json();
+                
+                // Inyectamos datos en la UI
+                ui.clinicName.innerText = data.nombre_clinica;
+                ui.infoPhone.innerText = data.phone || "";
+                ui.infoAddress.innerText = data.address || "";
+                
+                if (data.logo_url && !data.logo_url.includes('default')) {
+                    ui.clinicLogo.src = data.logo_url;
+                } else {
+                    ui.clinicLogo.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(data.nombre_clinica)}&background=0066ff&color=fff`;
+                }
+
+                document.title = `Cita Previa - ${data.nombre_clinica}`;
+            } catch (e) {
+                console.error(e);
+                ui.clinicName.innerText = "Error de Conexión";
+                ui.statusLabel.innerText = "Offline";
+                ui.statusDot.style.background = "red";
+                addMessage("❌ No se pudo conectar con la clínica. Verifica la URL.", 'ia');
+            }
+        }
+
+        // 3. Funciones de Chat
+        function addMessage(text, type) {
+            const div = document.createElement('div');
+            div.className = `msg ${type}`;
+            
+            // Detectar enlaces (Markdown simple para enlaces de pago)
+            if (text.includes('http')) {
+                const urlRegex = /(https?:\/\/[^\s]+)/g;
+                div.innerHTML = text.replace(urlRegex, url => `<a href="${url}" target="_blank" class="pay-link">PAGAR AQUÍ 💳</a>`);
+            } else {
+                div.innerText = text;
+            }
+            
+            ui.chatBox.appendChild(div);
+            ui.chatBox.scrollTop = ui.chatBox.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const text = ui.input.value.trim();
+            const tlf = ui.tlfInput.value.trim();
+
+            if (!text) return;
+            if (!tlf || tlf.length < 9) {
+                alert("Por favor, introduce tu teléfono primero para poder gestionar la cita.");
+                ui.tlfInput.focus();
+                return;
+            }
+
+            // UI Optimista
+            addMessage(text, 'user');
+            ui.input.value = '';
+            ui.sendBtn.disabled = true;
+
+            // Indicador de "Escribiendo..."
+            const loadingId = 'loading-' + Date.now();
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'msg ia';
+            loadingDiv.id = loadingId;
+            loadingDiv.innerText = 'typing...';
+            ui.chatBox.appendChild(loadingDiv);
+
+            try {
+                const res = await fetch(`/api/chat/${clinicSlug}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text, patient_tlf: tlf })
+                });
+
+                const data = await res.json();
+                
+                // Quitamos "Escribiendo..."
+                document.getElementById(loadingId).remove();
+
+                if (data.reply) {
+                    addMessage(data.reply, 'ia');
+                } else {
+                    addMessage("⚠️ Error: Respuesta vacía del servidor.", 'ia');
+                }
+
+            } catch (e) {
+                document.getElementById(loadingId).remove();
+                addMessage("⚠️ Error de conexión. Inténtalo de nuevo.", 'ia');
+                console.error(e);
+            } finally {
+                ui.sendBtn.disabled = false;
+                ui.input.focus();
+            }
+        }
+
+        // 4. Listeners
+        ui.sendBtn.addEventListener('click', sendMessage);
+        ui.input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        // Arrancar
+        loadConfig();
+        <p style="font-size: 10px; color: #94a3b8; text-align: center; margin-top: 10px; padding: 0 10px;">
+    Al hablar con Ana, aceptas nuestra <a href="#" style="color: var(--primary);">Política de Privacidad</a> y el procesamiento de tus datos de salud para la gestión de la cita.
+</p>
+
+    </script>
+</body>
+</html>

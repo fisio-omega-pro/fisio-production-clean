@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Fisiotool</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <!-- Librería del Calendario -->
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/locales/es.global.min.js'></script>
+    
+    <style>
+        :root { --primary: #007bff; --bg: #f8f9fa; --sidebar: #ffffff; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; display: flex; height: 100vh; overflow: hidden; }
+        
+        /* Sidebar */
+        .sidebar { width: 240px; background: var(--sidebar); border-right: 1px solid #ddd; display: flex; flex-direction: column; padding: 20px; }
+        .logo { font-size: 20px; font-weight: bold; color: var(--primary); margin-bottom: 30px; display: flex; align-items: center; gap: 10px; }
+        .nav-item { padding: 12px; margin-bottom: 5px; border-radius: 8px; cursor: pointer; color: #555; display: flex; align-items: center; gap: 10px; transition: 0.2s; }
+        .nav-item:hover, .nav-item.active { background: #e3f2fd; color: var(--primary); font-weight: 600; }
+
+        /* Estilos Pestañas */
+        .tab-btn { background:none; border:none; border-bottom:3px solid transparent; padding:10px 15px; cursor:pointer; color:#666; font-weight:600; }
+        .tab-btn.active { border-bottom-color: var(--primary); color: var(--primary); }
+        .tab-btn:hover { background:#f5f5f5; }
+    
+        /* Animación Micro */
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        .recording { animation: pulse 1.5s infinite; background: #ff0000 !important; }
+
+        /* Main Content */
+        .main { flex: 1; padding: 20px; overflow-y: auto; position: relative; display: flex; flex-direction: column; }
+        
+        /* Calendario */
+        #calendar { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); flex: 1; }
+        
+        /* Botón Link */
+        .header-tools { display: flex; justify-content: space-between; margin-bottom: 15px; }
+        .whatsapp-link { background: #25D366; color: white; padding: 8px 15px; border-radius: 6px; text-decoration: none; cursor: pointer; font-weight: 600; font-size: 0.9em; display: inline-flex; align-items: center; gap: 5px; }
+
+        /* Modal Generico */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 25px; border-radius: 12px; width: 350px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .modal h3 { margin-top: 0; color: #333; }
+        
+        /* Formulario Cita */
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-size: 0.85em; color: #666; font-weight: 600; }
+        .form-group input, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-family: inherit; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+        button { padding: 10px 16px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; }
+        .btn-cancel { background: #f1f1f1; color: #333; }
+        .btn-save { background: var(--primary); color: white; }
+    </style>
+</head>
+<body>
+
+    <!-- MENÚ LATERAL -->
+    <div class="sidebar">
+        <div class="logo">⚡ Fisiotool</div>
+        <div class="nav-item active">📅 Agenda Visual</div>
+        <div class="nav-item" onclick="alert('Próximamente')">👥 Pacientes</div>
+        <div class="nav-item" onclick="alert('Próximamente')">⚙️ Configuración</div>
+    </div>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <div class="main">
+        <div class="header-tools">
+            <h2 style="margin:0">Agenda Semanal</h2>
+            <div class="whatsapp-link" onclick="copyLink()">🔗 Copiar Enlace Bot</div>
+        </div>
+
+        <!-- AQUÍ VA EL CALENDARIO -->
+        <div id="calendar"></div>
+    </div>
+
+    <!-- VENTANA EMERGENTE (MODAL) PARA CREAR CITA -->
+    <div id="modalCita" class="modal">
+        <div class="modal-content">
+            <h3>Nueva Cita Manual</h3>
+            <p style="font-size:0.9em; color:#666; margin-bottom: 15px;">
+                Fecha: <strong id="modalFechaDisplay"></strong>
+            </p>
+            
+            <form id="formCita">
+                <input type="hidden" id="modalFechaISO">
+                <div class="form-group">
+                    <label>Nombre del Paciente</label>
+                    <input type="text" id="pacienteNombre" required placeholder="Ej: María García">
+                </div>
+                <div class="form-group">
+                    <label>Teléfono</label>
+                    <input type="text" id="pacienteTlf" placeholder="+34...">
+                </div>
+                <div class="form-group">
+                    <label>Notas / Tratamiento</label>
+                    <textarea id="pacienteNotas" rows="2" placeholder="Ej: Revisión espalda"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancel" onclick="closeModal()">Cancelar</button>
+                    <button type="submit" class="btn-save">Guardar Cita</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL FICHA PACIENTE (CRM + VOZ) -->
+    <div id="modalFicha" class="modal">
+        <div class="modal-content" style="width: 600px; max-width: 95%;">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:10px; margin-bottom:15px;">
+                <h3 style="margin:0; color:var(--primary);">👤 Ficha del Paciente</h3>
+                <button onclick="closeFicha()" style="background:none; border:none; font-size:20px; cursor:pointer;">&times;</button>
+            </div>
+
+            <!-- Datos Cabecera -->
+            <div style="background:#f8f9fa; padding:15px; border-radius:8px; margin-bottom:20px; display:flex; justify-content:space-between;">
+                <div>
+                    <h2 id="fichaNombre" style="margin:0; font-size:18px;">Cargando...</h2>
+                    <p id="fichaTlf" style="margin:5px 0 0 0; color:#666; font-family:monospace;">...</p>
+                </div>
+                <div style="text-align:right;">
+                    <span style="font-size:12px; background:#e3f2fd; color:var(--primary); padding:4px 8px; border-radius:4px;">Paciente</span>
+                </div>
+            </div>
+
+            <!-- Pestañas -->
+            <div style="display:flex; gap:10px; margin-bottom:15px; border-bottom:1px solid #ddd;">
+                <button class="tab-btn active" onclick="switchTab('notas')">📝 Notas Clínicas</button>
+                <button class="tab-btn" onclick="switchTab('chat')">💬 Historial Chat</button>
+            </div>
+
+            <!-- CONTENIDO PESTAÑA NOTAS (GRABADORA) -->
+            <div id="tab-notas" class="tab-content">
+                <div style="border:1px solid #ddd; padding:15px; border-radius:8px; margin-bottom:20px;">
+                    <label style="display:block; margin-bottom:10px; font-weight:600; color:#444;">🎙️ Nueva Nota de Evolución (Dictado)</label>
+                    <div style="position:relative;">
+                        <textarea id="textoTranscipcion" rows="4" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:5px; resize:vertical;" placeholder="Pulsa el micro y habla..."></textarea>
+                        <button id="btnMicro" onclick="toggleRecording()" style="position:absolute; bottom:10px; right:10px; border-radius:50%; width:40px; height:40px; border:none; background:#dc3545; color:white; cursor:pointer; box-shadow:0 2px 5px rgba(0,0,0,0.2); display:flex; align-items:center; justify-content:center;">🎤</button>
+                    </div>
+                    <p id="statusGrabacion" style="font-size:0.8em; color:#dc3545; margin-top:5px; display:none;">🔴 Escuchando... (Habla ahora)</p>
+                    <button onclick="guardarNota()" style="background:#28a745; color:white; margin-top:10px; width:100%;">💾 GUARDAR NOTA EN HISTORIAL</button>
+                </div>
+                <h4 style="margin-bottom:10px; color:#666;">Historial Médico</h4>
+                <div id="listaNotas" style="max-height:200px; overflow-y:auto; background:#f9f9f9; padding:10px; border-radius:5px;">
+                    <p style="text-align:center; color:#999;">Cargando historial...</p>
+                </div>
+            </div>
+
+            <!-- CONTENIDO PESTAÑA CHAT -->
+            <div id="tab-chat" class="tab-content" style="display:none;">
+                <div id="listaChats" style="max-height:350px; overflow-y:auto; display:flex; flex-direction:column; gap:10px;">
+                    <!-- Chats aquí -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const clinicId = params.get('id');
+        let calendar;
+        
+        // --- VARIABLES FICHA ---
+        let currentPacienteTlf = null;
+        let currentPacienteNombre = null;
+        let recognition;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            if(!clinicId) { alert("Error: No se detecta el ID de la clínica en la URL."); return; }
+
+            const calendarEl = document.getElementById('calendar');
+            
+            // INICIALIZAR FULLCALENDAR
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'timeGridWeek', 
+                locale: 'es', 
+                firstDay: 1, 
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                },
+                buttonText: { today: 'Hoy', month: 'Mes', week: 'Semana', day: 'Día', list: 'Lista' },
+                slotMinTime: '08:00:00', 
+                slotMaxTime: '22:00:00', 
+                allDaySlot: false,
+                height: '100%',
+                nowIndicator: true, 
+                
+                // CARGAR DATOS
+                events: `/api/dashboard/calendar?clinic_id=${clinicId}`,
+
+                // NUEVA CITA MANUAL
+                dateClick: function(info) {
+                    openModal(info.dateStr);
+                },
+
+                // *** AQUÍ ESTÁ LA CORRECCIÓN CLAVE ***
+                eventClick: function(info) {
+                    openFicha(info.event); // Abre la ficha directamente
+                }
+            });
+
+            calendar.render();
+            setupVoiceRecognition(); // Inicializar voz
+        });
+
+        // --- FUNCIONES MODAL CITA ---
+        function openModal(dateStr) {
+            document.getElementById('modalCita').style.display = 'flex';
+            document.getElementById('modalFechaISO').value = dateStr;
+            const dateObj = new Date(dateStr);
+            document.getElementById('modalFechaDisplay').innerText = dateObj.toLocaleString();
+            document.getElementById('pacienteNombre').focus();
+        }
+
+        function closeModal() {
+            document.getElementById('modalCita').style.display = 'none';
+            document.getElementById('formCita').reset();
+        }
+
+        document.getElementById('formCita').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const nombre = document.getElementById('pacienteNombre').value;
+            const tlf = document.getElementById('pacienteTlf').value;
+            const notas = document.getElementById('pacienteNotas').value;
+            const fecha = document.getElementById('modalFechaISO').value;
+
+            const btn = document.querySelector('.btn-save');
+            btn.disabled = true; btn.innerText = "Guardando...";
+
+            try {
+                const res = await fetch('/api/dashboard/cita-manual', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ clinic_id: clinicId, fecha, nombre, telefono: tlf, notas })
+                });
+                
+                if(res.ok) {
+                    closeModal();
+                    calendar.refetchEvents(); 
+                } else { alert("Error al guardar."); }
+            } catch(err) { alert("Error de conexión"); }
+            finally { btn.disabled = false; btn.innerText = "Guardar Cita"; }
+        });
+
+        function copyLink() {
+            const host = window.location.protocol + "//" + window.location.host;
+            const link = `${host}/agenda/${clinicId}`;
+            navigator.clipboard.writeText(link);
+            alert("✅ Enlace copiado: " + link);
+        }
+
+        // --- LÓGICA FICHA PACIENTE Y VOZ ---
+        function setupVoiceRecognition() {
+            if ('webkitSpeechRecognition' in window) {
+                recognition = new webkitSpeechRecognition();
+                recognition.continuous = false; 
+                recognition.lang = 'es-ES';
+                recognition.interimResults = false;
+
+                recognition.onresult = function(event) {
+                    const transcript = event.results[0][0].transcript;
+                    const area = document.getElementById('textoTranscipcion');
+                    area.value += (area.value ? " " : "") + transcript + ".";
+                    stopRecordingUI();
+                };
+
+                recognition.onerror = function(event) {
+                    console.error("Error voz:", event.error);
+                    stopRecordingUI();
+                    alert("Error con el micrófono. Verifica permisos del navegador.");
+                };
+                
+                recognition.onend = function() { stopRecordingUI(); };
+            } else {
+                document.getElementById('btnMicro').style.display = 'none';
+            }
+        }
+
+        function toggleRecording() {
+            if(!recognition) return alert("Tu navegador no soporta voz.");
+            const btn = document.getElementById('btnMicro');
+            const status = document.getElementById('statusGrabacion');
+            
+            if (btn.classList.contains('recording')) {
+                recognition.stop();
+            } else {
+                recognition.start();
+                btn.classList.add('recording');
+                status.style.display = 'block';
+            }
+        }
+
+        function stopRecordingUI() {
+            const btn = document.getElementById('btnMicro');
+            document.getElementById('statusGrabacion').style.display = 'none';
+            btn.classList.remove('recording');
+        }
+
+        async function openFicha(event) {
+            const props = event.extendedProps;
+            currentPacienteTlf = props.telefono;
+            // Limpiamos el nombre de posibles paréntesis de estado
+            currentPacienteNombre = event.title.replace(/\s*\(.*?\)\s*/g, '').trim();
+
+            document.getElementById('modalFicha').style.display = 'flex';
+            document.getElementById('fichaNombre').innerText = currentPacienteNombre;
+            document.getElementById('fichaTlf').innerText = currentPacienteTlf || "Sin teléfono";
+            document.getElementById('textoTranscipcion').value = ""; 
+
+            loadPacienteData();
+        }
+
+        function closeFicha() {
+            document.getElementById('modalFicha').style.display = 'none';
+        }
+
+        async function loadPacienteData() {
+            if(!currentPacienteTlf) return;
+            
+            const listNotas = document.getElementById('listaNotas');
+            const listChats = document.getElementById('listaChats');
+            listNotas.innerHTML = '<p>Cargando...</p>';
+
+            try {
+                const res = await fetch(`/api/dashboard/paciente-info?clinic_id=${clinicId}&telefono=${currentPacienteTlf}`);
+                const data = await res.json();
+
+                // Notas
+                if(data.notas.length === 0) {
+                    listNotas.innerHTML = '<p style="color:#999; text-align:center">No hay notas clínicas aún.</p>';
+                } else {
+                    listNotas.innerHTML = data.notas.map(n => `
+                        <div style="background:white; border-left:4px solid var(--primary); padding:10px; margin-bottom:10px; font-size:0.9em;">
+                            <div style="font-weight:bold; color:#555; font-size:0.8em;">📅 ${new Date(n.creado._seconds * 1000).toLocaleString()}</div>
+                            <div style="margin-top:5px;">${n.contenido}</div>
+                        </div>
+                    `).join('');
+                }
+
+                // Chats
+                if(data.chats.length === 0) {
+                    listChats.innerHTML = '<p>Sin historial de IA asociado a este teléfono.</p>';
+                } else {
+                    listChats.innerHTML = data.chats.map(c => `
+                        <div style="background:#e9ecef; padding:8px; border-radius:5px; font-size:0.85em;">
+                            <strong>Paciente:</strong> ${c.msg || c.usr || '...'} <br>
+                            <strong style="color:var(--primary)">Ana:</strong> ${c.reply || c.ia || '...'}
+                        </div>
+                    `).join('');
+                }
+            } catch(e) { console.error(e); listNotas.innerHTML = 'Error carga'; }
+        }
+
+        async function guardarNota() {
+            const texto = document.getElementById('textoTranscipcion').value;
+            if(!texto.trim()) return alert("La nota está vacía.");
+
+            try {
+                const res = await fetch('/api/dashboard/guardar-nota', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ 
+                        clinic_id: clinicId, 
+                        telefono: currentPacienteTlf, 
+                        nombre: currentPacienteNombre,
+                        texto: texto 
+                    })
+                });
+                if(res.ok) {
+                    alert("Nota guardada");
+                    document.getElementById('textoTranscipcion').value = "";
+                    loadPacienteData(); 
+                }
+            } catch(e) { alert("Error guardando"); }
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById('tab-'+tabName).style.display = 'block';
+            event.target.classList.add('active'); 
+        }
+    </script>
+</body>
+</html>

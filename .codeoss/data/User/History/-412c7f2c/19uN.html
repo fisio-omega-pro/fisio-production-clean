@@ -1,0 +1,137 @@
+<!-- (El Head/Estilos CSS se mantienen igual) -->
+
+<div class="container">
+    <!-- ... (El Header y el Progress Bar se mantienen) ... -->
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="wizard-card">
+                <!-- Progress Bar -->
+                <!-- ... (Progress Bar se mantiene) ... -->
+
+                <!-- FORMULARIO REAL: AÑADIDO 'required' y mejor lógica de envío -->
+                <form id="setup-form" onsubmit="finalSubmit(event)"> 
+                    
+                    <!-- ================= PASO 1: DATOS (CRÍTICO: Validaciones y Multi-Clínica) ================= -->
+                    <div id="step1" class="step active">
+                        <div class="mb-4">
+                            <!-- Banner Promocional -->
+                            <div class="alert alert-primary bg-light border-primary d-flex align-items-center justify-content-between rounded-3 p-3 mb-4">
+                                <div>
+                                    <h6 class="mb-0 fw-bold text-primary"><i class="fa-solid fa-gift me-2"></i>¿Código de Invitado?</h6>
+                                    <small class="text-muted">Desbloquea 1 Mes Pro al 50%</small>
+                                </div>
+                                <input type="text" id="referral_code" class="form-control form-control-sm text-uppercase fw-bold text-center border-primary" style="width: 100px;" placeholder="CODE">
+                            </div>
+
+                            <label class="custom-label">Nombre de tu Clínica</label>
+                            <input type="text" id="clinic_name" class="custom-input mb-3" placeholder="Ej: Centro de Fisioterapia Vital" required>
+
+                            <label class="custom-label">Móvil Vinculado (Whatsapp Business)</label>
+                            <input type="tel" id="meta_phone" class="custom-input mb-3" placeholder="+34 600 000 000" required>
+                            <small class="text-muted d-block mb-3">*Este será el número desde el que 'Ana' contestará.</small>
+                            
+                            <label class="custom-label">Dirección (Cada clínica es un registro)</label>
+                            <input type="email" id="user_email" class="custom-input mb-3" placeholder="Tu Email (Usado como ID de Usuario)" required>
+                            <div class="row g-2">
+                                <div class="col-8"><input type="text" id="addr_street" class="custom-input" placeholder="Calle / Avda" required></div>
+                                <div class="col-4"><input type="text" id="addr_num" class="custom-input" placeholder="Nº" required></div>
+                                <div class="col-6"><input type="text" id="addr_city" class="custom-input" placeholder="Ciudad" required></div>
+                                <div class="col-6"><input type="text" id="addr_cp" class="custom-input" placeholder="C.P." required></div>
+                            </div>
+                        </div>
+
+                        <div class="text-end pt-3">
+                            <button class="btn-main" type="button" onclick="validateStep1AndNext(2)">Siguiente <i class="fa-solid fa-arrow-right ms-2"></i></button>
+                        </div>
+                    </div>
+                    
+                    <!-- ... (El resto de Pasos 2, 3 y 4 se mantienen con sus ID originales) ... -->
+
+                    <!-- ================= PASO 4: IA SETTINGS (Final Submit llama a la función finalSubmit) ================= -->
+                    <div id="step4" class="step">
+                        <!-- ... (Contenido del Paso 4 se mantiene) ... -->
+                        <div class="d-flex justify-content-between pt-2">
+                            <button class="btn-back" type="button" onclick="nextStep(3)">Atrás</button>
+                            <button class="btn-main btn-primary-finish px-4 w-50" type="submit">
+                                FINALIZAR Y ACTIVAR PAGO
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- ... (Footer y Loader Overlay se mantienen) ... -->
+        </div>
+    </div>
+
+    <!-- JS VANILLA (AÑADIMOS VALIDACIÓN Y EL ENVÍO REAL) -->
+    <script>
+        function validateStep1AndNext(targetStep) {
+            const requiredFields = ['clinic_name', 'meta_phone', 'user_email', 'addr_street', 'addr_num', 'addr_city', 'addr_cp'];
+            for (const fieldId of requiredFields) {
+                const field = document.getElementById(fieldId);
+                if (field.value.trim() === '') {
+                    alert(`El campo '${field.placeholder || field.id}' es obligatorio para continuar.`);
+                    field.focus();
+                    return;
+                }
+            }
+            nextStep(targetStep);
+        }
+
+        function nextStep(targetStep) { /* Mantenemos la función nextStep original */ }
+        
+        // El loader se mantiene: document.getElementById('loaderOverlay').style.display = 'flex';
+
+        async function finalSubmit(event) {
+            event.preventDefault(); // Evita el envío por defecto del formulario
+            document.getElementById('loaderOverlay').style.display = 'flex';
+
+            // RECOLECCION DE DATOS UNIFICADA
+            const dataToSave = {
+                // Nuevo formato para el backend (Multi-Clínica y Validación)
+                nombre_clinica: document.getElementById('clinic_name').value,
+                telefono_contacto: document.getElementById('meta_phone').value,
+                owner_user_email: document.getElementById('user_email').value, // Usado como ID temporal
+                direccion_completa: `${document.getElementById('addr_street').value}, ${document.getElementById('addr_num').value}, ${document.getElementById('addr_city').value} - ${document.getElementById('addr_cp').value}`,
+                
+                // Paso 3
+                precio_sesion: document.getElementById('price').value,
+                default_duration: document.getElementById('duration').value,
+                fianza_reserva: document.getElementById('deposit').value,
+                payment_types: Array.from(document.querySelectorAll('#step3 .tag-check:checked')).map(cb => cb.value),
+                
+                // Paso 4
+                banderas_rojas: Array.from(document.querySelectorAll('#step4 .redflag:checked')).map(cb => cb.value),
+                
+                // Lógica Afiliado
+                referral_code: document.getElementById('referral_code').value.trim()
+            };
+
+            try {
+                // 1. LLAMAR AL BACKEND PARA CREAR LA CLÍNICA Y OBTENER EL ENLACE DE PAGO
+                const response = await fetch('/onboarding/save-and-pay', { // Nuevo endpoint unificado
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dataToSave)
+                });
+
+                const result = await response.json();
+
+                if (result.status === 'success' && result.redirect_url) {
+                    // 2. ÉXITO: Redirigir a la pasarela de pago de Stripe (Punto 2 Corregido)
+                    window.location.href = result.redirect_url;
+                } else if (result.status === 'error') {
+                    alert(`Error en la Configuración: ${result.message}`);
+                    document.getElementById('loaderOverlay').style.display = 'none';
+                }
+            } catch(error) {
+                console.error("Fallo de conexión:", error);
+                alert("Fallo de conexión con el servidor. Intenta de nuevo.");
+                document.getElementById('loaderOverlay').style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

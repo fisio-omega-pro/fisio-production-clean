@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Configuración Profesional - FisioTool Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+--primary: #0066ff;
+--primary-hover: #0052cc;
+--primary-light: #eef5ff;
+--success: #10b981;
+--error: #ef4444;
+--warning: #f59e0b;
+--bg: #f8fafc;
+--card-bg: #ffffff;
+--text-main: #0f172a;
+--text-muted: #64748b;
+--border: #e2e8f0;
+--radius-lg: 24px;
+--radius-md: 16px;
+}
+
+body {
+font-family: 'Inter', sans-serif;
+background-color: var(--bg);
+margin: 0;
+display: flex;
+justify-content: center;
+align-items: center;
+min-height: 100vh;
+color: var(--text-main);
+-webkit-font-smoothing: antialiased;
+}
+
+.card {
+background: var(--card-bg);
+padding: 50px;
+border-radius: var(--radius-lg);
+box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
+width: 100%;
+max-width: 680px;
+box-sizing: border-box;
+position: relative;
+border: 1px solid var(--border);
+}
+
+.progress-container {
+display: flex;
+justify-content: space-between;
+margin-bottom: 50px;
+position: relative;
+}
+
+.progress-line {
+position: absolute;
+top: 18px;
+left: 0;
+width: 100%;
+height: 4px;
+background: #f1f5f9;
+z-index: 1;
+border-radius: 10px;
+}
+
+.progress-fill {
+position: absolute;
+top: 18px;
+left: 0;
+height: 4px;
+background: var(--primary);
+z-index: 2;
+transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+width: 0%;
+box-shadow: 0 0 10px rgba(0, 102, 255, 0.3);
+}
+
+.step-indicator {
+width: 40px;
+height: 40px;
+background: #fff;
+border: 3px solid #f1f5f9;
+border-radius: 50%;
+display: flex;
+align-items: center;
+justify-content: center;
+z-index: 3;
+font-weight: 800;
+font-size: 14px;
+color: #cbd5e1;
+transition: all 0.4s ease;
+}
+
+.step-indicator.active {
+border-color: var(--primary);
+color: var(--primary);
+transform: scale(1.2);
+box-shadow: 0 0 15px rgba(0, 102, 255, 0.15);
+}
+
+.step-indicator.completed {
+background: var(--primary);
+border-color: var(--primary);
+color: #fff;
+}
+
+h2 { 
+  text-align: center; 
+  margin: 0 0 12px 0; 
+  font-size: 28px;
+  font-weight: 800; 
+  letter-spacing: -0.02em; 
+}
+
+p.subtitle { 
+  text-align: center; 
+  color: var(--text-muted);
+  margin-bottom: 40px; 
+  font-size: 16px; 
+  font-weight: 400; 
+}
+
+.step { display: none; }
+.step.active { display: block; animation: slideUp 0.5s ease; }
+
+@keyframes slideUp {
+from { opacity: 0; transform: translateY(15px); }
+to { opacity: 1; transform: translateY(0); }
+}
+
+.form-group { margin-bottom: 25px; position: relative; }
+label { 
+  display: block; 
+  margin-bottom: 10px; 
+  font-weight: 700;
+  font-size: 13px; 
+  color: #475569; 
+  text-transform: uppercase;
+  letter-spacing: 0.5px; 
+}
+
+input, select {
+width: 100%;
+padding: 15px;
+border: 1px solid var(--border);
+border-radius: 14px;
+box-sizing: border-box;
+font-size: 16px;
+transition: all 0.3s ease;
+background: #fcfdfe;
+}
+
+input:focus, select:focus {
+border-color: var(--primary);
+outline: none;
+box-shadow: 0 0 0 4px var(--primary-light);
+background: #fff;
+}
+
+input.invalid {
+border-color: var(--error);
+background-color: #fffafb;
+}
+
+.password-toggle {
+position: absolute;
+right: 15px;
+top: 42px;
+cursor: pointer;
+color: #94a3b8;
+font-size: 20px;
+user-select: none;
+}
+
+.password-toggle:hover { color: var(--primary); }
+
+.options-grid {
+display: grid;
+grid-template-columns: repeat(2, 1fr);
+gap: 15px;
+margin-top: 10px;
+}
+
+.option-card {
+border: 2px solid #f1f5f9;
+padding: 18px;
+border-radius: var(--radius-md);
+cursor: pointer;
+text-align: center;
+background: #ffffff;
+font-size: 15px;
+font-weight: 600;
+display: flex;
+align-items: center;
+justify-content: center;
+gap: 12px;
+transition: all 0.3s ease;
+color: var(--text-muted);
+}
+
+.option-card:hover {
+border-color: #cbd5e1;
+background: #f8fafc;
+}
+
+.option-card.selected {
+border-color: var(--primary);
+background: var(--primary-light);
+color: var(--primary);
+box-shadow: 0 4px 12px rgba(0, 102, 255, 0.08);
+}
+
+.option-card input { display: none; }
+
+.professional-notice {
+background: #fff9e6;
+border: 1px solid #ffecb3;
+color: #92400e;
+padding: 16px;
+border-radius: var(--radius-md);
+font-size: 13px;
+margin-top: 25px;
+display: flex;
+gap: 12px;
+line-height: 1.5;
+}
+
+.promo-badge {
+background: #dcfce7;
+color: #166534;
+padding: 15px;
+border-radius: var(--radius-md);
+margin-bottom: 35px;
+text-align: center;
+font-weight: 700;
+font-size: 15px;
+border: 1px solid #bbf7d0;
+display: none;
+animation: bounce 1s ease;
+}
+
+@keyframes bounce {
+0%, 100% { transform: translateY(0); }
+50% { transform: translateY(-5px); }
+}
+
+.btn-box {
+margin-top: 45px;
+display: flex;
+justify-content: space-between;
+gap: 20px;
+}
+
+button {
+padding: 18px 30px;
+border: none;
+border-radius: 16px;
+cursor: pointer;
+font-weight: 800;
+font-size: 16px;
+transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+flex: 1;
+}
+
+.btn-next {
+background: var(--primary);
+color: white;
+box-shadow: 0 10px 15px -3px rgba(0, 102, 255, 0.3);
+}
+
+.btn-next:hover {
+background: var(--primary-hover);
+transform: translateY(-2px);
+box-shadow: 0 15px 25px -5px rgba(0, 102, 255, 0.4);
+}
+
+.btn-prev {
+background: #f1f5f9;
+color: #475569;
+max-width: 140px;
+}
+
+.btn-prev:hover { background: #e2e8f0; }
+
+.btn-pay {
+background: var(--success);
+color: white;
+box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3);
+}
+
+.btn-pay:hover {
+transform: translateY(-2px);
+box-shadow: 0 15px 25px -5px rgba(16, 185, 129, 0.4);
+}
+
+#lunch-break-box {
+display: none;
+margin-top: 20px;
+padding: 25px;
+background: #f8fafc;
+border-radius: var(--radius-md);
+border: 1px dashed #cbd5e1;
+}
+
+@media (max-width: 550px) {
+.options-grid { grid-template-columns: 1fr; }
+.card { padding: 30px 20px; }
+}
+</style>
+</head>
+<body>
+
+<div class="card">
+<div id="promoBanner" class="promo-badge"></div>
+
+<div class="progress-container">
+<div class="progress-line"></div>
+<div class="progress-fill" id="progressFill"></div>
+<div class="step-indicator active" id="dot1">1</div>
+<div class="step-indicator" id="dot2">2</div>
+<div class="step-indicator" id="dot3">3</div>
+<div class="step-indicator" id="dot4">4</div>
+</div>
+
+<form id="regForm">
+<!-- PASO 1: IDENTIDAD CLÍNICA -->
+<div class="step active" id="step1">
+<h2>Datos Generales</h2>
+<p class="subtitle">Comencemos por la identidad de tu centro profesional.</p>
+
+<div class="form-group">
+<label>Nombre Comercial de la Clínica *</label>
+<input type="text" name="nombre_clinica" required placeholder="Ej: Clínica Murillo Fisioterapia">
+</div>
+
+<div class="form-group">
+<label>Email de Usuario Administrador *</label>
+<input type="email" name="email" required placeholder="admin@tudominio.com">
+</div>
+
+<div class="form-group">
+<label>Contraseña Maestra *</label>
+<input type="password" id="passInput" name="password" required minlength="6" placeholder="Mínimo 6 caracteres">
+<span class="password-toggle" onclick="togglePass()">👁️</span>
+</div>
+
+<input type="hidden" id="referralCode" name="codigo_invitacion">
+
+<div class="btn-box">
+<button type="button" class="btn-next" onclick="checkAndGo(1)">Continuar Configuración ➜</button>
+</div>
+</div>
+
+<!-- PASO 2: INFRAESTRUCTURA Y HORARIOS -->
+<div class="step" id="step2">
+<h2>Ubicación y Horarios</h2>
+<p class="subtitle">Datos geográficos y disponibilidad de la sede principal.</p>
+
+<div style="display: grid; grid-template-columns: 3fr 1fr; gap: 15px;">
+<div class="form-group"><label>Calle / Avenida *</label><input type="text" name="calle" required></div>
+<div class="form-group"><label>Nº *</label><input type="text" name="numero" required></div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+<div class="form-group"><label>C. Postal *</label><input type="text" name="cp" required></div>
+<div class="form-group"><label>Ciudad *</label><input type="text" name="ciudad" required></div>
+<div class="form-group"><label>Provincia *</label><input type="text" name="provincia" required></div>
+</div>
+
+<div class="professional-notice">
+<span>ℹ️</span>
+<p style="margin:0"><strong>Nota:</strong> La configuración multi-sede para centros adicionales se gestiona desde el panel interno una vez activada la cuenta.</p>
+</div>
+
+<hr style="margin: 35px 0; border: 0; border-top: 1px solid #f1f5f9;">
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+<div class="form-group"><label>Apertura Mañana</label><input type="time" name="hora_apertura" value="09:00"></div>
+<div class="form-group"><label>Cierre Tarde</label><input type="time" name="hora_cierre" value="20:00"></div>
+</div>
+
+<label>¿La clínica cierra al mediodía para descanso?</label>
+<div class="options-grid">
+<div class="option-card selected" onclick="handleLunch(true, this)">
+✅ Sí, cierro <input type="radio" name="descanso_mediodia" value="si" checked>
+</div>
+<div class="option-card" onclick="handleLunch(false, this)">
+❌ No, seguido <input type="radio" name="descanso_mediodia" value="no">
+</div>
+</div>
+
+<div id="lunch-break-box" style="display: block;">
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+<div class="form-group"><label>Cierre Comida</label><input type="time" name="descanso_inicio" value="14:00"></div>
+<div class="form-group"><label>Reapertura</label><input type="time" name="descanso_fin" value="16:00"></div>
+</div>
+</div>
+
+<div class="btn-box">
+<button type="button" class="btn-prev" onclick="jumpTo(1)">Atrás</button>
+<button type="button" class="btn-next" onclick="checkAndGo(2)">Siguiente ➜</button>
+</div>
+</div>
+
+<!-- PASO 3: REGLAS DE NEGOCIO Y IA -->
+<div class="step" id="step3">
+<h2>Reglas del Servicio</h2>
+<p class="subtitle">Personaliza la lógica con la que Ana atenderá a tus pacientes.</p>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+<div class="form-group">
+<label>Duración Sesión</label>
+<select name="duracion">
+<option value="30">30 minutos</option>
+<option value="45" selected>45 minutos</option>
+<option value="60">60 minutos</option>
+</select>
+</div>
+<div class="form-group"><label>Precio Estándar (€) *</label><input type="number" name="precio" value="50" required></div>
+</div>
+
+<label>Cobros aceptados en Clínica</label>
+<div class="options-grid">
+<div class="option-card selected" onclick="multiSelect(this)">
+💵 Efectivo <input type="checkbox" name="pay_cash" checked>
+</div>
+<div class="option-card" onclick="multiSelect(this)">
+💳 Tarjeta <input type="checkbox" name="pay_card">
+</div>
+<div class="option-card" onclick="multiSelect(this)">
+📱 Bizum <input type="checkbox" name="pay_bizum">
+</div>
+<div class="option-card" onclick="multiSelect(this)">
+🎟️ Bonos Paciente <input type="checkbox" name="acepta_bonos">
+</div>
+</div>
+
+<label>🛑 Banderas Rojas (Filtros IA)</label>
+<p style="font-size: 11px; color: #94a3b8; margin-top: -5px;">Indica qué casos Ana no debe agendar automáticamente:</p>
+<div class="options-grid">
+<div class="option-card" onclick="multiSelect(this)">
+🚗 Tráfico <input type="checkbox" name="flag" value="accidente trafico">
+</div>
+<div class="option-card" onclick="multiSelect(this)">
+🏥 Mutuas <input type="checkbox" name="flag" value="seguro medico">
+</div>
+<div class="option-card" onclick="multiSelect(this)">
+🤰 Embarazo <input type="checkbox" name="flag" value="embarazo">
+</div>
+<div class="option-card" onclick="multiSelect(this)">
+👶 Menores <input type="checkbox" name="flag" value="menores">
+</div>
+</div>
+
+<div class="btn-box">
+<button type="button" class="btn-prev" onclick="jumpTo(2)">Atrás</button>
+<button type="button" class="btn-next" onclick="checkAndGo(3)">Siguiente ➜</button>
+</div>
+</div>
+
+<!-- PASO 4: ACTIVACIÓN SaaS -->
+<div class="step" id="step4">
+<h2>Activación de Licencia</h2>
+<p class="subtitle">Finaliza el proceso para poner a Ana a trabajar inmediatamente.</p>
+
+<div style="background: #eef2ff; padding: 35px; border-radius: 24px; border: 1px solid #e0e7ff; text-align: center; margin-bottom: 30px;">
+<h3 style="margin:0; color:var(--primary); font-size:18px;">Plan Fisiotool Global</h3>
+<div style="margin: 20px 0;">
+<span style="font-size: 44px; font-weight: 900;">49€</span>
+<span style="color: #64748b; font-size: 16px;">/mes</span>
+</div>
+<div style="text-align: left; font-size: 14px; color: #475569; display: inline-block;">
+<p style="margin:8px 0;">✅ Recepcionista IA 24/7 (Gemini 1.5 Pro)</p>
+<p style="margin:8px 0;">✅ Agenda Visual Blindada e Inteligente</p>
+<p style="margin:8px 0;">✅ CRM Profesional y Notas Médicas por Voz</p>
+<p style="margin:8px 0;">✅ Sistema Centinela Anti-NoShow (12h)</p>
+</div>
+</div>
+
+<div style="margin-top:20px; padding: 20px; border: 1px solid #f1f5f9; border-radius: 18px; display: flex; gap: 15px; align-items: flex-start; background: #fff;">
+<input type="checkbox" id="legalGdpr" required style="width: 24px; height: 24px; cursor: pointer; margin-top: 3px;">
+<span style="font-size: 13px; color: #475569; line-height: 1.6;">
+He leído y acepto la <a href="#" style="color: var(--primary); font-weight: 700; text-decoration: none;">Política de Privacidad</a> y autorizo el procesamiento de mis datos de agenda bajo el contrato de encargado de tratamiento.
+</span>
+</div>
+
+<div class="btn-box">
+<button type="button" class="btn-prev" onclick="jumpTo(3)">Atrás</button>
+<button type="submit" class="btn-pay" id="finalBtn">SUSCRIBIRSE Y ACTIVAR 🚀</button>
+</div>
+</div>
+</form>
+</div>
+
+<script>
+function togglePass() {
+const input = document.getElementById('passInput');
+input.type = input.type === 'password' ? 'text' : 'password';
+}
+
+const query = new URLSearchParams(window.location.search);
+const refId = query.get('ref');
+const promoId = query.get('promo');
+const banner = document.getElementById('promoBanner');
+
+if (refId) {
+document.getElementById('referralCode').value = refId;
+banner.innerHTML = `🎁 ¡RECOMENDACIÓN DETECTADA! Se aplicará un <strong>50% DE DESCUENTO</strong> en tu cuota.`;
+banner.style.display = 'block';
+} else if (promoId) {
+banner.innerHTML = `🎉 ¡OFERTA DE BIENVENIDA! Tu <strong>PRIMER MES ES GRATIS</strong>. Disfruta de FisioTool.`;
+banner.style.display = 'block';
+}
+
+function handleLunch(isLunch, card) {
+document.getElementById('lunch-break-box').style.display = isLunch ? 'block' : 'none';
+document.querySelectorAll('input[name="descanso_mediodia"]').forEach(i => i.parentElement.classList.remove('selected'));
+card.classList.add('selected');
+card.querySelector('input').checked = true;
+}
+
+function multiSelect(card) {
+const input = card.querySelector('input');
+input.checked = !input.checked;
+card.classList.toggle('selected', input.checked);
+}
+
+function checkAndGo(stepId) {
+const current = document.getElementById('step' + stepId);
+const requiredInputs = current.querySelectorAll('input[required]');
+let valid = true;
+
+requiredInputs.forEach(i => {
+if (!i.value.trim() || (i.type === 'email' && !i.value.includes('@'))) {
+valid = false; 
+i.classList.add('invalid');
+i.addEventListener('input', () => i.classList.remove('invalid'), {once: true});
+}
+});
+
+if (valid) jumpTo(stepId + 1);
+else alert("⚠️ Por favor, completa correctamente los campos obligatorios.");
+}
+
+function jumpTo(n) {
+document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+document.getElementById('step' + n).classList.add('active');
+
+document.querySelectorAll('.step-indicator').forEach((dot, i) => {
+if (i + 1 === n) dot.className = 'step-indicator active';
+else if (i + 1 < n) dot.className = 'step-indicator completed';
+else dot.className = 'step-indicator';
+});
+
+const width = ((n - 1) / 3) * 100;
+document.getElementById('progressFill').style.width = width + "%";
+window.scrollTo(0, 0);
+}
+
+document.getElementById('regForm').addEventListener('submit', async (e) => {
+e.preventDefault();
+
+if (!document.getElementById('legalGdpr').checked) return alert("Debes aceptar los términos legales.");
+
+const btn = document.getElementById('finalBtn');
+btn.disabled = true;
+btn.innerHTML = "Conectando con pasarela segura...";
+
+const formData = new FormData(e.target);
+const raw = Object.fromEntries(formData.entries());
+
+const payload = {
+...raw,
+metodos_pago: [],
+banderas_rojas: Array.from(document.querySelectorAll('input[name="flag"]:checked')).map(c => c.value).join(','),
+acepta_bonos: e.target.acepta_bonos.checked
+};
+
+if (e.target.pay_cash.checked) payload.metodos_pago.push('Efectivo');
+if (e.target.pay_card.checked) payload.metodos_pago.push('Tarjeta');
+if (e.target.pay_bizum.checked) payload.metodos_pago.push('Bizum');
+
+try {
+const res = await fetch('/api/register', {
+method: 'POST',
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify(payload)
+});
+
+const result = await res.json();
+
+if (result.success) {
+// Si hay URL de pago (modo producción), redirige a Stripe
+if (result.payment_url) {
+window.location.href = result.payment_url;
+} else {
+// Modo desarrollo o sin pago
+window.location.href = result.dashboard_url;
+}
+} else {
+alert("Error crítico en el alta: " + result.error);
+btn.disabled = false; 
+btn.innerHTML = "REINTENTAR ACTIVACIÓN 🔄";
+}
+} catch (error) {
+alert("Error de conexión con la red de Google Cloud.");
+btn.disabled = false;
+btn.innerHTML = "REINTENTAR ACTIVACIÓN 🔄";
+}
+});
+</script>
+</body>
+</html>

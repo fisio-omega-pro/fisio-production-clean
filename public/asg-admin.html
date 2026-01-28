@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Consola ASG - Ana Prospectora</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root { --gold: #d4af37; --dark: #0f172a; --primary: #0066ff; }
+        body { font-family: 'Inter', sans-serif; background: #f8fafc; margin: 0; color: var(--dark); }
+        .nav-asg { background: var(--dark); color: white; padding: 20px 40px; display: flex; justify-content: space-between; align-items: center; }
+        .container { padding: 40px; max-width: 1200px; margin: 0 auto; }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 40px; }
+        .stat-card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 15px rgba(0,0,0,0.05); border-top: 4px solid var(--primary); }
+        .drop-zone { border: 3px dashed #cbd5e1; background: white; padding: 60px; border-radius: 30px; text-align: center; cursor: pointer; transition: 0.3s; }
+        .drop-zone:hover { border-color: var(--primary); background: #f1f5f9; }
+        .btn-launch { background: var(--gold); color: var(--dark); padding: 20px 40px; border-radius: 50px; font-weight: 900; border: none; cursor: pointer; font-size: 18px; width: 100%; margin-top: 30px; box-shadow: 0 10px 20px rgba(212, 175, 55, 0.3); }
+    </style>
+</head>
+<body>
+
+<div class="nav-asg">
+    <div style="font-weight: 900; font-size: 24px;">FISIOTOOL <span style="color: var(--gold);">ASG</span></div>
+    <div>Admin: Prospección Saliente</div>
+</div>
+
+<div class="container">
+    <div class="stats-grid">
+        <div class="stat-card"><h3>❄️ Fríos</h3><h2 id="totalFrios">...</h2></div>
+        <div class="stat-card" style="border-color: #25D366;"><h3>📱 WA Pendientes</h3><h2 id="totalWA">...</h2></div>
+        <div class="stat-card" style="border-color: #ef4444;"><h3>📧 Email Pendientes</h3><h2 id="totalEmail">...</h2></div>
+        <div class="stat-card" style="border-color: var(--gold);"><h3>🔥 Interesados</h3><h2>0</h2></div>
+    </div>
+
+    <div class="drop-zone" onclick="document.getElementById('csvFile').click()">
+        <h2 style="margin:0">🚀 Cargar Base de Datos de Prospectos</h2>
+        <p>Arrastra tu CSV o haz clic aquí para seleccionar el archivo de "munición"</p>
+        <input type="file" id="csvFile" style="display:none" accept=".csv" onchange="procesarCSV(this)">
+    </div>
+
+    <button class="btn-launch" onclick="lanzarAtaque()">INICIAR SECUENCIA DE VENTA (ANA 2.5 FLASH) ➜</button>
+</div>
+
+<script>
+async function procesarCSV(input) {
+    const file = input.files[0];
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        const rows = e.target.result.split('\n').slice(1);
+        const leads = rows.map(r => {
+            const c = r.split(',');
+            return { nombre: c[0], clinica: c[1], telefono: c[2], email: c[3], ciudad: c[4] };
+        }).filter(l => l.telefono);
+
+        const res = await fetch('/api/asg/importar-leads', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ leads })
+        });
+        const data = await res.json();
+        if(data.success) alert("✅ Munición cargada: " + data.count + " prospectos listos.");
+    };
+    reader.readAsText(file);
+}
+
+function lanzarAtaque() {
+    if(!confirm("¿Seguro? Ana empezará a contactar a los primeros 10 prospectos ahora mismo.")) return;
+    alert("Función en conexión con Meta API... Calentando motores.");
+}
+</script>
+
+</body>
+</html>

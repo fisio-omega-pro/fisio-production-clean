@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title id="pageTitle">Cita Previa</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #25D366; --bg: #E5DDD5; --my-msg: #DCF8C6; --their-msg: #FFFFFF; }
+        body { font-family: 'Inter', sans-serif; margin: 0; background-color: #d1d7db; display: flex; justify-content: center; height: 100vh; overflow: hidden; }
+        
+        /* Contenedor Principal */
+        #app { width: 100%; max-width: 450px; background: var(--bg); display: flex; flex-direction: column; position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
+        
+        /* Cabecera */
+        #header { 
+            background: #ffffff; padding: 10px 15px; display: flex; align-items: center; 
+            border-bottom: 1px solid #ddd; z-index: 10; cursor: pointer;
+        }
+        #headerInfo { flex: 1; margin-left: 10px; }
+        #clinicLogo { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 1px solid #eee; }
+        h2 { margin: 0; font-size: 16px; color: #333; }
+        #statusText { font-size: 12px; color: #666; display: flex; align-items: center; gap: 5px; }
+        .dot { width: 8px; height: 8px; background: #ccc; border-radius: 50%; display: inline-block; }
+        .dot.open { background: #25D366; }
+        
+        /* Chat */
+        #chatBox { flex: 1; padding: 20px; overflow-y: auto; background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); background-repeat: repeat; display: flex; flex-direction: column; gap: 10px; }
+        
+        .message { max-width: 80%; padding: 10px 14px; border-radius: 7px; font-size: 14px; line-height: 1.4; position: relative; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
+        .ana { background: var(--their-msg); align-self: flex-start; border-top-left-radius: 0; }
+        .user { background: var(--my-msg); align-self: flex-end; border-top-right-radius: 0; }
+        .time { font-size: 10px; color: #999; float: right; margin-top: 5px; margin-left: 10px; }
+
+        /* Input */
+        #inputArea { background: #f0f0f0; padding: 10px; display: flex; align-items: center; gap: 8px; }
+        #patientTlf { width: 30%; padding: 12px; border: none; border-radius: 20px; font-size: 14px; outline: none; text-align: center; }
+        #messageInput { flex: 1; padding: 12px; border: none; border-radius: 20px; font-size: 14px; outline: none; }
+        #sendButton { background: var(--primary); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        
+        /* Modal Info */
+        #infoModal { display: none; position: absolute; top: 65px; left: 0; width: 100%; background: rgba(255,255,255,0.98); backdrop-filter: blur(5px); padding: 20px; box-sizing: border-box; border-bottom: 1px solid #ddd; z-index: 5; animation: slideDown 0.3s; }
+        @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Cabecera -->
+        <div id="header" onclick="toggleInfo()">
+            <img id="clinicLogo" src="" alt="Logo">
+            <div id="headerInfo">
+                <h2 id="clinicName">Cargando...</h2>
+                <div id="statusText"><span class="dot" id="statusDot"></span> <span id="statusLabel">Ver info</span></div>
+            </div>
+            <div style="font-size: 20px; color: #007bff;">ⓘ</div>
+        </div>
+
+        <!-- Info Oculta -->
+        <div id="infoModal">
+            <p><strong>📞 Teléfono:</strong> <a id="infoPhone" href="#">...</a></p>
+            <p><strong>📍 Dirección:</strong> <span id="infoAddress">...</span></p>
+            <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
+            <div id="scheduleContainer"></div>
+        </div>
+
+        <div id="chatBox"></div>
+
+        <div id="inputArea">
+            <input type="tel" id="patientTlf" placeholder="Tu Móvil">
+            <input type="text" id="messageInput" placeholder="Escribe aquí..." disabled>
+            <button id="sendButton" disabled>➤</button>
+        </div>
+    </div>
+
+    <script src="/landingbot.js"></script>
+    <script>
+        function toggleInfo() {
+            const m = document.getElementById('infoModal');
+            m.style.display = m.style.display === 'block' ? 'none' : 'block';
+        }
+    </script>
+</body>
+</html>
+    };
+
+    // --- 2. FUNCIONES VISUALES ---
+
+    function addMessage(text, sender) {
+        const div = document.createElement('div');
+        div.classList.add('message', sender);
+        
+        // Hora del mensaje
+        const now = new Date();
+        const timeStr = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+        
+        div.innerHTML = text.replace(/\n/g, '<br>') + `<div class="time">${timeStr}</div>`;
+        
+        ui.chatBox.appendChild(div);
+        ui.chatBox.scrollTop = ui.chatBox.scrollHeight;
+    }
+
+    // Convertir el horario técnico (JSON) en texto legible para humanos
+    function renderSchedule(scheduleMap) {
+        if (!scheduleMap) return '<p>No especificado</p>';
+        
+        const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+        let html = '';
+
+        // Ordenar días: 1 (Lun) a 6 (Sáb), luego 0 (Dom)
+        const sortedKeys = Object.keys(scheduleMap).sort((a,b) => {
+            const da = parseInt(a) === 0 ? 7 : parseInt(a);
+            const db = parseInt(b) === 0 ? 7 : parseInt(b);
+            return da - db;
+        });
+
+        sortedKeys.forEach(dayKey => {
+            const dayName = days[parseInt(dayKey)];
+            const slots = scheduleMap[dayKey];
+            
+            // Crear string tipo: "09:00-14:00 y 16:00-20:00"
+            const hoursStr = slots.map(s => `${s.start}-${s.end}`).join(' y ');
+            
+            html += `<div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px; color:#444;">
+                        <strong>${dayName}</strong> 
+                        <span>${hoursStr}</span>
+                     </div>`;
+        });
+        
+        ui.scheduleContainer.innerHTML = html || 'Cita Previa';
+    }
+
+    // Calcular si está abierto AHORA mismo para el puntito verde
+    function checkOpenStatus(schedule) {
+        if (!schedule) return;
+        const now = new Date();
+        const day = now.getDay().toString(); // 0-6
+        const slots = schedule[day];
+
+        if (!slots) {
+            ui.statusLabel.innerText = "Cerrado hoy";
+            ui.statusDot.classList.remove('open');
+            return;
+        }
+
+        const currentMinutes = now.getHours() * 60 + now.getMinutes();
+        let isOpen = false;
+
+        for (const slot of slots) {
+            const [sh, sm] = slot.start.split(':').map(Number);
+            const [eh, em] = slot.end.split(':').map(Number);
+            const start = sh * 60 + sm;
+            const end = eh * 60 + em;
+
+            if (currentMinutes >= start && currentMinutes < end) {
+                isOpen = true;
+                break;
+            }
+        }
+
+        if (isOpen) {
+            ui.statusLabel.innerText = "Abierto ahora";
+            ui.statusDot.classList.add('open'); // Pone el punto verde
+        } else {
+            ui.statusLabel.innerText = "Cerrado ahora";
+            ui.statusDot.classList.remove('open');
+        }
+    }
+
+    // --- 3. CARGA DE DATOS ---
+    async function loadConfig() {
+        try {
+            const res = await fetch(`/api/config/${clinicSlug}`);
+            if (!res.ok) throw new Error("Clínica no encontrada");
+            const data = await res.json();
+
+            // Rellenar Cabecera
+            ui.clinicName.innerText = data.nombre_clinica || "Clínica";
+            
+            // Logo (con fallback si falla)
+            ui.clinicLogo.src = data.logo_url || "https://cdn-icons-png.flaticon.com/512/3774/3774299.png";
+            ui.clinicLogo.onerror = () => { ui.clinicLogo.src = "https://cdn-icons-png.flaticon.com/512/3774/3774299.png"; };
+
+            // Panel de Info
+            ui.infoPhone.innerText = data.phone || "No disponible";
+            ui.infoPhone.href = `tel:${data.phone}`; // Hacer clicable
+            ui.infoAddress.innerText = data.address || "Consultar";
+
+            // Pintar Horario Bonito
+            renderSchedule(data.weekly_schedule);
+            
+            // Configurar Semáforo
+            checkOpenStatus(data.weekly_schedule);
+
+            // Activar Chat
+            ui.input.disabled = false;
+            ui.sendBtn.disabled = false;
+            
+            // Saludo Inicial
+            const botName = data.bot_nombre || "Ana";
+            addMessage(`👋 Hola, soy ${botName}. Estoy aquí para gestionar tu cita. ¿Qué necesitas?`, 'ana');
+
+        } catch (e) {
+            console.error(e);
+            ui.clinicName.innerText = "Error";
+            addMessage("❌ Error cargando la clínica. Verifica el enlace.", 'ana');
+        }
+    }
+
+    // --- 4. ENVÍO DE MENSAJES ---
+    async function sendMessage() {
+        const txt = ui.input.value.trim();
+        const tlf = ui.tlfInput.value.trim();
+
+        if (!txt) return;
+
+        // Validación visual del teléfono
+        if (tlf.length < 6) {
+            ui.tlfInput.style.border = "2px solid #ff4444";
+            // Pequeña animación de "sacudida" o focus
+            ui.tlfInput.focus();
+            alert("⚠️ Por favor, escribe tu móvil primero para que podamos contactarte.");
+            return;
+        } else {
+            ui.tlfInput.style.border = "none";
+        }
+        
+        addMessage(txt, 'user');
+        ui.input.value = '';
+        ui.input.disabled = true;
+        ui.sendBtn.style.opacity = "0.5";
+        
+        try {
+            const res = await fetch(`/api/chat/${clinicSlug}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: txt, patient_tlf: tlf })
+            });
+            
+            const data = await res.json();
+            addMessage(data.reply, 'ana');
+
+        } catch (e) {
+            addMessage("⚠️ Error de conexión. Inténtalo de nuevo.", 'ana');
+        } finally {
+            ui.input.disabled = false;
+            ui.sendBtn.style.opacity = "1";
+            ui.input.focus();
+        }
+    }
+
+    // Eventos
+    ui.sendBtn.addEventListener('click', sendMessage);
+    ui.input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendMessage();
+    });
+
+    // Arrancar
+    loadConfig();
+});

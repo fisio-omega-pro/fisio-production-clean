@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro Profesional - FisioTool</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #007bff;
+            --primary-hover: #0056b3;
+            --success: #28a745;
+            --error: #dc3545;
+            --text-main: #1a1a1a;
+            --text-muted: #666;
+            --bg-body: #f0f2f5;
+            --bg-card: #ffffff;
+            --border-color: #ddd;
+            --radius: 16px;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-body);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: var(--text-main);
+        }
+
+        .card {
+            background: var(--bg-card);
+            padding: 45px;
+            border-radius: var(--radius);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            width: 100%;
+            max-width: 650px;
+            box-sizing: border-box;
+        }
+
+        /* Barra de Progreso Superior */
+        .progress-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .progress-bg {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: #eee;
+            z-index: 1;
+            transform: translateY(-50%);
+        }
+
+        .progress-bar {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            height: 4px;
+            background: var(--primary);
+            z-index: 2;
+            transform: translateY(-50%);
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            width: 0%;
+        }
+
+        .step-indicator {
+            width: 38px;
+            height: 38px;
+            background: #fff;
+            border: 3px solid #eee;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 3;
+            font-weight: 700;
+            font-size: 15px;
+            color: #999;
+            transition: all 0.3s ease;
+        }
+
+        .step-indicator.active {
+            border-color: var(--primary);
+            color: var(--primary);
+            transform: scale(1.1);
+        }
+
+        .step-indicator.completed {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: #fff;
+        }
+
+        /* Títulos */
+        h2 { text-align: center; margin: 0 0 10px 0; font-size: 26px; font-weight: 700; }
+        p.subtitle { text-align: center; color: var(--text-muted); margin-bottom: 35px; font-size: 15px; line-height: 1.5; }
+
+        /* Estructura de Pasos */
+        .step { display: none; }
+        .step.active { display: block; animation: fadeIn 0.5s ease; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Formulario */
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; color: #333; }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-sizing: border-box;
+            font-size: 15px;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(0,123,255,0.1);
+        }
+
+        input.invalid {
+            border-color: var(--error);
+            background-color: #fffcfc;
+        }
+
+        /* Grid de Ubicación */
+        .geo-grid { display: grid; gap: 15px; }
+        .row-2 { grid-template-columns: 1fr 1fr; }
+        .row-street { grid-template-columns: 3fr 1fr; }
+
+        /* EL SISTEMA DE TARJETAS (BANDERAS ROJAS Y PAGOS) */
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .option-card {
+            border: 2px solid #eee;
+            padding: 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s ease;
+            background: #fafafa;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            user-select: none;
+        }
+
+        .option-card:hover {
+            border-color: #ccc;
+            background: #f5f5f5;
+        }
+
+        .option-card.selected {
+            border-color: var(--primary);
+            background: #e3f2fd;
+            color: var(--primary);
+            font-weight: 700;
+            box-shadow: 0 4px 10px rgba(0,123,255,0.1);
+        }
+
+        .option-card input { display: none; }
+
+        /* Banner de Referidos */
+        .referral-banner {
+            background: #e8f0fe;
+            color: #1967d2;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 14px;
+            border: 1px solid #bbdefb;
+            display: none;
+        }
+
+        /* Sección Legal */
+        .legal-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f9fafb;
+            border-radius: 12px;
+            border: 1px solid #eee;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .legal-section input[type="checkbox"] {
+            width: 22px;
+            height: 22px;
+            margin: 0;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .legal-text {
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .legal-text a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        /* Botones de Navegación */
+        .btn-box {
+            margin-top: 40px;
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+        }
+
+        button {
+            padding: 16px 32px;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 16px;
+            transition: all 0.3s;
+            flex: 1;
+        }
+
+        .btn-next {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(0,123,255,0.2);
+        }
+
+        .btn-next:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,123,255,0.3);
+        }
+
+        .btn-prev {
+            background: #eee;
+            color: #444;
+            max-width: 150px;
+        }
+
+        .btn-prev:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-finish {
+            background: var(--success);
+            color: white;
+            box-shadow: 0 4px 12px rgba(40,167,69,0.2);
+        }
+
+        .btn-finish:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        /* Responsive */
+        @media (max-width: 500px) {
+            .options-grid { grid-template-columns: 1fr; }
+            .card { padding: 25px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <!-- Banner Dinámico de Descuento -->
+    <div id="referralMsg" class="referral-banner">
+        🎁 ¡Código detectado! Se aplicará un 50% de descuento en tu primer mes.
+    </div>
+
+    <!-- Indicador de Pasos -->
+    <div class="progress-container">
+        <div class="progress-bg"></div>
+        <div class="progress-fill" id="progressFill"></div>
+        <div class="step-dot active" id="dot1">1</div>
+        <div class="step-dot" id="dot2">2</div>
+        <div class="step-dot" id="dot3">3</div>
+    </div>
+
+    <form id="regForm">
+        <!-- PASO 1: CUENTA E IDENTIDAD -->
+        <div class="step active" id="step1">
+            <h2>Crear Cuenta</h2>
+            <p class="subtitle">Introduce los datos maestros de tu clínica para empezar.</p>
+            
+            <div class="form-group">
+                <label>Nombre de la Clínica *</label>
+                <input type="text" name="nombre_clinica" required placeholder="Ej: Clínica de Fisioterapia Murillo">
+            </div>
+            
+            <div class="form-group">
+                <label>Email del Administrador *</label>
+                <input type="email" name="email" required placeholder="ejemplo@correo.com">
+            </div>
+            
+            <div class="form-group">
+                <label>Contraseña de Acceso *</label>
+                <input type="password" name="password" required minlength="6" placeholder="Mínimo 6 caracteres">
+            </div>
+
+            <div class="form-group">
+                <label>Código de Invitación</label>
+                <input type="text" id="codInvitacion" name="codigo_invitacion" placeholder="Si tienes un código de referido">
+            </div>
+            
+            <div class="btn-box">
+                <button type="button" class="btn-next" onclick="validateStep(1)">Siguiente Paso ➡</button>
+            </div>
+        </div>
+
+        <!-- PASO 2: UBICACIÓN Y CONTACTO -->
+        <div class="step" id="step2">
+            <h2>Ubicación Física</h2>
+            <p class="subtitle">¿Dónde está situada la clínica principal?</p>
+            
+            <div class="geo-grid row-street">
+                <div class="form-group">
+                    <label>Calle / Avenida *</label>
+                    <input type="text" name="calle" required placeholder="Calle de la Salud">
+                </div>
+                <div class="form-group">
+                    <label>Número *</label>
+                    <input type="text" name="numero" required placeholder="12">
+                </div>
+            </div>
+            
+            <div class="geo-grid row-2">
+                <div class="form-group">
+                    <label>Código Postal (CP) *</label>
+                    <input type="text" name="cp" required placeholder="28001">
+                </div>
+                <div class="form-group">
+                    <label>Ciudad *</label>
+                    <input type="text" name="ciudad" required placeholder="Madrid">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Provincia *</label>
+                <input type="text" name="provincia" required placeholder="Ej: Madrid">
+            </div>
+            
+            <div class="btn-box">
+                <button type="button" class="btn-prev" onclick="goToStep(1)">⬅ Atrás</button>
+                <button type="button" class="btn-next" onclick="validateStep(2)">Continuar ➡</button>
+            </div>
+        </div>
+
+        <!-- PASO 3: CONFIGURACIÓN DE NEGOCIO Y IA -->
+        <div class="step" id="step3">
+            <h2>Reglas de la IA</h2>
+            <p class="subtitle">Define tus precios y los filtros de seguridad para Ana.</p>
+            
+            <div class="geo-grid row-2">
+                <div class="form-group">
+                    <label>Precio por Sesión (€) *</label>
+                    <input type="number" name="precio" value="50" required>
+                </div>
+                <div class="form-group">
+                    <label>Fianza Anti No-Show (€)</label>
+                    <input type="number" name="fianza" value="15">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>¿Cierras al mediodía? (14:00 - 16:00)</label>
+                <div class="options-grid">
+                    <div class="option-card selected" onclick="selectRadio(this, 'descanso_mediodia')">
+                        ✅ Sí, descanso <input type="radio" name="descanso_mediodia" value="si" checked>
+                    </div>
+                    <div class="option-card" onclick="selectRadio(this, 'descanso_mediodia')">
+                        ❌ Jornada continua <input type="radio" name="descanso_mediodia" value="no">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>🚩 Banderas Rojas (Filtros de Seguridad)</label>
+                <p style="font-size: 12px; color: #888; margin-top: -5px;">Ana no dará cita si detecta estos casos:</p>
+                <div class="options-grid">
+                    <div class="option-card" onclick="toggleCheckbox(this)">
+                        🚓 Tráfico <input type="checkbox" name="flag" value="accidente trafico">
+                    </div>
+                    <div class="option-card" onclick="toggleCheckbox(this)">
+                        🏥 Mutuas <input type="checkbox" name="flag" value="seguro medico">
+                    </div>
+                    <div class="option-card" onclick="toggleCheckbox(this)">
+                        🤰 Embarazo <input type="checkbox" name="flag" value="embarazo">
+                    </div>
+                    <div class="option-card" onclick="toggleCheckbox(this)">
+                        👶 Menores <input type="checkbox" name="flag" value="menor de edad">
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECCIÓN LEGAL OBLIGATORIA -->
+            <div class="legal-section">
+                <input type="checkbox" id="legalCheck" required>
+                <div class="legal-text">
+                    He leído y acepto la <a href="#">Política de Privacidad</a> y el <strong>Contrato de Encargado de Tratamiento</strong> (RGPD). Consiento que el sistema procese mis datos de agenda.
+                </div>
+            </div>
+
+            <div class="btn-box">
+                <button type="button" class="btn-prev" onclick="goToStep(2)">⬅ Atrás</button>
+                <button type="submit" class="btn-finish" id="finishBtn">FINALIZAR REGISTRO 🚀</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    // 1. Detección automática de Referidos por URL (?ref=CÓDIGO)
+    const urlParams = new URLSearchParams(window.location.search);
+    const ref = urlParams.get('ref');
+    if (ref) {
+        document.getElementById('codInvitacion').value = ref;
+        document.getElementById('referralMsg').style.display = 'block';
+    }
+
+    // 2. Lógica visual de Tarjetas (Radios y Checkboxes)
+    function selectRadio(card, name) {
+        document.querySelectorAll(`input[name="${name}"]`).forEach(i => {
+            i.parentElement.classList.remove('selected');
+        });
+        card.classList.add('selected');
+        card.querySelector('input').checked = true;
+    }
+
+    function toggleCheckbox(card) {
+        const input = card.querySelector('input');
+        input.checked = !input.checked;
+        card.classList.toggle('selected', input.checked);
+    }
+
+    // 3. Validación y Navegación de Pasos
+    function validateStep(stepId) {
+        const currentStep = document.getElementById('step' + stepId);
+        const inputs = currentStep.querySelectorAll('input[required]');
+        let allValid = true;
+
+        inputs.forEach(input => {
+            if (!input.value.trim() || (input.type === 'email' && !input.value.includes('@'))) {
+                allValid = false;
+                input.classList.add('invalid');
+                input.addEventListener('input', () => input.classList.remove('invalid'), {once: true});
+            }
+        });
+
+        if (allValid) {
+            goToStep(stepId + 1);
+        } else {
+            alert("Por favor, completa correctamente los campos obligatorios.");
+        }
+    }
+
+    function goToStep(stepNumber) {
+        // Ocultar todos y mostrar el actual
+        document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+        document.getElementById('step' + stepNumber).classList.add('active');
+
+        // Actualizar UI de la barra de progreso
+        const dots = document.querySelectorAll('.step-dot');
+        dots.forEach((dot, index) => {
+            if (index + 1 === stepNumber) dot.className = 'step-indicator active';
+            else if (index + 1 < stepNumber) dot.className = 'step-indicator completed';
+            else dot.className = 'step-indicator';
+        });
+
+        const progressPercent = (stepNumber - 1) * 50;
+        document.getElementById('progressFill').style.width = progressPercent + "%";
+        window.scrollTo(0,0);
+    }
+
+    // 4. Envío de Datos al Servidor
+    document.getElementById('regForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const btn = document.getElementById('finishBtn');
+        const legal = document.getElementById('legalCheck');
+
+        if (!legal.checked) {
+            alert("Debes aceptar los términos legales para continuar.");
+            return;
+        }
+
+        const formData = new FormData(e.target);
+        const rawData = Object.fromEntries(formData.entries());
+
+        // Procesamiento de Arrays Manuales (Stripe y Banderas)
+        const dataFinal = {
+            ...rawData,
+            metodos_pago: ['Efectivo', 'Tarjeta'], // Por defecto en el registro
+            banderas_rojas: Array.from(document.querySelectorAll('input[name="flag"]:checked')).map(c => c.value).join(',')
+        };
+
+        btn.disabled = true;
+        btn.innerHTML = "Configurando IA...";
+
+        try {
+            const response = await fetch('/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dataFinal)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // REDIRECCIÓN FINAL AL PANEL
+                window.location.href = result.dashboard_url;
+            } else {
+                alert("Error en el registro: " + result.error);
+                btn.disabled = false;
+                btn.innerHTML = "FINALIZAR REGISTRO 🚀";
+            }
+        } catch (error) {
+            console.error("Error:", error);
+            alert("Fallo de conexión con el servidor. Inténtalo de nuevo.");
+            btn.disabled = false;
+            btn.innerHTML = "FINALIZAR REGISTRO 🚀";
+        }
+    });
+</script>
+
+</body>
+</html>

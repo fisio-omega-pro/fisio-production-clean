@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FisioTool | Módulo Prospección IA</title>
+    
+    <!-- CSS del Framework (Bootstrap 5 como en la plantilla) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Iconos (FontAwesome) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Estilos Específicos basados en la Web Madre (Doodle) -->
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            color: #212529;
+            background-color: #fff;
+            overflow-x: hidden;
+        }
+        
+        /* Header Estilo Doodle H5 */
+        .h5_header-area { background: #fff; border-bottom: 1px solid #f0f0f0; padding: 15px 0; }
+        .h5_header-logo img { max-height: 40px; }
+        .h5_header-menu ul { display: flex; list-style: none; margin: 0; gap: 30px; justify-content: center; }
+        .h5_header-menu a { text-decoration: none; color: #212529; font-weight: 500; font-size: 16px; transition: 0.3s; }
+        .h5_header-menu a:hover { color: #0d6efd; }
+
+        /* Banner / Breadcrumb Area */
+        .breadcrumb-area {
+            background-color: #f9f9f9;
+            padding: 80px 0 60px 0;
+            text-align: center;
+            margin-bottom: 60px;
+        }
+        .breadcrumb-title { font-size: 40px; font-weight: 700; margin-bottom: 10px; }
+        .breadcrumb-text { font-size: 18px; color: #6c757d; font-weight: 300; }
+
+        /* Cards Estilo Doodle (Reemplaza .crope-card) */
+        .doodle-card {
+            background: #fff;
+            border: 1px solid #e2e2e2;
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0px 10px 30px rgba(0,0,0,0.03);
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+        .doodle-card:hover { transform: translateY(-5px); box-shadow: 0px 15px 40px rgba(0,0,0,0.06); }
+        .card-head { font-size: 22px; font-weight: 600; margin-bottom: 25px; color: #000; }
+
+        /* Drag Zone Estilizada */
+        .drag-zone {
+            border: 2px dashed #e2e2e2;
+            background: #fcfcfc;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 15px;
+            transition: 0.3s;
+            color: #6c757d;
+        }
+        .drag-zone:hover { border-color: #0d6efd; background: #f0f7ff; color: #0d6efd; }
+        .drag-zone h4 { font-size: 18px; font-weight: 500; }
+
+        /* KPIs */
+        .kpi-box {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+            border: 1px solid #eee;
+        }
+        .kpi-val { font-size: 36px; font-weight: 700; color: #212529; display: block; line-height: 1; }
+        .kpi-lbl { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+
+        /* Botones Estilo Plantilla */
+        .theme-btn {
+            display: inline-block;
+            background-color: #212529;
+            color: #fff;
+            padding: 12px 30px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: 0.3s;
+            border: none;
+            width: 100%;
+            cursor: pointer;
+        }
+        .theme-btn:hover:not(:disabled) { background-color: #0d6efd; color: #fff; }
+        .theme-btn:disabled { background-color: #e2e2e2; color: #a0a0a0; cursor: not-allowed; }
+        
+        .theme-btn-secondary { background-color: #fff; color: #212529; border: 1px solid #e2e2e2; }
+        .theme-btn-secondary:hover:not(:disabled) { background-color: #212529; color: #fff; border-color: #212529; }
+
+        /* Consola */
+        #console-log {
+            background: #212529;
+            color: #00ff9d;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 13px;
+            height: 200px;
+            overflow-y: auto;
+            border: 1px solid #333;
+        }
+
+        /* Loader */
+        #loader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.9); z-index: 9999;
+            display: none; align-items: center; justify-content: center; flex-direction: column;
+        }
+        .spinner-grow { width: 3rem; height: 3rem; }
+    </style>
+</head>
+<body>
+
+    <!-- Loader (Mismo ID para mantener lógica) -->
+    <div id="loader">
+        <div class="spinner-grow text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <h4 class="mt-3 text-dark font-weight-bold">PROCESANDO IA...</h4>
+    </div>
+
+    <!-- WRAPPER GLOBAL -->
+    <div class="body-wrapper">
+        
+        <!-- HEADER (Estilo Doodle H5) -->
+        <header class="h5_header-area header-sticky">
+            <div class="container">
+                <div class="row align-items-center justify-content-between">
+                    <div class="col-xl-3 col-lg-3 col-6">
+                        <div class="h5_header-logo">
+                            <!-- Logo simulado con texto estilizado como en el sidebar original -->
+                            <a href="#" style="text-decoration:none; font-size:24px; font-weight:800; color:#000;">
+                                FISIO<span style="color:#0d6efd">TOOL</span>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-xl-6 col-lg-6 d-none d-lg-block text-center">
+                        <div class="h5_header-menu">
+                            <nav>
+                                <ul>
+                                    <li><a href="#">Dashboard</a></li>
+                                    <li><a href="#">Campañas</a></li>
+                                    <li><a href="#">Configuración</a></li>
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-lg-3 col-6 text-end">
+                        <a href="#" class="theme-btn" style="width:auto; padding: 10px 25px;">
+                            <i class="fa-solid fa-user-circle me-2"></i> Mi Cuenta
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <!-- BREADCRUMB AREA (Hero de la página) -->
+            <section class="breadcrumb-area">
+                <div class="container">
+                    <div class="row">
+                        <div class="col-12">
+                            <h1 class="breadcrumb-title">Módulo AOLS</h1>
+                            <p class="breadcrumb-text">Captación de Leads por WhatsApp (Móvil) y Email (SiteGround SMTP)</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MAIN DASHBOARD AREA -->
+            <section class="inner_service-area pb-100">
+                <div class="container">
+                    <div class="row">
+                        
+                        <!-- COL 1: SUBIDA -->
+                        <div class="col-lg-4 col-md-6 mb-4">
+                            <div class="doodle-card">
+                                <div class="card-head">
+                                    <i class="fa-solid fa-cloud-upload-alt me-2 text-primary"></i> 
+                                    1. Base de Datos
+                                </div>
+                                <p class="text-muted mb-4 small">Carga tu archivo CSV para analizar y segmentar los leads.</p>
+                                
+                                <div class="drag-zone" id="dropArea">
+                                    <i class="fa-light fa-file-csv fa-3x mb-3"></i>
+                                    <h4>Arrastra tu CSV aquí</h4>
+                                    <span class="small text-muted">o haz clic para explorar</span>
+                                    <input type="file" id="fileInput" accept=".csv" style="display:none">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- COL 2: WHATSAPP -->
+                        <div class="col-lg-4 col-md-6 mb-4">
+                            <div class="doodle-card">
+                                <div class="card-head">
+                                    <i class="fa-brands fa-whatsapp me-2 text-success"></i>
+                                    2. Estrategia Móvil
+                                </div>
+                                
+                                <div class="kpi-box">
+                                    <span class="kpi-val" id="val-wa">0</span>
+                                    <span class="kpi-lbl text-success">Candidatos WhatsApp</span>
+                                </div>
+
+                                <button id="btnWa" class="theme-btn mb-3" disabled onclick="lanzarWhatsapp()">
+                                    LANZAR CAMPAÑA WA <i class="fa-light fa-paper-plane ms-2"></i>
+                                </button>
+                                <p class="text-center small text-muted mb-0"><i class="fa-solid fa-circle-info me-1"></i> Requiere plantilla Meta aprobada.</p>
+                            </div>
+                        </div>
+
+                        <!-- COL 3: EMAIL -->
+                        <div class="col-lg-4 col-md-6 mb-4">
+                            <div class="doodle-card">
+                                <div class="card-head">
+                                    <i class="fa-solid fa-envelope me-2 text-info"></i>
+                                    3. Estrategia Desktop
+                                </div>
+                                
+                                <div class="kpi-box">
+                                    <span class="kpi-val" id="val-mail">0</span>
+                                    <span class="kpi-lbl text-info">Candidatos Email</span>
+                                </div>
+
+                                <button id="btnEmail" class="theme-btn theme-btn-secondary mb-3" disabled onclick="lanzarEmail()">
+                                    LANZAR CAMPAÑA EMAIL <i class="fa-light fa-envelope ms-2"></i>
+                                </button>
+                                <p class="text-center small text-muted mb-0"><i class="fa-solid fa-server me-1"></i> Vía SiteGround SMTP.</p>
+                            </div>
+                        </div>
+
+                    </div> <!-- End Row -->
+
+                    <!-- LOG ROW -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="doodle-card" style="padding: 30px;">
+                                <div class="card-head mb-3" style="font-size: 18px;">
+                                    <i class="fa-solid fa-terminal me-2"></i> Registro de Operaciones
+                                </div>
+                                <div id="console-log">> Esperando datos...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+        </main>
+
+        <!-- FOOTER (Estilo Doodle H5) -->
+        <footer class="h5_footer-area bg-light pt-5 pb-4 mt-auto border-top">
+            <div class="container text-center">
+                <p class="text-muted small">&copy; 2023 FisioTool IA Prospección. Todos los derechos reservados.</p>
+            </div>
+        </footer>
+
+    </div>
+
+    <!-- SCRIPT ORIGINAL (INTACTO + Lógica de UI) -->
+    <script>
+        const dropArea = document.getElementById('dropArea');
+        const fileInput = document.getElementById('fileInput');
+        
+        let dbLeads = []; // Memoria temporal del navegador
+
+        // DRAG & DROP (Estilos adaptados al nuevo diseño claro)
+        dropArea.addEventListener('click', () => fileInput.click());
+        
+        dropArea.addEventListener('dragover', (e) => { 
+            e.preventDefault(); 
+            dropArea.style.borderColor = '#0d6efd'; 
+            dropArea.style.backgroundColor = '#e7f1ff';
+        });
+        
+        dropArea.addEventListener('dragleave', (e) => { 
+            e.preventDefault(); 
+            dropArea.style.borderColor = '#e2e2e2'; 
+            dropArea.style.backgroundColor = '#fcfcfc';
+        });
+        
+        dropArea.addEventListener('drop', (e) => { 
+            e.preventDefault(); 
+            dropArea.style.borderColor = '#e2e2e2'; 
+            dropArea.style.backgroundColor = '#fcfcfc';
+            if(e.dataTransfer.files.length) uploadFile(e.dataTransfer.files[0]); 
+        });
+        
+        fileInput.addEventListener('change', (e) => { 
+            if(e.target.files.length) uploadFile(e.target.files[0]); 
+        });
+
+        // --- LÓGICA ORIGINAL DEL USUARIO ---
+
+        // FUNCIÓN 1: SUBIDA CSV
+        async function uploadFile(file) {
+            // Mostrar loader visualmente
+            document.getElementById('loader').style.display = 'flex';
+            
+            log("> Subiendo archivo...");
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                const res = await fetch('/aols/upload-leads', { method: 'POST', body: formData });
+                const data = await res.json();
+                
+                if(data.status === 'success') {
+                    document.getElementById('val-wa').innerText = data.analisis.whatsapp_candidatos;
+                    document.getElementById('val-mail').innerText = data.analisis.email_only;
+                    
+                    if(data.analisis.whatsapp_candidatos > 0) document.getElementById('btnWa').disabled = false;
+                    if(data.analisis.email_only > 0) document.getElementById('btnEmail').disabled = false;
+
+                    log(`> ANÁLISIS COMPLETO: ${data.total} leads procesados.`);
+                }
+            } catch(e) { 
+                log("> ERROR DE SUBIDA: " + e.message); 
+            } finally {
+                document.getElementById('loader').style.display = 'none';
+            }
+        }
+
+        // FUNCIÓN 2: WHATSAPP (Llama al endpoint antiguo)
+        async function lanzarWhatsapp() {
+            if(!confirm("¿Enviar plantillas WhatsApp? Coste Meta aplicable.")) return;
+            log("> Iniciando envío masivo WA...");
+            
+            // Loader simple para feedback
+            const btn = document.getElementById('btnWa');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+
+            try {
+                const res = await fetch('/aols/lanzar-campana', {
+                    method: 'POST', headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({cantidad: 50})
+                });
+                const data = await res.json();
+                log(`> WHATSAPP FIN: ${data.enviados_wa} enviados.`);
+            } catch (e) {
+                log("> ERROR WA: " + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+
+        // FUNCIÓN 3: EMAIL (NUEVA CONEXIÓN SITEGROUND)
+        async function lanzarEmail() {
+            // Pedimos el email para probar la demo
+            const testEmail = prompt("MODO PRUEBA: Escribe TU EMAIL REAL para ver cómo llega el correo de SiteGround:");
+            if(!testEmail || !testEmail.includes('@')) return;
+
+            log(`> Conectando con SiteGround SMTP para: ${testEmail}...`);
+            const btn = document.getElementById('btnEmail');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ENVIANDO...';
+
+            try {
+                const res = await fetch('/aols/enviar-email-frio', {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({
+                        emailDestino: testEmail, // Usamos tu input para asegurar que lo recibes
+                        nombreCliente: "Doctor Test", 
+                        tipoDolor: "no-show" // Ana elegirá el script de "Ausentismo"
+                    })
+                });
+                const data = await res.json();
+
+                if(data.status === 'sent') {
+                    log(`✅ ÉXITO SMTP: Email entregado. ID: ${data.id}`);
+                    log(`> Revisa tu bandeja de entrada (${testEmail}).`);
+                    alert("¡CORREO ENVIADO CON ÉXITO VÍA SITEGROUND!");
+                } else {
+                    log(`❌ ERROR SITEGROUND: ${data.msg || data.reason}`);
+                }
+            } catch(e) {
+                log(`❌ FALLO DE RED: ${e.message}`);
+            }
+            btn.disabled = false;
+            btn.innerHTML = 'LANZAR CAMPAÑA EMAIL <i class="fa-light fa-envelope ms-2"></i>';
+        }
+
+        function log(msg) { 
+            const box = document.getElementById('console-log');
+            // Añadimos hora al log
+            const time = new Date().toLocaleTimeString();
+            box.innerHTML += `[${time}] ${msg}<br>`; 
+            box.scrollTop = box.scrollHeight;
+        }
+    </script>
+</body>
+</html>

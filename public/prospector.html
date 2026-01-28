@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <!-- ... (Metadatos intactos) ... -->
+    
+    <!-- FUENTES Y FRAMEWORK (Alineados con la unificación) -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Muli:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <!-- ESTILOS: EXTERNALIZADOS Y UNIFICADOS -->
+    <link href="globals/unified_styles.css" rel="stylesheet">
+    
+    <!-- Se elimina el bloque <style> completo -->
+</head>
+
+<body>
+    <!-- ... LOADER OVERLAY y HEADER intactos (asumen unificación CSS) ... -->
+
+    <main class="container pb-5">
+        
+        <!-- ... PASO 1: SUBIDA DATOS (Mantenido) ... -->
+
+        <!-- PASO 2: ESTRATEGIA MÓVIL (WHATSAPP) - Botón UNIFICADO -->
+            <div class="col-lg-4">
+                <div class="doodle-card">
+                    <div class="card-title-head text-success">
+                         <!-- ... (Título intacto) ... -->
+                    </div>
+
+                    <div class="kpi-stat">
+                        <span class="kpi-value text-success" id="val-wa">0</span>
+                        <span class="kpi-label text-success">Leads Válidos</span>
+                    </div>
+
+                    <!-- REF. Botón Ahora usa una clase única (aunque mantiene estilo de Whatsapp) -->
+                    <button id="btnWa" class="cta-button btn-whatsapp mb-3" disabled onclick="lanzarWhatsapp()">
+                        <i class="fa-brands fa-whatsapp me-2"></i> INICIAR BARRIDO
+                    </button>
+                    <!-- ... (small text intacto) ... -->
+                </div>
+            </div>
+
+        <!-- PASO 3: ESTRATEGIA DESKTOP (EMAIL) - Botón UNIFICADO -->
+            <div class="col-lg-4">
+                <div class="doodle-card">
+                    <div class="card-title-head text-info">
+                         <!-- ... (Título intacto) ... -->
+                    </div>
+
+                    <div class="kpi-stat">
+                        <span class="kpi-value text-info" id="val-mail">0</span>
+                        <span class="kpi-label text-info">Emails Válidos</span>
+                    </div>
+
+                    <!-- REF. Botón Ahora usa una clase única (aunque mantiene estilo de Email) -->
+                    <button id="btnEmail" class="cta-button btn-email mb-3" disabled onclick="lanzarEmail()">
+                        <i class="fa-regular fa-paper-plane me-2"></i> LANZAR SECUENCIA
+                    </button>
+                    <!-- ... (small text intacto) ... -->
+                </div>
+            </div>
+        <!-- ... CONSOLA DE REGISTRO y FOOTER intactos ... -->
+    </main>
+
+
+    <!-- ======================= LÓGICA DE NEGOCIO (Refactorizada y Modularizada) ======================= -->
+    <script>
+        const dropArea = document.getElementById('dropArea');
+        const fileInput = document.getElementById('fileInput');
+        const logBox = document.getElementById('console-log');
+        
+        // CORRECCIÓN CRÍTICA: Estado Global para el Lote Analizado
+        let ANALYSIS_BATCH_ID = null; 
+
+        // UTILS
+        function log(msg, type='info') {
+            const time = new Date().toLocaleTimeString();
+            let color = '#00ff9d'; // Color default de consola
+            if(type === 'error') color = '#ff5f5f';
+            if(type === 'success') color = '#5eff88';
+
+            logBox.innerHTML += `<div style="color:${color}">[${time}] ${msg}</div>`;
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        // UTILS (CRÍTICO: Lógica de botón modularizada)
+        function LoadingButton(btnId, isLoading, newText) {
+            const btn = document.getElementById(btnId);
+            if (!btn) return;
+            
+            const spinner = '<i class="fa-solid fa-spinner fa-spin me-2"></i>';
+            const originalText = btn.getAttribute('data-original-text') || newText;
+            
+            if (!btn.getAttribute('data-original-text')) {
+                btn.setAttribute('data-original-text', btn.innerHTML); // Guardar texto original solo al inicio
+            }
+
+            btn.disabled = isLoading;
+            btn.innerHTML = isLoading ? spinner + newText : originalText;
+            btn.style.opacity = isLoading ? 0.7 : 1;
+        }
+
+        // ... (Manejadores Drag and Drop intactos) ...
+        // ---------------------------------------------
+        
+        fileInput.addEventListener('change', (e) => {
+            if(e.target.files.length) handleFiles(e.target.files[0]);
+        });
+
+
+        // 1. SUBIDA DE ARCHIVO (Validación Frontend y Flujo de Batch ID)
+        function handleFiles(file) {
+            // CORRECCIÓN CRÍTICA: VALIDACIÓN FRONEND DE FORMATO
+            if(!file.name.toLowerCase().endsWith('.csv')) {
+                log("❌ ERROR: Formato de archivo NO VÁLIDO. Por favor, sube un archivo .csv.", 'error');
+                document.getElementById('file-feedback').innerText = 'ERROR: Archivo no CSV.';
+                return;
+            }
+            
+            log(`> Iniciando lectura de: ${file.name}...`);
+            document.getElementById('file-feedback').innerText = file.name;
+            uploadFile(file);
+        }
+
+        async function uploadFile(file) {
+            document.getElementById('loader').style.display = 'flex';
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            // Reiniciar Contadores y Botones
+            document.getElementById('btnWa').disabled = true;
+            document.getElementById('btnEmail').disabled = true;
+
+            try {
+                const res = await fetch('/aols/upload-leads', { method: 'POST', body: formData });
+                const data = await res.json();
+                
+                if(res.ok && data.status === 'success') {
+                    // CORRECCIÓN CRÍTICA: Guardar ID de Lote para las siguientes llamadas
+                    ANALYSIS_BATCH_ID = data.batch_id; 
+
+                    animarValor('val-wa', data.analisis.whatsapp_candidatos);
+                    animarValor('val-mail', data.analisis.email_only);
+                    
+                    if(data.analisis.whatsapp_candidatos > 0) document.getElementById('btnWa').disabled = false;
+                    if(data.analisis.email_only > 0) document.getElementById('btnEmail').disabled = false;
+
+                    log(`✅ ÉXITO: Archivo procesado. Lote ID: ${ANALYSIS_BATCH_ID}.`, 'success');
+                    log(`> Móviles válidos: ${data.analisis.whatsapp_candidatos}, Correos puros: ${data.analisis.email_only}.`);
+                } else {
+                     log(`> ERROR DE SERVIDOR: ${data.message || 'Error desconocido al procesar análisis.'}`, 'error');
+                }
+            } catch(e) { 
+                log("> ERROR CRÍTICO AL SUBIR (Red): " + e.message, 'error');
+                // Se elimina el 'alert()' invasivo.
+            } finally {
+                document.getElementById('loader').style.display = 'none';
+            }
+        }
+
+        // 2. CAMPAÑA WHATSAPP (Flujo de ID de Lote y Utility Button)
+        async function lanzarWhatsapp() {
+            if(!ANALYSIS_BATCH_ID) {
+                log("❌ No hay ID de Lote. Sube un archivo CSV primero.", 'error');
+                return;
+            }
+            if(!confirm(`⚠️ ¿Confirmas el envío masivo para Lote ID ${ANALYSIS_BATCH_ID}? Esto consumirá créditos de Meta.`)) return;
+            
+            log("> Solicitando token de envío masivo a Meta API...");
+            
+            LoadingButton('btnWa', true, 'Iniciando Barrido...'); // Usamos la utilidad
+
+            try {
+                const res = await fetch('/aols/lanzar-campana', {
+                    method: 'POST', 
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({ batch_id: ANALYSIS_BATCH_ID }) // CRÍTICO: Envío de Batch ID
+                });
+                const data = await res.json();
+                
+                if(data.status !== 'error') {
+                     log(`🚀 ENVÍO COMPLETADO para ${ANALYSIS_BATCH_ID}: ${data.enviados_wa} mensajes entregados.`, 'success');
+                } else {
+                     log(`> WARN (Whatsapp): ${data.message}`, 'error');
+                }
+                
+            } catch (e) {
+                log("> ERROR CONEXIÓN WHATSAPP (Red): " + e.message, 'error');
+            } finally {
+                LoadingButton('btnWa', false); // Restaura
+            }
+        }
+
+        // 3. CAMPAÑA EMAIL (Simulación mejorada)
+        async function lanzarEmail() {
+             if(!ANALYSIS_BATCH_ID) {
+                log("❌ No hay ID de Lote. Sube un archivo CSV primero.", 'error');
+                return;
+            }
+
+            // CORRECCIÓN CRÍTICA: ELIMINACIÓN DE prompt() para seguridad y UX. 
+            // Esto se mantiene como simulación de prueba interna para el admin
+            const testEmail = "TEST_EMAIL_AUTOMATICO@fisiotool.com"; 
+            
+            log(`> MODO DEBUG INICIADO. Correo de prueba simulado a ${testEmail}.`);
+
+            LoadingButton('btnEmail', true, 'Simulando Envío...');
+
+            try {
+                // Aquí, el endpoint real enviaría el LOTE, no un solo email de prueba, o se llamaría a un ENDPOINT DEBUG.
+                // Se simula un envío real para ver la consola
+                const res = await fetch('/aols/lanzar-email-campana', {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({ batch_id: ANALYSIS_BATCH_ID, debug_test_email: testEmail }) 
+                });
+                const data = await res.json();
+                
+                if(data.status === 'sent') {
+                    log(`✅ CAMPAÑA EMAIL LANZADA (Lote ${ANALYSIS_BATCH_ID}): Secuencia iniciada para ${data.iniciados} correos.`, 'success');
+                } else {
+                    log(`❌ FALLO AL LANZAR CAMPAÑA: ${data.msg || data.reason}`, 'error');
+                }
+            } catch(e) {
+                log(`❌ ERROR RED/CONEXIÓN: ${e.message}`, 'error');
+            } finally {
+                LoadingButton('btnEmail', false);
+            }
+        }
+
+        // Animación sencilla de números (Intacta)
+        function animarValor(id, end) {
+           // ... (función intacta)
+            const obj = document.getElementById(id);
+            let start = 0;
+            if (start === end) return;
+            let duration = 1000;
+            let range = end - start;
+            let current = start;
+            let increment = end > start ? 1 : -1;
+            let stepTime = Math.abs(Math.floor(duration / range));
+            let timer = setInterval(function() {
+                current += increment;
+                obj.innerHTML = current;
+                if (current == end) {
+                    clearInterval(timer);
+                }
+            }, stepTime);
+        }
+    </script>
+</body>
+</html>

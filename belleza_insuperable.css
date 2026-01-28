@@ -1,0 +1,147 @@
+/* ======================================================= */
+/* DESIGN SYSTEM UNIFICADO: TECH-CLEAN (sobre Estructura V5.0)*/
+/* ======================================================= */
+
+/* --- 1. CONFIGURACIÓN DEL UNIVERSO (VARIABLES) --- */
+:root {
+    /* COLORES BASE: Limpieza Funcional (Actualizado a Tech-Clean) */
+    --clr-bg-light: #F2F2F2;    /* Fondo Principal (El nuevo gris claro del dashboard) */
+    --clr-bg-dark: #1E1E1E;     /* Fondo Oscuro para secciones de impacto (Mantenido) */
+    --clr-card-bg: #FFFFFF;     /* Fondo de tarjetas (Blanco puro) */
+    --clr-text-dark: #222222;   /* Texto principal (Gris oscuro) */
+    --clr-text-light: #FFFFFF;  /* Texto sobre fondos oscuros */
+
+    /* ACENTOS: Tecnológico y Funcional (Sustitución de Lujo por Funcionalidad) */
+    --clr-accent-primary: #237BFD; /* AZUL TECH-CLEAN (Sustituye al Rojo principal y Dorado) */
+    --clr-accent-primary-hover: #1760E8; /* Ajuste para hover del Azul */
+    --clr-blue-tech-secundary: #4ECDC4;   /* Azul suave (Mantenido como acento secundario) */
+    
+    /* Variables de lujo obsoletas (Se mantienen con nuevo color de seguridad por si hay referencias externas no vistas) */
+    --clr-accent-gold: var(--clr-bg-dark); /* De Dorado a Oscuro: Desactiva el color y usa Dark para mantener la clase '.outline-button' funcional sin romper. */
+    --clr-accent-red: #D62839;  /* Mantenido como ALERTA (DANGER) pura, no como CTA */
+    
+    /* FUENTES (Mantenido: Excelente sistema tipográfico) */
+    --font-heading: 'Poppins', sans-serif;
+    --font-body: 'Muli', sans-serif;
+    
+    /* EFECTOS (Mantenido: Sutil y limpio) */
+    --shadow-soft: 0 5px 20px rgba(0, 0, 0, 0.03); /* Sombra aún más sutil */
+    --border-radius-soft: 8px; 
+}
+
+/* --- 2. BASE (Alineación con nuevos acentos y base) --- */
+body {
+    font-family: var(--font-body);
+    background-color: var(--clr-bg-light); /* ACTUALIZADO a #F2F2F2 */
+    color: var(--clr-text-dark);
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+}
+
+h1, h2, h3, h4 {
+    font-family: var(--font-heading);
+    color: var(--clr-text-dark);
+    font-weight: 700;
+}
+
+/* Acentuación del enlace (De Rojo/Luxury a Azul/Tech-Clean) */
+a { text-decoration: none; color: var(--clr-accent-primary); transition: 0.3s; }
+a:hover { color: var(--clr-accent-primary-hover); }
+ul { list-style: none; padding: 0; }
+
+
+/* --- 3. COMPONENTES CLAVE (Estilo Tech-Clean) --- */
+
+/* Botón Principal (CTA) - (Sustituye a 'header-btn' visualmente, mantiene .cta-button) */
+.cta-button {
+    display: inline-block;
+    padding: 14px 35px;
+    background: var(--clr-accent-primary); /* DE ROJO a AZUL */
+    color: var(--clr-text-light);
+    border-radius: 50px;
+    font-weight: 700;
+    font-size: 1rem;
+    transition: background-color 0.3s ease, transform 0.2s;
+    letter-spacing: 1px;
+    border: none;
+    cursor: pointer;
+}
+.cta-button:hover {
+    background-color: var(--clr-accent-primary-hover); /* De ROJO HOVER a AZUL HOVER */
+    transform: translateY(-2px); /* Mantenemos la sutil animación de lujo por ser de alta calidad */
+}
+
+/* Botón Secundario / Outline (De Oro a Delineado Oscuro - Funcional) */
+.outline-button {
+    background: transparent;
+    color: var(--clr-text-dark);
+    border: 2px solid var(--clr-text-dark); /* DE DORADO a GRIS/NEGRO */
+    padding: 12px 30px;
+    border-radius: 50px;
+    font-weight: 600;
+    transition: 0.3s;
+    cursor: pointer;
+}
+.outline-button:hover {
+    background: var(--clr-bg-dark); /* De ORO a FONDO NEGRO */
+    color: var(--clr-text-light);
+    border-color: var(--clr-bg-dark);
+}
+
+
+/* TARJETAS (Sutil y Limpio - 'premium-card' ahora es funcional) */
+.premium-card {
+    background: var(--clr-card-bg);
+    border-radius: var(--border-radius-soft);
+    padding: 30px; 
+    box-shadow: var(--shadow-soft); /* Ajustado a la sombra más sutil */
+    border: 1px solid #EEEEEE; 
+}
+
+/* --- 4. ELEMENTOS DE DISEÑO AVANZADO (Mantenidos) --- */
+
+/* IMÁGENES CON ZOOM */
+.img-zoom {
+    object-fit: cover;
+    transition: transform 0.4s ease;
+    border-radius: var(--border-radius-soft);
+}
+.img-zoom:hover {
+    transform: scale(1.05);
+}
+
+/* EFECTO DE MOVIMIENTO/FADE ON SCROLL */
+.fade-in {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+}
+.fade-in.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* ESTILO PARA BACKGROUNDS OSCUROS (Para el Dashboard) */
+.bg-dark-panel {
+    background-color: var(--clr-bg-dark);
+    color: var(--clr-text-light);
+    padding: 40px;
+    border-radius: var(--border-radius-soft);
+}
+
+/* --- 5. ESTRUCTURA LAYOUT (Mantenida) --- */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+.section-padding {
+    padding: 100px 0;
+}
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; align-items: center; }
+.grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; }
+
+@media (max-width: 992px) {
+    .grid-2 { grid-template-columns: 1fr; }
+}

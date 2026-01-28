@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Política de Privacidad - FISIOTOOL</title>
+    <style>
+        body { font-family: 'Poppins', sans-serif; background-color: #f4f4f4; color: #333; line-height: 1.6; margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
+        h1 { color: #DD4242; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        h2 { color: #555; margin-top: 25px; }
+        p, ul { font-size: 14px; }
+        .footer { margin-top: 40px; border-top: 1px solid #eee; padding-top: 10px; font-size: 12px; text-align: center; color: #777; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Política de Privacidad y RGPD - FISIOTOOL</h1>
+        <p><strong>Fecha de última actualización:</strong> [FECHA ACTUAL]</p>
+
+        <h2>1. Responsable del Tratamiento</h2>
+        <p>El responsable del tratamiento de sus datos es el propietario de la plataforma tecnológica FISIOTOOL (en adelante, "FISIOTOOL").</p>
+
+        <h2>2. Datos Recopilados</h2>
+        <p>FISIOTOOL, en su función de Encargado del Tratamiento (tal como se define en el RGPD), procesa las siguientes categorías de datos estrictamente necesarios para la prestación del servicio a las clínicas (nuestros clientes):</p>
+        <ul>
+            <li>**Datos de Clientes de la Clínica:** Nombre, teléfono, email, historial de citas y, potencialmente, datos de salud proporcionados por el paciente a la IA para la reserva de citas ("Banderas Rojas").</li>
+            <li>**Datos de Contacto del Fisioterapeuta/Clínica:** Nombre, email, dirección, datos bancarios (para la suscripción).</li>
+        </ul>
+
+        <h2>3. Finalidad del Tratamiento</h2>
+        <p>La finalidad principal es la **automatización de la agenda, la comunicación y la facturación** para la clínica de fisioterapia. Los datos de salud (sintomatología o motivos de consulta) se utilizan exclusivamente para el triaje de la IA (identificación de "Banderas Rojas") y la creación de la historia clínica estructurada, cumpliendo la obligación legal de documentación sanitaria.</p>
+
+        <h2>4. Base Legal y RGPD</h2>
+        <p>La base legal para el tratamiento de datos de salud sensibles es el **consentimiento explícito** del paciente y el **interés legítimo** de la clínica para gestionar la relación contractual con el paciente, conforme al Artículo 9.2, letras a) y h) del RGPD (tratamiento por profesional sanitario).</p>
+        <p>FISIOTOOL actúa bajo un contrato de **Encargado de Tratamiento** con cada clínica y nunca utiliza los datos para fines propios ni los cede a terceros.</p>
+
+        <h2>5. Seguridad y Conservación</h2>
+        <p>Los datos se almacenan en la infraestructura Serverless de **Google Cloud (Firestore)** con segregación total por `clinic_id` (Multi-Tenant). Los datos se conservarán durante el tiempo necesario para cumplir la finalidad legal del servicio y serán eliminados o anonimizados una vez finalizada la relación contractual con la clínica (según el protocolo de "Desenganche Fácil" T-5).</p>
+
+        <div class="footer">
+            © [AÑO ACTUAL] FISIOTOOL. Todos los derechos reservados.
+        </div>
+    </div>
+</body>
+</html>

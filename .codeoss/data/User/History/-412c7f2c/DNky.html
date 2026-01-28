@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración FisioTool | El Ferrari Clínico</title>
+    <!-- FUENTES CROPE: Poppins y Muli -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Muli:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+
+    <style>
+        /* ======================================================= */
+        /* PALETA: SOFT TECH LUXURY (Estilo CROPE aplicado a Onboarding) */
+        /* ======================================================= */
+        :root {
+            --clr-bg-light: #F8F8F8;    /* Fondo Principal (Claro) */
+            --clr-card-bg: #FFFFFF;     /* Fondo de Tarjeta (Blanco puro) */
+            --clr-text-dark: #222222;   /* Texto principal (Gris oscuro) */
+            --clr-accent-gold: #C5A059; /* DORADO (Premium, CTA) */
+            --clr-accent-red: #E63946;  /* ROJO (Alertas, Red Flags) */
+            --clr-blue-tech: #4ECDC4;   /* Azul suave para acentos secundarios */
+            --clr-bg-panel: #0D0D0D;    /* Fondo para la barra de progreso */
+            --border-radius-soft: 8px;
+        }
+
+        body {
+            font-family: 'Muli', sans-serif;
+            background-color: var(--clr-bg-light); /* FONDO CLARO */
+            color: var(--clr-text-dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: var(--clr-card-bg);
+            border: 1px solid #EEEEEE;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05); /* Sombra Suave */
+            position: relative;
+        }
+
+        /* HEADER & AFILIACIÓN */
+        h1 { font-family: 'Poppins', sans-serif; font-size: 2rem; margin: 0 0 10px 0; text-align: center; color: var(--clr-text-dark); }
+        .discount-banner {
+            background: rgba(197, 160, 89, 0.1); /* Fondo Dorado sutil */
+            border: 1px dashed var(--clr-accent-gold);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* INPUTS MODERNOS */
+        .form-group { margin-bottom: 20px; }
+        label { display: block; color: #64748B; margin-bottom: 8px; font-size: 0.9rem; font-weight: 600;}
+        input, select, textarea {
+            width: 100%; padding: 15px;
+            background: #f0f0f0;
+            border: 1px solid #DDD;
+            border-radius: 6px; /* Bordes redondeados */
+            font-size: 1rem;
+            box-sizing: border-box; transition: 0.3s;
+        }
+        input:focus, select:focus {
+            border-color: var(--clr-accent-gold);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(197, 160, 89, 0.2);
+        }
+        #referral_code.valid { border-color: var(--clr-accent-red); box-shadow: 0 0 10px rgba(230, 57, 70, 0.3); }
+
+        /* WIZARD TABS */
+        .wizard-header { display: flex; gap: 10px; margin-bottom: 30px; justify-content: center; }
+        .w-dot { width: 12px; height: 12px; background: #DDD; border-radius: 50%; transition: 0.3s; }
+        .w-dot.active { background: var(--clr-accent-gold); box-shadow: 0 0 10px var(--clr-accent-gold); transform: scale(1.3); }
+        
+        .step { display: none; animation: slideUp 0.5s ease; }
+        .step.active { display: block; }
+        @keyframes slideUp { from{opacity:0; transform:translateY(5px);} to{opacity:1; transform:translateY(0);} }
+
+        /* CHECKBOX CHIPS (Estilo Limpio) */
+        .checkbox-group { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; }
+        .check-item input { display: none; }
+        .check-item span {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            padding: 12px; background: #F0F0F0;
+            border: 1px solid #DDD; border-radius: 6px;
+            font-size: 0.9rem; transition: 0.2s;
+        }
+        .check-item input:checked + span { background: var(--clr-accent-gold); border-color: var(--clr-accent-gold); color: var(--clr-text-dark); font-weight: 700; }
+        
+        .red-flag-zone .check-item input:checked + span { background: rgba(230, 57, 70, 0.15); border-color: var(--clr-accent-red); color: var(--clr-accent-red); }
+
+        /* ZONA CSV (DATA IMPORT) */
+        .dropzone {
+            border: 2px dashed #DDD; padding: 30px; text-align: center;
+            border-radius: 8px; cursor: pointer; transition: 0.3s;
+        }
+        .dropzone:hover { border-color: var(--clr-accent-gold); background: #FFF5E0; }
+
+        /* BOTONES DE PODER (Estilo CROPE) */
+        .btn-action {
+            width: 100%; padding: 16px; border-radius: 50px; border: none; font-weight: 700;
+            background: var(--clr-accent-red);
+            color: white; text-transform: uppercase; letter-spacing: 1px;
+            cursor: pointer; box-shadow: 0 4px 10px rgba(230, 57, 70, 0.3); margin-top: 20px;
+            transition: transform 0.2s;
+        }
+        .btn-action:hover { transform: translateY(-2px); }
+        
+        .btn-secondary { background: transparent; border: 1px solid #AAA; color: var(--clr-text-dark); margin-right: 10px; padding: 14px 30px; border-radius: 50px; cursor: pointer;}
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <!-- HEADER -->
+        <h1>CONFIGURACIÓN <span style="color:var(--clr-accent-gold)">INICIAL</span></h1>
+        
+        <!-- SECCIÓN 0: AFILIACIÓN (NUEVA LÓGICA COMERCIAL) -->
+        <div class="discount-banner">
+            <div>
+                <strong style="color: var(--clr-accent-gold); font-size: 1.1rem;">🎁 CÓDIGO DE INVITADO (50% OFF)</strong>
+                <p style="margin: 5px 0 0; font-size: 0.85rem; color: #666;">Introduce el código de tu colega para activar tu descuento.</p>
+            </div>
+            <div style="flex-basis: 30%;">
+                <input type="text" id="referral_code" placeholder="CÓDIGO" oninput="checkCode(this)">
+            </div>
+        </div>
+
+        <div class="wizard-header">
+            <div class="w-dot active" id="dot1"></div>
+            <div class="w-dot" id="dot2"></div>
+            <div class="w-dot" id="dot3"></div>
+            <div class="w-dot" id="dot4"></div>
+        </div>
+
+        <form id="ferrari-form">
+            
+            <!-- PASO 1: ESTRUCTURA & MULTI-SEDE -->
+            <div class="step active" id="step1">
+                <h3 style="color:var(--clr-accent-gold)">1. ESTRUCTURA Y UBICACIÓN</h3>
+                
+                <div class="form-group">
+                    <label>Nombre Comercial</label>
+                    <input type="text" id="clinic_name" placeholder="Ej: Clínica FisioAvanza" required>
+                </div>
+                
+                <div id="locations-container">
+                    <div class="form-group">
+                        <label>Dirección Principal (Sede 1)</label>
+                        <input type="text" name="location[]" placeholder="Calle, Número, Ciudad y C.P. (IMPORTANTE)">
+                    </div>
+                </div>
+                <span class="add-more" onclick="addLocation()">+ Añadir Otra Sede (Multi-Tenant)</span>
+
+                <div class="form-group" style="margin-top: 20px;">
+                    <label>Teléfono de la Clínica (WhatsApp)</label>
+                    <input type="tel" id="phone" placeholder="+34 6XX XXX XXX">
+                </div>
+                
+                <button type="button" class="btn-action" onclick="goStep(2)">SIGUIENTE >></button>
+            </div>
+
+            <!-- PASO 2: IMPORTACIÓN DE DATOS (CSV) -->
+            <div class="step" id="step2">
+                <h3 style="color:var(--clr-accent-gold)">2. INGENIERÍA DE DATOS (CSV)</h3>
+                <p style="color:#666; font-size:0.9rem; margin-bottom:20px;">Sube tu histórico de pacientes para que la IA aprenda de tus tratamientos pasados.</p>
+                
+                <div class="dropzone" id="dropArea">
+                    <i class="fas fa-cloud-upload-alt" style="font-size:3rem; color: #AAA; margin-bottom:15px;"></i>
+                    <h4>Arrastra el archivo .CSV / .XLSX aquí</h4>
+                    <small>Tu historial, ahora en la nube.</small>
+                    <input type="file" id="csv_file" hidden>
+                </div>
+
+                <div class="form-group" style="margin-top:30px;">
+                    <label>¿Empezar desde cero (limpio)?</label>
+                    <div class="checkbox-group">
+                        <label class="check-item"><input type="checkbox"><span><i class="fas fa-sync-alt"></i> Sí, empezar limpio.</span></label>
+                    </div>
+                </div>
+
+                <div style="display:flex;">
+                    <button type="button" class="btn-action btn-secondary" onclick="goStep(1)">< Atrás</button>
+                    <button type="button" class="btn-action" onclick="goStep(3)">SIGUIENTE >></button>
+                </div>
+            </div>
+
+            <!-- PASO 3: MOTOR FINANCIERO (PAGOS, FIANZA, BONOS) -->
+            <div class="step" id="step3">
+                <h3 style="color:var(--clr-accent-red)">3. POLÍTICA ECONÓMICA Y FIANZA</h3>
+                
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+                    <div class="form-group">
+                        <label>Precio Sesión Estándar (€)</label>
+                        <input type="number" id="price" value="50">
+                    </div>
+                    <div class="form-group">
+                        <label>Duración (Min)</label>
+                        <select id="duration">
+                            <option value="30">30 min</option>
+                            <option value="45" selected>45 min</option>
+                            <option value="60">60 min</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Métodos de Pago Aceptados (Para IA)</label>
+                    <div class="checkbox-group">
+                        <label class="check-item"><input type="checkbox" class="pay-method" value="Efectivo" checked><span>💵 Efectivo</span></label>
+                        <label class="check-item"><input type="checkbox" class="pay-method" value="Tarjeta" checked><span>💳 Tarjeta</span></label>
+                        <label class="check-item"><input type="checkbox" class="pay-method" value="Bizum"><span>📱 Bizum</span></label>
+                    </div>
+                </div>
+
+                <div style="border-left: 3px solid var(--clr-accent-red); background: rgba(230, 57, 70, 0.1); padding: 15px; border-radius: 6px;">
+                    <label style="color:var(--clr-accent-red); font-weight:bold;">FIANZA ANTI NO-SHOW (€)</label>
+                    <small style="color:#666;">La IA pedirá esto por adelantado (se conecta a Stripe).</small>
+                    <input type="number" id="deposit" placeholder="Ej: 20 (Deja 0 para desactivar)" style="margin-top:10px;">
+                </div>
+
+                <div style="display:flex; margin-top:20px;">
+                    <button type="button" class="btn-action btn-secondary" onclick="goStep(2)">< Atrás</button>
+                    <button type="button" class="btn-action" onclick="goStep(4)">SIGUIENTE >></button>
+                </div>
+            </div>
+
+            <!-- PASO 4: RED FLAGS & SEGURIDAD (TUS BANDERAS ROJAS) -->
+            <div class="step" id="step4">
+                <h3 style="color:var(--clr-accent-red)">4. PROTOCOLO DE RECHAZO (IA)</h3>
+                
+                <div class="form-group">
+                    <label>Gestión de Seguros</label>
+                    <select id="insurance_type" onchange="toggleInsurance()">
+                        <option value="privado">100% Privado (Rechazar seguros)</option>
+                        <option value="mixto">Mixto (Aceptar lista blanca)</option>
+                    </select>
+                </div>
+                <div id="insurance-list-box" class="form-group" style="display:none;">
+                    <label>Escribe las mutuas aceptadas</label>
+                    <input type="text" id="insurance_list" placeholder="Ej: Mapfre, Sanitas...">
+                </div>
+
+                <div class="form-group">
+                    <label style="color:var(--clr-accent-red); font-weight:bold;">⛔ RED FLAGS (DERIVACIÓN INMEDIATA)</label>
+                    <p style="font-size:0.8rem; margin-bottom:15px; color:#666;">Selecciona los casos que la IA NUNCA debe agendar automáticamente.</p>
+                    
+                    <div class="checkbox-group red-flag-zone">
+                        <!-- TUS CASOS DE LÓGICA -->
+                        <label class="check-item"><input type="checkbox" class="redflag" value="tráfico"><span>🚗 Accidentes</span></label>
+                        <label class="check-item"><input type="checkbox" class="redflag" value="neurología"><span>🧠 Neuro</span></label>
+                        <label class="check-item"><input type="checkbox" class="redflag" value="suelo pélvico"><span>🧘 S. Pélvico</span></label>
+                        <label class="check-item"><input type="checkbox" class="redflag" value="atm"><span>🦷 ATM/Boca</span></label>
+                        <label class="check-item"><input type="checkbox" class="redflag" value="pediatría"><span>👶 Bebés</span></label>
+                        <label class="check-item"><input type="checkbox" class="redflag" value="drenaje"><span>💧 Drenaje</span></label>
+                    </div>
+                </div>
+
+                <div style="display:flex; margin-top:30px;">
+                    <button type="button" class="btn-action btn-secondary" onclick="goStep(3)">< Atrás</button>
+                    <!-- BOTÓN FINAL -->
+                    <button type="button" class="btn-action" style="background: var(--clr-accent-gold); color:var(--clr-bg-dark);" onclick="saveAndLaunch()">
+                        ACTIVAR CEREBRO 🚀
+                    </button>
+                </div>
+            </div>
+
+        </form>
+    </div>
+
+    <!-- CEREBRO LÓGICO DEL ONBOARDING -->
+    <script>
+        // --- 1. LÓGICA DE COMERCIAL/AFILIADOS ---
+        function checkCode(input) {
+            const code = input.value.toUpperCase();
+            if(code.length > 3) {
+                input.classList.add('valid');
+                input.dataset.confirmed = "true";
+            } else {
+                input.classList.remove('valid');
+            }
+        }
+
+        // --- 2. LÓGICA MULTI-SEDE ---
+        function addLocation() {
+            const container = document.getElementById('locations-container');
+            const div = document.createElement('div');
+            div.className = 'form-group';
+            div.innerHTML = `<input type="text" name="location[]" placeholder="Dirección Adicional (Nueva Clínica)" style="border-left: 2px solid var(--clr-blue-tech)">`;
+            container.appendChild(div);
+        }
+
+        // --- 3. LÓGICA VISUAL (WIZARD) ---
+        function goStep(num) {
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.w-dot').forEach(d => d.classList.remove('active'));
+            document.getElementById('step'+num).classList.add('active');
+            document.getElementById('dot'+num).classList.add('active');
+        }
+
+        function toggleInsurance() {
+            const val = document.getElementById('insurance_type').value;
+            document.getElementById('insurance-list-box').style.display = (val === 'mixto') ? 'block' : 'none';
+        }
+
+        // --- 4. CEREBRO FINAL (GUARDADO) ---
+        async function saveAndLaunch() {
+            const btn = document.querySelector('button[onclick="saveAndLaunch()"]');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> PROCESANDO...';
+            
+            // Recolectar datos arrays
+            const pays = Array.from(document.querySelectorAll('.pay-method:checked')).map(el => el.value);
+            const redFlags = Array.from(document.querySelectorAll('.redflag:checked')).map(el => el.value);
+            const locations = Array.from(document.querySelectorAll('input[name="location[]"]')).map(el => el.value);
+
+            const finalData = {
+                // Tracking Comercial
+                afiliado_codigo: document.getElementById('referral_code').value.toUpperCase() || "SIN_CODIGO",
+                descuento_aplicado: document.getElementById('referral_code').classList.contains('valid'),
+                
+                // Identidad
+                clinica: document.getElementById('clinic_name').value,
+                sedes: locations, 
+                telefono: document.getElementById('phone').value,
+                
+                // Config Financiera
+                precio: document.getElementById('price').value,
+                duracion: document.getElementById('duration').value,
+                pagos: pays,
+                fianza: document.getElementById('deposit').value,
+                
+                // Config Seguridad (Red Flags)
+                seguros_tipo: document.getElementById('insurance_type').value,
+                lista_seguros: document.getElementById('insurance_list').value,
+                banderas_rojas: redFlags,
+                
+                // Data Import (Flag simple)
+                tiene_csv: document.getElementById('csv_file').files.length > 0
+            };
+
+            console.log("Enviando Datos de Configuración:", finalData);
+            
+            // Simulación de envío (AQUI SE LLAMA A /onboarding/save)
+            setTimeout(() => {
+                alert("✅ CONFIGURACIÓN DE IA COMPLETA. Redirigiendo a Dashboard...");
+                window.location.href = 'dashboard.html';
+            }, 1500);
+        }
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Configuración Inicial | FisioTool</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Manrope:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #0F172A; --gold: #C5A059; --bg: #F8FAFC; --card: #FFFFFF; }
+        body { font-family: 'Manrope', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #334155; }
+        
+        .container { max-width: 600px; margin: 0 auto; background: var(--card); padding: 40px; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.05); }
+        
+        h1 { font-family: 'Playfair Display', serif; color: var(--primary); text-align: center; margin-bottom: 10px; }
+        p.subtitle { text-align: center; color: #64748B; margin-bottom: 40px; font-size: 14px; }
+        
+        .form-group { margin-bottom: 25px; }
+        label { display: block; font-weight: 600; margin-bottom: 8px; color: var(--primary); font-size: 14px; }
+        
+        input, select { width: 100%; padding: 15px; border: 1px solid #E2E8F0; border-radius: 8px; font-family: 'Manrope'; font-size: 16px; outline: none; box-sizing: border-box; transition:0.3s;}
+        input:focus, select:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(197, 160, 89, 0.1); }
+        
+        .btn-save { 
+            width: 100%; padding: 18px; background: var(--primary); color: white; border: none; border-radius: 8px; 
+            font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.3s; margin-top: 20px;
+        }
+        .btn-save:hover { background: #1E293B; transform: translateY(-2px); }
+
+        .note { font-size: 12px; color: #94A3B8; margin-top: 5px; display: flex; align-items: center; }
+        .note::before { content: 'ℹ'; display: inline-block; width: 14px; height: 14px; background: #E2E8F0; border-radius: 50%; text-align: center; line-height: 14px; font-size: 10px; margin-right: 6px; }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Configura tu Bot "Ana" 🤖</h1>
+        <p class="subtitle">Solo te molestaremos una vez. Configura las reglas de tu clínica.</p>
+        
+        <form id="onboarding-form">
+            <!-- NOMBRE CLÍNICA -->
+            <div class="form-group">
+                <label>Nombre Comercial de la Clínica</label>
+                <input type="text" id="clinic_name" placeholder="Ej: Clínica Fisioterapia Centro" required>
+            </div>
+
+            <!-- PRECIO -->
+            <div class="form-group">
+                <label>Precio Sesión Estándar (€)</label>
+                <input type="number" id="price" placeholder="50" required>
+                <div class="note">Ana usará este precio si preguntan tarifas.</div>
+            </div>
+
+            <!-- DURACIÓN -->
+            <div class="form-group">
+                <label>Duración de Sesión (min)</label>
+                <select id="duration">
+                    <option value="30">30 Minutos</option>
+                    <option value="45" selected>45 Minutos</option>
+                    <option value="60">60 Minutos</option>
+                </select>
+            </div>
+
+            <!-- PAGOS -->
+            <div class="form-group">
+                <label>Política de Cobros</label>
+                <select id="payment">
+                    <option value="efectivo">Cobro en Efectivo en clínica</option>
+                    <option value="tarjeta">Pasarela Stripe (Requiere depósito)</option>
+                </select>
+            </div>
+
+            <!-- CHECK RGPD -->
+            <div style="margin-top: 30px; font-size: 13px; color: #64748B;">
+                <input type="checkbox" id="terms" style="width: auto; margin-right: 10px;" required>
+                <label style="display:inline; font-weight:400;" for="terms">Acepto los Términos y Condiciones y contrato a FisioTool como Encargado de Tratamiento de Datos (RGPD).</label>
+            </div>
+
+            <button type="submit" class="btn-save">GUARDAR Y ACTIVAR 🚀</button>
+            <p id="msg" style="text-align: center; margin-top: 15px; font-weight: bold; font-size: 14px;"></p>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('onboarding-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.querySelector('.btn-save');
+            const msg = document.getElementById('msg');
+            
+            const data = {
+                nombre_comercial: document.getElementById('clinic_name').value,
+                precio_sesion: document.getElementById('price').value,
+                duracion: document.getElementById('duration').value,
+                tipo_pago: document.getElementById('payment').value,
+                acepta_rgpd: document.getElementById('terms').checked
+            };
+
+            btn.disabled = true;
+            btn.innerText = "Configurando IA...";
+
+            try {
+                // LLAMADA AL NUEVO ENDPOINT
+                const res = await fetch('/onboarding/save', {
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                
+                if(res.ok) {
+                    msg.style.color = "green";
+                    msg.innerText = "¡Configuración Exitosa! Redirigiendo al panel...";
+                    setTimeout(() => window.location.href = '/panel', 2000);
+                } else {
+                    throw new Error("Error en servidor");
+                }
+            } catch (err) {
+                msg.style.color = "red";
+                msg.innerText = "Error al guardar. Inténtalo de nuevo.";
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

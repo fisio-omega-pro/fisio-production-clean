@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora ROI | FisioTool Financial</title>
+    
+    <!-- FUENTES OFICIALES CROPE -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100&family=Muli:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900&display=swap" rel="stylesheet">
+    
+    <!-- Bootstrap para rejilla básica -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+    <style>
+        /* ================================================= */
+        /* CROPE DESIGN SYSTEM (ROI EDITION)                 */
+        /* ================================================= */
+        :root { 
+            --bg-dark: #121318;
+            --bg-card: #191c26;
+            --accent: #DD4242; /* Rojo Crope */
+            --accent-glow: rgba(221, 66, 66, 0.4);
+            --text-main: #FFFFFF;
+            --text-muted: #A9AFC3;
+            --border-color: #393f4f;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            font-family: 'Poppins', sans-serif;
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            padding: 40px 15px;
+        }
+
+        /* CARD PRINCIPAL ESTILO TECH */
+        .roi-wrapper {
+            background-color: var(--bg-card);
+            border-bottom: 2px solid var(--border-color);
+            padding: 60px 50px;
+            max-width: 600px;
+            width: 100%;
+            position: relative;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            transition: all 0.4s ease;
+        }
+        .roi-wrapper:hover {
+            border-bottom-color: var(--accent);
+            transform: translateY(-5px);
+        }
+
+        /* ENCABEZADOS */
+        h1 {
+            font-weight: 700; font-size: 36px; text-transform: capitalize; margin-bottom: 10px; text-align: center;
+        }
+        h1 span {
+            color: var(--accent); position: relative;
+        }
+        p.subtitle {
+            font-family: 'Muli', sans-serif; font-size: 16px; color: var(--text-muted); text-align: center; margin-bottom: 50px; line-height: 1.6;
+        }
+
+        /* COMPONENTE DE VIDEO (Estilo Web Madre Index) */
+        .video-highlight {
+            width: 100%; height: 250px; background-color: #111; 
+            margin-bottom: 50px; position: relative; overflow: hidden;
+            display: flex; justify-content: center; align-items: center;
+            background-image: url('https://via.placeholder.com/600x300'); /* Imagen fondo simulada */
+            background-size: cover; background-position: center;
+        }
+        .video-highlight::before {
+            content:''; position:absolute; top:0; left:0; width:100%; height:100%;
+            background: rgba(18, 19, 24, 0.7);
+        }
+        
+        /* Polígonos Animados (De la web madre) */
+        .play-video-div { position: relative; z-index: 10; cursor: pointer; transition: 0.3s; }
+        .play-video-div:hover { transform: scale(1.1); }
+        .poly1 {
+            width: 80px; height: 80px; border: 1px solid rgba(255,255,255,0.2); border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            animation: pulse-ring 2s infinite;
+        }
+        .poly2 {
+            width: 60px; height: 60px; background: var(--accent); border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            position: absolute; top: 10px; left: 10px;
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+        .poly2 svg { width: 20px; fill: #fff; margin-left: 3px; }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(1); opacity: 1; border-color: var(--accent); }
+            100% { transform: scale(1.8); opacity: 0; }
+        }
+
+        /* SLIDERS PERSONALIZADOS */
+        .control-group { margin-bottom: 40px; }
+        .control-labels {
+            display: flex; justify-content: space-between; margin-bottom: 15px; font-family: 'Muli', sans-serif;
+        }
+        .control-labels label { font-weight: 700; font-size: 14px; text-transform: uppercase; color: #fff; letter-spacing: 1px;}
+        .value-badge {
+            color: var(--accent); font-weight: 700; font-size: 16px;
+        }
+
+        /* Input Range Estilo Crope */
+        input[type=range] {
+            -webkit-appearance: none; width: 100%; background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px; width: 20px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            margin-top: -8px; 
+            box-shadow: 0 0 10px var(--accent-glow);
+            transition: 0.2s;
+        }
+        input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 4px; cursor: pointer;
+            background: #2a2e3d; border-radius: 2px;
+        }
+
+        /* CAJA DE RESULTADOS */
+        .result-panel {
+            background: rgba(18, 19, 24, 0.5);
+            border: 1px solid var(--border-color);
+            padding: 40px;
+            text-align: center;
+            margin-top: 50px;
+            position: relative;
+        }
+        .result-panel::before {
+            content: ''; position: absolute; top: -1px; left: 50%; transform: translateX(-50%);
+            width: 100px; height: 3px; background: var(--accent);
+        }
+        .result-label { font-family: 'Muli'; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px; font-size: 12px; display: block; margin-bottom: 10px; }
+        #valorAhorro {
+            font-size: 60px; font-weight: 700; line-height: 1; color: #fff; display: block;
+            margin-bottom: 5px; letter-spacing: -2px;
+        }
+        .saving-period { color: var(--accent); font-size: 14px; font-weight: 600; text-transform: uppercase; }
+
+        /* CTA */
+        .btn-roi {
+            display: block; width: 100%; margin-top: 30px;
+            background: transparent; color: #fff; font-family: 'Muli'; font-weight: 700; text-transform: uppercase;
+            padding: 18px; border: 2px solid var(--accent); border-radius: 50px;
+            transition: 0.3s; text-decoration: none; text-align: center;
+        }
+        .btn-roi:hover {
+            background: var(--accent); color: #fff; box-shadow: 0 5px 30px rgba(221, 66, 66, 0.3); text-decoration: none;
+        }
+
+        /* Preloader */
+        #loading-text { font-size: 12px; color: var(--text-muted); margin-top: 10px; font-family:'Muli'; display: none;}
+
+    </style>
+</head>
+<body>
+
+    <div class="roi-wrapper">
+        
+        <!-- VIDEO INTRO / HEADER -->
+        <h1>Calculadora <span>ROI</span></h1>
+        <p class="subtitle">Descubre cuánto capital libera la automatización de FisioTool en tu clínica.</p>
+
+        <!-- Elemento decorativo visual estilo "Crope Index" -->
+        <div class="video-highlight">
+            <div class="play-video-div" onclick="playVideoPresentation()">
+                <div class="poly1"></div>
+                <div class="poly2">
+                    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                </div>
+            </div>
+        </div>
+        <p id="loading-text" class="text-center">Cargando presentación de resultados...</p>
+
+        <!-- CONTROLES -->
+        <form id="calculator">
+            
+            <div class="control-group">
+                <div class="control-labels">
+                    <label>Pacientes / Mes</label>
+                    <span class="value-badge" id="displayCitas">100</span>
+                </div>
+                <input type="range" id="citasMes" min="20" max="800" value="100" step="10">
+            </div>
+
+            <div class="control-group">
+                <div class="control-labels">
+                    <label>Ticket Medio (€)</label>
+                    <span class="value-badge" id="displayPrecio">50 €</span>
+                </div>
+                <input type="range" id="precioSesion" min="20" max="150" value="50" step="5">
+            </div>
+
+            <div class="control-group">
+                <div class="control-labels">
+                    <label>Tasa Ausentismo (No-Show)</label>
+                    <span class="value-badge" id="displayNoShow" style="color: #FF5555">8%</span>
+                </div>
+                <!-- Track diferenciado para alerta -->
+                <input type="range" id="porcentajeNoShow" min="0" max="30" value="8" step="1">
+                <small style="color: #666; font-size: 12px; margin-top: 5px; display: block; font-family: 'Muli'">
+                    *El 80% de estas ausencias se recuperan automáticamente.
+                </small>
+            </div>
+
+        </form>
+
+        <!-- RESULTADOS -->
+        <div class="result-panel">
+            <span class="result-label">Recuperación Estimada</span>
+            <span id="valorAhorro">0 €</span>
+            <span class="saving-period">Extra Anual</span>
+        </div>
+
+        <a href="onboarding.html" class="btn-roi">
+            Comenzar Prueba Gratuita
+        </a>
+
+    </div>
+
+    <!-- SCRIPT (Lógica Original Intacta) -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const inputCitas = document.getElementById('citasMes');
+            const displayCitas = document.getElementById('displayCitas');
+            
+            const inputPrecio = document.getElementById('precioSesion');
+            const displayPrecio = document.getElementById('displayPrecio');
+
+            const inputNoShow = document.getElementById('porcentajeNoShow');
+            const displayNoShow = document.getElementById('displayNoShow');
+            
+            const valorAhorro = document.getElementById('valorAhorro');
+
+            function calcularROI() {
+                // Actualización Visual
+                displayCitas.textContent = inputCitas.value;
+                displayPrecio.textContent = inputPrecio.value + ' €';
+                displayNoShow.textContent = inputNoShow.value + '%';
+
+                // Cálculo Matemático (Tu algoritmo V3)
+                const citasMes = parseFloat(inputCitas.value) || 0;
+                const precioSesion = parseFloat(inputPrecio.value) || 0;
+                const porcentajeNoShow = parseFloat(inputNoShow.value) || 0;
+                
+                const porcentajeEvitado = 0.80; // Eficiencia FisioTool
+
+                // Dinero perdido actualmente
+                const citasPerdidas = (citasMes * (porcentajeNoShow / 100));
+                // Dinero recuperado con IA
+                const citasSalvadas = citasPerdidas * porcentajeEvitado;
+                const ahorroAnual = (citasSalvadas * precioSesion) * 12;
+
+                // Renderizado
+                valorAhorro.textContent = new Intl.NumberFormat('es-ES', { 
+                    style: 'currency', 
+                    currency: 'EUR', 
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                }).format(ahorroAnual);
+            }
+
+            inputCitas.addEventListener('input', calcularROI);
+            inputPrecio.addEventListener('input', calcularROI);
+            inputNoShow.addEventListener('input', calcularROI);
+
+            // Init
+            calcularROI();
+        });
+
+        // Dummy function para simular interacción de video
+        function playVideoPresentation() {
+            document.querySelector('.play-video-div').style.transform = "scale(0.9)";
+            document.getElementById('loading-text').style.display = 'block';
+            setTimeout(() => {
+                alert("Simulación: Aquí se abriría el popup de video explicativo (html5lightbox)");
+                document.querySelector('.play-video-div').style.transform = "scale(1)";
+                document.getElementById('loading-text').style.display = 'none';
+            }, 500);
+        }
+    </script>
+</body>
+</html>

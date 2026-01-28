@@ -1,0 +1,84 @@
+// BUSCAR Y REEMPLAZAR EL ENDPOINT EXISTENTE '/onboarding/save'
+// Y los endpoints de Stripe '/stripe/suscribirse' y '/stripe/webhook' con el siguiente bloque:
+
+// ==========================================
+// NUEVO ENDPOINT UNIFICADO: ONBOARDING, MULTI-CLÍNICA Y PAGO (CRÍTICO)
+// ==========================================
+app.post('/onboarding/save-and-pay', async (req, res) => {
+    try {
+        const {
+            nombre_clinica, telefono_contacto, owner_user_email, direccion_completa,
+            precio_sesion, default_duration, fianza_reserva, payment_types,
+            banderas_rojas, referral_code
+        } = req.body;
+
+        // 1. VALIDACIÓN DE DATOS (Punto 4 Corregido)
+        if (!nombre_clinica || !telefono_contacto || !owner_user_email || !direccion_completa) {
+             return res.status(400).json({ status: 'error', message: 'Faltan datos de la clínica o el Email del dueño.' });
+        }
+
+        // 2. CREAR NUEVA CLÍNICA (Punto 3 Corregido: Multi-Clínica)
+        const nuevaClinicaData = {
+            nombre_comercial: nombre_clinica,
+            telefono_whatsapp: telefono_contacto,
+            owner_user_id: owner_user_email, // Temporalmente el email como ID de usuario
+            direccion_completa: direccion_completa,
+            precio_sesion: parseFloat(precio_sesion),
+            default_duration: parseInt(default_duration),
+            fianza_reserva: parseInt(fianza_reserva || 0),
+            payment_types: payment_types,
+            banderas_rojas: banderas_rojas,
+            fecha_registro: new Date(),
+            status: 'pending_payment'
+        };
+
+        const docRef = await db.collection('clinicas').add(nuevaClinicaData);
+        const new_clinic_id = docRef.id;
+
+        // 3. LÓGICA DE AFILIADO/DESCUENTO (Punto 1 Corregido)
+        let stripePriceId = 'price_1SdAs2EarlGG7cm4RRmu49VM'; // ID de Precio Mensual FULL
+        let couponCode = null;
+
+        if (referral_code && referral_code.length > 0) {
+            // Lógica B2B: Buscar si el código es válido (e.g., existe en la colección 'afiliados')
+            // SIMULAMOS que el código válido aplica un 50% de descuento (Coupon ID en Stripe)
+            const couponSnap = await db.collection('cupones').doc('50_OFF_PROMO').get(); // Buscar cupón real
+            if (referral_code === 'FISIO50' || couponSnap.exists) { // <- REEMPLAZAR POR TU LÓGICA
+                 couponCode = 'cupón_50_porciento_stripe_id'; // ID del cupón en Stripe
+            }
+        }
+
+        // 4. INICIAR SESIÓN DE PAGO STRIPE (Punto 2 Corregido)
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            line_items: [{
+                price: stripePriceId, // Precio de la suscripción
+                quantity: 1
+            }],
+            mode: 'subscription',
+            discounts: couponCode ? [{ coupon: couponCode }] : [], // Aplica el 50% si el código fue válido
+            subscription_data: {
+                metadata: {
+                    clinic_id: new_clinic_id,
+                    owner_email: owner_user_email
+                },
+                trial_period_days: 0, // No hay free trial por defecto
+            },
+            success_url: `https://${req.get('host')}/panel?setup=ok&clinic_id=${new_clinic_id}`,
+            cancel_url: `https://${req.get('host')}/setup?setup=cancel&clinic_id=${new_clinic_id}`,
+        });
+
+        // 5. REDIRIGIR A STRIPE
+        res.json({
+            status: 'success',
+            new_clinic_id: new_clinic_id,
+            redirect_url: session.url // El frontend redirigirá aquí.
+        });
+
+    } catch (e) {
+        console.error("❌ ERROR CRÍTICO EN ONBOARDING/PAGO:", e.message);
+        // Si falla la creación de Stripe, borramos el registro de la clínica para no dejar basura.
+        if (docRef) await db.collection('clinicas').doc(docRef.id).delete();
+        res.status(500).json({ status: 'error', message: 'Fallo al iniciar el pago. Revisa la clave de Stripe o los precios.' });
+    }
+});

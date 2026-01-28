@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración FisioTool | Setup</title>
+    
+    <!-- Incluimos los estilos de la Web Madre -->
+    <!-- NOTA: Asegúrate de que las rutas a los CSS sean correctas según tu estructura de carpetas -->
+    <link rel="stylesheet" href="assets/css/bootstrap.min.css">
+    <link rel="stylesheet" href="assets/css/font-awesome-pro.css"> 
+    <link rel="stylesheet" href="assets/css/style.css"> <!-- El estilo principal de Doodle -->
+    
+    <style>
+        /* Ajustes específicos para mantener tu funcionalidad dentro del diseño Doodle */
+        .step { display: none; opacity: 0; transition: all 0.5s ease; }
+        .step.active { display: block; opacity: 1; animation: slideUp 0.6s ease forwards; }
+        @keyframes slideUp { from{opacity:0;transform:translateY(20px);} to{opacity:1;transform:translateY(0);} }
+
+        /* Estilo para el área de Upload (adaptado a Doodle) */
+        .upload-box {
+            border: 2px dashed #e2e2e2;
+            background: #f9f9f9;
+            border-radius: 20px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .upload-box:hover { border-color: #237bfd; background: #fff; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        
+        /* Checkbox ocultos para las etiquetas (Red Flags / Pagos) */
+        .checkbox-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+        .tag-check input { display: none; }
+        .tag-check span {
+            display: inline-block; padding: 10px 25px; 
+            background: #fff; border: 1px solid #e2e2e2; 
+            border-radius: 30px; color: #555; cursor: pointer;
+            font-size: 14px; transition: 0.3s; font-weight: 500;
+        }
+        .tag-check input:checked + span {
+            border-color: #237bfd; background: #237bfd; color: #fff; box-shadow: 0 5px 15px rgba(35, 123, 253, 0.3);
+        }
+
+        /* Progress Bar personalizada estilo Doodle */
+        .wizard-progress-wrap { background: #f0f0f0; height: 6px; border-radius: 10px; margin-bottom: 40px; overflow: hidden; }
+        .wizard-progress-bar { background: #237bfd; height: 100%; transition: width 0.4s ease; border-radius: 10px; }
+    </style>
+</head>
+
+<body>
+
+    <!-- Cursor start -->
+    <div class="mouseCursor cursor-outer"></div>
+    <div class="mouseCursor cursor-inner"><span>Drag</span></div>
+    <!-- Cursor end -->
+
+    <!-- Animación suave de entrada -->
+    <div class="has-smooth" id="has_smooth"></div>
+    
+    <div id="smooth-wrapper">
+        <div id="smooth-content">
+            <div class="body-wrapper">
+
+                <!-- Header simplificado (Logo centrado) -->
+                <header class="h5_header-area" style="padding: 20px 0; background: #fff;">
+                    <div class="container">
+                        <div class="row justify-content-center">
+                            <div class="col-auto">
+                                <div class="h5_header-logo">
+                                    <!-- Tu Logo Aquí -->
+                                    <a href="#"><img src="images/logo.png" alt="FisioTool Logo" style="max-height: 50px;"></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+
+                <main>
+                    <!-- Sección Principal Estilo Checkout/Login -->
+                    <section class="login-area pt-100 pb-100">
+                        <div class="container">
+                            <div class="row justify-content-center">
+                                <div class="col-xl-8 col-lg-10">
+                                    
+                                    <!-- Encabezado de la sección -->
+                                    <div class="section-area text-center mb-50">
+                                        <span class="section-subtitle tp_fade_left" style="color: #237bfd;">Configuración Inicial</span>
+                                        <h2 class="section-title tp_title_slideup mb-10">Bienvenido a la nueva era</h2>
+                                        <p class="tp_fade_bottom">Vamos a configurar tu entorno neural en 4 sencillos pasos.</p>
+                                    </div>
+
+                                    <!-- Barra de Progreso -->
+                                    <div class="wizard-progress-wrap">
+                                        <div class="wizard-progress-bar" id="progressBar" style="width: 25%;"></div>
+                                    </div>
+
+                                    <!-- Contenedor Blanco Principal (Estilo Card de Doodle) -->
+                                    <div class="login-content tp_fade_bottom" style="padding: 50px; background: #fff; box-shadow: 0px 30px 60px 0px rgba(0, 4, 74, 0.08); border-radius: 20px;">
+                                        
+                                        <!-- STEP 1: Datos Corporativos -->
+                                        <div id="step1" class="step active">
+                                            <div class="d-flex justify-content-between align-items-center mb-30">
+                                                <h3 class="login-content-title mb-0">01. Datos Corporativos</h3>
+                                                <span class="badge bg-light text-dark p-2" id="bgNumber">Paso 01/04</span>
+                                            </div>
+
+                                            <!-- Referral Box (Adaptado a estilo Alert) -->
+                                            <div class="alert alert-primary d-flex justify-content-between align-items-center mb-40" role="alert" style="border-radius: 15px; border: 1px solid #cce5ff;">
+                                                <div>
+                                                    <strong>¿Código de Invitado?</strong>
+                                                    <div style="font-size: 13px;">Desbloquea funciones PRO + 50% Dto.</div>
+                                                </div>
+                                                <input type="text" id="referral_code" class="form-control" placeholder="CODE" style="width: 120px; text-transform: uppercase; font-weight: bold; text-align: center;">
+                                            </div>
+
+                                            <form id="setup-form" onsubmit="return false;">
+                                                <div class="login-form-item mb-25">
+                                                    <label class="form-label">Nombre Comercial de la Clínica</label>
+                                                    <input type="text" id="clinic_name" placeholder="Ej: Clínica Neural Fisio" required>
+                                                </div>
+
+                                                <div class="row">
+                                                    <div class="col-md-8">
+                                                        <div class="login-form-item mb-25">
+                                                            <label class="form-label">Dirección Fiscal</label>
+                                                            <input type="text" id="addr_street" placeholder="Calle / Avda / Plaza">
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <div class="login-form-item mb-25">
+                                                            <label class="form-label">Número</label>
+                                                            <input type="text" id="addr_num" placeholder="Nº">
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="row">
+                                                    <div class="col-md-4">
+                                                        <div class="login-form-item mb-25">
+                                                            <label class="form-label">Piso/Puerta</label>
+                                                            <input type="text" id="addr_floor" placeholder="-">
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <div class="login-form-item mb-25">
+                                                            <label class="form-label">CP</label>
+                                                            <input type="text" id="addr_cp" placeholder="00000">
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <div class="login-form-item mb-25">
+                                                            <label class="form-label">Ciudad</label>
+                                                            <input type="text" id="addr_city" placeholder="Ciudad">
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="login-form-item mb-25">
+                                                    <label class="form-label">Provincia / Estado</label>
+                                                    <input type="text" id="addr_prov" placeholder="Provincia">
+                                                </div>
+
+                                                <div class="login-form-item mb-25 p-3" style="background: #f0f7ff; border-radius: 10px;">
+                                                    <label class="form-label text-primary">Smartphone Vinculado (API Meta/WhatsApp)</label>
+                                                    <input type="tel" id="meta_phone" placeholder="+34 000 000 000" style="background: #fff;">
+                                                    <small class="text-muted mt-2 d-block">Número donde operará la IA 'Ana' para citas.</small>
+                                                </div>
+
+                                                <div class="text-end mt-40">
+                                                    <button type="button" class="theme-btn-2" onclick="goStep(2)">Siguiente Paso <i class="fa-light fa-angle-right"></i></button>
+                                                </div>
+                                            </form>
+                                        </div>
+
+                                        <!-- STEP 2: Migración -->
+                                        <div id="step2" class="step">
+                                            <h3 class="login-content-title mb-4">02. Migración de Pacientes</h3>
+                                            <p class="mb-4 text-muted">Importa tu base de datos antigua para entrenar al algoritmo desde el día 1. Aceptamos CSV, XLS.</p>
+
+                                            <!-- Upload Box Estilizado -->
+                                            <div class="upload-box mb-40" onclick="document.getElementById('csv_file').click()">
+                                                <div class="mb-3">
+                                                    <i class="fa-light fa-cloud-arrow-up" style="font-size: 40px; color: #237bfd;"></i>
+                                                </div>
+                                                <h5 style="font-weight: 600;">Click para subir Base de Datos</h5>
+                                                <span class="text-muted">(Datos encriptados E2EE)</span>
+                                                <input type="file" id="csv_file" hidden>
+                                            </div>
+
+                                            <div class="d-flex justify-content-between mt-40">
+                                                <button type="button" class="btn btn-outline-secondary rounded-pill px-4" onclick="goStep(1)">Atrás</button>
+                                                <button type="button" class="theme-btn-2" onclick="goStep(3)">Siguiente Paso <i class="fa-light fa-angle-right"></i></button>
+                                            </div>
+                                        </div>
+
+                                        <!-- STEP 3: Modelo Económico -->
+                                        <div id="step3" class="step">
+                                            <h3 class="login-content-title mb-4">03. Modelo Económico</h3>
+                                            
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <div class="login-form-item mb-25">
+                                                        <label class="form-label">Tarifa Estándar (€)</label>
+                                                        <input type="number" id="price" value="50">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="login-form-item mb-25">
+                                                        <label class="form-label">Duración Sesión</label>
+                                                        <div class="h5_header-top-language" style="width: 100%;">
+                                                            <select id="duration" class="h5_header-top-language-option has-nice-select" style="width: 100%; height: 50px; border-radius: 30px; padding: 0 20px; border: 1px solid #e2e2e2;">
+                                                                <option value="30">30 Min</option>
+                                                                <option value="45" selected>45 Min</option>
+                                                                <option value="60">60 Min</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="mb-40">
+                                                <label class="form-label mb-3 fw-bold">Métodos de Cobro en Clínica</label>
+                                                <div class="checkbox-grid">
+                                                    <label class="tag-check">
+                                                        <input type="checkbox" class="pay-method" value="Efectivo" checked>
+                                                        <span><i class="fa-light fa-money-bill"></i> Efectivo</span>
+                                                    </label>
+                                                    <label class="tag-check">
+                                                        <input type="checkbox" class="pay-method" value="Tarjeta" checked>
+                                                        <span><i class="fa-light fa-credit-card"></i> Tarjeta / Datáfono</span>
+                                                    </label>
+                                                    <label class="tag-check">
+                                                        <input type="checkbox" class="pay-method" value="Bizum">
+                                                        <span><i class="fa-light fa-mobile"></i> Bizum</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+
+                                            <div class="login-form-item p-4 mb-25" style="background: #fff8f8; border: 1px solid #ffdede; border-radius: 15px;">
+                                                <label class="form-label text-danger"><i class="fa-light fa-shield-check"></i> Fianza Anti-No-Show (€)</label>
+                                                <input type="number" id="deposit" placeholder="Ej: 20" style="background: #fff;">
+                                                <small class="text-muted mt-2 d-block">Importe que la IA cobrará online antes de confirmar para evitar huecos vacíos.</small>
+                                            </div>
+
+                                            <div class="d-flex justify-content-between mt-40">
+                                                <button type="button" class="btn btn-outline-secondary rounded-pill px-4" onclick="goStep(2)">Atrás</button>
+                                                <button type="button" class="theme-btn-2" onclick="goStep(4)">Siguiente Paso <i class="fa-light fa-angle-right"></i></button>
+                                            </div>
+                                        </div>
+
+                                        <!-- STEP 4: Filtros IA & Seguridad -->
+                                        <div id="step4" class="step">
+                                            <h3 class="login-content-title mb-2">04. Filtros de IA & Seguridad</h3>
+                                            
+                                            <div class="mb-40">
+                                                <label class="form-label mb-3 text-danger fw-bold"><i class="fa-solid fa-ban"></i> Red Flags (Rechazo Automático IA)</label>
+                                                <p class="text-muted mb-3" style="font-size: 14px;">Selecciona los casos que "Ana" (tu IA) no debe agendar bajo ningún concepto:</p>
+                                                
+                                                <div class="checkbox-grid red-flag-zone">
+                                                    <label class="tag-check"><input type="checkbox" class="redflag" value="trafico"><span>Accidentes Tráfico</span></label>
+                                                    <label class="tag-check"><input type="checkbox" class="redflag" value="neurologia"><span>Neurología</span></label>
+                                                    <label class="tag-check"><input type="checkbox" class="redflag" value="suelo_pelvico"><span>Suelo Pélvico</span></label>
+                                                    <label class="tag-check"><input type="checkbox" class="redflag" value="pediatria"><span>Pediatría</span></label>
+                                                    <label class="tag-check"><input type="checkbox" class="redflag" value="respiratorio"><span>Respiratorio</span></label>
+                                                    <label class="tag-check"><input type="checkbox" class="redflag" value="seguros"><span>Mutuas / Seguros</span></label>
+                                                </div>
+                                            </div>
+
+                                            <div style="border-top: 1px solid #eee; padding-top: 30px; margin-top:30px;">
+                                                <p class="mb-0">
+                                                    <strong>Todo listo.</strong> Al finalizar, conectarás con la pasarela bancaria segura (Stripe) para activar tu licencia.
+                                                </p>
+                                            </div>
+
+                                            <div class="d-flex justify-content-between mt-40">
+                                                <button type="button" class="btn btn-outline-secondary rounded-pill px-4" onclick="goStep(3)">Atrás</button>
+                                                <button type="button" class="theme-btn-2" onclick="saveAndGoToPayment()">
+                                                    GUARDAR Y PAGAR <i class="fa-light fa-check"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Formas de fondo Doodle -->
+                        <div class="login-shape d-none d-xl-block">
+                            <img src="assets/images/bg/login-shpae-1.png" alt="" class="login-shape-1" data-speed="0.8">
+                            <img src="assets/images/bg/login-shpae-2.png" alt="" class="login-shape-2" data-speed="0.8">
+                            <img src="assets/images/bg/login-shpae-3.png" alt="" class="login-shape-3" data-speed="0.8">
+                        </div>
+                    </section>
+                </main>
+
+                <!-- Footer simplificado -->
+                <footer class="h2_footer-area">
+                    <div class="h2_footer-bottom">
+                        <div class="container">
+                            <div class="row align-items-center justify-content-center">
+                                <div class="col-12 text-center">
+                                    <div class="h2_footer-bottom-copyright">
+                                        <p>&copy; 2023 FisioTool - Powered by Neural AI</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </footer>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- PRELOADER (Manteniendo tu funcionalidad lógica pero con estilo) -->
+    <div class="preloader" style="position:fixed; top:0;left:0; width:100%; height:100%; background:rgba(255,255,255,0.95); z-index:9999; display:none; align-items:center; justify-content:center; flex-direction:column;">
+        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <h5 style="color:#333; font-family:'Inter', sans-serif; margin-top:20px; font-weight:600;">GUARDANDO SISTEMA...</h5>
+    </div>
+
+    <!-- Scripts de la plantilla -->
+    <script src="assets/js/jquery-3.6.0.min.js"></script>
+    <script src="assets/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/js/jquery.nice-select.min.js"></script>
+    <!-- Incluye aquí el resto de scripts de la plantilla si son necesarios para las animaciones -->
+    <!-- <script src="assets/js/main.js"></script> -->
+
+    <!-- TU SCRIPT ORIGINAL (Lógica intacta) -->
+    <script>
+        // Inicializar select personalizado de la plantilla si existe
+        $(document).ready(function() {
+            if($('select').length && $.fn.niceSelect){
+               $('select').niceSelect();
+            }
+        });
+
+        function goStep(n) {
+            // Logic CSS visual
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+            document.getElementById('step'+n).classList.add('active');
+            
+            // Progress bar
+            let width = n * 25;
+            document.getElementById('progressBar').style.width = width + '%';
+
+            // Background number change (Visual candy - adaptado al badge del nuevo diseño)
+            // document.getElementById('bgNumber').innerText = 'Paso 0' + n + '/04'; 
+        }
+
+        async function saveAndGoToPayment() {
+            // Efecto Preloader
+            const preloader = document.querySelector('.preloader');
+            preloader.style.display = 'flex';
+
+            // Recopilar Dirección Completa (Lógica original mantenida)
+            const fullAddress = {
+                calle: document.getElementById('addr_street').value,
+                numero: document.getElementById('addr_num').value,
+                piso: document.getElementById('addr_floor').value,
+                cp: document.getElementById('addr_cp').value,
+                ciudad: document.getElementById('addr_city').value,
+                provincia: document.getElementById('addr_prov').value
+            };
+
+            const data = {
+                clinica: document.getElementById('clinic_name').value,
+                direccion_completa: fullAddress, 
+                telefono_meta: document.getElementById('meta_phone').value,
+                precio: document.getElementById('price').value,
+                duracion: document.getElementById('duration').value,
+                fianza: document.getElementById('deposit').value,
+                banderas_rojas: Array.from(document.querySelectorAll('.redflag:checked')).map(e => e.value),
+                afiliado: document.getElementById('referral_code').value
+            };
+
+            console.log("Enviando configuración (Estilo Doodle):", data);
+
+            // Simulación de envío
+            // await fetch('/onboarding/save', { method: 'POST', body: JSON.stringify(data)... });
+
+            setTimeout(() => {
+                // REDIRECCIÓN (Sin alerts intrusivos, solo fade out)
+                window.location.href = 'dashboard.html'; 
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

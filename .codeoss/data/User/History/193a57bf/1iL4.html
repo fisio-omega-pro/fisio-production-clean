@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="pageTitle">Recepción 24/7</title>
+    <!-- Aquí iría tu CSS, por ahora solo un esqueleto -->
+    <style>
+        body { font-family: sans-serif; margin: 0; background-color: #f4f4f9; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        #app { display: flex; width: 90%; max-width: 800px; height: 90vh; background-color: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); overflow: hidden; }
+        #chatContainer { flex-grow: 1; display: flex; flex-direction: column; }
+        #header { padding: 15px; border-bottom: 1px solid #eee; display: flex; align-items: center; background-color: #007bff; color: white; }
+        #clinicLogo { width: 40px; height: 40px; border-radius: 50%; margin-right: 10px; background-color: white; object-fit: cover; }
+        #chatBox { flex-grow: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; }
+        .message { margin-bottom: 15px; max-width: 80%; padding: 10px; border-radius: 15px; }
+        .user { align-self: flex-end; background-color: #dcf8c6; }
+        .ana { align-self: flex-start; background-color: #f1f0f0; }
+        #inputArea { padding: 15px; border-top: 1px solid #eee; display: flex; }
+        #messageInput { flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 20px; margin-right: 10px; }
+        #sendButton { background-color: #007bff; color: white; border: none; padding: 10px 15px; border-radius: 20px; cursor: pointer; }
+        #sideInfo { width: 250px; background-color: #f9f9f9; padding: 20px; border-left: 1px solid #eee; }
+        #anaImage { width: 100%; max-width: 150px; display: block; margin: 0 auto 15px; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="chatContainer">
+            <div id="header">
+                <img id="clinicLogo" src="" alt="Logo">
+                <h3 id="clinicName">Cargando Clínica...</h3>
+            </div>
+            <div id="chatBox">
+                <!-- Los mensajes de chat irán aquí -->
+            </div>
+            <div id="inputArea">
+                <input type="text" id="patientTlf" placeholder="Tu Teléfono (ej: +346xxxxxxx)" style="width: 120px; margin-right: 10px; padding: 10px; border-radius: 20px;">
+                <input type="text" id="messageInput" placeholder="Escribe tu mensaje..." disabled>
+                <button id="sendButton" disabled>Enviar</button>
+            </div>
+        </div>
+        <div id="sideInfo">
+            <img id="anaImage" src="URL_IMAGEN_DE_ANA.png" alt="Ana la Recepcionista">
+            <h4>Información de Contacto</h4>
+            <p><strong>Dirección:</strong> <span id="infoAddress"></span></p>
+            <p><strong>Teléfono:</strong> <span id="infoPhone"></span></p>
+            <p><strong>Horario:</strong> <span id="infoSchedule"></span></p>
+        </div>
+    </div>
+
+    <!-- Script que se conectará al Backend -->
+    <script src="/landingbot.js"></script> 
+</body>
+</html>

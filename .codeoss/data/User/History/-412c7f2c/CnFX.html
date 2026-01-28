@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración Inicial | FisioTool</title>
+    
+    <!-- FRAMEWORKS & FONTS -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        :root { --primary: #237bfd; --primary-dark: #1a64d6; --text: #1e2022; --bg: #f4f7fa; }
+        
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg); color: var(--text); min-height: 100vh; }
+        h1, h2, h3, h4, h5 { font-family: 'Poppins', sans-serif; font-weight: 600; }
+
+        /* CONTENEDOR PRINCIPAL */
+        .wizard-container { max-width: 750px; margin: 40px auto; background: #fff; border-radius: 20px; box-shadow: 0 15px 50px rgba(0,0,0,0.05); overflow: hidden; position: relative; }
+        .wizard-header { background: #fff; padding: 30px 40px 10px; text-align: center; }
+        .wizard-body { padding: 20px 40px 40px; }
+
+        /* BARRA DE PROGRESO */
+        .progress-track { background: #f0f2f5; height: 6px; border-radius: 10px; margin-bottom: 30px; position: relative; overflow: hidden; }
+        .progress-fill { background: var(--primary); height: 100%; width: 25%; transition: width 0.5s ease-in-out; border-radius: 10px; }
+
+        /* ANIMACIÓN PASOS */
+        .step-section { display: none; animation: slideUp 0.3s cubic-bezier(0.25, 1, 0.5, 1); }
+        .step-section.active { display: block; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* INPUTS ESTILIZADOS */
+        .form-label-ft { font-size: 11px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; color: #8898aa; margin-bottom: 5px; display: block; }
+        .form-control-ft { width: 100%; background: #fcfcfc; border: 2px solid #eef2f6; border-radius: 10px; padding: 10px 15px; font-size: 14px; color: var(--text); transition: 0.2s; outline: none; }
+        .form-control-ft:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 4px rgba(35,123,253,0.1); }
+        
+        /* TARJETAS DE SELECCIÓN */
+        .selection-card { cursor: pointer; position: relative; display: block; }
+        .selection-card input { position: absolute; opacity: 0; width: 0; height: 0; }
+        .card-inner { border: 2px solid #eef2f6; border-radius: 12px; padding: 15px; text-align: center; transition: 0.2s; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .selection-card:hover .card-inner { transform: translateY(-2px); border-color: #dce4f0; }
+        .selection-card input:checked + .card-inner { border-color: var(--primary); background: rgba(35,123,253,0.03); color: var(--primary); font-weight: 600; }
+        
+        /* BOTONES */
+        .btn-nav { padding: 12px 30px; border-radius: 50px; font-weight: 600; transition: 0.3s; border: 2px solid transparent; font-size: 14px; }
+        
+        .btn-next { background: var(--primary); color: white; box-shadow: 0 4px 15px rgba(35,123,253,0.3); border-color: var(--primary); }
+        .btn-next:hover { background: var(--primary-dark); border-color: var(--primary-dark); transform: translateY(-2px); }
+        
+        .btn-prev { background: #fff; color: #6c757d; border-color: #eef2f6; }
+        .btn-prev:hover { border-color: #d1d9e6; color: #343a40; background: #f8f9fa; }
+
+        /* LOADER OVERLAY */
+        .loader-overlay { position: fixed; inset: 0; background: rgba(255,255,255,0.95); z-index: 9999; display: none; align-items: center; justify-content: center; flex-direction: column; }
+    </style>
+</head>
+<body>
+
+    <div class="wizard-container">
+        <!-- HEADER -->
+        <div class="wizard-header">
+            <h3 class="mb-2">Configura tu Clínica</h3>
+            <p class="text-muted small mb-4">Configuración en 4 pasos para eliminar tu carga administrativa.</p>
+            
+            <div class="progress-track">
+                <div class="progress-fill" id="progressBar"></div>
+            </div>
+            
+            <div class="d-flex justify-content-between text-muted fw-bold text-uppercase" style="font-size: 10px;">
+                <span>1. Identidad</span>
+                <span>2. Agenda IA</span>
+                <span>3. Finanzas</span>
+                <span>4. Reglas</span>
+            </div>
+        </div>
+
+        <div class="wizard-body">
+            <form id="onboardingForm" onsubmit="submitForm(event)">
+                
+                <!-- ================= PASO 1: IDENTIDAD ================= -->
+                <div id="step1" class="step-section active">
+                    <!-- Banner Código -->
+                    <div class="alert alert-info border-0 bg-light d-flex align-items-center gap-2 py-2 px-3 rounded-3 mb-4">
+                        <i class="fa-solid fa-gift text-primary"></i>
+                        <span class="small fw-bold text-muted flex-grow-1">¿Tienes código de invitación?</span>
+                        <input type="text" id="referralCode" class="form-control form-control-sm border-0 bg-white text-center fw-bold text-primary" style="width: 100px;" placeholder="CODIGO">
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label-ft">Nombre de la Clínica</label>
+                            <input type="text" id="clinicName" class="form-control-ft" placeholder="Ej: Fisioterapia Avanzada" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label-ft">Email (Usuario)</label>
+                            <input type="email" id="adminEmail" class="form-control-ft" placeholder="admin@clinica.com" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label-ft">Contraseña <span class="text-danger">*</span></label>
+                            <input type="password" id="adminPass" class="form-control-ft" placeholder="Mínimo 8 caracteres" minlength="8" required>
+                        </div>
+
+                        <!-- DIRECCIÓN DESGLOSADA -->
+                        <div class="col-12"><hr class="opacity-10 my-1"></div>
+                        <div class="col-12"><h6 class="text-primary small fw-bold"><i class="fa-solid fa-map-pin me-1"></i> Dirección Fiscal</h6></div>
+
+                        <div class="col-8">
+                            <label class="form-label-ft">Calle / Vía</label>
+                            <input type="text" id="addrStreet" class="form-control-ft" placeholder="Av. Principal" required>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label-ft">Número</label>
+                            <input type="text" id="addrNum" class="form-control-ft" placeholder="Nº" required>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label-ft">C. Postal</label>
+                            <input type="text" id="addrCP" class="form-control-ft" placeholder="CP" required>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label-ft">Ciudad</label>
+                            <input type="text" id="addrCity" class="form-control-ft" placeholder="Ciudad" required>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label-ft">Provincia</label>
+                            <input type="text" id="addrProv" class="form-control-ft" placeholder="Provincia" required>
+                        </div>
+                    </div>
+                    
+                    <div class="text-end mt-4">
+                        <button type="button" class="btn-nav btn-next" onclick="validateAndNext(1)">Continuar <i class="fa-solid fa-arrow-right ms-2"></i></button>
+                    </div>
+                </div>
+
+                <!-- ================= PASO 2: AGENDA IA ================= -->
+                <div id="step2" class="step-section">
+                    <div class="text-center mb-4">
+                        <h6 class="fw-bold text-primary">Configuración de Agenda</h6>
+                        <p class="small text-muted">Define horario para evitar citas erróneas.</p>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label-ft">Precio Sesión (€)</label>
+                            <input type="number" id="sessionPrice" class="form-control-ft" placeholder="50" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label-ft">Duración (min)</label>
+                            <input type="number" id="sessionDuration" class="form-control-ft" value="45" required>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 p-3 bg-light rounded-3 border border-light">
+                        <label class="form-label-ft mb-3 text-dark">Horario de Atención (Lunes - Viernes)</label>
+                        <div class="row g-2 align-items-center">
+                            <div class="col-5">
+                                <small class="d-block text-center text-muted mb-1" style="font-size:10px;">APERTURA</small>
+                                <input type="time" id="openTime" class="form-control-ft text-center" value="09:00" required>
+                            </div>
+                            <div class="col-2 text-center text-muted fw-bold">-</div>
+                            <div class="col-5">
+                                <small class="d-block text-center text-muted mb-1" style="font-size:10px;">CIERRE</small>
+                                <input type="time" id="closeTime" class="form-control-ft text-center" value="20:00" required>
+                            </div>
+                            
+                            <div class="col-12 mt-3 text-center">
+                                <div class="form-check form-switch d-inline-block">
+                                    <input class="form-check-input" type="checkbox" id="hasBreak" onchange="toggleBreak(this)">
+                                    <label class="form-check-label small" for="hasBreak">Cierro a mediodía</label>
+                                </div>
+                            </div>
+                            
+                            <div class="col-12 mt-2" id="breakTimeContainer" style="display:none;">
+                                <div class="row g-2 justify-content-center">
+                                    <div class="col-5">
+                                        <input type="time" id="breakStart" class="form-control-ft text-center" value="14:00">
+                                    </div>
+                                    <div class="col-5">
+                                        <input type="time" id="breakEnd" class="form-control-ft text-center" value="16:00">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <button type="button" class="btn-nav btn-prev" onclick="goToStep(1)">Atrás</button>
+                        <button type="button" class="btn-nav btn-next" onclick="validateAndNext(2)">Siguiente <i class="fa-solid fa-arrow-right ms-2"></i></button>
+                    </div>
+                </div>
+
+                <!-- ================= PASO 3: PAGOS ================= -->
+                <div id="step3" class="step-section">
+                    <h6 class="fw-bold mb-3">Métodos de Cobro</h6>
+                    
+                    <div class="row g-3">
+                        <div class="col-4">
+                            <label class="selection-card">
+                                <input type="checkbox" name="payment_method" value="Efectivo" checked>
+                                <div class="card-inner">
+                                    <i class="fa-solid fa-coins fa-lg mb-2"></i>
+                                    <small style="font-size:12px;">Efectivo</small>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="col-4">
+                            <label class="selection-card">
+                                <input type="checkbox" name="payment_method" value="Tarjeta" checked>
+                                <div class="card-inner">
+                                    <i class="fa-regular fa-credit-card fa-lg mb-2"></i>
+                                    <small style="font-size:12px;">Tarjeta</small>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="col-4">
+                            <label class="selection-card">
+                                <input type="checkbox" name="payment_method" value="Bizum">
+                                <div class="card-inner">
+                                    <i class="fa-solid fa-mobile-screen fa-lg mb-2"></i>
+                                    <small style="font-size:12px;">Bizum</small>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <label class="form-label-ft">Política de Señal / Fianza</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0">€</span>
+                            <input type="number" id="depositAmount" class="form-control-ft border-start-0 ps-0" placeholder="0" value="0">
+                        </div>
+                        <small class="text-muted" style="font-size:11px;">Si > 0€, se pedirá tarjeta al reservar.</small>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <button type="button" class="btn-nav btn-prev" onclick="goToStep(2)">Atrás</button>
+                        <button type="button" class="btn-nav btn-next" onclick="validateAndNext(3)">Siguiente <i class="fa-solid fa-arrow-right ms-2"></i></button>
+                    </div>
+                </div>
+
+                <!-- ================= PASO 4: LEGAL ================= -->
+                <div id="step4" class="step-section">
+                    <h6 class="fw-bold mb-3">Banderas Rojas & Legal</h6>
+                    <p class="text-muted small mb-3">¿Qué casos NO debe agendar la IA?</p>
+
+                    <div class="row g-2 mb-4">
+                        <div class="col-6">
+                            <label class="selection-card">
+                                <input type="checkbox" name="red_flags" value="trafico">
+                                <div class="card-inner py-2">
+                                    <small class="fw-bold" style="font-size:11px;">Accidentes Tráfico</small>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="col-6">
+                            <label class="selection-card">
+                                <input type="checkbox" name="red_flags" value="suelo_pelvico">
+                                <div class="card-inner py-2">
+                                    <small class="fw-bold" style="font-size:11px;">Suelo Pélvico</small>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="col-6">
+                            <label class="selection-card">
+                                <input type="checkbox" name="red_flags" value="pediatria">
+                                <div class="card-inner py-2">
+                                    <small class="fw-bold" style="font-size:11px;">Pediatría</small>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="col-6">
+                            <label class="selection-card">
+                                <input type="checkbox" name="red_flags" value="seguros">
+                                <div class="card-inner py-2">
+                                    <small class="fw-bold" style="font-size:11px;">Seguros Médicos</small>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-check mb-4 p-3 bg-light rounded-3 border border-light">
+                        <input class="form-check-input" type="checkbox" id="legalCheck" required>
+                        <label class="form-check-label small lh-sm" for="legalCheck">
+                            He leído y acepto la <a href="/politica_privacidad.html" target="_blank" class="fw-bold">Política de Privacidad</a> y los Términos del Servicio.
+                        </label>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <button type="button" class="btn-nav btn-prev" onclick="goToStep(3)">Atrás</button>
+                        <button type="submit" class="btn-nav btn-next w-50">FINALIZAR Y PAGAR</button>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <!-- LOADER -->
+    <div class="loader-overlay" id="loader">
+        <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+        <h5 class="fw-bold text-dark">Creando tu Clínica...</h5>
+        <p class="text-muted small">Conectando con pasarela segura</p>
+    </div>
+
+    <!-- LOGICA JS -->
+    <script>
+        const STEPS_COUNT = 4;
+        let currentStep = 1;
+
+        // NAVEGACIÓN
+        function goToStep(step) {
+            document.querySelectorAll('.step-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(`step${step}`).classList.add('active');
+            
+            const percent = step * 25;
+            document.getElementById('progressBar').style.width = `${percent}%`;
+            currentStep = step;
+        }
+
+        // VALIDACIÓN
+        function validateAndNext(step) {
+            let valid = true;
+            const currentSection = document.getElementById(`step${step}`);
+            const inputs = currentSection.querySelectorAll('input[required]');
+            
+            inputs.forEach(input => {
+                if (!input.value.trim()) {
+                    input.style.borderColor = "#dc3545"; // Rojo error
+                    valid = false;
+                } else {
+                    input.style.borderColor = "#eef2f6"; // Reset
+                }
+            });
+
+            if (step === 1) {
+                const pass = document.getElementById('adminPass').value;
+                if (pass.length < 8) {
+                    alert("⚠️ La contraseña debe tener al menos 8 caracteres.");
+                    return;
+                }
+            }
+
+            if (valid) goToStep(step + 1);
+            else alert("⚠️ Por favor, completa todos los campos obligatorios.");
+        }
+
+        function toggleBreak(checkbox) {
+            document.getElementById('breakTimeContainer').style.display = checkbox.checked ? 'block' : 'none';
+        }
+
+        // ENVIO AL BACKEND
+        async function submitForm(e) {
+            e.preventDefault();
+            
+            if(!document.getElementById('legalCheck').checked) {
+                alert("⚠️ Debes aceptar la Política de Privacidad para continuar.");
+                return;
+            }
+
+            document.getElementById('loader').style.display = 'flex';
+
+            // RECOPILACIÓN DE DATOS
+            const formData = {
+                clinic_name: document.getElementById('clinicName').value,
+                admin_email: document.getElementById('adminEmail').value,
+                password: document.getElementById('adminPass').value,
+                referral_code: document.getElementById('referralCode').value,
+                
+                // Dirección Estructurada
+                address: {
+                    street: document.getElementById('addrStreet').value,
+                    number: document.getElementById('addrNum').value,
+                    cp: document.getElementById('addrCP').value,
+                    city: document.getElementById('addrCity').value,
+                    province: document.getElementById('addrProv').value
+                },
+
+                // Agenda
+                price: document.getElementById('sessionPrice').value,
+                duration: document.getElementById('sessionDuration').value,
+                deposit: document.getElementById('depositAmount').value,
+                schedule: {
+                    open: document.getElementById('openTime').value,
+                    close: document.getElementById('closeTime').value,
+                    has_break: document.getElementById('hasBreak').checked,
+                    break_start: document.getElementById('breakStart').value,
+                    break_end: document.getElementById('breakEnd').value
+                },
+
+                payment_methods: Array.from(document.querySelectorAll('input[name="payment_method"]:checked')).map(el => el.value),
+                red_flags: Array.from(document.querySelectorAll('input[name="red_flags"]:checked')).map(el => el.value),
+                
+                terms_accepted: true,
+                created_at: new Date().toISOString()
+            };
+
+            console.log("Enviando Payload:", formData);
+
+            try {
+                // LLAMADA REAL AL BACKEND
+                const res = await fetch('/api/onboarding/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                if (!res.ok) throw new Error("Error en respuesta del servidor");
+
+                const data = await res.json();
+
+                if (data.status === 'success' && data.stripe_url) {
+                    // EXITO: REDIRIGIR A STRIPE
+                    window.location.href = data.stripe_url;
+                } else if (data.status === 'success') {
+                    // EXITO SIN PAGO (Caso raro, pero posible)
+                    window.location.href = '/dashboard';
+                } else {
+                    throw new Error(data.message || "Error desconocido");
+                }
+
+            } catch (error) {
+                console.error(error);
+                alert("❌ Error de conexión: " + error.message + "\n\n(Asegúrate de que el Backend está corriendo y la ruta /api/onboarding/create existe)");
+                document.getElementById('loader').style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

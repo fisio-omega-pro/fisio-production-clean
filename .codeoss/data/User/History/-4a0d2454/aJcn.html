@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Automatización 24/7 y gestión inteligente para clínicas de fisioterapia." />
+    <title>FisioTool | La Solución Premium para tu Clínica</title>
+    
+    <!-- FUENTES Y FRAMEWORK (Carga Rápida CDN) -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <!-- ESTILOS "DOODLE SYSTEM" INTEGRADOS (Sin errores de rutas) -->
+    <style>
+        :root {
+            --color-primary: #237bfd;
+            --color-heading: #1e2022;
+            --color-text: #555555;
+            --color-accent: #dd4242; /* Rojo original para puntos de dolor */
+            --bg-light: #f4f7fa;
+            --shadow-card: 0 10px 40px rgba(0,0,0,0.08);
+        }
+
+        /* TIPOGRAFÍA & BASES */
+        body { font-family: 'Inter', sans-serif; color: var(--color-text); overflow-x: hidden; background: #fff; }
+        h1, h2, h3, h4, h5 { font-family: 'Poppins', sans-serif; color: var(--color-heading); font-weight: 700; }
+        a { text-decoration: none; transition: 0.3s; }
+        
+        /* HEADER (Estilo Navegación) */
+        .h5_header-area { padding: 20px 0; background: #fff; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 20px rgba(0,0,0,0.05); }
+        .logo-text { font-size: 26px; font-weight: 800; color: var(--color-heading); }
+        .logo-text span { color: var(--color-accent); }
+        
+        .main-menu a { color: var(--color-heading); font-weight: 500; margin: 0 20px; font-size: 15px; position: relative; }
+        .main-menu a:hover { color: var(--color-primary); }
+
+        .btn-outline-custom { border: 1px solid #e5e5e5; color: var(--color-heading); padding: 10px 25px; border-radius: 50px; font-weight: 500; }
+        .btn-outline-custom:hover { border-color: var(--color-heading); background: var(--color-heading); color: #fff; }
+        
+        .btn-theme { background-color: var(--color-primary); color: #fff; padding: 12px 30px; border-radius: 50px; font-weight: 600; display: inline-flex; align-items: center; gap: 10px; box-shadow: 0 4px 15px rgba(35,123,253,0.3); border: none; }
+        .btn-theme:hover { background-color: #1a64d6; color: #fff; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(35,123,253,0.4); }
+
+        /* HERO SECTION */
+        .h5_banner-area { padding: 100px 0 80px; position: relative; background: radial-gradient(circle at 10% 20%, rgb(249, 252, 255) 0%, rgb(255, 255, 255) 90%); }
+        .banner-subtitle { color: var(--color-primary); font-weight: 600; text-transform: uppercase; letter-spacing: 2px; font-size: 14px; display: block; margin-bottom: 20px; }
+        .banner-title { font-size: 3.5rem; line-height: 1.2; margin-bottom: 25px; }
+        .banner-desc { font-size: 1.1rem; max-width: 600px; margin: 0 auto 40px; line-height: 1.6; }
+        
+        /* SERVICES / PAIN POINTS */
+        .service-card { padding: 40px; border-radius: 20px; background: #fff; border: 1px solid #f0f0f0; transition: all 0.4s; height: 100%; position: relative; overflow: hidden; }
+        .service-card:hover { border-color: transparent; box-shadow: var(--shadow-card); transform: translateY(-5px); }
+        .icon-box { height: 70px; width: 70px; background: rgba(221, 66, 66, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--color-accent); font-size: 28px; margin-bottom: 25px; transition: 0.4s;}
+        .service-card:hover .icon-box { background: var(--color-accent); color: white; }
+
+        /* ABOUT / MOCKUP SECTION */
+        .about-section { padding: 100px 0; }
+        .about-img { border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.1); overflow: hidden; border: 10px solid #fff; }
+        
+        /* ROI SECTION */
+        .roi-card { background: #fff; padding: 60px 40px; border-radius: 30px; box-shadow: 0 20px 60px rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.05); }
+        .roi-value { font-size: 4rem; color: var(--color-primary); margin: 20px 0; letter-spacing: -2px; }
+
+        /* FOOTER */
+        footer { background: #fcfcfc; border-top: 1px solid #f0f0f0; padding: 80px 0 30px; margin-top: 60px; }
+        .footer-title { font-size: 18px; margin-bottom: 25px; }
+        .footer-list li { margin-bottom: 12px; }
+        .footer-list a { color: #666; font-size: 15px; }
+        .footer-list a:hover { color: var(--color-primary); padding-left: 5px; }
+
+        /* ANIMACIONES SIMPLES */
+        .animate-up { opacity: 0; transform: translateY(30px); transition: 0.8s ease-out; }
+        .animate-up.visible { opacity: 1; transform: translateY(0); }
+
+        /* RESPONSIVE */
+        @media(max-width: 991px) {
+            .banner-title { font-size: 2.5rem; }
+            .h5_banner-area { padding: 60px 0; }
+            .mobile-menu-container { position: absolute; top: 100%; left: 0; width: 100%; background: white; padding: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); display: none; }
+            .mobile-menu-container.show { display: block; animation: fadeIn 0.3s; }
+            .main-menu { display: none !important; }
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+
+<body>
+
+    <!-- === HEADER === -->
+    <header class="h5_header-area">
+        <div class="container">
+            <div class="row align-items-center justify-content-between">
+                <!-- LOGO -->
+                <div class="col-lg-3 col-6">
+                    <a href="index.html" class="logo-text">
+                        FISIO<span>TOOL</span>
+                    </a>
+                </div>
+
+                <!-- MENU DESKTOP -->
+                <div class="col-lg-6 d-none d-lg-block text-center">
+                    <nav class="main-menu">
+                        <a href="#roi">Calculadora ROI</a>
+                        <a href="#pain">Diagnóstico</a>
+                        <a href="onboarding.html">Empezar</a>
+                    </nav>
+                </div>
+
+                <!-- ACCIONES & MOBILE TOGGLE -->
+                <div class="col-lg-3 col-6 text-end">
+                    <div class="d-none d-lg-inline-block">
+                        <a href="login.html" class="btn-outline-custom me-2">Entrar</a>
+                        <a href="onboarding.html" class="btn-theme">Prueba Gratis</a>
+                    </div>
+                    
+                    <!-- Botón Hamburguesa -->
+                    <button class="btn d-lg-none fs-2 text-dark" onclick="toggleMobileMenu()">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- MENU MOVIL (Oculto por defecto) -->
+            <div id="mobileMenu" class="mobile-menu-container text-center">
+                <div class="d-flex flex-column gap-3">
+                    <a href="#roi" class="fw-bold text-dark">Calculadora ROI</a>
+                    <a href="#pain" class="fw-bold text-dark">Diagnóstico</a>
+                    <a href="login.html" class="btn btn-light w-100">Acceso Clientes</a>
+                    <a href="onboarding.html" class="btn btn-primary w-100">Prueba Gratis</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- === HERO SECTION === -->
+        <section class="h5_banner-area text-center">
+            <div class="container animate-up">
+                <span class="banner-subtitle">La Revolución de la Gestión Clínica</span>
+                <h1 class="banner-title">El Recepcionista que <br> <span style="color:var(--color-primary)">Te Libera</span></h1>
+                <p class="banner-desc">
+                    Automatización 24/7, IA que cualifica pacientes y reduce cancelaciones.
+                    La tranquilidad de no tener que gestionar citas manualmente.
+                </p>
+                <div class="d-flex justify-content-center gap-3 flex-wrap">
+                    <a href="#roi" class="btn-theme" style="background:#1e2022;">
+                        Calcular Ahorro <i class="fa-solid fa-calculator"></i>
+                    </a>
+                    <a href="onboarding.html" class="btn-theme">
+                        Configurar Ahora <i class="fa-solid fa-arrow-right"></i>
+                    </a>
+                </div>
+                
+                <!-- Dashboard Preview -->
+                <div class="mt-5 pt-3 animate-up">
+                    <img src="https://ui-kit.co/files/shot_clean_saas.jpg" style="max-width: 90%; border-radius: 15px; box-shadow: 0 20px 50px rgba(0,0,0,0.15);" alt="Dashboard Preview">
+                    <p class="small text-muted mt-2 fst-italic">* Interfaz simplificada para uso inmediato</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- === PAIN POINTS (Diagnóstico) === -->
+        <section class="section-padding py-5" id="pain">
+            <div class="container pt-5">
+                <div class="row justify-content-center text-center mb-5 animate-up">
+                    <div class="col-lg-8">
+                        <span class="text-danger fw-bold text-uppercase small">Diagnóstico Urgente</span>
+                        <h2 class="mt-2">¿Te suena esto en tu clínica?</h2>
+                        <p class="text-muted">Detectamos los puntos que drenan tu rentabilidad.</p>
+                    </div>
+                </div>
+
+                <div class="row g-4">
+                    <!-- Item 1 -->
+                    <div class="col-md-4 animate-up">
+                        <div class="service-card">
+                            <div class="icon-box"><i class="fa-solid fa-user-xmark"></i></div>
+                            <h4>No-Shows</h4>
+                            <p class="text-muted">Pacientes que no aparecen y pierdes dinero. Solucionado con recordatorios inteligentes y reservas.</p>
+                        </div>
+                    </div>
+                    <!-- Item 2 -->
+                    <div class="col-md-4 animate-up">
+                        <div class="service-card">
+                            <div class="icon-box"><i class="fa-solid fa-mobile-screen-button"></i></div>
+                            <h4>Esclavitud al Móvil</h4>
+                            <p class="text-muted">Responder Whatsapps un domingo por la noche. Nuestra IA responde por ti 24/7.</p>
+                        </div>
+                    </div>
+                    <!-- Item 3 -->
+                    <div class="col-md-4 animate-up">
+                        <div class="service-card">
+                            <div class="icon-box"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+                            <h4>Caos Financiero</h4>
+                            <p class="text-muted">Gestión manual de efectivo y facturas. FisioTool lo digitaliza todo en un clic.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- === ROI / AHORRO === -->
+        <section class="py-5" id="roi" style="background-color: #f9fbfd;">
+            <div class="container py-5">
+                <div class="row justify-content-center">
+                    <div class="col-lg-10">
+                        <div class="roi-card text-center animate-up">
+                            <div class="row align-items-center">
+                                <div class="col-lg-6 text-start">
+                                    <h5 class="text-muted text-uppercase fw-bold mb-3">Resultados Reales</h5>
+                                    <h2 class="mb-3">Gana Dinero. <br>Recupera Tiempo.</h2>
+                                    <p class="text-muted">Basado en evitar el 80% de cancelaciones y ahorrar 10h/semana de gestión.</p>
+                                    <a href="onboarding.html" class="btn btn-outline-dark rounded-pill px-4 mt-3">Ver detalles</a>
+                                </div>
+                                <div class="col-lg-6">
+                                    <div class="p-4 bg-light rounded-4 border">
+                                        <p class="small text-uppercase text-muted fw-bold mb-0">Ahorro Anual Estimado</p>
+                                        <!-- ID crucial para JS de simulador -->
+                                        <h2 id="valorAhorro" class="roi-value fw-bolder">3.250 €</h2>
+                                        <small class="text-success fw-bold"><i class="fa-solid fa-arrow-trend-up"></i> Rentabilidad positiva desde el mes 1</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- === FOOTER === -->
+    <footer>
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-4 mb-4">
+                    <h3 class="mb-3">FISIO<span style="color:var(--color-accent)">TOOL</span></h3>
+                    <p class="text-muted pe-4">La plataforma todo en uno que transforma clínicas manuales en negocios digitales escalables.</p>
+                </div>
+                <div class="col-lg-2 col-6">
+                    <h5 class="footer-title">Producto</h5>
+                    <ul class="list-unstyled footer-list">
+                        <li><a href="onboarding.html">Empezar</a></li>
+                        <li><a href="login.html">Iniciar Sesión</a></li>
+                        <li><a href="#">Calculadora</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-2 col-6">
+                    <h5 class="footer-title">Soporte</h5>
+                    <ul class="list-unstyled footer-list">
+                        <li><a href="#">Ayuda Técnica</a></li>
+                        <li><a href="#">Guía de Uso</a></li>
+                        <li><a href="#">Contacto</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-4">
+                    <div class="p-4 rounded-3" style="background: #eef4ff;">
+                        <h6 class="fw-bold mb-2">¿Necesitas ayuda?</h6>
+                        <p class="small text-muted mb-3">Hablemos para configurar tu cuenta.</p>
+                        <a href="mailto:info@fisiotool.com" class="text-primary fw-bold">info@fisiotool.com</a>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-5 pt-4 border-top">
+                <div class="col-12 text-center text-muted small">
+                    &copy; 2024 FisioTool Cloud System. Todos los derechos reservados.
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- SCRIPT SENCILLO DE INTERACCIÓN (Sin librerías externas rotas) -->
+    <script>
+        // 1. Menú Móvil
+        function toggleMobileMenu() {
+            document.getElementById('mobileMenu').classList.toggle('show');
+        }
+
+        // 2. Animaciones al hacer Scroll (Intersection Observer)
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.animate-up').forEach(el => observer.observe(el));
+
+        // 3. Pequeño efecto dinámico para el valor del ROI
+        window.onload = function() {
+            // Simulamos que calcula un poco
+            const element = document.getElementByI

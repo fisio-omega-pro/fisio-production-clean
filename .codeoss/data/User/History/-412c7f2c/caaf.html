@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración de Clínica - FisioTool</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #007bff; --success: #28a745; --error: #dc3545; --bg: #f4f7f6; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .card { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); width: 100%; max-width: 600px; }
+        
+        /* Barra de Progreso */
+        .progress-container { display: flex; justify-content: space-between; margin-bottom: 40px; position: relative; }
+        .progress-line { position: absolute; top: 15px; left: 0; width: 100%; height: 3px; background: #eee; z-index: 1; }
+        .progress-fill { position: absolute; top: 15px; left: 0; width: 0%; height: 3px; background: var(--primary); z-index: 2; transition: 0.4s ease; }
+        .step-dot { width: 34px; height: 34px; background: #fff; border: 3px solid #eee; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 3; font-weight: 700; color: #999; transition: 0.3s; }
+        .step-dot.active { border-color: var(--primary); color: var(--primary); }
+        .step-dot.completed { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+        h2 { text-align: center; color: #111; margin: 0 0 10px 0; font-size: 24px; }
+        p.subtitle { text-align: center; color: #666; margin-bottom: 30px; font-size: 15px; }
+        
+        .step { display: none; animation: slideIn 0.4s ease-out; }
+        .step.active { display: block; }
+        
+        label { display: block; margin-top: 20px; font-weight: 600; font-size: 14px; color: #333; margin-bottom: 8px; }
+        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 15px; font-family: inherit; transition: 0.2s; }
+        input:focus, select:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(0,123,255,0.1); }
+        input.invalid { border-color: var(--error); background: #fffcfc; }
+
+        /* Estilo para los selectores múltiples y checkboxes */
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .option-card { border: 1px solid #ddd; padding: 12px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: 0.2s; }
+        .option-card:hover { border-color: var(--primary); background: #f0f7ff; }
+        .option-card.selected { background: #e3f2fd; border-color: var(--primary); color: var(--primary); font-weight: 600; }
+        .option-card input { width: auto; margin: 0; display: none; }
+
+        /* Sección Banderas Rojas */
+        .flags-box { border: 1px solid #ffebee; background: #fff5f5; padding: 15px; border-radius: 10px; margin-top: 10px; }
+
+        /* Botones */
+        .btn-box { margin-top: 40px; display: flex; justify-content: space-between; gap: 15px; }
+        button { padding: 15px 30px; border: none; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 16px; transition: 0.3s; flex: 1; }
+        .btn-next { background: var(--primary); color: white; }
+        .btn-next:hover { background: #0056b3; transform: translateY(-2px); }
+        .btn-prev { background: #eee; color: #555; }
+        .btn-finish { background: var(--success); color: white; }
+
+        @keyframes slideIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="progress-container">
+        <div class="progress-line"></div>
+        <div class="progress-fill" id="progressFill"></div>
+        <div class="step-dot active" id="dot1">1</div>
+        <div class="step-dot" id="dot2">2</div>
+        <div class="step-dot" id="dot3">3</div>
+    </div>
+
+    <form id="regForm">
+        <!-- PASO 1: CUENTA -->
+        <div class="step active" id="step1">
+            <h2>Datos de Acceso</h2>
+            <p class="subtitle">Configura tu perfil de administrador.</p>
+            
+            <label>Nombre de la Clínica *</label>
+            <input type="text" name="nombre_clinica" required placeholder="Ej: Clínica Murillo">
+            
+            <label>Email Profesional *</label>
+            <input type="email" name="email" required placeholder="fisio@ejemplo.com">
+            
+            <label>Contraseña *</label>
+            <input type="password" name="password" required minlength="6" placeholder="Mínimo 6 caracteres">
+
+            <label>Código de Invitación / Referido</label>
+            <input type="text" name="codigo_invitacion" placeholder="Si tienes un código de descuento">
+            
+            <div class="btn-box">
+                <button type="button" class="btn-next" onclick="validateAndNext(1)">Continuar ➡</button>
+            </div>
+        </div>
+
+        <!-- PASO 2: UBICACIÓN COMPLETA -->
+        <div class="step" id="step2">
+            <h2>Ubicación</h2>
+            <p class="subtitle">¿Dónde deben acudir tus pacientes?</p>
+            
+            <div style="display: grid; grid-template-columns: 3fr 1fr; gap: 15px;">
+                <div><label>Calle / Avenida *</label><input type="text" name="calle" required></div>
+                <div><label>Nº *</label><input type="text" name="numero" required></div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div><label>Código Postal (CP) *</label><input type="text" name="cp" required></div>
+                <div><label>Ciudad *</label><input type="text" name="ciudad" required></div>
+            </div>
+            
+            <label>Provincia *</label>
+            <input type="text" name="provincia" required placeholder="Ej: Madrid">
+            
+            <div class="btn-box">
+                <button type="button" class="btn-prev" onclick="goToStep(1)">⬅ Atrás</button>
+                <button type="button" class="btn-next" onclick="validateAndNext(2)">Siguiente Paso ➡</button>
+            </div>
+        </div>
+
+        <!-- PASO 3: CONFIGURACIÓN PRO -->
+        <div class="step" id="step3">
+            <h2>Reglas de Negocio</h2>
+            <p class="subtitle">Enseña a Ana cómo gestionar tu agenda.</p>
+            
+            <div style="display: flex; gap: 15px;">
+                <div style="flex:1"><label>Precio Sesión (€) *</label><input type="number" name="precio" value="50" required></div>
+                <div style="flex:1"><label>Duración (min) *</label><input type="number" name="duracion" value="45" required></div>
+            </div>
+
+            <label>¿Cierras al mediodía? (14:00h - 16:00h)</label>
+            <div class="options-grid">
+                <div class="option-card selected" onclick="selectCard(this)">
+                    Sí, descanso <input type="radio" name="descanso_mediodia" value="si" checked>
+                </div>
+                <div class="option-card" onclick="selectCard(this)">
+                    No, jornada continua <input type="radio" name="descanso_mediodia" value="no">
+                </div>
+            </div>
+
+            <label>Métodos de Pago</label>
+            <div class="options-grid">
+                <div class="option-card selected" onclick="toggleCard(this)">
+                    Efectivo <input type="checkbox" name="pago_efectivo" checked>
+                </div>
+                <div class="option-card" onclick="toggleCard(this)">
+                    Tarjeta <input type="checkbox" name="pago_tarjeta">
+                </div>
+            </div>
+
+            <label>🚩 Filtros de Seguridad (Banderas Rojas)</label>
+            <select name="banderas_rojas" multiple style="height: 100px;">
+                <option value="accidente trafico">Accidentes de Tráfico</option>
+                <option value="seguro medico">Seguros Médicos (Mutuas)</option>
+                <option value="menor de edad">Menores de edad</option>
+                <option value="suelo pelvico">Suelo Pélvico / Embarazo</option>
+            </select>
+
+            <div style="margin-top:25px; padding: 15px; background: #f9f9f9; border-radius: 12px; display: flex; gap: 10px; align-items: flex-start;">
+                <input type="checkbox" id="legalCheck" required style="width: 20px; height: 20px;">
+                <span style="font-size: 13px; color: #666; line-height: 1.4;">
+                    Acepto la <a href="#" style="color: var(--primary);">Política de Privacidad</a> y los términos legales de Fisiotool.
+                </span>
+            </div>
+
+            <div class="btn-box">
+                <button type="button" class="btn-prev" onclick="goToStep(2)">⬅ Atrás</button>
+                <button type="submit" class="btn-finish">CREAR CLÍNICA 🚀</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Lógica visual de las tarjetas seleccionables
+    function selectCard(card) {
+        const name = card.querySelector('input').name;
+        document.querySelectorAll(`input[name="${name}"]`).forEach(i => i.parentElement.classList.remove('selected'));
+        card.classList.add('selected');
+        card.querySelector('input').checked = true;
+    }
+
+    function toggleCard(card) {
+        const input = card.querySelector('input');
+        input.checked = !input.checked;
+        card.classList.toggle('selected', input.checked);
+    }
+
+    // Validación de Pasos
+    function validateAndNext(stepId) {
+        const currentStep = document.getElementById('step' + stepId);
+        const inputs = currentStep.querySelectorAll('input[required]');
+        let valid = true;
+
+        inputs.forEach(i => {
+            if(!i.value.trim()) { i.classList.add('invalid'); valid = false; }
+            else { i.classList.remove('invalid'); }
+        });
+
+        if(valid) {
+            goToStep(stepId + 1);
+        } else {
+            alert("Por favor, rellena los campos marcados.");
+        }
+    }
+
+    function goToStep(stepId) {
+        document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+        document.getElementById('step' + stepId).classList.add('active');
+        
+        // Actualizar UI de progreso
+        document.querySelectorAll('.step-dot').forEach((dot, idx) => {
+            dot.classList.toggle('active', (idx + 1) === stepId);
+            dot.classList.toggle('completed', (idx + 1) < stepId);
+        });
+        document.getElementById('progressFill').style.width = ((stepId - 1) * 50) + "%";
+    }
+
+    // Envío del Formulario
+    document.getElementById('regForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        if(!document.getElementById('legalCheck').checked) {
+            alert("Debes aceptar los términos legales.");
+            return;
+        }
+
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+
+        // Procesar Arrays Manuales
+        data.metodos_pago = [];
+        if(e.target.pago_efectivo.checked) data.metodos_pago.push('Efectivo');
+        if(e.target.pago_tarjeta.checked) data.metodos_pago.push('Tarjeta');
+
+        // Procesar Banderas Rojas (Select Multiple)
+        const select = e.target.banderas_rojas;
+        data.banderas_rojas = [...select.options].filter(o => o.selected).map(o => o.value).join(',');
+
+        const btn = e.target.querySelector('.btn-finish');
+        btn.innerHTML = "Generando tu clínica...";
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('/api/register', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+            
+            if(result.success) {
+                window.location.href = result.dashboard_url;
+            } else {
+                alert("Error: " + result.error);
+                btn.disabled = false;
+                btn.innerHTML = "CREAR CLÍNICA 🚀";
+            }
+        } catch(err) {
+            alert("Error de conexión con el servidor.");
+            btn.disabled = false;
+        }
+    });
+</script>
+
+</body>
+</html>

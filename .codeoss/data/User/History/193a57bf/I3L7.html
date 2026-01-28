@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title id="pageTitle">Cita Previa</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #25D366; --bg: #E5DDD5; --my-msg: #DCF8C6; --their-msg: #FFFFFF; }
+        body { font-family: 'Inter', sans-serif; margin: 0; background-color: #d1d7db; display: flex; justify-content: center; height: 100vh; overflow: hidden; }
+        
+        /* Contenedor Principal */
+        #app { width: 100%; max-width: 450px; background: var(--bg); display: flex; flex-direction: column; position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
+        
+        /* Cabecera */
+        #header { 
+            background: #ffffff; padding: 10px 15px; display: flex; align-items: center; 
+            border-bottom: 1px solid #ddd; z-index: 10; cursor: pointer;
+        }
+        #headerInfo { flex: 1; margin-left: 10px; }
+        #clinicLogo { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 1px solid #eee; }
+        h2 { margin: 0; font-size: 16px; color: #333; }
+        #statusText { font-size: 12px; color: #666; display: flex; align-items: center; gap: 5px; }
+        .dot { width: 8px; height: 8px; background: #ccc; border-radius: 50%; display: inline-block; }
+        .dot.open { background: #25D366; }
+        
+        /* Chat */
+        #chatBox { flex: 1; padding: 20px; overflow-y: auto; background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); background-repeat: repeat; display: flex; flex-direction: column; gap: 10px; }
+        
+        .message { max-width: 80%; padding: 10px 14px; border-radius: 7px; font-size: 14px; line-height: 1.4; position: relative; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
+        .ana { background: var(--their-msg); align-self: flex-start; border-top-left-radius: 0; }
+        .user { background: var(--my-msg); align-self: flex-end; border-top-right-radius: 0; }
+        .time { font-size: 10px; color: #999; float: right; margin-top: 5px; margin-left: 10px; }
+
+        /* Input */
+        #inputArea { background: #f0f0f0; padding: 10px; display: flex; align-items: center; gap: 8px; }
+        #patientTlf { width: 30%; padding: 12px; border: none; border-radius: 20px; font-size: 14px; outline: none; text-align: center; }
+        #messageInput { flex: 1; padding: 12px; border: none; border-radius: 20px; font-size: 14px; outline: none; }
+        #sendButton { background: var(--primary); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        
+        /* Modal Info */
+        #infoModal { display: none; position: absolute; top: 65px; left: 0; width: 100%; background: rgba(255,255,255,0.98); backdrop-filter: blur(5px); padding: 20px; box-sizing: border-box; border-bottom: 1px solid #ddd; z-index: 5; animation: slideDown 0.3s; }
+        @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Cabecera -->
+        <div id="header" onclick="toggleInfo()">
+            <img id="clinicLogo" src="" alt="Logo">
+            <div id="headerInfo">
+                <h2 id="clinicName">Cargando...</h2>
+                <div id="statusText"><span class="dot" id="statusDot"></span> <span id="statusLabel">Ver info</span></div>
+            </div>
+            <div style="font-size: 20px; color: #007bff;">ⓘ</div>
+        </div>
+
+        <!-- Info Oculta -->
+        <div id="infoModal">
+            <p><strong>📞 Teléfono:</strong> <a id="infoPhone" href="#">...</a></p>
+            <p><strong>📍 Dirección:</strong> <span id="infoAddress">...</span></p>
+            <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
+            <div id="scheduleContainer"></div>
+        </div>
+
+        <div id="chatBox"></div>
+
+        <div id="inputArea">
+            <input type="tel" id="patientTlf" placeholder="Tu Móvil">
+            <input type="text" id="messageInput" placeholder="Escribe aquí..." disabled>
+            <button id="sendButton" disabled>➤</button>
+        </div>
+    </div>
+
+    <script src="/landingbot.js"></script>
+    <script>
+        function toggleInfo() {
+            const m = document.getElementById('infoModal');
+            m.style.display = m.style.display === 'block' ? 'none' : 'block';
+        }
+    </script>
+</body>
+</html>

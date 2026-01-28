@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FisioTool | Módulo de Prospección IA</title>
+    
+    <!-- FUENTES Y FRAMEWORK (Carga Segura) -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <!-- ESTILOS "DOODLE" SYSTEM (Consistentes con tu Dashboard) -->
+    <style>
+        :root {
+            --color-primary: #237bfd;
+            --color-heading: #1e2022;
+            --color-text: #555555;
+            --bg-body: #f4f7fa;
+            --radius-card: 16px;
+            --shadow-card: 0 10px 30px rgba(0,0,0,0.04);
+        }
+
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-body); color: var(--color-text); }
+        h1, h2, h3, h4, h5 { font-family: 'Poppins', sans-serif; color: var(--color-heading); font-weight: 600; }
+
+        /* HEADER / NAVBAR */
+        .h5_header-area { background: #fff; box-shadow: 0 4px 20px rgba(0,0,0,0.03); padding: 15px 0; position: sticky; top: 0; z-index: 1000; }
+        .logo-text { font-size: 24px; font-weight: 800; color: var(--color-heading); text-decoration: none; }
+        .logo-text span { color: var(--color-primary); }
+        .nav-link-custom { color: #555; font-weight: 500; text-decoration: none; margin: 0 15px; transition: 0.3s; }
+        .nav-link-custom:hover { color: var(--color-primary); }
+        .nav-link-custom.active { color: var(--color-primary); font-weight: 700; }
+
+        /* HERO BREADCRUMB */
+        .page-hero { padding: 50px 0 40px; text-align: center; }
+        .hero-title { font-size: 32px; font-weight: 800; margin-bottom: 10px; }
+        .hero-subtitle { color: #888; max-width: 600px; margin: 0 auto; }
+
+        /* CARDS */
+        .doodle-card { 
+            background: #fff; border-radius: var(--radius-card); 
+            padding: 30px; border: 1px solid rgba(0,0,0,0.04); 
+            box-shadow: var(--shadow-card); transition: all 0.3s ease; 
+            height: 100%; position: relative;
+        }
+        .doodle-card:hover { transform: translateY(-5px); box-shadow: 0 15px 40px rgba(0,0,0,0.08); }
+        .card-title-head { font-size: 18px; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+
+        /* UPLOAD ZONE */
+        .drag-zone {
+            border: 2px dashed #dae1e7; background: #fafbfc;
+            border-radius: 12px; padding: 30px 20px; text-align: center;
+            cursor: pointer; transition: 0.3s;
+        }
+        .drag-zone:hover { border-color: var(--color-primary); background: #f0f7ff; color: var(--color-primary); }
+        .drag-zone.drag-active { border-color: var(--color-primary); background: #eef5ff; transform: scale(1.02); }
+
+        /* KPIs */
+        .kpi-stat { text-align: center; margin: 20px 0; padding: 20px; background: #f8f9fa; border-radius: 12px; }
+        .kpi-value { font-size: 2.5rem; font-weight: 800; line-height: 1; display: block; }
+        .kpi-label { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; opacity: 0.7; }
+
+        /* CONSOLA */
+        .terminal-box {
+            background: #1e1e1e; color: #00ff9d; font-family: 'Courier New', monospace;
+            padding: 20px; border-radius: 10px; height: 250px; overflow-y: auto;
+            font-size: 13px; border: 1px solid #333; box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+        }
+        .terminal-box::-webkit-scrollbar { width: 8px; }
+        .terminal-box::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+
+        /* BOTONES */
+        .btn-doodle { 
+            background: var(--color-heading); color: white; border: none; 
+            padding: 10px 25px; border-radius: 50px; width: 100%; 
+            font-weight: 600; transition: 0.3s;
+        }
+        .btn-doodle:hover:not(:disabled) { background: var(--color-primary); transform: translateY(-2px); }
+        .btn-doodle:disabled { background: #e0e0e0; cursor: not-allowed; }
+        
+        .btn-whatsapp { background: #25d366; }
+        .btn-whatsapp:hover:not(:disabled) { background: #1ebc57; }
+        
+        .btn-email { background: #00a8e8; }
+        .btn-email:hover:not(:disabled) { background: #0096cf; }
+
+        /* LOADER OVERLAY */
+        #loader { 
+            position: fixed; inset: 0; background: rgba(255,255,255,0.95); 
+            z-index: 9999; display: none; align-items: center; justify-content: center; flex-direction: column; 
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- LOADER OVERLAY (Para Feedback de Subida) -->
+    <div id="loader">
+        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
+        <h5 class="mt-3 text-dark fw-bold animate-pulse">ANALIZANDO DATOS CON IA...</h5>
+    </div>
+
+    <!-- HEADER (Consistente con Dashboard) -->
+    <header class="h5_header-area">
+        <div class="container">
+            <div class="row align-items-center">
+                <!-- Logo -->
+                <div class="col-6 col-md-3">
+                    <a href="dashboard.html" class="logo-text">FISIO<span>TOOL</span></a>
+                </div>
+                <!-- Nav Desktop -->
+                <div class="col-md-6 d-none d-md-block text-center">
+                    <nav>
+                        <a href="dashboard.html" class="nav-link-custom">Dashboard</a>
+                        <a href="prospector.html" class="nav-link-custom active">Campañas IA</a>
+                        <a href="#" class="nav-link-custom">Configuración</a>
+                    </nav>
+                </div>
+                <!-- Acciones -->
+                <div class="col-6 col-md-3 text-end">
+                    <a href="dashboard.html" class="btn btn-sm btn-outline-dark rounded-pill">
+                        <i class="fa-solid fa-arrow-left me-1"></i> Volver
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container pb-5">
+        
+        <!-- HEADER PÁGINA -->
+        <div class="page-hero animate__animated animate__fadeInDown">
+            <span class="badge bg-primary bg-opacity-10 text-primary mb-2">AOLS SYSTEM v2.0</span>
+            <h1 class="hero-title">Centro de Prospección Inteligente</h1>
+            <p class="hero-subtitle">Importa tus leads. El sistema segmentará automáticamente entre candidatos viables para WhatsApp y Email Marketing.</p>
+        </div>
+
+        <div class="row gy-4">
+            
+            <!-- PASO 1: SUBIDA DATOS -->
+            <div class="col-lg-4">
+                <div class="doodle-card">
+                    <div class="card-title-head">
+                        <span class="fa-stack text-primary" style="font-size:12px;">
+                             <i class="fa-solid fa-circle fa-stack-2x opacity-25"></i>
+                             <i class="fa-solid fa-1 fa-stack-1x"></i>
+                        </span>
+                        Ingesta de Datos
+                    </div>
+                    
+                    <p class="small text-muted mb-4">El algoritmo limpiará duplicados y verificará números móviles.</p>
+
+                    <!-- Zona Drop -->
+                    <div class="drag-zone" id="dropArea">
+                        <i class="fa-solid fa-cloud-arrow-up fa-3x mb-3 text-secondary opacity-50"></i>
+                        <h6 class="fw-bold text-dark">Arrastra tu CSV aquí</h6>
+                        <span class="small text-muted d-block mb-3">o haz clic para buscar</span>
+                        
+                        <input type="file" id="fileInput" accept=".csv" style="display:none">
+                        
+                        <div id="file-feedback" class="small fw-bold text-primary mt-2"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PASO 2: ESTRATEGIA MÓVIL (WHATSAPP) -->
+            <div class="col-lg-4">
+                <div class="doodle-card">
+                    <div class="card-title-head text-success">
+                         <span class="fa-stack" style="font-size:12px;">
+                             <i class="fa-solid fa-circle fa-stack-2x opacity-25"></i>
+                             <i class="fa-solid fa-2 fa-stack-1x"></i>
+                        </span>
+                        Canal WhatsApp
+                    </div>
+
+                    <div class="kpi-stat">
+                        <span class="kpi-value text-success" id="val-wa">0</span>
+                        <span class="kpi-label text-success">Leads Válidos</span>
+                    </div>
+
+                    <button id="btnWa" class="btn-doodle btn-whatsapp mb-3" disabled onclick="lanzarWhatsapp()">
+                        <i class="fa-brands fa-whatsapp me-2"></i> INICIAR BARRIDO
+                    </button>
+                    <div class="text-center">
+                        <small class="text-muted" style="font-size:11px;">
+                            <i class="fa-solid fa-shield-cat"></i> Coste Meta API aplicable por plantilla.
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PASO 3: ESTRATEGIA DESKTOP (EMAIL) -->
+            <div class="col-lg-4">
+                <div class="doodle-card">
+                    <div class="card-title-head text-info">
+                         <span class="fa-stack" style="font-size:12px;">
+                             <i class="fa-solid fa-circle fa-stack-2x opacity-25"></i>
+                             <i class="fa-solid fa-3 fa-stack-1x"></i>
+                        </span>
+                        Canal Email
+                    </div>
+
+                    <div class="kpi-stat">
+                        <span class="kpi-value text-info" id="val-mail">0</span>
+                        <span class="kpi-label text-info">Emails Válidos</span>
+                    </div>
+
+                    <button id="btnEmail" class="btn-doodle btn-email mb-3" disabled onclick="lanzarEmail()">
+                        <i class="fa-regular fa-paper-plane me-2"></i> LANZAR SECUENCIA
+                    </button>
+                    <div class="text-center">
+                        <small class="text-muted" style="font-size:11px;">
+                            <i class="fa-solid fa-server"></i> Envío seguro vía SMTP SiteGround
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONSOLA DE REGISTRO (LOGS) -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <h6 class="ms-2 mb-2 fw-bold text-muted text-uppercase small">
+                    <i class="fa-solid fa-microchip me-2"></i>Monitor de Operaciones
+                </h6>
+                <div class="terminal-box" id="console-log">
+                    <span class="opacity-50">> Sistema Neural listo. Esperando archivo de datos...</span>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="text-center py-4 text-muted small border-top bg-white mt-auto">
+        &copy; 2024 FisioTool - Neural Marketing Module
+    </footer>
+
+
+    <!-- ======================= LÓGICA DE NEGOCIO (Preservada) ======================= -->
+    <script>
+        const dropArea = document.getElementById('dropArea');
+        const fileInput = document.getElementById('fileInput');
+        const logBox = document.getElementById('console-log');
+        
+        let dbLeads = []; // Memoria temporal del navegador
+
+        // UTILS
+        function log(msg, type='info') {
+            const time = new Date().toLocaleTimeString();
+            let color = '#00ff9d';
+            if(type === 'error') color = '#ff5f5f';
+            if(type === 'success') color = '#5eff88';
+
+            logBox.innerHTML += `<div style="color:${color}">[${time}] ${msg}</div>`;
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        // --- MANEJADORES DE ARRASTRAR Y SOLTAR ---
+        dropArea.addEventListener('click', () => fileInput.click());
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropArea.classList.add('drag-active');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropArea.classList.remove('drag-active');
+            }, false);
+        });
+        
+        dropArea.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if(files.length) handleFiles(files[0]);
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            if(e.target.files.length) handleFiles(e.target.files[0]);
+        });
+
+        // --- LOGICA DE NEGOCIO ---
+
+        // 1. SUBIDA DE ARCHIVO
+        function handleFiles(file) {
+            log(`> Iniciando lectura de: ${file.name}...`);
+            document.getElementById('file-feedback').innerText = file.name;
+            uploadFile(file);
+        }
+
+        async function uploadFile(file) {
+            // Loader Visual
+            document.getElementById('loader').style.display = 'flex';
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                // LLAMADA AL SERVIDOR ORIGINAL
+                const res = await fetch('/aols/upload-leads', { method: 'POST', body: formData });
+                const data = await res.json();
+                
+                if(data.status === 'success') {
+                    // Actualizamos UI
+                    animarValor('val-wa', data.analisis.whatsapp_candidatos);
+                    animarValor('val-mail', data.analisis.email_only);
+                    
+                    // Activamos botones si hay leads
+                    if(data.analisis.whatsapp_candidatos > 0) document.getElementById('btnWa').disabled = false;
+                    if(data.analisis.email_only > 0) document.getElementById('btnEmail').disabled = false;
+
+                    log(`✅ ÉXITO: Archivo procesado. ${data.total} filas leídas.`, 'success');
+                    log(`> Datos: ${data.analisis.whatsapp_candidatos} móviles detectados, ${data.analisis.email_only} correos puros.`);
+                }
+            } catch(e) { 
+                log("> ERROR CRÍTICO AL SUBIR: " + e.message, 'error');
+                alert("Error de conexión con el servidor AOLS.");
+            } finally {
+                document.getElementById('loader').style.display = 'none';
+            }
+        }
+
+        // 2. CAMPAÑA WHATSAPP
+        async function lanzarWhatsapp() {
+            if(!confirm("⚠️ ¿Confirmas el envío masivo?\nEsto consumirá créditos de Meta.")) return;
+            
+            log("> Solicitando token de envío masivo a Meta API...");
+            
+            const btn = document.getElementById('btnWa');
+            const ogText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Conectando...';
+            btn.disabled = true;
+
+            try {
+                // Endpoint original conservado
+                const res = await fetch('/aols/lanzar-campana', {
+                    method: 'POST', 
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({cantidad: 50}) // Lote ejemplo
+                });
+                const data = await res.json();
+                
+                if(data.status !== 'error') {
+                     log(`🚀 ENVÍO COMPLETADO: ${data.enviados_wa} mensajes entregados.`, 'success');
+                } else {
+                     log(`> WARN: ${data.message}`, 'error');
+                }
+                
+            } catch (e) {
+                log("> ERROR CONEXIÓN WHATSAPP: " + e.message, 'error');
+            } finally {
+                btn.innerHTML = ogText;
+                btn.disabled = false;
+            }
+        }
+
+        // 3. CAMPAÑA EMAIL (SMTP)
+        async function lanzarEmail() {
+            // Simulador seguro para testing
+            const testEmail = prompt("MODO DEBUG: Introduce tu email real para verificar entrega SiteGround:");
+            if(!testEmail || !testEmail.includes('@')) {
+                log("> Cancelado por el usuario.");
+                return;
+            }
+
+            log(`> Iniciando handshake SMTP SiteGround para ${testEmail}...`);
+            const btn = document.getElementById('btnEmail');
+            const ogText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/aols/enviar-email-frio', {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({
+                        emailDestino: testEmail, 
+                        nombreCliente: "Paciente Prueba", 
+                        tipoDolor: "general" 
+                    })
+                });
+                const data = await res.json();
+
+                if(data.status === 'sent') {
+                    log(`✅ SMTP 250 OK: Email entregado a ${testEmail}. ID: ${data.id}`, 'success');
+                    alert(`✅ Enviado con éxito a ${testEmail}. Revisa tu Spam si no lo ves.`);
+                } else {
+                    log(`❌ RECHAZADO: ${data.msg || data.reason}`, 'error');
+                }
+            } catch(e) {
+                log(`❌ ERROR RED: ${e.message}`, 'error');
+            } finally {
+                btn.innerHTML = ogText;
+                btn.disabled = false;
+            }
+        }
+
+        // Animación sencilla de números
+        function animarValor(id, end) {
+            const obj = document.getElementById(id);
+            let start = 0;
+            if (start === end) return;
+            let duration = 1000;
+            let range = end - start;
+            let current = start;
+            let increment = end > start ? 1 : -1;
+            let stepTime = Math.abs(Math.floor(duration / range));
+            let timer = setInterval(function() {
+                current += increment;
+                obj.innerHTML = current;
+                if (current == end) {
+                    clearInterval(timer);
+                }
+            }, stepTime);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración Profesional - FisioTool</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #007bff;
+            --primary-hover: #0056b3;
+            --success: #28a745;
+            --error: #dc3545;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: var(--text-dark);
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 50px;
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 650px;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        /* Barra de Progreso */
+        .progress-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .progress-line {
+            position: absolute;
+            top: 17px;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: #e2e8f0;
+            z-index: 1;
+        }
+
+        .progress-fill {
+            position: absolute;
+            top: 17px;
+            left: 0;
+            height: 4px;
+            background: var(--primary);
+            z-index: 2;
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            width: 0%;
+        }
+
+        .step-dot {
+            width: 36px;
+            height: 36px;
+            background: #fff;
+            border: 3px solid #e2e8f0;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 3;
+            font-weight: 700;
+            font-size: 14px;
+            color: #94a3b8;
+            transition: 0.3s;
+        }
+
+        .step-dot.active { border-color: var(--primary); color: var(--primary); transform: scale(1.15); }
+        .step-dot.completed { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+        h2 { text-align: center; margin: 0 0 10px 0; font-size: 26px; font-weight: 700; }
+        p.subtitle { text-align: center; color: var(--text-muted); margin-bottom: 35px; font-size: 15px; }
+
+        .step { display: none; }
+        .step.active { display: block; animation: fadeIn 0.4s ease; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Formulario */
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 13px; color: #475569; }
+        input, select {
+            width: 100%; padding: 14px; border: 1px solid #e2e8f0; border-radius: 12px;
+            box-sizing: border-box; font-size: 15px; transition: 0.2s; background: #fdfdfd;
+        }
+        input:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 4px rgba(0,123,255,0.1); background: #fff; }
+        input.invalid { border-color: var(--error); background: #fff8f8; }
+
+        /* Tarjetas de Selección */
+        .options-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 10px; }
+        .option-card {
+            border: 2px solid #f1f5f9; padding: 16px; border-radius: 14px; cursor: pointer;
+            text-align: center; background: #f8fafc; font-size: 14px; font-weight: 500;
+            display: flex; align-items: center; justify-content: center; gap: 10px; transition: 0.2s;
+        }
+        .option-card:hover { border-color: #cbd5e1; }
+        .option-card.selected { border-color: var(--primary); background: var(--primary-light); color: var(--primary); font-weight: 700; }
+        .option-card input { display: none; }
+
+        /* Alertas y Banners */
+        .alert-pro {
+            background: #fffbeb; border: 1px solid #fef3c7; color: #92400e;
+            padding: 14px; border-radius: 12px; font-size: 13px; margin-top: 20px; display: flex; gap: 10px; line-height: 1.4;
+        }
+
+        .promo-banner {
+            background: #dcfce7; color: #166534; padding: 15px; border-radius: 14px;
+            margin-bottom: 30px; text-align: center; font-weight: 700; border: 1px solid #bbf7d0; display: none;
+        }
+
+        /* Botones */
+        .btn-box { margin-top: 40px; display: flex; justify-content: space-between; gap: 15px; }
+        button { padding: 18px 25px; border: none; border-radius: 14px; cursor: pointer; font-weight: 700; font-size: 16px; transition: 0.3s; flex: 1; }
+        .btn-next { background: var(--primary); color: white; box-shadow: 0 10px 15px -3px rgba(0,123,255,0.3); }
+        .btn-next:hover { background: var(--primary-hover); transform: translateY(-2px); }
+        .btn-prev { background: #f1f5f9; color: #475569; max-width: 130px; }
+        .btn-pay { background: var(--success); color: white; box-shadow: 0 10px 15px -3px rgba(40,167,69,0.3); }
+
+        #break-section { display: none; margin-top: 20px; padding: 20px; background: #f1f5f9; border-radius: 16px; border: 1px dashed #cbd5e1; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div id="promoTag" class="promo-banner"></div>
+
+    <div class="progress-container">
+        <div class="progress-line"></div>
+        <div class="progress-fill" id="progressFill"></div>
+        <div class="step-indicator active" id="st1">1</div>
+        <div class="step-indicator" id="st2">2</div>
+        <div class="step-indicator" id="st3">3</div>
+        <div class="step-indicator" id="st4">4</div>
+    </div>
+
+    <form id="regForm">
+        <!-- PASO 1: ACCESO -->
+        <div class="step active" id="step1">
+            <h2>Crear Perfil Pro</h2>
+            <p class="subtitle">Datos de acceso para tu Centro de Mando.</p>
+            <div class="form-group">
+                <label>Nombre Comercial de la Clínica *</label>
+                <input type="text" name="nombre_clinica" required placeholder="Ej: Clínica de Fisioterapia Murillo">
+            </div>
+            <div class="form-group">
+                <label>Email de Usuario *</label>
+                <input type="email" name="email" required placeholder="director@clinica.com">
+            </div>
+            <div class="form-group">
+                <label>Contraseña Maestra *</label>
+                <input type="password" name="password" required minlength="6">
+            </div>
+            <div class="btn-box">
+                <button type="button" class="btn-next" onclick="validateAndNext(1)">Continuar a Configuración ➡</button>
+            </div>
+        </div>
+
+        <!-- PASO 2: INFRAESTRUCTURA Y HORARIO -->
+        <div class="step" id="step2">
+            <h2>Ubicación y Disponibilidad</h2>
+            <p class="subtitle">¿Dónde estás y en qué horario atiendes?</p>
+            
+            <div style="display: grid; grid-template-columns: 3fr 1fr; gap: 12px;">
+                <div class="form-group"><label>Calle / Avenida *</label><input type="text" name="calle" required></div>
+                <div class="form-group"><label>Nº *</label><input type="text" name="numero" required></div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+                <div class="form-group"><label>C. Postal *</label><input type="text" name="cp" required></div>
+                <div class="form-group"><label>Ciudad *</label><input type="text" name="ciudad" required></div>
+                <div class="form-group"><label>Provincia *</label><input type="text" name="provincia" required></div>
+            </div>
+
+            <div class="alert-pro">
+                <span>💡</span>
+                <p style="margin:0"><strong>Nota Crack:</strong> Si tienes varias sedes, registra la principal ahora. Podrás añadir el resto dentro de tu panel de control una vez activada la cuenta.</p>
+            </div>
+
+            <hr style="margin: 30px 0; border: 0; border-top: 1px solid #f1f5f9;">
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="form-group"><label>Apertura Clínica</label><input type="time" name="hora_apertura" value="09:00"></div>
+                <div class="form-group"><label>Cierre Clínica</label><input type="time" name="hora_cierre" value="20:00"></div>
+            </div>
+
+            <label>¿Realizas descanso al mediodía?</label>
+            <div class="options-grid">
+                <div class="option-card selected" onclick="setBreak(true, this)">
+                    ✅ Sí, cierro <input type="radio" name="descanso_mediodia" value="si" checked>
+                </div>
+                <div class="option-card" onclick="setBreak(false, this)">
+                    ❌ No, jornada continua <input type="radio" name="descanso_mediodia" value="no">
+                </div>
+            </div>
+
+            <div id="break-section" style="display: block;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div class="form-group"><label>Cierre Mediodía</label><input type="time" name="descanso_inicio" value="14:00"></div>
+                    <div class="form-group"><label>Reapertura Tarde</label><input type="time" name="descanso_fin" value="16:00"></div>
+                </div>
+            </div>
+
+            <div class="btn-box">
+                <button type="button" class="btn-prev" onclick="moveStep(1)">Atrás</button>
+                <button type="button" class="btn-next" onclick="validateAndNext(2)">Siguiente ➡</button>
+            </div>
+        </div>
+
+        <!-- PASO 3: REGLAS DE NEGOCIO (IA) -->
+        <div class="step" id="step3">
+            <h2>Personalización de la IA</h2>
+            <p class="subtitle">Define los precios y servicios que Ana gestionará.</p>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="form-group">
+                    <label>Duración Estándar</label>
+                    <select name="duracion">
+                        <option value="30">30 minutos</option>
+                        <option value="45" selected>45 minutos</option>
+                        <option value="60">60 minutos</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Precio Sesión (€) *</label><input type="number" name="precio" value="50" required></div>
+            </div>
+
+            <label>Métodos de Cobro en Local</label>
+            <div class="options-grid">
+                <div class="option-card selected" onclick="toggleOption(this)">
+                    💵 Efectivo <input type="checkbox" name="pay_cash" checked>
+                </div>
+                <div class="option-card" onclick="toggleOption(this)">
+                    💳 Tarjeta <input type="checkbox" name="pay_card">
+                </div>
+                <div class="option-card" onclick="toggleOption(this)">
+                    📱 Bizum <input type="checkbox" name="pay_bizum">
+                </div>
+                <div class="option-card" onclick="toggleOption(this)">
+                    🎟️ Uso de Bonos <input type="checkbox" name="acepta_bonos">
+                </div>
+            </div>
+
+            <label>🚩 Filtros de Seguridad (Banderas Rojas)</label>
+            <p style="font-size: 11px; color: #94a3b8; margin-top: -5px;">Casos que Ana derivará a llamada directa:</p>
+            <div class="options-grid">
+                <div class="option-card" onclick="toggleOption(this)">
+                    🚓 Tráfico <input type="checkbox" name="flag" value="accidente trafico">
+                </div>
+                <div class="option-card" onclick="toggleOption(this)">
+                    🏥 Mutuas <input type="checkbox" name="flag" value="seguro medico">
+                </div>
+                <div class="option-card" onclick="toggleOption(this)">
+                    🤰 Embarazo <input type="checkbox" name="flag" value="embarazo">
+                </div>
+                <div class="option-card" onclick="toggleOption(this)">
+                    👶 Menores <input type="checkbox" name="flag" value="menores">
+                </div>
+            </div>
+
+            <div class="btn-box">
+                <button type="button" class="btn-prev" onclick="moveStep(2)">Atrás</button>
+                <button type="button" class="btn-next" onclick="validateAndNext(3)">Siguiente ➡</button>
+            </div>
+        </div>
+
+        <!-- PASO 4: ACTIVACIÓN SaaS -->
+        <div class="step" id="step4">
+            <h2>Activación de Licencia</h2>
+            <p class="subtitle">Finaliza el proceso para poner a Ana a trabajar.</p>
+
+            <div style="background: #eef2ff; padding: 30px; border-radius: 20px; border: 1px solid #e0e7ff; text-align: center; margin-bottom: 25px;">
+                <h3 style="margin:0; color:var(--primary); font-size:18px;">Plan Fisiotool Global</h3>
+                <div style="margin: 15px 0;">
+                    <span style="font-size: 40px; font-weight: 800;">49€</span>
+                    <span style="color: #64748b;">/mes</span>
+                </div>
+                <div style="text-align: left; font-size: 13px; display: inline-block; color: #475569;">
+                    <p style="margin:6px 0;">✅ Recepcionista IA 24/7 (Gemini 1.5 Pro)</p>
+                    <p style="margin:6px 0;">✅ Agenda Visual Blindada con IA Deductiva</p>
+                    <p style="margin:6px 0;">✅ Módulo CRM y Notas Médicas por Voz</p>
+                    <p style="margin:6px 0;">✅ Sistema Centinela Anti-NoShow</p>
+                </div>
+            </div>
+
+            <div style="margin-top:20px; padding: 18px; border: 1px solid #f1f5f9; border-radius: 16px; display: flex; gap: 14px; align-items: flex-start; background: #fff;">
+                <input type="checkbox" id="checkGdpr" required style="width: 22px; height: 22px; cursor: pointer; margin-top: 2px;">
+                <span style="font-size: 13px; color: #475569; line-height: 1.5;">
+                    He leído y acepto la <a href="#" style="color: var(--primary); font-weight: 700; text-decoration: none;">Política de Privacidad</a> y autorizo a Fisiotool a gestionar mis datos de agenda y cobros recurrentes.
+                </span>
+            </div>
+
+            <div class="btn-box">
+                <button type="button" class="btn-prev" onclick="moveStep(3)">Atrás</button>
+                <button type="submit" class="btn-pay" id="mainBtn">PAGAR Y ACTIVAR 💳</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    // 1. AUTO-DETECCIÓN DE REFERIDOS POR URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const ref = urlParams.get('ref');
+    const promo = urlParams.get('promo');
+    const tag = document.getElementById('promoTag');
+
+    if (ref) {
+        tag.innerHTML = `🎁 ¡RECOMENDACIÓN DETECTADA! Recibirás un <strong>50% DE DESCUENTO</strong> en tu cuota mensual.`;
+        tag.style.display = 'block';
+    } else if (promo) {
+        tag.innerHTML = `🚀 ¡CAMPAÑA DE BIENVENIDA! Tu <strong>PRIMER MES ES GRATIS</strong> (Cortesía de Fisiotool).`;
+        tag.style.display = 'block';
+    }
+
+    // 2. LÓGICA DE INTERFAZ
+    function setBreak(isBreak, element) {
+        document.getElementById('break-section').style.display = isBreak ? 'block' : 'none';
+        document.querySelectorAll('input[name="descanso_mediodia"]').forEach(i => i.parentElement.classList.remove('selected'));
+        element.classList.add('selected');
+        element.querySelector('input').checked = true;
+    }
+
+    function toggleOption(card) {
+        const chk = card.querySelector('input');
+        chk.checked = !chk.checked;
+        card.classList.toggle('selected', chk.checked);
+    }
+
+    // 3. NAVEGACIÓN Y VALIDACIÓN
+    function validateAndNext(stepId) {
+        const step = document.getElementById('step' + stepId);
+        const inputs = step.querySelectorAll('input[required]');
+        let valid = true;
+
+        inputs.forEach(i => {
+            if (!i.value.trim()) { i.classList.add('invalid'); valid = false; }
+            else i.classList.remove('invalid');
+        });
+
+        if (valid) moveStep(stepId + 1);
+        else alert("⚠️ Por favor, completa los campos marcados con asterisco (*).");
+    }
+
+    function moveStep(n) {
+        document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+        document.getElementById('step' + n).classList.add('active');
+        
+        document.querySelectorAll('.step-indicator').forEach((dot, idx) => {
+            if (idx + 1 === n) dot.className = 'step-dot active';
+            else if (idx + 1 < n) dot.className = 'step-dot completed';
+            else dot.className = 'step-dot';
+        });
+
+        const progressPercent = ((n - 1) / 3) * 100;
+        document.getElementById('progressFill').style.width = progressPercent + "%";
+        window.scrollTo(0, 0);
+    }
+
+    // 4. ENVÍO FINAL AL SERVIDOR
+    document.getElementById('regForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        if (!document.getElementById('checkGdpr').checked) {
+            return alert("Debes aceptar la política de privacidad.");
+        }
+
+        const btn = document.getElementById('mainBtn');
+        btn.disabled = true;
+        btn.innerHTML = "Conectando con pasarela...";
+
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+
+        // Mapeo Pro para index.js
+        const finalPayload = {
+            ...data,
+            metodos_pago: [],
+            banderas_rojas: Array.from(document.querySelectorAll('input[name="flag"]:checked')).map(c => c.value).join(','),
+            acepta_bonos: e.target.acepta_bonos.checked
+        };
+        if (e.target.pay_cash.checked) finalPayload.metodos_pago.push('Efectivo');
+        if (e.target.pay_card.checked) finalPayload.metodos_pago.push('Tarjeta');
+        if (e.target.pay_bizum.checked) finalPayload.metodos_pago.push('Bizum');
+
+        try {
+            const res = await fetch('/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(finalPayload)
+            });
+            const result = await res.json();
+            if (result.success) window.location.href = result.dashboard_url;
+            else { alert("Error: " + result.error); btn.disabled = false; btn.innerHTML = "REINTENTAR 💳"; }
+        } catch (err) {
+            alert("Error de conexión con el servidor.");
+            btn.disabled = false;
+        }
+    });
+</script>
+</body>
+</html>

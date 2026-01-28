@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FisioTool | Inteligencia Artificial Médica</title>
+    <!-- CSS MAESTRO -->
+    <link rel="stylesheet" href="belleza_insuperable.css">
+    <!-- FUENTES GOOGLE (Tech y Modern) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+    <!-- ICONOS (FontAwesome para agilizar) -->
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script> 
+</head>
+<body>
+
+    <!-- 1. NAVBAR (Flotante) -->
+    <nav style="padding: 20px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+        <div class="container" style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-family: 'Orbitron'; font-size: 1.5rem;">
+                FISIO<span style="color: var(--neon-blue)">TOOL</span>.AI
+            </div>
+            <div>
+                <a href="login.html" class="btn-secondary" style="margin-right: 15px;">Login</a>
+                <!-- CTA dirige al Simulador o Registro -->
+                <a href="onboarding.html" class="btn-primary">Empieza Gratis</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 2. HERO SECTION (La Promesa) -->
+    <header class="section-padding" style="position: relative; overflow: hidden;">
+        <!-- Efecto de luz de fondo (Blob) -->
+        <div style="position: absolute; top: -100px; right: -100px; width: 600px; height: 600px; background: var(--neon-purple); filter: blur(150px); opacity: 0.2; border-radius: 50%; z-index: -1;"></div>
+
+        <div class="container grid-2">
+            <div class="hero-content">
+                <span style="color: var(--action-orange); font-weight: bold; letter-spacing: 2px;">SOLO PARA FISIOTERAPEUTAS</span>
+                <h1 style="font-size: 4rem; line-height: 1.1; margin: 20px 0;">
+                    El Recepcionista que <br> <span class="gradient-text">NUNCA DUERME</span>
+                </h1>
+                <p style="color: var(--text-muted); font-size: 1.2rem; margin-bottom: 40px;">
+                    Gestiona tu agenda, cobra adelantos y responde a pacientes 24/7. 
+                    Olvídate de WhatsApp y recupera tu vida personal.
+                </p>
+                <div style="display: flex; gap: 20px;">
+                    <a href="roi_simulador.html" class="btn-primary">CALCULAR MI AHORRO</a>
+                    <a href="#demo" class="btn-secondary">Ver Demo en Video</a>
+                </div>
+                
+                <!-- Trust Badge -->
+                <div style="margin-top: 40px; display: flex; align-items: center; gap: 10px;">
+                    <div style="color: #00E5FF;">★★★★★</div>
+                    <span style="color: #666; font-size: 0.9rem;">Validado por +500 Clínicas en España</span>
+                </div>
+            </div>
+            
+            <div class="hero-image" style="position: relative;">
+                <!-- IMAGEN PLACEHOLDER (Futurista) -->
+                <div class="glass-card" style="padding: 20px; border: 1px solid var(--neon-blue);">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                        <span style="color: var(--neon-blue);">● IA Activa</span>
+                        <span>02:34 AM</span>
+                    </div>
+                    <!-- Chat simulado -->
+                    <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; margin-bottom: 10px;">
+                        <small style="color: #666;">Paciente</small>
+                        <p style="margin: 5px 0;">¿Tenéis hueco mañana por la tarde para una descarga?</p>
+                    </div>
+                    <div style="background: rgba(138, 43, 226, 0.2); border-left: 3px solid var(--neon-purple); padding: 15px; border-radius: 10px; text-align: right;">
+                        <small style="color: var(--neon-purple);">FisioTool IA</small>
+                        <p style="margin: 5px 0;">¡Hola! Sí, tengo un hueco a las 17:15. ¿Te lo reservo con tarjeta?</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 3. DOLORES (Pain Points) - "The Red Flag Zone" -->
+    <section class="section-padding" style="background: linear-gradient(180deg, var(--bg-deep) 0%, #0a0a0a 100%);">
+        <div class="container">
+            <h2 style="text-align: center; margin-bottom: 60px;">¿Tu clínica sufre de <span style="color: var(--action-orange);">SINTOMATOLOGÍA ANTIGUA</span>?</h2>
+            
+            <div class="grid-3">
+                <div class="glass-card">
+                    <h3 style="color: var(--action-orange); margin-bottom: 15px;">1. El Fantasma "No-Show"</h3>
+                    <p style="color: var(--text-muted);">Pacientes que reservan y no aparecen. Dinero perdido y una hora mirando el techo.</p>
+                </div>
+                <div class="glass-card">
+                    <h3 style="color: var(--action-orange); margin-bottom: 15px;">2. Esclavitud de WhatsApp</h3>
+                    <p style="color: var(--text-muted);">Responder mensajes a las 23:00 de un domingo. Tu móvil personal convertido en centralita.</p>
+                </div>
+                <div class="glass-card">
+                    <h3 style="color: var(--action-orange); margin-bottom: 15px;">3. Caos Administrativo</h3>
+                    <p style="color: var(--text-muted);">Agenda de papel, excels perdidos y contabilidad a ojo. El descontrol financiero.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 4. SOLUCIÓN TECNOLÓGICA -->
+    <section class="section-padding">
+        <div class="container grid-2">
+            <div>
+                <!-- Imagen Placeholder Abstracta Tech -->
+                <img src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=800&q=80" alt="Tech Dashboard" style="width: 100%; border-radius: 20px; border: 1px solid var(--neon-purple); box-shadow: var(--glow-purple);">
+            </div>
+            <div>
+                <h2 style="margin-bottom: 30px;">Tecnología Clínica <br><span class="gradient-text">NIVEL QUIRÚRGICO</span></h2>
+                
+                <ul style="font-size: 1.1rem; line-height: 2;">
+                    <li><span style="color: var(--neon-blue);">✔</span> <strong>Multi-Sede Inteligente:</strong> ¿Tienes varias clínicas? La IA gestiona todas las ubicaciones desde un solo cerebro.</li>
+                    <li><span style="color: var(--neon-blue);">✔</span> <strong>Migración Instantánea:</strong> Sube tu historial de pacientes (CSV) y la IA aprenderá de ellos al instante.</li>
+                    <li><span style="color: var(--neon-blue);">✔</span> <strong>Detector "Bandera Roja":</strong> La IA sabe cuándo bloquear citas de riesgo (seguros/accidentes) y derivarlas.</li>
+                    <li><span style="color: var(--neon-blue);">✔</span> <strong>Gestión de Bonos:</strong> Descuenta sesiones automáticamente del saldo del paciente.</li>
+                </ul>
+                
+                <div style="margin-top: 40px;">
+                    <a href="onboarding.html" class="btn-primary">VER EL PANEL DE CONTROL</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 5. LA OBJECIÓN DEFINITIVA (Edad Pacientes) -->
+    <section class="section-padding" style="text-align: center; border-top: 1px solid rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.05);">
+        <div class="container" style="max-width: 800px;">
+            <h2 style="margin-bottom: 20px;">"Pero mis pacientes son mayores..."</h2>
+            <p style="font-size: 1.3rem; color: var(--text-muted);">
+                Tranquilo. Tú reservas en tu Panel futurista, ellos reciben un 
+                <strong>Simple SMS clásico</strong>. Tecnología invisible para ellos, potencia para ti.
+            </p>
+        </div>
+    </section>
+
+    <!-- 6. ROI & CALL TO ACTION -->
+    <section class="section-padding" style="position: relative;">
+        <!-- Fondo resplandor Naranja -->
+        <div style="position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 80%; height: 400px; background: radial-gradient(circle, rgba(255,69,0,0.15) 0%, rgba(0,0,0,0) 70%); z-index: -1;"></div>
+
+        <div class="container text-center" style="text-align: center;">
+            <h2 style="font-size: 3rem; margin-bottom: 20px;">El coste de <span style="color: var(--action-orange);">NO USARLO</span></h2>
+            <p style="font-size: 1.5rem; margin-bottom: 50px;">
+                Un "No-Show" te cuesta 50€. FisioTool cuesta menos que recuperar medio paciente.
+            </p>
+            
+            <div class="glass-card" style="display: inline-block; text-align: left; padding: 40px 60px;">
+                <h3 style="color: var(--neon-blue); margin-bottom: 20px;">Plan Early Adopter</h3>
+                <div style="font-size: 4rem; font-weight: 900; line-height: 1;">29€<span style="font-size: 1.5rem; color: #666;">/mes</span></div>
+                <p style="color: var(--text-muted); margin-bottom: 30px;">Cancela cuando quieras. Sin permanencia.</p>
+                <a href="onboarding.html" class="btn-primary" style="width: 100%; display: block; text-align: center;">ACTIVAR MI IA AHORA</a>
+                <p style="font-size: 0.8rem; color: #555; margin-top: 15px; text-align: center;">Oferta limitada a las primeras 100 clínicas</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER SIMPLE -->
+    <footer style="padding: 50px 0; background-color: #000; color: #444; text-align: center; border-top: 1px solid #111;">
+        <p>&copy; 2024 FisioTool. Designed for the Future of Health.</p>
+        <p>Aviso Legal | Privacidad | GDPR Compliant</p>
+    </footer>
+
+</body>
+</html>

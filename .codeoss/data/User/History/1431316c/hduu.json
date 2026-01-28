@@ -1,0 +1,20 @@
+{
+  "name": "fisio-bot",
+  "version": "1.0.0",
+  "description": "Bot Fisiotool",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "firebase-admin": "^12.0.0",
+    "@google/generative-ai": "^0.10.0",
+    "axios": "^1.6.8",
+    "body-parser": "^1.20.2",
+    "dotenv": "^16.4.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

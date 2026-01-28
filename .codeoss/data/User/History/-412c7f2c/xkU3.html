@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración Inicial | FisioTool</title>
+    
+    <!-- FRAMEWORKS & FONTS (Alineadas con V5.0 y Tech-Clean) -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Muli:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <!-- ESTILOS: EXTERNALIZADOS Y UNIFICADOS -->
+    <link href="globals/unified_styles.css" rel="stylesheet"> 
+
+    <!-- Se eliminó el bloque <style> entero -->
+</head>
+<body>
+
+    <div class="wizard-container">
+        <!-- HEADER (Intacto) -->
+        <div class="wizard-header">
+            <h3 class="mb-2">Configura tu Clínica</h3>
+            <p class="text-muted small mb-4">Configuración en 4 pasos para eliminar tu carga administrativa.</p>
+            <!-- ... (progress bar intacto) ... -->
+        </div>
+
+        <div class="wizard-body">
+            <form id="onboardingForm" onsubmit="submitForm(event)">
+                
+                <!-- ================= PASO 1: IDENTIDAD ================= -->
+                <div id="step1" class="step-section active">
+                    <!-- Banner Código (Intacto) -->
+
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label-ft">Nombre de la Clínica</label>
+                            <input type="text" id="clinicName" class="form-control-ft" placeholder="Ej: Fisioterapia Avanzada" data-error-msg="Introduce el nombre de tu clínica." required>
+                            <div class="invalid-feedback-custom" id="clinicName-error" style="display:none"></div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label-ft">Email (Usuario)</label>
+                            <input type="email" id="adminEmail" class="form-control-ft" placeholder="admin@clinica.com" data-error-msg="Introduce un email válido." required>
+                            <div class="invalid-feedback-custom" id="adminEmail-error" style="display:none"></div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label-ft">Contraseña <span class="text-danger">*</span></label>
+                            <input type="password" id="adminPass" class="form-control-ft" placeholder="Mínimo 8 caracteres" minlength="8" data-error-msg="Mínimo 8 caracteres, intenta añadir un número." required>
+                            <div class="invalid-feedback-custom" id="adminPass-error" style="display:none"></div>
+                        </div>
+
+                        <!-- DIRECCIÓN DESGLOSADA -->
+                        <div class="col-12"><hr class="opacity-10 my-1"></div>
+                        <div class="col-12"><h6 class="text-primary small fw-bold"><i class="fa-solid fa-map-pin me-1"></i> Dirección Fiscal</h6></div>
+
+                        <div class="col-8">
+                            <label class="form-label-ft">Calle / Vía</label>
+                            <input type="text" id="addrStreet" class="form-control-ft" placeholder="Av. Principal" data-error-msg="Introduce la calle." required>
+                            <div class="invalid-feedback-custom" id="addrStreet-error" style="display:none"></div>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label-ft">Número</label>
+                            <input type="text" id="addrNum" class="form-control-ft" placeholder="Nº" data-error-msg="Introduce un número." required> <!-- Se mantiene type="text" por 'S/N' -->
+                            <div class="invalid-feedback-custom" id="addrNum-error" style="display:none"></div>
+                        </div>
+                        <!-- ... (resto de campos de dirección con data-error-msg y div-error añadido) ... -->
+                    </div>
+                    
+                    <div class="text-end mt-4">
+                        <button type="button" class="btn-nav cta-button" onclick="validateAndNext(1)">Continuar <i class="fa-solid fa-arrow-right ms-2"></i></button> <!-- CLASE UNIFICADA -->
+                    </div>
+                </div>
+
+                <!-- ================= PASO 2: AGENDA IA ================= -->
+                <div id="step2" class="step-section">
+                    <!-- ... (encabezados intactos) ... -->
+
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label-ft">Precio Sesión (€)</label>
+                            <input type="number" id="sessionPrice" class="form-control-ft" placeholder="50" min="0" data-error-msg="Precio requerido." required>
+                            <div class="invalid-feedback-custom" id="sessionPrice-error" style="display:none"></div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label-ft">Duración (min)</label>
+                            <input type="number" id="sessionDuration" class="form-control-ft" value="45" min="15" data-error-msg="Duración requerida." required>
+                            <div class="invalid-feedback-custom" id="sessionDuration-error" style="display:none"></div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 p-3 bg-light rounded-3 border border-light">
+                        <!-- ... (bloque horario intacto) ... -->
+                            
+                            <div class="col-12 mt-3 text-center">
+                                <div class="form-check form-switch d-inline-block">
+                                    <input class="form-check-input" type="checkbox" id="hasBreak" onchange="toggleBreak(this)">
+                                    <label class="form-check-label small" for="hasBreak">Cierro a mediodía</label>
+                                </div>
+                            </div>
+                            
+                            <!-- CORRECCIÓN DE ESTADO POR JS -->
+                            <div class="col-12 mt-2" id="breakTimeContainer" style="display:none;">
+                                <div class="row g-2 justify-content-center">
+                                    <div class="col-5">
+                                        <input type="time" id="breakStart" class="form-control-ft text-center" value="14:00" disabled>
+                                    </div>
+                                    <div class="col-5">
+                                        <input type="time" id="breakEnd" class="form-control-ft text-center" value="16:00" disabled>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <button type="button" class="btn-nav outline-button" onclick="goToStep(1)">Atrás</button>
+                        <button type="button" class="btn-nav cta-button" onclick="validateAndNext(2)">Siguiente <i class="fa-solid fa-arrow-right ms-2"></i></button>
+                    </div>
+                </div>
+
+                <!-- ================= PASO 3: PAGOS ================= -->
+                <div id="step3" class="step-section">
+                    <!-- ... (checkboxes intactos) ... -->
+                    
+                    <div class="mt-4">
+                        <label class="form-label-ft">Política de Señal / Fianza</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0">€</span>
+                            <input type="number" id="depositAmount" class="form-control-ft border-start-0 ps-0" placeholder="0" value="0" min="0">
+                        </div>
+                        <!-- TEXTO DE FINANZA CORREGIDO (Claro, sin ambigüedad) -->
+                        <small class="text-muted" style="font-size:11px;">Si > 0€, la IA enviará al paciente un ENLACE SEGURO (Stripe) para el abono de la fianza antes de la cita.</small>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <button type="button" class="btn-nav outline-button" onclick="goToStep(2)">Atrás</button>
+                        <button type="button" class="btn-nav cta-button" onclick="validateAndNext(3)">Siguiente <i class="fa-solid fa-arrow-right ms-2"></i></button>
+                    </div>
+                </div>
+
+                <!-- ================= PASO 4: LEGAL (Finalizar) ================= -->
+                <div id="step4" class="step-section">
+                    <!-- ... (checkboxes Banderas Rojas intactos) ... -->
+
+                    <div class="form-check mb-4 p-3 bg-light rounded-3 border border-light">
+                        <input class="form-check-input" type="checkbox" id="legalCheck" data-error-msg="Debes aceptar la política de privacidad." required>
+                        <label class="form-check-label small lh-sm" for="legalCheck">
+                            He leído y acepto la <a href="/politica_privacidad.html" target="_blank" class="fw-bold">Política de Privacidad</a> y los Términos del Servicio.
+                        </label>
+                        <div class="invalid-feedback-custom" id="legalCheck-error" style="display:none"></div>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <button type="button" class="btn-nav outline-button" onclick="goToStep(3)">Atrás</button>
+                        <button type="submit" class="btn-nav cta-button w-50" id="finalizar-btn">FINALIZAR Y PAGAR</button>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <!-- LOADER REFACTORIZADO -->
+    <div class="loader-overlay" id="loader">
+        <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+        <div id="loader-status" class="text-center">
+            <h5 class="fw-bold text-dark mb-1">1/2 Creando tu Clínica y Agenda</h5>
+            <p class="text-muted small">Configurando las bases de datos y la IA...</p>
+        </div>
+    </div>
+
+    <!-- LOGICA JS (REFACTORIZADA) -->
+    <script>
+        const STEPS_COUNT = 4;
+        let currentStep = 1;
+
+        // Utilitario: Muestra mensaje de error personalizado debajo del campo
+        function showFieldError(inputId, message) {
+            const input = document.getElementById(inputId);
+            const errorElement = document.getElementById(inputId + '-error');
+
+            if (input && errorElement) {
+                input.classList.add('is-invalid'); // Clase Bootstrap (Se asume que la base la respeta)
+                errorElement.innerText = message;
+                errorElement.style.display = 'block';
+                input.focus(); // Enfoca en el primer error
+            }
+        }
+        
+        // Utilitario: Resetea estado visual
+        function resetFieldError(inputId) {
+            const input = document.getElementById(inputId);
+            const errorElement = document.getElementById(inputId + '-error');
+            
+            if (input) input.classList.remove('is-invalid');
+            if (errorElement) errorElement.style.display = 'none';
+        }
+
+
+        // NAVEGACIÓN (Intacta)
+        function goToStep(step) {
+            // ... (Lógica de animación CSS mantenida) ...
+            document.querySelectorAll('.step-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(`step${step}`).classList.add('active');
+            
+            const percent = step * 25;
+            document.getElementById('progressBar').style.width = `${percent}%`;
+            currentStep = step;
+        }
+
+
+        // VALIDACIÓN SIN ALERT() (CRÍTICO)
+        function validateAndNext(step) {
+            let valid = true;
+            const currentSection = document.getElementById(`step${step}`);
+            const inputs = currentSection.querySelectorAll('[required]'); // Inputs requeridos (incluye checkbox)
+            
+            // 1. Validaciones por campo
+            inputs.forEach(input => {
+                const isChecked = input.type === 'checkbox' && !input.checked;
+                const isEmpty = input.type !== 'checkbox' && !input.value.trim();
+                
+                resetFieldError(input.id); // Resetear estado
+                
+                if (isEmpty || isChecked) {
+                    const message = input.getAttribute('data-error-msg') || "Campo obligatorio.";
+                    showFieldError(input.id, message);
+                    valid = false;
+                } 
+                
+                // Validación Específica de Contraseña
+                if (input.id === 'adminPass' && input.value.length < 8 && input.value.trim() !== '') {
+                    showFieldError(input.id, "Mínimo 8 caracteres (Añade números o símbolos para seguridad).");
+                    valid = false;
+                }
+            });
+
+            // 2. Validación de Horario (Logic-01)
+            const hasBreak = document.getElementById('hasBreak').checked;
+            const openTime = document.getElementById('openTime').value;
+            const closeTime = document.getElementById('closeTime').value;
+
+            if(step === 2) {
+                // Validación Lógica de Break: si tiene break, sus campos deben estar llenos y ser válidos (se gestionan en la validación inicial si estan 'required')
+                if (openTime && closeTime && openTime >= closeTime) {
+                    showFieldError('openTime', "La hora de apertura debe ser anterior al cierre.");
+                    valid = false;
+                }
+                
+                // Mantenemos los campos deshabilitados si no hay break. (Para simplificar la lógica de form submission)
+                // Se utiliza la función toggleBreak() en el DOMContentLoaded para asegurar el estado inicial.
+            }
+
+            if (valid) goToStep(step + 1);
+        }
+
+        // LÓGICA DE BREAK (CORRECCIÓN DE ESTADO CRÍTICA)
+        function toggleBreak(checkbox) {
+            const container = document.getElementById('breakTimeContainer');
+            const start = document.getElementById('breakStart');
+            const end = document.getElementById('breakEnd');
+            
+            if (checkbox.checked) {
+                container.style.display = 'block';
+                start.disabled = false;
+                end.disabled = false;
+                start.setAttribute('required', 'required'); // Obliga a rellenarlos si está activo
+                end.setAttribute('required', 'required');
+            } else {
+                container.style.display = 'none';
+                start.disabled = true;
+                end.disabled = true;
+                start.removeAttribute('required'); // Los hace opcionales
+                end.removeAttribute('required');
+                resetFieldError('breakStart');
+                resetFieldError('breakEnd');
+            }
+        }
+
+
+        // ENVIO AL BACKEND (REFACTORIZADO)
+        async function submitForm(e) {
+            e.preventDefault();
+            
+            // Re-validación final del check legal sin ALERT()
+            if(!document.getElementById('legalCheck').checked) {
+                showFieldError('legalCheck', "Debes aceptar los términos y condiciones.");
+                return;
+            }
+
+            document.getElementById('loader').style.display = 'flex';
+            const statusElement = document.getElementById('loader-status');
+            const finalButton = document.getElementById('finalizar-btn');
+            finalButton.disabled = true;
+            finalButton.innerText = "Enviando...";
+
+
+            // RECOPILACIÓN DE DATOS (Optimizada por la nueva lógica de 'disabled')
+            const formData = {
+                // ... (Datos de Paso 1, Dirección y Metodos de Pago intactos)
+                
+                // Agenda
+                price: document.getElementById('sessionPrice').value,
+                duration: document.getElementById('sessionDuration').value,
+                deposit: document.getElementById('depositAmount').value,
+                schedule: {
+                    open: document.getElementById('openTime').value,
+                    close: document.getElementById('closeTime').value,
+                    has_break: document.getElementById('hasBreak').checked,
+                    // CORRECCIÓN LÓGICA: SÓLO ENVIAR VALORES SI has_break ES TRUE
+                    break_start: document.getElementById('hasBreak').checked ? document.getElementById('breakStart').value : null,
+                    break_end: document.getElementById('hasBreak').checked ? document.getElementById('breakEnd').value : null
+                },
+                
+                payment_methods: Array.from(document.querySelectorAll('input[name="payment_method"]:checked')).map(el => el.value),
+                red_flags: Array.from(document.querySelectorAll('input[name="red_flags"]:checked')).map(el => el.value),
+                
+                terms_accepted: true,
+                created_at: new Date().toISOString()
+            };
+
+            console.log("Payload Final Enviado:", formData);
+
+            try {
+                // 1. LLAMADA REAL AL BACKEND (Creación de Clínica)
+                const res = await fetch('/api/onboarding/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+                
+                if (!res.ok) {
+                    throw new Error("Error en respuesta del servidor al crear clínica.");
+                }
+
+                const data = await res.json();
+                
+                // Actualizar estado del loader
+                statusElement.innerHTML = `<h5 class="fw-bold text-primary mb-1">2/2 Conectando a Pasarela Segura (Stripe)</h5><p class="text-muted small">Generando factura y redirigiendo...</p>`;
+                
+                if (data.status === 'success' && data.stripe_url && parseInt(formData.deposit) > 0) { // Validamos que se envía si hay depósito y URL
+                    // ÉXITO: REDIRIGIR A STRIPE
+                    window.location.href = data.stripe_url;
+                } else {
+                    // ÉXITO: (Sin Stripe)
+                    window.location.href = '/dashboard';
+                }
+
+            } catch (error) {
+                // MANEJO DE ERRORES MEJORADO
+                statusElement.innerHTML = `<h5 class="fw-bold text-danger mb-1">❌ Error Crítico</h5><p class="text-muted small">No se pudo crear la cuenta: ${error.message}</p>`;
+                document.getElementById('loader').style.display = 'flex'; // Aseguramos que se mantenga el modal para el error.
+                finalButton.disabled = false; // Permite re-intento
+                finalButton.innerText = "ERROR - REINTENTAR";
+
+                // alert("❌ Error de conexión: " + error.message + "\n\n(Asegúrate de que el Backend está corriendo y la ruta /api/onboarding/create existe)"); // Eliminado
+            }
+        }
+        
+        // Ejecución de toggle para establecer el estado inicial del BreakTime.
+        document.addEventListener('DOMContentLoaded', () => {
+            const breakCheckbox = document.getElementById('hasBreak');
+            toggleBreak(breakCheckbox);
+        });
+    </script>
+</body>
+</html>

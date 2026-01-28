@@ -1,0 +1,205 @@
+/* ======================================================= */
+/* FISIOTOOL MASTER STYLESHEET - V4.0 (SOFT TECH LUXURY)    */
+/* Inspiración: CROPE/LUMARA - Blanco, Dorado, Animación   */
+/* ======================================================= */
+
+/* --- 1. CONFIGURACIÓN DEL UNIVERSO (VARIABLES) --- */
+:root {
+    /* COLORES: ELEGANCIA SUAVE */
+    --clr-bg-dark: #0D0D0D;     /* Se usará para secciones específicas */
+    --clr-bg-light: #F8F8F8;    /* Fondo principal (Gris muy claro) */
+    --clr-card-bg: #FFFFFF;     /* Fondo de tarjetas (Blanco puro) */
+    --clr-text-dark: #222222;   /* Texto principal (Gris oscuro) */
+    --clr-text-light: #FFFFFF;  /* Texto sobre fondos oscuros */
+
+    /* ACENTOS: Lujo y Llamada a la Acción */
+    --clr-accent-gold: #C5A059; /* Dorado/Ámbar para lo importante (Como en tu código anterior) */
+    --clr-accent-red: #E63946;  /* Rojo vibrante para alertas (Estilo CROPE) */
+    --clr-accent-red-hover: #D62839;
+
+    /* FUENTES */
+    --font-heading: 'Poppins', sans-serif; /* Para Títulos (Impacto) */
+    --font-body: 'Muli', sans-serif;       /* Para Lectura (Elegancia) */
+    
+    /* EFECTOS */
+    --shadow-soft: 0 10px 40px rgba(0, 0, 0, 0.05); /* Sombra muy sutil */
+    --border-radius-soft: 8px; /* Bordes redondeados para todo */
+}
+
+/* --- 2. BASE --- */
+body {
+    font-family: var(--font-body);
+    background-color: var(--clr-bg-light); /* FONDO CLARO */
+    color: var(--clr-text-dark);
+    line-height: 1.6;
+    padding: 20px; /* Padding base para el entorno de Cloud Shell */
+}
+
+h1, h2, h3, h4 {
+    font-family: var(--font-heading);
+    color: var(--clr-text-dark);
+    font-weight: 700;
+}
+
+a { text-decoration: none; color: var(--clr-accent-red); transition: 0.3s; }
+a:hover { color: var(--clr-accent-red-hover); }
+ul { list-style: none; padding: 0; }
+
+
+/* --- 3. COMPONENTES CLAVE (Estilo CROPE) --- */
+
+/* Botón Principal (CTA) */
+.cta-button {
+    display: inline-block;
+    padding: 14px 35px;
+    background: var(--clr-accent-red);
+    color: var(--clr-white);
+    border-radius: 50px; /* Bordes muy redondeados */
+    font-weight: 700;
+    font-size: 1rem;
+    transition: background-color 0.3s ease, transform 0.2s;
+    letter-spacing: 1px;
+    border: none;
+}
+.cta-button:hover {
+    background-color: var(--clr-accent-red-hover);
+    transform: translateY(-2px);
+}
+
+/* Botón Secundario / Outline (Para Login/Menu) */
+.outline-button {
+    background: transparent;
+    color: var(--clr-text-dark);
+    border: 2px solid var(--clr-accent-gold);
+    padding: 12px 30px;
+    border-radius: 50px;
+    font-weight: 600;
+    transition: 0.3s;
+}
+.outline-button:hover {
+    background: var(--clr-accent-gold);
+    color: var(--clr-bg-dark);
+    border-color: var(--clr-accent-gold);
+}
+
+
+/* TARJETAS (Estilo Blanco/Gris con Sombra Suave) */
+.premium-card {
+    background: var(--clr-card-bg);
+    border-radius: var(--border-radius-soft);
+    padding: 40px;
+    box-shadow: var(--shadow-soft); 
+    border: 1px solid #EEEEEE; /* Borde muy claro */
+}
+
+/* --- 4. ELEMENTOS DE DISEÑO AVANZADO --- */
+
+/* IMÁGENES CON ZOOM (Requisito CROPE) */
+.img-zoom {
+    object-fit: cover;
+    transition: transform 0.4s ease;
+    border-radius: var(--border-radius-soft);
+}
+.img-zoom:hover {
+    transform: scale(1.05);
+}
+
+/* EFECTO DE MOVIMIENTO/FADE ON SCROLL (Requisito CROPE) */
+.fade-in {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+}
+.fade-in.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* ESTILO PARA BACKGROUNDS OSCUROS (Usado en Dashboard/Partes de Onboarding) */
+.bg-dark-panel {
+    background-color: var(--clr-bg-dark);
+    color: var(--clr-white);
+}
+
+/* --- 5. ESTRUCTURA LAYOUT --- */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+.section-padding {
+    padding: 120px 0;
+}
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; align-items: center; }
+.grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; }
+
+@media (max-width: 992px) {
+    .grid-2 { grid-template-columns: 1fr; }
+}
+    </style>
+</head>
+<body>
+    <!-- El body de prueba se mantendrá así para que veas los estilos aplicados -->
+    <div class="container section-padding">
+        <h1>VALIDACIÓN DE ESTILO SOFT TECH LUXURY</h1>
+        <p style="font-weight: 600; color: var(--clr-accent-red);">
+            La estética anterior ha sido reemplazada por una apariencia limpia, profesional y enfocada en el valor (Dorado/Rojo Sutil).
+        </p>
+        
+        <div class="bg-dark-panel">
+            <h2 style="color:white;">Sección de Contenido Oscuro (Ej. Dashboard)</h2>
+            <p style="color:#ccc;">Esta es la base para tu Dashboard/CRM.</p>
+            
+            <div class="grid-2" style="gap: 20px;">
+                <div class="premium-card" style="padding: 20px;">
+                    <h3 style="color:var(--clr-accent-gold); margin-top: 0;">KPI Destacado (Dorado)</h3>
+                    <p style="font-size: 2rem; font-weight: 900;">+10 Horas Libres</p>
+                </div>
+                <div class="premium-card" style="padding: 20px;">
+                    <h3 style="color:var(--clr-accent-red); margin-top: 0;">Alerta Crítica (Rojo)</h3>
+                    <p style="font-size: 2rem; font-weight: 900;">Fallo de Pago</p>
+                </div>
+            </div>
+            <a class="cta-button" style="background: var(--clr-accent-gold); margin-top: 30px;">Botón de Acción Dorado</a>
+        </div>
+
+        <div class="bg-light" style="margin-top: 50px;">
+            <h2 style="color:var(--clr-text-dark);">Sección de Contenido Claro (Ej. Onboarding)</h2>
+            <p style="color:var(--clr-text-dark);">Esta es la base para la Landing Page y el paso a paso del Onboarding.</p>
+            
+            <div class="grid-3">
+                <div class="premium-card" style="padding: 20px; text-align: center;">
+                    <img src="https://picsum.photos/200/150" class="img-zoom" alt="Demo Image" style="width: 100%; height: auto;">
+                    <p style="font-weight: 600; margin: 10px 0 0;">Icono Elegante</p>
+                </div>
+                <div class="premium-card" style="padding: 20px; text-align: center;">
+                    <img src="https://picsum.photos/200/150" class="img-zoom" alt="Demo Image" style="width: 100%; height: auto;">
+                    <p style="font-weight: 600; margin: 10px 0 0;">Bordes Redondeados</p>
+                </div>
+            </div>
+            <a class="cta-button" style="background: var(--clr-accent-red); margin-top: 30px;">Botón de Acción Rojo</a>
+        </div>
+        
+        <!-- Elemento para probar la animación -->
+        <div class="fade-in" style="margin-top: 80px; padding: 30px; border: 1px solid #ccc; border-radius: 8px; text-align: center;">
+            <h2>ANIMACIÓN ON-SCROLL ACTIVADA</h2>
+            <p>Este bloque aparecerá suavemente al cargarse la página.</p>
+        </div>
+
+    </div>
+
+    <script>
+        // JS para la animación Fade-In (Requisito CROPE)
+        const observer = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    observer.unobserve(entry.target); // Deja de observarlo una vez visible
+                }
+            });
+        }, { threshold: 0.1 }); // Se activa cuando el 10% del elemento es visible
+
+        document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+    </script>
+</body>
+</html>

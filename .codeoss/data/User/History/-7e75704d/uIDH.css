@@ -1,0 +1,87 @@
+/* ======================================================= */
+/* FISIOTOOL MASTER STYLESHEET - GUÍA VISUAL PREMIUM (V2.0) */
+/* Desarrollador Front-End: Este CSS NO es completo, es el contrato visual. */
+/* ======================================================= */
+
+/* --- FUENTES & BASES --- */
+:root {
+    /* TONALIDAD: Elegancia, Oscuridad, Contraste de Energía */
+    --color-primary: #00A8E8; /* El toque de energía / Contraste IA (Botones, Nombres) */
+    --color-secondary: #0B2545; /* Fondo más oscuro de menú / Elementos clave */
+    --color-background: #000411; /* Negro Profundo / Fondo global */
+    --color-text-light: #F0F2F5; /* Letras Blancas y Claras */
+    --color-error: #D9534F; /* Rojo para alertas críticas (No-Show, Fallo) */
+
+    /* Fuentes de "Lujo" y Legibilidad */
+    --font-heading: 'Roboto', sans-serif; /* Para Headers: Negrita y Directo */
+    --font-body: 'Poppins', sans-serif; /* Para Lectura: Ligero y Moderno */
+}
+
+/* --- PRINCIPIOS GENERALES --- */
+body {
+    font-family: var(--font-body);
+    background-color: var(--color-background);
+    color: var(--color-text-light);
+    line-height: 1.6;
+    scroll-behavior: smooth;
+}
+
+h1, h2, h3 {
+    font-family: var(--font-heading);
+    color: var(--color-text-light);
+    font-weight: 700;
+}
+
+/* --- ELEMENTOS DE DISEÑO (ESTILO INSUPERABLE) --- */
+
+/* 1. SECCIÓN DE VÍDEO / CARD PRINCIPAL (Landing Page) */
+.premium-card {
+    background: linear-gradient(135deg, var(--color-secondary) 0%, #151F41 100%);
+    border-radius: 18px;
+    padding: 50px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6); /* Sombra intensa de fondo oscuro */
+    border: 1px solid rgba(0, 168, 232, 0.2); /* Borde sutil del color principal */
+}
+
+/* 2. BOTÓN PRINCIPAL (CTA al Simulador) */
+.cta-button {
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-weight: 900;
+    background-color: var(--color-primary);
+    color: var(--color-background); /* Contraste fuerte del botón al negro */
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Efecto "rebote" */
+}
+
+.cta-button:hover {
+    background-color: #38b1eb;
+    transform: translateY(-3px) scale(1.03); /* Se levanta al pasar el ratón */
+}
+
+/* 3. DASHBOARD: TARJETAS DE DATOS (AGENDA Y CITA) */
+.data-card {
+    background-color: var(--color-secondary);
+    border-radius: 12px;
+    border-left: 5px solid var(--color-primary);
+    transition: border-left-color 0.3s;
+}
+
+/* 4. DASHBOARD: ALERTAS (Requisito B-5 Retraso) */
+.alerta-critical {
+    background-color: #310d0d; /* Fondo muy oscuro y sutil de la alerta */
+    color: var(--color-error); /* El texto es la advertencia */
+    border-left: 8px solid var(--color-error); /* Raya grande de advertencia */
+}
+
+/* 5. DISEÑO AVANZADO: TOOLTIP y Accesibilidad T-4 */
+/* Asegura que los tooltips (mensajes al pasar el ratón) también son de diseño premium */
+[aria-label] {
+    cursor: pointer;
+}
+/* Requisito de accesibilidad: Alto contraste */
+/* El diseñador debe usar contrast-checker para garantizar T-4 */
+
+/* --- LÓGICA DE JAVASCRIPT / CLASES DINÁMICAS --- */
+/* El JS de tu lógica debe añadir estas clases */
+.status-confirmada { border-left-color: #27B46F; } /* Verde para pagado/confirmado */
+.status-pendiente { border-left-color: #DAA520; } /* Amarillo/Dorado para pendientes de fianza */
