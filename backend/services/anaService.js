@@ -13,6 +13,10 @@ const callAnaEngine = async (prompt) => {
   if (!model) {
     throw new Error('Falta GOOGLE_AI_MODEL');
   }
+
+  // LOG TEMPORAL (solo para debug)
+  console.error("🔎 ANA MODEL EN RUNTIME:", model);
+
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
   try {
