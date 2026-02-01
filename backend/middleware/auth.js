@@ -6,6 +6,10 @@ const verifyToken = async (req, res, next) => {
   if (req.method === 'OPTIONS') {
     return next();
   }
+  // ✅ Permitir rutas Foundry (usan x-foundry-key)
+  if (req.path.startsWith('/admin/')) {
+    return next();
+  }
 
   try {
     const authHeader = req.headers['authorization'];

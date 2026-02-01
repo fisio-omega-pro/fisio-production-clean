@@ -8,8 +8,15 @@ const apiRoutes = require('./routes/apiRoutes');
 
 async function initialize() {
   await initEnv();
+  
+  // 🔓 APERTURA DE CORS PARA PRODUCCIÓN (VERCEL)
+  app.use(cors({
+    origin: '*', 
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-foundry-key']
+  }));
+
   app.use(helmet({ contentSecurityPolicy: false }));
-  app.use(cors({ origin: '*' }));
   app.use(bodyParser.json({ limit: '50mb' }));
   app.use(bodyParser.urlencoded({ extended: true }));
 

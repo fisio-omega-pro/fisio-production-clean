@@ -1,6 +1,7 @@
 const { db, Timestamp } = require('../config/firebase');
 const anaService = require('../services/anaService');
 const { scanInvoice } = require('../services/visionService');
+const { initEnv } = require('../config/env');
 
 // --- 🏛️ MODO DIOS: ESTADÍSTICAS CONSOLIDADAS ---
 const getGlobalStats = async (req, res, next) => {
@@ -67,6 +68,40 @@ const handleAdminChat = async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 };
 
+const diagnoseAna = async (req, res) => {
+  try {
+    const env = await initEnv();
+    const keyRaw = env.GOOGLE_AI_KEY || '';
+    const keyTrim = keyRaw.trim();
+    const model = env.GOOGLE_AI_MODEL || '';
+    if (!keyTrim) return res.status(500).json({ ok: false, error: 'GOOGLE_AI_KEY vacío' });
+    if (!model) return res.status(500).json({ ok: false, error: 'GOOGLE_AI_MODEL vacío' });
+    const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${keyTrim}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: 'ping' }] }] })
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      return res.json({
+        ok: false,
+        model,
+        keyLength: keyTrim.length,
+        keyHasWhitespace: keyRaw !== keyTrim,
+        error: data?.error || data
+      });
+    }
+    return res.json({
+      ok: true,
+      model,
+      keyLength: keyTrim.length,
+      keyHasWhitespace: keyRaw !== keyTrim,
+      reply: data?.candidates?.[0]?.content?.parts?.[0]?.text || null
+    });
+  } catch (e) { return res.status(500).json({ ok: false, error: e.message }); }
+};
+
 const saveAlert = async (req, res) => {
   try {
     await db.collection('foundry_alerts').add({ ...req.body, creado_el: Timestamp.now() });
@@ -92,7 +127,7 @@ const processInvoice = async (req, res) => {
 };
 
 module.exports = { 
-  getGlobalStats, handleAdminChat, saveAlert, deleteAlert, processInvoice, saveSuggestion, updateSettings,
+  getGlobalStats, handleAdminChat, diagnoseAna, saveAlert, deleteAlert, processInvoice, saveSuggestion, updateSettings,
   importLeads: async (req,res) => res.json({success:true}),
   handleIncomingResponse: async (req,res) => res.json({success:true})
 };

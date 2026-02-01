@@ -2,14 +2,20 @@ const { initEnv } = require('../config/env');
 
 const callAnaEngine = async (prompt) => {
   const env = await initEnv();
-  const apiKey = env.GOOGLE_AI_KEY;
+  const apiKeyRaw = env.GOOGLE_AI_KEY;
+  const apiKey = apiKeyRaw ? apiKeyRaw.trim() : '';
+  const model = env.GOOGLE_AI_MODEL;
 
   if (!apiKey) {
     return "Error: No tengo acceso a mi llave maestra. Revisa GOOGLE_AI_KEY en el Búnker.";
   }
 
-  // 🚨 MODELO QUE LA CUENTA DE PAGO DEL USUARIO SOPORTA
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`;
+  if (!model) {
+    throw new Error('Falta GOOGLE_AI_MODEL en env');
+  }
+
+  // ✅ MODELO DINÁMICO DESDE SECRET MANAGER
+  const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
 
   try {
     const response = await fetch(url, {

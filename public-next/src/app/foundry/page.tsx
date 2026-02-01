@@ -1,18 +1,16 @@
 'use client'
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Zap, Users, Target, Activity, Upload, Scale, Loader2, EyeOff, 
-  Building2, Bell, ShieldCheck, Wallet, Trash2, Search, 
-  ChevronLeft, ChevronRight, FileText, Euro, TrendingDown, Copy, Send, Scale as ScaleIcon 
+  Zap, Bell, ShieldCheck, FileText, Send, Scale as ScaleIcon 
 } from 'lucide-react';
 import { ActionButton, InputField } from '../dashboard/components/Atoms';
 
 export default function FoundryPage() {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [pass, setPass] = useState("");
+  const [anaDiag, setAnaDiag] = useState<any | null>(null);
   const [view, setView] = useState('llc'); // Dejar en LLC para la prueba
-  const [leadType, setLeadType] = useState('estandar');
   const [data, setData] = useState({ 
     stats: { 
       mrr: '0€', totalClinicas: 0, beneficioNeto: '0.00€', totalExpenses: '0.00€',
@@ -23,12 +21,7 @@ export default function FoundryPage() {
     historial: [],
     sugerencias: []
   });
-  const [loading, setLoading] = useState(false);
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const itemsPerPage = 10;
   const invoiceRef = useRef<HTMLInputElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // 🚨 ESTADOS DEL CHAT LEGAL RESTAURADOS
   const [chatMsg, setChatMsg] = useState("");
@@ -39,13 +32,31 @@ export default function FoundryPage() {
   const [newAlert, setNewAlert] = useState({ title: "", date: "" });
 
 
-  const handleLogin = () => {
-    if (pass === "FisioFoundry2026!") { setIsAuthorized(true); loadData(); } 
-    else { alert("ACCESO DENEGADO"); }
+  const getFoundryKey = (override?: string) => {
+    if (override) return override;
+    if (pass) return pass;
+    return localStorage.getItem('foundryKey') || '';
   };
-  const loadData = async () => {
+
+  const handleLogin = async () => {
+    const key = pass.trim();
+    if (!key) return alert("Introduce la clave de Foundry");
     try {
-      const res = await fetch('/api/admin/stats-globales');
+      const res = await fetch('/api/admin/stats-globales', {
+        headers: { 'x-foundry-key': key }
+      });
+      if (!res.ok) return alert("ACCESO DENEGADO");
+      localStorage.setItem('foundryKey', key);
+      setIsAuthorized(true);
+      loadData(key);
+    } catch (e) { alert("Error de conexión"); }
+  };
+  const loadData = async (keyOverride?: string) => {
+    try {
+      const res = await fetch('/api/admin/stats-globales', {
+        headers: { 'x-foundry-key': getFoundryKey(keyOverride) }
+      });
+      if (res.status === 401) { setIsAuthorized(false); return; }
       if (res.ok) setData(await res.json());
     } catch (e) { console.error("Error sync"); }
   };
@@ -58,7 +69,12 @@ export default function FoundryPage() {
     setChatLoading(true);
     try {
       const res = await fetch('/api/admin/chat-legal', {
-        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ message: msg })
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-foundry-key': getFoundryKey()
+        },
+        body: JSON.stringify({ message: msg })
       });
       const json = await res.json();
       setChatHistory(prev => [...prev, { role: 'ana', text: json.reply }]);
@@ -66,21 +82,18 @@ export default function FoundryPage() {
     setChatLoading(false);
   };
 
-  const handleCreateAlert = async () => { /* ... lógica alerta ... */ };
-  const handleDeleteAlert = async (id: string) => { /* ... lógica borrado ... */ };
-  const handleCSVUpload = async (e: any) => { /* ... lógica csv ... */ };
-  const handleInvoiceUpload = async (e: any) => { /* ... lógica factura ... */ };
+  const runAnaDiagnose = async () => {
+    try {
+      const res = await fetch('/api/admin/ana-diagnose', {
+        headers: { 'x-foundry-key': getFoundryKey() }
+      });
+      const json = await res.json();
+      setAnaDiag(json);
+    } catch (e) { setAnaDiag({ ok: false, error: 'No se pudo conectar' }); }
+  };
 
-  // Lógica de Paginación y Búsqueda
-  const filteredClinics = useMemo(() => {
-    if (!data.clinicas) return [];
-    return data.clinicas.filter((c: any) => 
-      (c.nombre_clinica && c.nombre_clinica.toLowerCase().includes(search.toLowerCase())) || 
-      (c.email && c.email.toLowerCase().includes(search.toLowerCase()))
-    );
-  }, [data.clinicas, search]);
-  const paginatedClinics = useMemo(() => filteredClinics.slice((page - 1) * itemsPerPage, ((page - 1) * itemsPerPage) + itemsPerPage), [filteredClinics, page]);
-  const totalPages = Math.ceil(filteredClinics.length / itemsPerPage) || 1;
+  const handleCreateAlert = async () => { /* ... lógica alerta ... */ };
+  const handleInvoiceUpload = async (e: any) => { /* ... lógica factura ... */ };
 
   if (!isAuthorized) { 
     return (
@@ -98,7 +111,11 @@ export default function FoundryPage() {
   return (
     <div className="min-h-screen bg-[#05070a] text-white p-10 font-sans">
       <nav className="fixed top-0 left-0 w-full p-6 border-b border-white/5 bg-[#05070a]/90 backdrop-blur-md z-50 flex justify-between items-center px-12">
-        <div className="flex items-center gap-3"><Zap color="#d4af37"/><span className="font-black text-xl tracking-tighter">THE FOUNDRY</span></div>
+        <div className="flex items-center gap-3">
+          <Zap color="#d4af37"/>
+          <span className="font-black text-xl tracking-tighter">THE FOUNDRY</span>
+          <span className="text-[10px] text-gray-500">Clínicas: {data.stats.totalClinicas}</span>
+        </div>
         <div className="flex gap-2 bg-white/5 p-1 rounded-xl">
            <button onClick={()=>setView('caza')} className={`px-4 py-2 rounded-lg text-[10px] font-black transition-all ${view==='caza'?'bg-[#d4af37] text-black shadow-lg shadow-[#d4af37]/20':'text-gray-500 hover:text-white'}`}>MODO CAZA</button>
            <button onClick={()=>setView('llc')} className={`px-4 py-2 rounded-lg text-[10px] font-black transition-all ${view==='llc'?'bg-[#d4af37] text-black shadow-lg shadow-[#d4af37]/20':'text-gray-500 hover:text-white'}`}>MODO LLC</button>
@@ -135,6 +152,15 @@ export default function FoundryPage() {
                         <button onClick={handleCreateAlert} className="bg-white text-black px-4 rounded-xl font-bold">+</button>
                      </div>
                     {/* Alertas y Botón de Borrado */}
+                  </div>
+                  <div className="bg-white/5 p-8 rounded-[32px] border border-white/10">
+                    <h3 className="text-xs font-black text-gray-500 uppercase mb-4 flex items-center gap-2"><ShieldCheck size={14}/> Diagnóstico IA</h3>
+                    <ActionButton onClick={runAnaDiagnose} fullWidth style={{background:'#d4af37', color:'#000'}}>PROBAR GEMINI</ActionButton>
+                    {anaDiag && (
+                      <div className="mt-4 text-[11px] text-gray-400 whitespace-pre-wrap">
+                        {anaDiag.ok ? `OK | Model: ${anaDiag.model} | Key length: ${anaDiag.keyLength}` : `ERROR | ${JSON.stringify(anaDiag.error || anaDiag)}`}
+                      </div>
+                    )}
                   </div>
                </div>
 

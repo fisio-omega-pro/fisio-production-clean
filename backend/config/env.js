@@ -8,7 +8,7 @@ async function getSecret(name) {
         });
         return version.payload.data.toString();
     } catch (e) {
-        console.warn(`⚠️ Aviso: Secreto ${name} no disponible. Usando entorno.`);
+        console.warn(`⚠️ Aviso: Secreto ${name} no disponible.`);
         return process.env[name] || '';
     }
 }
@@ -17,8 +17,13 @@ async function initEnv() {
     return {
         PROJECT_ID: 'fisiotool-pro-2026',
         GOOGLE_AI_KEY: await getSecret('GOOGLE_AI_KEY'),
+        GOOGLE_AI_MODEL: await getSecret('GOOGLE_AI_MODEL'),
         JWT_SECRET: await getSecret('JWT_SECRET') || 'fisiotool_master_key_2026',
-        STRIPE_SK: await getSecret('STRIPE_SK')
+        // 🚨 SINCRONIZADO CON TU CAPTURA DE PANTALLA
+        STRIPE_SK: await getSecret('STRIPE_SECRET_KEY'),
+        STRIPE_WEBHOOK_SECRET: await getSecret('STRIPE_WEBHOOK_SECRET'),
+        ADMIN_FOUNDRY_KEY: await getSecret('ADMIN_FOUNDRY_KEY')
     };
 }
+
 module.exports = { initEnv };
