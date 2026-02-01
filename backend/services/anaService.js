@@ -32,6 +32,7 @@ const callAnaEngine = async (prompt) => {
 
     return data.candidates?.[0]?.content?.parts?.[0]?.text || "Sin respuesta.";
   } catch (error) {
+    console.error("🔥 ERROR ANA ENGINE:", error?.message || error);
     throw error;
   }
 };
