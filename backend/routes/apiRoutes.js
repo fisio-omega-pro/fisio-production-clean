@@ -9,6 +9,11 @@ const chatController = require('../controllers/chatController');
 const auth = require('../middleware/auth');
 const { initEnv } = require('../config/env');
 
+const ensureHandler = (fn, name) => {
+  if (typeof fn === 'function') return fn;
+  return (req, res) => res.status(501).json({ error: `Handler no disponible: ${name}` });
+};
+
 const requireFoundryKey = (req, res, next) => {
   initEnv()
     .then((env) => {
@@ -19,11 +24,6 @@ const requireFoundryKey = (req, res, next) => {
       return next();
     })
     .catch(next);
-};
-
-const ensureHandler = (fn, name) => {
-  if (typeof fn === 'function') return fn;
-  return (req, res) => res.status(501).json({ error: `Handler no disponible: ${name}` });
 };
 
 // --- 🔓 RUTAS PÚBLICAS ---
