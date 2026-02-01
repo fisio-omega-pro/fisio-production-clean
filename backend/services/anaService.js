@@ -2,7 +2,8 @@ const { initEnv } = require('../config/env');
 
 const callAnaEngine = async (prompt) => {
   const env = await initEnv();
-  const apiKey = env.GOOGLE_AI_KEY;
+  const apiKeyRaw = env.GOOGLE_AI_KEY;
+  const apiKey = apiKeyRaw ? apiKeyRaw.trim() : '';
 
   if (!apiKey) {
     return "Error: No tengo acceso a mi llave maestra. Revisa GOOGLE_AI_KEY en el Búnker.";
@@ -14,7 +15,11 @@ const callAnaEngine = async (prompt) => {
     throw new Error('Falta GOOGLE_AI_MODEL');
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  // Log seguro (solo longitud, no expone la key)
+  console.error("🔎 ANA KEY LENGTH:", apiKey.length);
+
+  // ✅ Usar v1 estable
+  const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
 
   try {
     const response = await fetch(url, {
