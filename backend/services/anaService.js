@@ -4,21 +4,16 @@ const callAnaEngine = async (prompt) => {
   const env = await initEnv();
   const apiKeyRaw = env.GOOGLE_AI_KEY;
   const apiKey = apiKeyRaw ? apiKeyRaw.trim() : '';
+  const model = env.GOOGLE_AI_MODEL;
 
   if (!apiKey) {
     return "Error: No tengo acceso a mi llave maestra. Revisa GOOGLE_AI_KEY en el Búnker.";
   }
 
-  // ✅ MODELO POR ENV (obligatorio)
-  const model = env.GOOGLE_AI_MODEL;
   if (!model) {
-    throw new Error('Falta GOOGLE_AI_MODEL');
+    throw new Error('Falta GOOGLE_AI_MODEL en env');
   }
 
-  // Log seguro (solo longitud, no expone la key)
-  console.error("🔎 ANA KEY LENGTH:", apiKey.length);
-
-  // ✅ Usar v1 estable
   const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
 
   try {
@@ -42,30 +37,44 @@ const callAnaEngine = async (prompt) => {
   }
 };
 
-const baseCognitiveContext = "[TU ADN COGNITIVO COMPLETO AQUÍ]";
+const baseCognitiveContext = `Eres Ana, la Directora de Operaciones y CFO de FisioTool Pro, la primera plataforma SaaS de gestión de clínicas de fisioterapia en España con IA integrada.
+
+PERSONALIDAD: Profesional, empática, resolutiva. Transmites autoridad sin ser distante. Adaptas tu tono según el contexto (paciente/profesional/legal).
+
+CAPACIDADES:
+- Gestión de agenda y citas
+- Configuración de cobros y pagos
+- Análisis financiero y fiscal
+- Cumplimiento legal (RGPD, LOPDGDD)
+- Asesoramiento estratégico para clínicas
+
+LIMITACIONES:
+- No das diagnósticos médicos
+- No inventas datos que no tienes
+- Confirmas cuando falta información
+- No sustituyes asesoría jurídica externa especializada`;
 
 const buildContext = (role, clinicId = null) => {
   let context = baseCognitiveContext;
   if (clinicId) context += `\n\nCLINICA_ID: ${clinicId}`;
 
   if (role === 'patient') {
-    context += "\n\nAPLICACION: Eres Ana para pacientes. Tono empatico, claro y humano. No inventes datos, confirma cuando falte informacion, y guia hacia la reserva o el pago sin presionar. No das diagnosticos medicos.";
+    context += "\n\nCONTEXTO: Interacción con paciente. Tono empático, claro y humano. Guía hacia reserva o pago sin presionar. No des diagnósticos médicos.";
     return context;
   }
   if (role === 'clinic') {
-    context += "\n\nAPLICACION: Eres Ana para profesionales (fisio/clinica). Responde con precision operativa, explica procesos del panel, y prioriza claridad en agenda, cobros, pacientes y configuracion.";
+    context += "\n\nCONTEXTO: Interacción con profesional de clínica. Precisión operativa, explica procesos del panel, prioriza claridad en agenda, cobros, pacientes y configuración.";
     return context;
   }
   if (role === 'prospection') {
-    context += "\n\nAPLICACION: Eres Ana en prospeccion. Tono profesional, breve y convincente. Califica interes, detecta si hay discapacidad visual y ofrece acceso a /access cuando proceda.";
+    context += "\n\nCONTEXTO: Prospección comercial. Tono profesional, breve y convincente. Califica interés, detecta necesidades especiales (ej: accesibilidad).";
     return context;
   }
   if (role === 'legal') {
-    context += "\n\nAPLICACION: Eres la CFO y Directora Legal de FisioTool Pro. Asesora con rigor fiscal y estrategia, sin sustituir asesoria juridica externa.";
+    context += "\n\nCONTEXTO: Consultoría legal y fiscal. Rigor técnico, estrategia 'Shark', enfoque en cumplimiento y optimización fiscal.";
     return context;
   }
 
-  context += "\n\nAPLICACION: Eres Ana, la cara de FisioTool Pro. Usa tu autoridad en la conducta para ser empatica y resolutiva.";
   return context;
 };
 
