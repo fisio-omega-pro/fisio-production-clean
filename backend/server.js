@@ -21,7 +21,7 @@ async function initialize() {
   app.use(bodyParser.urlencoded({ extended: true }));
 
   app.use('/api', apiRoutes);
-  app.get('/', (req, res) => res.status(200).send('FISIOTOOL PRO ONLINE'));
+  app.get('/', (req, res) => res.status(200).send('FISIOTOOL PRO ONLINE v2.0'));
 
   // 📧 CRON JOB: Ana revisa su inbox cada 5 minutos
   const { readEmails } = require('./services/emailReaderService');
