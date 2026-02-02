@@ -43,6 +43,11 @@ export default function LoginFerrari() {
             <label style={labelStyle}>CONTRASEÑA</label>
             <div style={inputWrapper}><Lock size={18} style={iconStyle}/><input style={inputField} type="password" placeholder="••••••••" onChange={e => setPass(e.target.value)} /></div>
           </div>
+          <div style={{textAlign:'right', marginTop:'-10px'}}>
+            <a href="/recuperar-contraseña" style={{fontSize:'12px', color:'#0066ff', textDecoration:'none', fontWeight:600}}>
+              ¿Olvidaste tu contraseña?
+            </a>
+          </div>
           <button onClick={acceder} style={btnMain}>INICIAR SESIÓN <ArrowRight size={20}/></button>
         </div>
 
