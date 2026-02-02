@@ -36,24 +36,6 @@ const register = async (req, res, next) => {
     });
     // 🚨 LOG: Nueva entidad creada
     await createAuditLog(ref.id, ref.id, 'CREATE_CLINIC', ref.id);
-    
-    // 📄 GENERAR CONTRATO Y ENVIAR EMAIL DE ONBOARDING
-    try {
-      const { createAndArchiveContract, sendOnboardingEmail } = require('../services/contractService');
-      const userData = {
-        nombre: d.nombre,
-        email: d.email.toLowerCase().trim(),
-        nombre_clinica: d.nombre,
-        fecha: new Date().toISOString()
-      };
-      const { contractHTML } = await createAndArchiveContract(ref.id, userData);
-      await sendOnboardingEmail(userData, contractHTML);
-      console.log(`✅ Contrato y onboarding completados para ${userData.email}`);
-    } catch (contractError) {
-      console.error('⚠️ Error en generación de contrato, pero registro exitoso:', contractError.message);
-      // No falla el registro si hay error en el contrato
-    }
-    
     const token = jwt.sign({ clinicId: ref.id }, env.JWT_SECRET, { expiresIn: '30d' });
     res.json({ success: true, token, clinicId: ref.id });
   } catch (error) { next(error); }
@@ -112,42 +94,9 @@ const getDashboardData = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
-// 🔐 RECUPERACIÓN DE CONTRASEÑA
-const forgotPassword = async (req, res, next) => {
-  try {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ error: 'Email requerido' });
-    
-    const { sendPasswordResetEmail } = require('../services/passwordResetService');
-    const result = await sendPasswordResetEmail(email);
-    res.json(result);
-  } catch (error) { next(error); }
-};
-
-const resetPassword = async (req, res, next) => {
-  try {
-    const { token, newPassword } = req.body;
-    if (!token || !newPassword) {
-      return res.status(400).json({ error: 'Token y nueva contraseña requeridos' });
-    }
-    if (newPassword.length < 6) {
-      return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
-    }
-    
-    const { resetPasswordWithToken } = require('../services/passwordResetService');
-    const result = await resetPasswordWithToken(token, newPassword);
-    
-    if (!result.success) {
-      return res.status(400).json({ error: result.error });
-    }
-    
-    res.json(result);
-  } catch (error) { next(error); }
-};
-
 // 🚨 EXPORTACIÓN DE FUNCIONES CONSOLIDADAS
 module.exports = { 
-  register, getDashboardData, savePatientNote, createAppointment, forgotPassword, resetPassword,
+  register, getDashboardData, savePatientNote, createAppointment,
   saveLogo: async (req,res) => { await db.collection('clinicas').doc(req.clinicId).update({ logo_url: req.body.publicUrl }); res.json({success:true}); },
   saveCobrosConfig: async (req,res) => res.json({success:true}),
   addSede: async (req,res) => { res.json({success:true}); },

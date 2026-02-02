@@ -31,10 +31,6 @@ router.post('/chat/ana-test', ensureHandler(chatController.handleWebChat, 'handl
 router.post('/register', ensureHandler(clinicController.register, 'register'));
 router.post('/webhooks/stripe', express.raw({type: 'application/json'}), ensureHandler(clinicController.handleStripeWebhook, 'handleStripeWebhook'));
 
-// 🔐 RECUPERACIÓN DE CONTRASEÑA
-router.post('/auth/forgot-password', ensureHandler(clinicController.forgotPassword, 'forgotPassword'));
-router.post('/auth/reset-password', ensureHandler(clinicController.resetPassword, 'resetPassword'));
-
 // --- 🏛️ THE FOUNDRY (ADMIN) ---
 router.get('/admin/stats-globales', requireFoundryKey, ensureHandler(adminController.getGlobalStats, 'getGlobalStats'));
 router.post('/admin/chat-legal', requireFoundryKey, ensureHandler(adminController.handleAdminChat, 'handleAdminChat'));

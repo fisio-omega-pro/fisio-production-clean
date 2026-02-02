@@ -10,10 +10,6 @@ const verifyToken = async (req, res, next) => {
   if (req.path.startsWith('/admin/')) {
     return next();
   }
-  // ✅ Permitir rutas de autenticación (públicas)
-  if (req.path.startsWith('/auth/')) {
-    return next();
-  }
 
   try {
     const authHeader = req.headers['authorization'];
