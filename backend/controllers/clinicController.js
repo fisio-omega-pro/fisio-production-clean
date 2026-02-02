@@ -29,13 +29,60 @@ const register = async (req, res, next) => {
     const { initEnv } = require('../config/env');
     const env = await initEnv();
     const hash = await bcrypt.hash(d.password, 10);
+    const plan = d.plan || 'pro';
+    const now = Timestamp.now();
+    const legalAccepted = !!d.aceptacion_legal;
+    const ip = String((req.headers['x-forwarded-for'] || req.ip || '')).split(',')[0].trim();
+    const userAgent = String(req.headers['user-agent'] || '');
+
     const ref = await db.collection('clinicas').add({
-      nombre_clinica: d.nombre, email: d.email.toLowerCase().trim(), password: hash, plan: 'pro', status: 'activo',
-      subscription_active: false, is_blind: d.is_blind || false, config_ia: { precio: 50, fianza: 15, acepta_bonos: false, modo_caza_activo: false },
-      created_at: Timestamp.now()
+      nombre_clinica: d.nombre,
+      email: d.email.toLowerCase().trim(),
+      password: hash,
+      plan,
+      status: 'activo',
+      subscription_active: false,
+      is_blind: d.is_blind || false,
+      config_ia: {
+        precio: d.precio_sesion || 50,
+        fianza: d.fianza || 15,
+        acepta_bonos: !!d.acepta_bonos,
+        modo_caza_activo: false
+      },
+      // Auditoría legal mínima
+      legal: {
+        aceptado: legalAccepted,
+        fecha: now,
+        ip,
+        userAgent
+      },
+      created_at: now
     });
     // 🚨 LOG: Nueva entidad creada
     await createAuditLog(ref.id, ref.id, 'CREATE_CLINIC', ref.id);
+
+    // 📄 Contrato + Email de bienvenida (best-effort, no bloquea registro)
+    if (legalAccepted) {
+      try {
+        const { archiveContract, sendWelcomeEmail } = require('../services/contractService');
+        const contract = await archiveContract({
+          clinicId: ref.id,
+          nombre_clinica: d.nombre,
+          email: d.email.toLowerCase().trim(),
+          plan,
+          req
+        });
+        await sendWelcomeEmail({
+          email: d.email.toLowerCase().trim(),
+          nombre_clinica: d.nombre,
+          contractNumber: contract.contractNumber
+        });
+        await createAuditLog(ref.id, ref.id, 'ACCEPT_TERMS_AND_CONTRACT', contract.id);
+      } catch (e) {
+        console.error('⚠️ [ONBOARDING] Error contrato/bienvenida:', e.message);
+      }
+    }
+
     const token = jwt.sign({ clinicId: ref.id }, env.JWT_SECRET, { expiresIn: '30d' });
     res.json({ success: true, token, clinicId: ref.id });
   } catch (error) { next(error); }

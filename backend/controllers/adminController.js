@@ -6,11 +6,12 @@ const { initEnv } = require('../config/env');
 // --- 🏛️ MODO DIOS: ESTADÍSTICAS CONSOLIDADAS ---
 const getGlobalStats = async (req, res, next) => {
   try {
-    const [clinics, alerts, expenses, suggestions] = await Promise.all([
+    const [clinics, alerts, expenses, suggestions, contratosSnap] = await Promise.all([
       db.collection('clinicas').get(),
       db.collection('foundry_alerts').get(),
       db.collection('foundry_llc_expenses').get(),
-      db.collection('sugerencias').get()
+      db.collection('sugerencias').get(),
+      db.collection('contratos').orderBy('createdAt', 'desc').limit(50).get()
     ]);
 
     let mrr = 0;
@@ -34,6 +35,18 @@ const getGlobalStats = async (req, res, next) => {
         // eslint-disable-next-line no-unused-vars
         const { password, ...safe } = raw;
         return { id: d.id, ...safe };
+      }),
+      contratos: contratosSnap.docs.map((d) => {
+        const raw = d.data() || {};
+        // Solo lo imprescindible para Foundry
+        return {
+          id: d.id,
+          contractNumber: raw.contractNumber,
+          nombre: raw.nombre_clinica,
+          email: raw.email,
+          plan: raw.plan,
+          fecha: raw.createdAt || raw.acceptedAt || null
+        };
       }),
       alerts: alerts.docs.map(d => ({id:d.id, ...d.data()}))
     });
