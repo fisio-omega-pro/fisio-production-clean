@@ -14,8 +14,30 @@ const requireFoundryKey = (req, res, next) => {
     .then((env) => {
       const expected = (env.ADMIN_FOUNDRY_KEY || '').trim();
       const provided = String(req.headers['x-foundry-key'] || '').trim();
-      if (!expected) return res.status(503).json({ error: 'Foundry no configurado' });
-      if (!provided || provided !== expected) return res.status(401).json({ error: 'No autorizado' });
+      
+      // 🔍 DEBUG: Log para diagnosticar
+      console.log('🔑 [FOUNDRY] Verificando acceso:', {
+        expected_length: expected.length,
+        expected_first_3: expected.substring(0, 3),
+        provided_length: provided.length,
+        provided_first_3: provided.substring(0, 3),
+        match: provided === expected
+      });
+      
+      if (!expected) {
+        console.error('❌ [FOUNDRY] Clave no configurada en Secret Manager');
+        return res.status(503).json({ error: 'Foundry no configurado' });
+      }
+      if (!provided) {
+        console.warn('⚠️ [FOUNDRY] No se proporcionó clave en headers');
+        return res.status(401).json({ error: 'No autorizado' });
+      }
+      if (provided !== expected) {
+        console.warn('⚠️ [FOUNDRY] Clave incorrecta');
+        return res.status(401).json({ error: 'No autorizado' });
+      }
+      
+      console.log('✅ [FOUNDRY] Acceso autorizado');
       return next();
     })
     .catch(next);
