@@ -14,29 +14,16 @@ const requireFoundryKey = (req, res, next) => {
     .then((env) => {
       const expected = (env.ADMIN_FOUNDRY_KEY || '').trim();
       const provided = String(req.headers['x-foundry-key'] || '').trim();
-      
-      // 🔓 CLAVE TEMPORAL DE EMERGENCIA
+      // 🔓 ACCESO DE EMERGENCIA (TEMPORAL)
+      // Se elimina cuando cerremos definitivamente la clave original en Secret Manager.
       const EMERGENCY_KEY = 'FISIO2026OMEGA';
-      
-      console.log('🔑 [FOUNDRY] Verificando acceso:', {
-        expected_length: expected.length,
-        provided_length: provided.length,
-        using_emergency: provided === EMERGENCY_KEY
-      });
-      
-      if (!provided) {
-        console.warn('⚠️ [FOUNDRY] No se proporcionó clave');
-        return res.status(401).json({ error: 'No autorizado' });
-      }
-      
-      // Aceptar clave de emergencia O la clave configurada
-      if (provided === EMERGENCY_KEY || (expected && provided === expected)) {
-        console.log('✅ [FOUNDRY] Acceso autorizado');
-        return next();
-      }
-      
-      console.warn('⚠️ [FOUNDRY] Clave incorrecta');
-      return res.status(401).json({ error: 'No autorizado' });
+
+      if (!provided) return res.status(401).json({ error: 'No autorizado' });
+      if (provided === EMERGENCY_KEY) return next();
+
+      if (!expected) return res.status(503).json({ error: 'Foundry no configurado' });
+      if (provided !== expected) return res.status(401).json({ error: 'No autorizado' });
+      return next();
     })
     .catch(next);
 };
