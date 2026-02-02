@@ -1,0 +1,29 @@
+# Cloud Build configuration for automatic deployments
+steps:
+  # Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/fisiotool-pro-2026/fisio-backend:$COMMIT_SHA', '.']
+  
+  # Push the container image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/fisiotool-pro-2026/fisio-backend:$COMMIT_SHA']
+  
+  # Deploy container image to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'fisio-backend-omega'
+      - '--image'
+      - 'gcr.io/fisiotool-pro-2026/fisio-backend:$COMMIT_SHA'
+      - '--region'
+      - 'europe-west1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+
+images:
+  - 'gcr.io/fisiotool-pro-2026/fisio-backend:$COMMIT_SHA'
+
+timeout: '1200s'
