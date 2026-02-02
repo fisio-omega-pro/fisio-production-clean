@@ -3,7 +3,11 @@ const path = require('path');
 const fs = require('fs');
 const keyPath = path.join(__dirname, 'key.json');
 if (!admin.apps.length) {
-    if (fs.existsSync(keyPath)) {
+    // ✅ En Cloud Run SIEMPRE usar credenciales del entorno (ADC).
+    // Evita depender de key.json (no debe empaquetarse en la imagen).
+    const runningOnCloudRun = !!process.env.K_SERVICE;
+
+    if (!runningOnCloudRun && fs.existsSync(keyPath)) {
         try {
             const serviceAccount = require(keyPath);
             admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });

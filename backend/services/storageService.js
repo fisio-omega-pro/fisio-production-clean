@@ -3,17 +3,13 @@
  * Genera URLs firmadas para subidas seguras directas a Google Cloud.
  */
 const { Storage } = require('@google-cloud/storage');
-const path = require('path');
 
 // Configuración
 const BUCKET_NAME = 'fisiotool-pro-2026-media'; // El cubo que acabamos de crear
-const keyPath = path.join(__dirname, '../config/key.json');
 
-// Inicialización con la llave maestra
-const storage = new Storage({
-  projectId: 'fisiotool-pro-2026',
-  keyFilename: keyPath
-});
+// ✅ En Cloud Run usar credenciales del entorno (ADC) y la service account del servicio.
+// (No dependemos de key.json dentro del contenedor)
+const storage = new Storage({ projectId: 'fisiotool-pro-2026' });
 
 const bucket = storage.bucket(BUCKET_NAME);
 
