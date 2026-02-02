@@ -41,6 +41,32 @@ const register = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+// 1b. LOGIN (Acceso a Dashboard)
+const login = async (req, res, next) => {
+  try {
+    const { email, password } = req.body || {};
+    if (!email || !password) return res.status(400).json({ success: false, error: 'Email y contraseña requeridos' });
+
+    const { initEnv } = require('../config/env');
+    const env = await initEnv();
+
+    const snap = await db.collection('clinicas')
+      .where('email', '==', String(email).toLowerCase().trim())
+      .limit(1)
+      .get();
+
+    if (snap.empty) return res.status(401).json({ success: false, error: 'Credenciales incorrectas' });
+
+    const doc = snap.docs[0];
+    const data = doc.data() || {};
+    const ok = await bcrypt.compare(String(password), String(data.password || ''));
+    if (!ok) return res.status(401).json({ success: false, error: 'Credenciales incorrectas' });
+
+    const token = jwt.sign({ clinicId: doc.id }, env.JWT_SECRET, { expiresIn: '30d' });
+    return res.json({ success: true, token, clinicId: doc.id });
+  } catch (error) { next(error); }
+};
+
 // 2. CREAR CITA
 const createAppointment = async (req, res) => {
     try {
@@ -96,7 +122,7 @@ const getDashboardData = async (req, res, next) => {
 
 // 🚨 EXPORTACIÓN DE FUNCIONES CONSOLIDADAS
 module.exports = { 
-  register, getDashboardData, savePatientNote, createAppointment,
+  register, login, getDashboardData, savePatientNote, createAppointment,
   saveLogo: async (req,res) => { await db.collection('clinicas').doc(req.clinicId).update({ logo_url: req.body.publicUrl }); res.json({success:true}); },
   saveCobrosConfig: async (req,res) => res.json({success:true}),
   addSede: async (req,res) => { res.json({success:true}); },

@@ -35,6 +35,7 @@ const ensureHandler = (fn, name) => {
 
 // --- 🔓 RUTAS PÚBLICAS ---
 router.post('/chat/ana-test', ensureHandler(chatController.handleWebChat, 'handleWebChat'));
+router.post('/login', ensureHandler(clinicController.login, 'login'));
 router.post('/register', ensureHandler(clinicController.register, 'register'));
 router.post('/webhooks/stripe', express.raw({type: 'application/json'}), ensureHandler(clinicController.handleStripeWebhook, 'handleStripeWebhook'));
 

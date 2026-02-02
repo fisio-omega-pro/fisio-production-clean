@@ -17,7 +17,8 @@ export default function LoginFerrari() {
       });
       const data = await res.json();
       if (data.success) {
-        window.location.href = `/dashboard?id=${data.clinicId}`;
+        if (data.token) localStorage.setItem('fisio_token', data.token);
+        window.location.href = `/dashboard`;
       } else {
         alert("Credenciales incorrectas.");
       }
