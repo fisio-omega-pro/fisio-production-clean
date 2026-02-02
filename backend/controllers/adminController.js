@@ -28,7 +28,13 @@ const getGlobalStats = async (req, res, next) => {
         totalExpenses: `${totalExp.toFixed(2)}€`,
         pendingSuggestions: suggestions.size
       },
-      clinicas: clinics.docs.map(d => ({id:d.id, ...d.data()})),
+      // 🔒 Seguridad: nunca exponer hashes/credenciales (p.ej. `password`) en Foundry
+      clinicas: clinics.docs.map((d) => {
+        const raw = d.data() || {};
+        // eslint-disable-next-line no-unused-vars
+        const { password, ...safe } = raw;
+        return { id: d.id, ...safe };
+      }),
       alerts: alerts.docs.map(d => ({id:d.id, ...d.data()}))
     });
   } catch (e) { next(e); }
