@@ -67,6 +67,37 @@ const login = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+// 🔐 RECUPERACIÓN DE CONTRASEÑA (pública)
+const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body || {};
+    const { createResetRequest, sendResetEmail } = require('../services/passwordResetService');
+    const result = await createResetRequest(email);
+
+    // Siempre devolvemos success true para no filtrar existencia de cuentas
+    if (result.ok && result.token) {
+      // Best effort: si falla el email, no revelamos información sensible
+      try { await sendResetEmail(String(email || ''), result.token); } catch (_) {}
+    }
+
+    return res.json({ success: true });
+  } catch (e) { next(e); }
+};
+
+const resetPassword = async (req, res, next) => {
+  try {
+    const { token, newPassword } = req.body || {};
+    if (!token || !newPassword) return res.status(400).json({ success: false, error: 'Token y contraseña requeridos' });
+    if (String(newPassword).length < 6) return res.status(400).json({ success: false, error: 'La contraseña debe tener al menos 6 caracteres' });
+
+    const hash = await bcrypt.hash(String(newPassword), 10);
+    const { consumeResetToken } = require('../services/passwordResetService');
+    const result = await consumeResetToken(token, hash);
+    if (!result.ok) return res.status(400).json({ success: false, error: result.error });
+    return res.json({ success: true });
+  } catch (e) { next(e); }
+};
+
 // 2. CREAR CITA
 const createAppointment = async (req, res) => {
     try {
@@ -122,7 +153,7 @@ const getDashboardData = async (req, res, next) => {
 
 // 🚨 EXPORTACIÓN DE FUNCIONES CONSOLIDADAS
 module.exports = { 
-  register, login, getDashboardData, savePatientNote, createAppointment,
+  register, login, forgotPassword, resetPassword, getDashboardData, savePatientNote, createAppointment,
   saveLogo: async (req,res) => { await db.collection('clinicas').doc(req.clinicId).update({ logo_url: req.body.publicUrl }); res.json({success:true}); },
   saveCobrosConfig: async (req,res) => res.json({success:true}),
   addSede: async (req,res) => { res.json({success:true}); },
