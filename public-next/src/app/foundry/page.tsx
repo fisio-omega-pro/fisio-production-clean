@@ -5,7 +5,7 @@ import {
   Zap, Users, Target, Activity, Upload, Bell, ShieldCheck, FileText, Send, 
   Scale as ScaleIcon, Trash2, Search, ChevronLeft, ChevronRight, TrendingUp,
   Building2, Wallet, Euro, TrendingDown, Eye, EyeOff, Mail, Phone, CheckCircle2,
-  Clock, AlertCircle, XCircle, ArrowUpRight, BarChart3, Calendar, Filter
+  Clock, AlertCircle, XCircle, ArrowUpRight, BarChart3, Calendar, Filter, Copy
 } from 'lucide-react';
 import { ActionButton, InputField } from '../dashboard/components/Atoms';
 
@@ -47,6 +47,9 @@ export default function FoundryPage() {
   const [newAlert, setNewAlert] = useState({ title: "", date: "", tipo: "fiscal" });
   const invoiceRef = useRef<HTMLInputElement>(null);
   const contratoRef = useRef<HTMLInputElement>(null);
+  const [selectedContrato, setSelectedContrato] = useState<any>(null);
+  const [contratoText, setContratoText] = useState<string>('');
+  const [contratoLoading, setContratoLoading] = useState(false);
 
   // MODO DIOS
   const [search, setSearch] = useState("");
@@ -201,6 +204,49 @@ export default function FoundryPage() {
         loadData(); 
       }
     } catch (e) { alert("Error al subir contrato"); }
+  };
+
+  const formatFecha = (f: any) => {
+    try {
+      if (!f) return '-';
+      // Firestore Timestamp shape
+      if (f._seconds) return new Date(f._seconds * 1000).toLocaleDateString('es-ES');
+      // ISO string
+      if (typeof f === 'string') return new Date(f).toLocaleDateString('es-ES');
+      return String(f);
+    } catch {
+      return '-';
+    }
+  };
+
+  const openContrato = async (contrato: any) => {
+    setSelectedContrato(contrato);
+    setContratoText('');
+    setContratoLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/contratos/${contrato.id}`, {
+        headers: { 'x-foundry-key': getFoundryKey() }
+      });
+      const json = await res.json();
+      if (res.ok && json?.contrato?.text != null) setContratoText(String(json.contrato.text));
+      else setContratoText('No se pudo cargar el contrato.');
+    } catch {
+      setContratoText('Error de conexión.');
+    }
+    setContratoLoading(false);
+  };
+
+  const downloadContrato = () => {
+    if (!selectedContrato) return;
+    const content = contratoText || '';
+    const filename = `${selectedContrato.contractNumber || 'contrato'}.txt`;
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   // --- MODO DIOS: PAGINACIÓN Y FILTROS ---
@@ -529,17 +575,19 @@ export default function FoundryPage() {
                     </ActionButton>
                     {data.contratos && data.contratos.length > 0 && (
                       <div className="mt-6 space-y-2">
-                        {data.contratos.slice(0, 5).map((contrato: any, idx: number) => (
+                        {data.contratos.slice(0, 8).map((contrato: any, idx: number) => (
                           <div key={idx} className="bg-black/30 p-3 rounded-xl border border-white/5 flex justify-between items-center">
                             <div className="flex-1">
-                              <p className="text-xs font-bold text-white">{contrato.nombre || 'Contrato'}</p>
-                              <p className="text-[10px] text-gray-500">{contrato.fecha}</p>
+                              <p className="text-xs font-bold text-white">{contrato.contractNumber || 'Contrato'} · {contrato.nombre || 'Clínica'}</p>
+                              <p className="text-[10px] text-gray-500">{contrato.email} · {formatFecha(contrato.fecha)}</p>
                             </div>
-                            <FileText size={14} className="text-gray-500"/>
+                            <button onClick={() => openContrato(contrato)} className="text-[10px] font-black px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 transition-all">
+                              VER
+                            </button>
                           </div>
                         ))}
-                        {data.contratos.length > 5 && (
-                          <p className="text-[10px] text-gray-600 text-center pt-2">+ {data.contratos.length - 5} contratos más</p>
+                        {data.contratos.length > 8 && (
+                          <p className="text-[10px] text-gray-600 text-center pt-2">+ {data.contratos.length - 8} contratos más</p>
                         )}
                       </div>
                     )}
@@ -747,6 +795,48 @@ export default function FoundryPage() {
 
         </AnimatePresence>
       </main>
+
+      {/* MODAL CONTRATO */}
+      {selectedContrato && (
+        <div className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-sm flex items-center justify-center p-6">
+          <div className="w-full max-w-3xl bg-[#0b0c15] border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
+            <div className="p-5 border-b border-white/10 flex justify-between items-center">
+              <div>
+                <div className="text-sm font-black text-white">{selectedContrato.contractNumber || 'Contrato'}</div>
+                <div className="text-[11px] text-gray-400">{selectedContrato.nombre} · {selectedContrato.email}</div>
+              </div>
+              <button onClick={() => { setSelectedContrato(null); setContratoText(''); }} className="text-gray-400 hover:text-white">
+                <XCircle size={20} />
+              </button>
+            </div>
+            <div className="p-5">
+              <div className="flex gap-2 mb-3">
+                <button
+                  onClick={() => { navigator.clipboard.writeText(contratoText || ''); }}
+                  className="text-xs font-black px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 transition-all flex items-center gap-2"
+                  disabled={contratoLoading}
+                >
+                  <Copy size={14} /> COPIAR
+                </button>
+                <button
+                  onClick={downloadContrato}
+                  className="text-xs font-black px-4 py-2 rounded-xl bg-[#d4af37] text-black hover:bg-[#e6c45c] transition-all"
+                  disabled={contratoLoading}
+                >
+                  DESCARGAR TXT
+                </button>
+              </div>
+              <div className="bg-black/40 border border-white/10 rounded-2xl p-4 max-h-[55vh] overflow-y-auto">
+                {contratoLoading ? (
+                  <div className="text-xs text-gray-400 animate-pulse">Cargando contrato...</div>
+                ) : (
+                  <pre className="whitespace-pre-wrap text-[12px] text-gray-200 leading-relaxed">{contratoText || '—'}</pre>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

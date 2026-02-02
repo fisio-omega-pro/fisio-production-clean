@@ -190,9 +190,32 @@ const triggerEmailCheck = async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 };
 
+// --- 📄 CONTRATOS (Repositorio Legal) ---
+const getContrato = async (req, res) => {
+  try {
+    const id = String(req.params.id || '').trim();
+    if (!id) return res.status(400).json({ error: 'ID requerido' });
+    const doc = await db.collection('contratos').doc(id).get();
+    if (!doc.exists) return res.status(404).json({ error: 'Contrato no encontrado' });
+    const data = doc.data() || {};
+    return res.json({
+      success: true,
+      contrato: {
+        id: doc.id,
+        contractNumber: data.contractNumber || null,
+        nombre: data.nombre_clinica || null,
+        email: data.email || null,
+        plan: data.plan || null,
+        acceptedAt: data.acceptedAt || data.createdAt || null,
+        text: data.text || ''
+      }
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+};
+
 module.exports = { 
   getGlobalStats, handleAdminChat, diagnoseAna, saveAlert, deleteAlert, processInvoice, saveSuggestion, updateSettings,
-  getAnaInbox, sendProspectEmail, triggerEmailCheck,
+  getAnaInbox, sendProspectEmail, triggerEmailCheck, getContrato,
   importLeads: async (req,res) => res.json({success:true}),
   handleIncomingResponse: async (req,res) => res.json({success:true})
 };
