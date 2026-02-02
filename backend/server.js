@@ -20,6 +20,10 @@ async function initialize() {
   app.use(bodyParser.json({ limit: '50mb' }));
   app.use(bodyParser.urlencoded({ extended: true }));
 
+  // Rutas de diagnóstico (sin auth)
+  const diagnostics = require('./routes/diagnostics');
+  app.use('/diagnostics', diagnostics);
+  
   app.use('/api', apiRoutes);
   app.get('/', (req, res) => res.status(200).send('FISIOTOOL PRO ONLINE'));
 
