@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Scale, ShieldCheck, FileText, AlertTriangle, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ActionButton } from '../components/Atoms';
+import { API_BASE_URL } from '@/lib/apiBase';
 
 export const LegalView: React.FC = () => {
   const [input, setInput] = useState("");
@@ -26,7 +27,7 @@ export const LegalView: React.FC = () => {
 
     try {
       const token = localStorage.getItem('fisio_token');
-      const res = await fetch('/api/chat/dashboard', {
+      const res = await fetch(`${API_BASE_URL}/api/chat/dashboard`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

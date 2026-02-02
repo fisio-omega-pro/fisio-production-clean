@@ -2,15 +2,15 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, Mail, Lock, ArrowRight } from 'lucide-react';
+import { API_BASE_URL } from '@/lib/apiBase';
 
 export default function LoginFerrari() {
   const [email, setEmail] = useState('');
   const [pass, setPass] = useState('');
-  const API_BASE = "https://fisiotool-1050901900632.us-central1.run.app";
 
   const acceder = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/login`, {
+      const res = await fetch(`${API_BASE_URL}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password: pass })

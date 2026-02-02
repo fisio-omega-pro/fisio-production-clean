@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, Loader2 } from 'lucide-react';
+import { API_BASE_URL } from '@/lib/apiBase';
 
 export const AsistenteView = () => {
   const [messages, setMessages] = useState([{ role: 'ana', text: 'CONEXIÓN DE PRUEBA ACTIVA. Hola, soy Ana. ¿En qué puedo ayudarte?' }]);
@@ -21,7 +22,7 @@ export const AsistenteView = () => {
 
     try {
       // 🛡️ LLAMADA A RUTA PÚBLICA SIN CABECERAS (Para evitar el bloqueo del túnel)
-      const res = await fetch('/api/chat/ana-test', {
+      const res = await fetch(`${API_BASE_URL}/api/chat/ana-test`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: userMsg }),

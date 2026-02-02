@@ -1,6 +1,5 @@
 import { Paciente, BalanceFinanciero, Especialista } from './types';
-
-const API_BASE_URL = ""; 
+import { API_BASE_URL } from '@/lib/apiBase';
 
 class DashboardService {
   private static instance: DashboardService;

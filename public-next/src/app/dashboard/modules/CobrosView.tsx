@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { CreditCard, Smartphone, CheckCircle2, AlertCircle, ChevronRight, Loader2, Save } from 'lucide-react';
 import { InputField } from '../components/Atoms';
 import { dashboardAPI } from '../services';
+import { API_BASE_URL } from '@/lib/apiBase';
 
 interface CobrosProps {
   hasStripe: boolean;
@@ -28,7 +29,7 @@ export const CobrosView: React.FC<CobrosProps> = ({ hasStripe, clinicData }) => 
     setSavingBizum(true);
     try {
       const token = localStorage.getItem('fisio_token');
-      const res = await fetch('/api/dashboard/save-cobros', {
+      const res = await fetch(`${API_BASE_URL}/api/dashboard/save-cobros`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json', 

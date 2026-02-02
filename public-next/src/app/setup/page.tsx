@@ -9,6 +9,7 @@ import {
   Landmark, MapPin, X
 } from 'lucide-react';
 import { dashboardAPI } from '../dashboard/services';
+import { API_BASE_URL } from '@/lib/apiBase';
 
 // --- TIPOS DE DATOS ---
 interface ClinicData {
@@ -97,7 +98,7 @@ export default function OnboardingEpic() {
     if (!formData.aceptacion_legal) return setErrors({legal: true});
     setLoading(true);
     try {
-      const res = await fetch('/api/register', {
+      const res = await fetch(`${API_BASE_URL}/api/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
