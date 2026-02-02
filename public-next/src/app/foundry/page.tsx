@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { ActionButton, InputField } from '../dashboard/components/Atoms';
 
+const API_BASE_URL = 'https://fisio-backend-omega-740657183492.europe-west1.run.app';
+
 export default function FoundryPage() {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [pass, setPass] = useState("");
@@ -53,7 +55,7 @@ export default function FoundryPage() {
     const key = pass.trim();
     if (!key) return alert("Introduce la clave de Foundry");
     try {
-      const res = await fetch('/api/admin/stats-globales', {
+      const res = await fetch('https://fisio-backend-omega-740657183492.europe-west1.run.app/api/admin/stats-globales', {
         headers: { 'x-foundry-key': key }
       });
       if (!res.ok) return alert("ACCESO DENEGADO");
@@ -64,7 +66,7 @@ export default function FoundryPage() {
   };
   const loadData = async (keyOverride?: string) => {
     try {
-      const res = await fetch('/api/admin/stats-globales', {
+      const res = await fetch(`${API_BASE_URL}/api/admin/stats-globales`, {
         headers: { 'x-foundry-key': getFoundryKey(keyOverride) }
       });
       if (res.status === 401) { setIsAuthorized(false); return; }
@@ -74,7 +76,7 @@ export default function FoundryPage() {
 
   const loadAnaInbox = async () => {
     try {
-      const res = await fetch('/api/admin/ana-inbox', {
+      const res = await fetch(`${API_BASE_URL}/api/admin/ana-inbox`, {
         headers: { 'x-foundry-key': getFoundryKey() }
       });
       if (res.ok) {
@@ -88,7 +90,7 @@ export default function FoundryPage() {
     if (!prospectEmail.to) return alert("Introduce un email de destino");
     setEmailStatus("Enviando...");
     try {
-      const res = await fetch('/api/admin/send-prospect-email', {
+      const res = await fetch(`${API_BASE_URL}/api/admin/send-prospect-email`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -116,7 +118,7 @@ export default function FoundryPage() {
 
   const triggerEmailCheck = async () => {
     try {
-      const res = await fetch('/api/admin/trigger-email-check', {
+      const res = await fetch(`${API_BASE_URL}/api/admin/trigger-email-check`, {
         method: 'POST',
         headers: { 'x-foundry-key': getFoundryKey() }
       });
@@ -134,7 +136,7 @@ export default function FoundryPage() {
     setChatHistory(prev => [...prev, { role: 'user', text: msg }]);
     setChatLoading(true);
     try {
-      const res = await fetch('/api/admin/chat-legal', {
+      const res = await fetch(`${API_BASE_URL}/api/admin/chat-legal`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -150,7 +152,7 @@ export default function FoundryPage() {
 
   const runAnaDiagnose = async () => {
     try {
-      const res = await fetch('/api/admin/ana-diagnose', {
+      const res = await fetch(`${API_BASE_URL}/api/admin/ana-diagnose`, {
         headers: { 'x-foundry-key': getFoundryKey() }
       });
       const json = await res.json();
@@ -161,7 +163,7 @@ export default function FoundryPage() {
   const handleCreateAlert = async () => {
     if (!newAlert.title || !newAlert.date) return alert("Completa todos los campos");
     try {
-      const res = await fetch('/api/admin/save-alert', {
+      const res = await fetch(`${API_BASE_URL}/api/admin/save-alert`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-foundry-key': getFoundryKey() },
         body: JSON.stringify(newAlert)
@@ -172,7 +174,7 @@ export default function FoundryPage() {
 
   const handleDeleteAlert = async (id: string) => {
     try {
-      const res = await fetch(`/api/admin/delete-alert/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/admin/delete-alert/${id}`, {
         method: 'DELETE',
         headers: { 'x-foundry-key': getFoundryKey() }
       });
@@ -186,7 +188,7 @@ export default function FoundryPage() {
     const formData = new FormData();
     formData.append('invoice', file);
     try {
-      const res = await fetch('/api/admin/scan-invoice', {
+      const res = await fetch(`${API_BASE_URL}/api/admin/scan-invoice`, {
         method: 'POST',
         headers: { 'x-foundry-key': getFoundryKey() },
         body: formData
@@ -203,7 +205,7 @@ export default function FoundryPage() {
     formData.append('file', file);
     formData.append('leadType', leadType);
     try {
-      const res = await fetch('/api/admin/import-leads', {
+      const res = await fetch(`${API_BASE_URL}/api/admin/import-leads`, {
         method: 'POST',
         headers: { 'x-foundry-key': getFoundryKey() },
         body: formData
