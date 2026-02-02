@@ -37,6 +37,11 @@ router.post('/admin/chat-legal', requireFoundryKey, ensureHandler(adminControlle
 router.get('/admin/ana-diagnose', requireFoundryKey, ensureHandler(adminController.diagnoseAna, 'diagnoseAna'));
 router.post('/admin/save-alert', requireFoundryKey, ensureHandler(adminController.saveAlert, 'saveAlert'));
 router.delete('/admin/delete-alert/:id', requireFoundryKey, ensureHandler(adminController.deleteAlert, 'deleteAlert'));
+
+// 📧 ENDPOINTS DE EMAIL DE ANA
+router.get('/admin/ana-inbox', requireFoundryKey, ensureHandler(adminController.getAnaInbox, 'getAnaInbox'));
+router.post('/admin/send-prospect-email', requireFoundryKey, ensureHandler(adminController.sendProspectEmail, 'sendProspectEmail'));
+router.post('/admin/trigger-email-check', requireFoundryKey, ensureHandler(adminController.triggerEmailCheck, 'triggerEmailCheck'));
 router.post('/admin/scan-invoice', requireFoundryKey, upload.single('invoice'), ensureHandler(adminController.processInvoice, 'processInvoice'));
 
 // --- 🛡️ ZONA PRIVADA (TOKEN) ---

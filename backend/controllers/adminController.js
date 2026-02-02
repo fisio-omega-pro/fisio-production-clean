@@ -126,8 +126,54 @@ const processInvoice = async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 };
 
+// 📧 GESTIÓN DEL INBOX DE ANA
+const getAnaInbox = async (req, res) => {
+  try {
+    const snapshot = await db.collection('ana_inbox')
+      .orderBy('fecha', 'desc')
+      .limit(50)
+      .get();
+    
+    const emails = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    res.json({ success: true, emails });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+};
+
+const sendProspectEmail = async (req, res) => {
+  try {
+    const { to, leadInfo } = req.body;
+    const { sendEmail } = require('../services/emailSenderService');
+    
+    // Generar email con IA
+    const emailBody = await anaService.generateProspectEmail(leadInfo || {});
+    
+    // Enviar
+    await sendEmail(to, 'Te presento FisioTool Pro', emailBody, 'ANA');
+    
+    // Guardar en historial
+    await db.collection('ana_sent_emails').add({
+      to,
+      subject: 'Te presento FisioTool Pro',
+      body: emailBody,
+      leadInfo,
+      fecha: Timestamp.now()
+    });
+    
+    res.json({ success: true, preview: emailBody });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+};
+
+const triggerEmailCheck = async (req, res) => {
+  try {
+    const { readEmails } = require('../services/emailReaderService');
+    await readEmails();
+    res.json({ success: true, message: 'Revisión de emails iniciada' });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+};
+
 module.exports = { 
   getGlobalStats, handleAdminChat, diagnoseAna, saveAlert, deleteAlert, processInvoice, saveSuggestion, updateSettings,
+  getAnaInbox, sendProspectEmail, triggerEmailCheck,
   importLeads: async (req,res) => res.json({success:true}),
   handleIncomingResponse: async (req,res) => res.json({success:true})
 };

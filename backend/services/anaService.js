@@ -56,5 +56,90 @@ module.exports = {
       const reply = await callAnaEngine(`${context}\n\nCONSULTA: "${userMessage}"`);
       return { reply };
     } catch (e) { return { reply: "Error de conexión en el cerebro legal." }; }
+  },
+
+  // 📧 NUEVA FUNCIONALIDAD: Procesar emails entrantes
+  processIncomingEmail: async (from, subject, body) => {
+    const prompt = `Eres Ana, asistente IA de FisioTool Pro. Clasifica este email y decide qué hacer:
+
+EMAIL RECIBIDO:
+De: ${from}
+Asunto: ${subject}
+Cuerpo: ${body}
+
+INSTRUCCIONES:
+1. Clasifica como: URGENTE | IMPORTANTE | NORMAL | SPAM
+2. Determina el tipo: LEAD_PROSPECTO | SUGERENCIA | QUEJA | SOPORTE | SPAM
+3. Genera una respuesta profesional (si procede)
+4. Indica si notificar al admin (true/false)
+
+Responde SOLO en formato JSON:
+{
+  "clasificacion": "URGENTE|IMPORTANTE|NORMAL|SPAM",
+  "tipo": "LEAD_PROSPECTO|SUGERENCIA|QUEJA|SOPORTE|SPAM",
+  "respuesta": "texto de respuesta o null si no procede",
+  "notificar_admin": true/false,
+  "resumen": "resumen breve para el admin"
+}`;
+
+    try {
+      const reply = await callAnaEngine(prompt);
+      // Intentar parsear JSON (Gemini puede devolver markdown)
+      const jsonMatch = reply.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      }
+      // Si no se puede parsear, respuesta por defecto
+      return {
+        clasificacion: "NORMAL",
+        tipo: "SOPORTE",
+        respuesta: null,
+        notificar_admin: true,
+        resumen: `Email de ${from}: ${subject}`
+      };
+    } catch (e) {
+      console.error("🔥 Error procesando email con Ana:", e);
+      return {
+        clasificacion: "NORMAL",
+        tipo: "SOPORTE",
+        respuesta: null,
+        notificar_admin: true,
+        resumen: `Email sin procesar de ${from}`
+      };
     }
+  },
+
+  // 📧 NUEVA FUNCIONALIDAD: Generar email de prospección
+  generateProspectEmail: async (leadInfo) => {
+    const prompt = `Eres Ana, representante de FisioTool Pro. Genera un email de prospección profesional y persuasivo para:
+
+LEAD INFO:
+Nombre: ${leadInfo.nombre || 'Sin nombre'}
+Clínica: ${leadInfo.clinica || 'Sin especificar'}
+Contexto: ${leadInfo.contexto || 'Prospección fría'}
+
+INSTRUCCIONES:
+- Sé profesional pero cercana
+- Destaca valor de FisioTool Pro (gestión moderna de clínicas de fisioterapia)
+- Incluye CTA claro (agendar demo, más info)
+- Máximo 150 palabras
+- Firma como "Ana, FisioTool Pro"
+
+Responde SOLO el texto del email:`;
+
+    try {
+      const reply = await callAnaEngine(prompt);
+      return reply.trim();
+    } catch (e) {
+      console.error("🔥 Error generando email de prospección:", e);
+      return `Hola,
+
+Soy Ana de FisioTool Pro. Ayudamos a clínicas de fisioterapia a digitalizar y optimizar su gestión.
+
+¿Te interesaría conocer cómo podemos ayudarte?
+
+Saludos,
+Ana - FisioTool Pro`;
+    }
+  }
 };
