@@ -1,6 +1,7 @@
 const { db, Timestamp } = require('../config/firebase');
 const crypto = require('crypto');
 const { sendEmail } = require('./emailSenderService');
+const { baseEmailHtml, escapeHtml } = require('./emailTemplates');
 
 function generateToken() {
   return crypto.randomBytes(32).toString('hex');
@@ -39,7 +40,26 @@ async function sendResetEmail(email, token) {
     `Si no solicitaste este cambio, ignora este email.\n\n` +
     `— Ana`;
 
-  await sendEmail(email, subject, text, 'ANA');
+  const bodyHtml = `
+    <div class="h1">Recuperación de contraseña</div>
+    <p class="p">Hemos recibido una solicitud para restablecer tu contraseña de <strong>FisioTool Pro</strong>.</p>
+    <p class="p">Este enlace es válido durante <strong>1 hora</strong>:</p>
+    <p><a class="cta" href="${resetLink}">Restablecer contraseña</a></p>
+    <div class="box">
+      <div class="muted">Si el botón no funciona, copia y pega este enlace:</div>
+      <div class="muted" style="word-break:break-all">${escapeHtml(resetLink)}</div>
+    </div>
+    <p class="muted" style="margin-top:12px">Si no solicitaste este cambio, ignora este email.</p>
+  `;
+
+  const html = baseEmailHtml({
+    title: subject,
+    preheader: 'Enlace válido 1 hora para restablecer tu contraseña.',
+    bodyHtml,
+    footerNoteHtml: 'Email transaccional de seguridad.'
+  });
+
+  await sendEmail({ to: email, subject, text, html, type: 'ANA' });
 }
 
 async function consumeResetToken(token, newPasswordHash) {

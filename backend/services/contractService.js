@@ -1,5 +1,6 @@
 const { db, Timestamp } = require('../config/firebase');
 const { sendEmail } = require('./emailSenderService');
+const { baseEmailHtml, escapeHtml } = require('./emailTemplates');
 
 function getClientIp(req) {
   const xf = req.headers['x-forwarded-for'];
@@ -63,21 +64,52 @@ async function archiveContract({ clinicId, nombre_clinica, email, plan, req }) {
 
 async function sendWelcomeEmail({ email, nombre_clinica, contractNumber }) {
   const subject = 'Bienvenido a FisioTool Pro — guía rápida y contrato';
+  const dashboardUrl = 'https://fisiotool.com/login';
+
   const text =
     `Hola ${nombre_clinica},\n\n` +
-    `Soy Ana.\n` +
+    `Soy Ana, de FisioTool Pro.\n` +
     `Tu cuenta ya está creada y operativa.\n\n` +
-    `Tu contrato de suscripción: ${contractNumber}\n\n` +
+    `Contrato de suscripción: ${contractNumber}\n\n` +
     `HOJA DE RUTA (5 minutos):\n` +
-    `1) Entra al dashboard: https://fisiotool.com/login\n` +
-    `2) Configura cobros (Stripe/Bizum) en tu panel.\n` +
+    `1) Entra al dashboard: ${dashboardUrl}\n` +
+    `2) Configura cobros (Stripe/Bizum).\n` +
     `3) Añade tu primer paciente.\n` +
     `4) Crea tu primera cita.\n` +
-    `5) Habla con Ana dentro del dashboard para automatizar agenda.\n\n` +
-    `Si necesitas ayuda, responde a este email.\n\n` +
-    `— Ana, Directora de Operaciones\n`;
+    `5) Habla con Ana dentro del dashboard.\n\n` +
+    `Soporte: responde a este email.\n\n` +
+    `— Ana · Directora de Operaciones\n`;
 
-  await sendEmail(email, subject, text, 'ANA');
+  const bodyHtml = `
+    <div class="h1">Bienvenido, ${escapeHtml(nombre_clinica)}</div>
+    <p class="p">Soy <strong>Ana</strong>, tu Directora de Operaciones en FisioTool Pro. Tu cuenta ya está creada y operativa.</p>
+    <div class="box">
+      <p class="p" style="margin:0"><strong>Contrato:</strong> ${escapeHtml(contractNumber)}</p>
+    </div>
+    <div style="height:14px"></div>
+    <p class="p"><strong>Hoja de ruta (5 minutos):</strong></p>
+    <ol class="p" style="padding-left:18px; margin-top:0">
+      <li>Entra al dashboard: <a href="${dashboardUrl}">${escapeHtml(dashboardUrl)}</a></li>
+      <li>Configura cobros (Stripe/Bizum) desde tu panel.</li>
+      <li>Añade tu primer paciente.</li>
+      <li>Crea tu primera cita.</li>
+      <li>Habla con Ana dentro del dashboard para automatizar tu agenda.</li>
+    </ol>
+    <p class="p">Si necesitas ayuda, responde a este email.</p>
+    <a class="cta" href="${dashboardUrl}">Entrar al Dashboard</a>
+    <div style="height:10px"></div>
+    <p class="muted">Este correo es transaccional (alta de cuenta). Puedes gestionar comunicaciones desde soporte si lo necesitas.</p>
+  `;
+
+  const html = baseEmailHtml({
+    title: subject,
+    preheader: `Tu contrato ${contractNumber} y hoja de ruta.`,
+    bodyHtml,
+    // En transaccionales no ponemos "baja" obligatoria; dejamos nota.
+    footerNoteHtml: 'Email transaccional relacionado con tu alta en el servicio.'
+  });
+
+  await sendEmail({ to: email, subject, text, html, type: 'ANA' });
 }
 
 module.exports = {
