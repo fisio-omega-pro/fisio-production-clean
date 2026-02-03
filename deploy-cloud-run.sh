@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 # 🚀 SCRIPT DE DEPLOY AUTOMÁTICO A CLOUD RUN
 # Este script despliega el backend a Cloud Run desde GitHub
@@ -16,7 +17,7 @@ echo "   Servicio: $SERVICE_NAME"
 echo ""
 
 # Desplegar desde GitHub
-gcloud run deploy $SERVICE_NAME \
+gcloud run deploy "$SERVICE_NAME" \
   --project=$PROJECT_ID \
   --region=$REGION \
   --source=. \
