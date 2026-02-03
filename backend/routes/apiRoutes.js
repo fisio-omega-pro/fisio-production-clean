@@ -44,7 +44,8 @@ router.post('/login', ensureHandler(clinicController.login, 'login'));
 router.post('/auth/forgot-password', ensureHandler(clinicController.forgotPassword, 'forgotPassword'));
 router.post('/auth/reset-password', ensureHandler(clinicController.resetPassword, 'resetPassword'));
 router.post('/register', ensureHandler(clinicController.register, 'register'));
-router.post('/webhooks/stripe', express.raw({type: 'application/json'}), ensureHandler(clinicController.handleStripeWebhook, 'handleStripeWebhook'));
+// Stripe webhook (body RAW se configura en server.js antes de bodyParser.json)
+router.post('/webhooks/stripe', ensureHandler(clinicController.handleStripeWebhook, 'handleStripeWebhook'));
 
 // --- 🏛️ THE FOUNDRY (ADMIN) ---
 router.get('/admin/stats-globales', requireFoundryKey, ensureHandler(adminController.getGlobalStats, 'getGlobalStats'));
@@ -66,6 +67,8 @@ router.use(auth);
 router.get('/dashboard/data', ensureHandler(clinicController.getDashboardData, 'getDashboardData'));
 router.post('/dashboard/save-logo', ensureHandler(clinicController.saveLogo, 'saveLogo'));
 router.post('/dashboard/save-cobros', ensureHandler(clinicController.saveCobrosConfig, 'saveCobrosConfig'));
+router.post('/dashboard/appointment', ensureHandler(clinicController.createAppointment, 'createAppointment'));
+router.post('/dashboard/save-note', ensureHandler(clinicController.savePatientNote, 'savePatientNote'));
 router.post('/dashboard/save-suggestion', ensureHandler(adminController.saveSuggestion, 'saveSuggestion'));
 router.post('/dashboard/update-settings', ensureHandler(adminController.updateSettings, 'updateSettings'));
 router.post('/dashboard/add-sede', ensureHandler(clinicController.addSede, 'addSede'));

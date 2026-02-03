@@ -39,8 +39,22 @@ async function initialize(options = {}) {
   }));
 
   app.use(helmet({ contentSecurityPolicy: false }));
-  app.use(bodyParser.json({ limit: '10mb' }));
-  app.use(bodyParser.urlencoded({ extended: true }));
+
+  // ⚠️ Stripe Webhook requiere cuerpo RAW para verificar firma
+  // Importante: esto debe ir ANTES del bodyParser.json
+  app.use('/api/webhooks/stripe', express.raw({ type: 'application/json' }));
+
+  const jsonParser = bodyParser.json({ limit: '10mb' });
+  const urlParser = bodyParser.urlencoded({ extended: true });
+  // Evitar que bodyParser re-consuma el body del webhook de Stripe
+  app.use((req, res, next) => {
+    if (req.originalUrl && req.originalUrl.startsWith('/api/webhooks/stripe')) return next();
+    return jsonParser(req, res, next);
+  });
+  app.use((req, res, next) => {
+    if (req.originalUrl && req.originalUrl.startsWith('/api/webhooks/stripe')) return next();
+    return urlParser(req, res, next);
+  });
 
   // Rutas de diagnóstico (sin auth)
   const diagnostics = require('./routes/diagnostics');

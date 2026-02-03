@@ -19,14 +19,23 @@ const PLANS = {
 const getStripe = async () => {
   if (stripeInstance) return stripeInstance;
   const env = await initEnv();
-  if (!env.STRIPE_SECRET_KEY) return null;
+  const sk = String(env.STRIPE_SK || env.STRIPE_SECRET_KEY || '').trim();
+  if (!sk) return null;
   
   // LOG DE SEGURIDAD: Vemos qué tipo de llave estamos usando
-  const keyType = env.STRIPE_SECRET_KEY.startsWith('sk_live') ? 'PRODUCCIÓN (LIVE)' : 'PRUEBAS (TEST)';
+  const keyType = sk.startsWith('sk_live') ? 'PRODUCCIÓN (LIVE)' : 'PRUEBAS (TEST)';
   console.log(`💳 [STRIPE INIT] Usando llave de: ${keyType}`);
   
-  stripeInstance = Stripe(env.STRIPE_SECRET_KEY);
+  stripeInstance = Stripe(sk);
   return stripeInstance;
+};
+
+const getFrontendBase = async (req) => {
+  const env = await initEnv();
+  const configured = String(process.env.FRONTEND_URL || env.FRONTEND_URL || '').trim();
+  if (configured) return configured.replace(/\/+$/, '');
+  // Fallback razonable
+  return 'https://www.fisiotool.com';
 };
 
 const getHost = (req) => {
@@ -38,11 +47,11 @@ const getHost = (req) => {
 
 const createSubscriptionSession = async (clinicId, email, plan = 'solo', req) => {
   const stripe = await getStripe();
-  const host = getHost(req);
+  const frontendBase = await getFrontendBase(req);
 
   if (!stripe) {
     console.warn("⚠️ [PAYMENT] Stripe offline (Sin clave).");
-    return { url: `${host}/dashboard?id=${clinicId}&mode=offline` };
+    return { url: `${frontendBase}/dashboard?id=${clinicId}&mode=offline` };
   }
 
   const priceId = PLANS[plan] || PLANS['solo'];
@@ -53,12 +62,14 @@ const createSubscriptionSession = async (clinicId, email, plan = 'solo', req) =>
       customer_email: email,
       line_items: [{ price: priceId, quantity: 1 }],
       mode: 'subscription',
+      client_reference_id: clinicId,
+      metadata: { clinic_id: clinicId, plan },
       subscription_data: {
         trial_period_days: 30,
-        metadata: { clinic_id: clinicId }
+        metadata: { clinic_id: clinicId, plan }
       },
-      success_url: `${host}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${host}/setup?error=payment_cancelled`,
+      success_url: `${frontendBase}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${frontendBase}/setup?error=payment_cancelled`,
     });
 
     return { url: session.url };

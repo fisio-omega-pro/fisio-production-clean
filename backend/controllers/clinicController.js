@@ -148,7 +148,26 @@ const resetPassword = async (req, res, next) => {
 // 2. CREAR CITA
 const createAppointment = async (req, res) => {
     try {
-        const ref = await db.collection('citas').add({ ...req.body, clinic_id: req.clinicId });
+        const d = req.body || {};
+        const fecha = String(d.fecha || '').trim();
+        const hora = String(d.hora || '').trim();
+        if (!fecha || !hora) return res.status(400).json({ success: false, error: 'fecha y hora requeridos' });
+
+        const payload = {
+          clinic_id: req.clinicId,
+          nombre: String(d.nombre || '').trim() || 'Paciente',
+          telefono: String(d.telefono || '').trim() || '',
+          email: String(d.email || '').trim() || '',
+          fecha,
+          hora,
+          specialist_id: String(d.specialistId || d.docId || '').trim() || null,
+          estado: String(d.estado || 'pendiente'),
+          pagado: !!d.pagado,
+          created_at: Timestamp.now(),
+          updated_at: Timestamp.now()
+        };
+
+        const ref = await db.collection('citas').add(payload);
         // 🚨 LOG: Creación de cita sensible
         await createAuditLog(req.clinicId, req.userId || req.clinicId, 'CREATE_APPOINTMENT', ref.id);
         res.json({ success: true });
@@ -158,11 +177,35 @@ const createAppointment = async (req, res) => {
 // 3. GUARDAR NOTA DE PACIENTE (El punto más crítico para HIPAA)
 const savePatientNote = async (req, res) => {
     try {
-        // Lógica de guardado de nota (aquí iría el código real)
-        // 🚨 LOG: Acceso y Modificación de Historial
-        await createAuditLog(req.clinicId, req.userId || req.clinicId, 'MODIFY_PATIENT_RECORD', req.body.patientId);
+        const body = req.body || {};
+        const pid = String(body.patientId || body.p || '').trim();
+        const text = String(body.content || body.c || '').trim();
+        if (!pid || !text) return res.status(400).json({ success: false, error: 'patientId y content requeridos' });
+
+        const patientRef = db.collection('pacientes').doc(pid);
+        const patientDoc = await patientRef.get();
+        if (!patientDoc.exists) return res.status(404).json({ success: false, error: 'Paciente no encontrado' });
+        const pData = patientDoc.data() || {};
+        if (String(pData.clinic_id || '') !== String(req.clinicId || '')) {
+          return res.status(403).json({ success: false, error: 'No autorizado' });
+        }
+
+        await db.collection('pacientes').doc(pid).update({
+          last_note: text,
+          last_note_at: Timestamp.now(),
+          updated_at: Timestamp.now()
+        });
+
+        await patientRef.collection('notas').add({
+          clinic_id: req.clinicId,
+          content: text,
+          created_at: Timestamp.now()
+        });
+
+        // 🚨 LOG: Modificación de historial
+        await createAuditLog(req.clinicId, req.userId || req.clinicId, 'MODIFY_PATIENT_RECORD', pid);
         res.json({ success: true });
-    } catch (e) { res.status(500).json({ error: e.message }); }
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 };
 
 // 4. ACCESO AL DASHBOARD
@@ -198,20 +241,298 @@ const getDashboardData = async (req, res, next) => {
     } catch (e) { next(e); }
 };
 
+// --- DASHBOARD: OPERACIONES REALES (sin stubs) ---
+const saveLogo = async (req, res, next) => {
+  try {
+    const publicUrl = String(req.body?.publicUrl || '').trim();
+    if (!publicUrl) return res.status(400).json({ success: false, error: 'publicUrl requerido' });
+    await db.collection('clinicas').doc(req.clinicId).update({
+      logo_url: publicUrl,
+      updated_at: Timestamp.now()
+    });
+    await createAuditLog(req.clinicId, req.userId || req.clinicId, 'UPDATE_LOGO', req.clinicId);
+    return res.json({ success: true });
+  } catch (e) { next(e); }
+};
+
+const saveCobrosConfig = async (req, res, next) => {
+  try {
+    const bizumNumber = String(req.body?.bizumNumber || '').trim();
+    if (!bizumNumber) return res.status(400).json({ success: false, error: 'bizumNumber requerido' });
+    await db.collection('clinicas').doc(req.clinicId).set({
+      config_pagos: { bizum: bizumNumber },
+      updated_at: Timestamp.now()
+    }, { merge: true });
+    await createAuditLog(req.clinicId, req.userId || req.clinicId, 'UPDATE_PAYOUTS', req.clinicId);
+    return res.json({ success: true });
+  } catch (e) { next(e); }
+};
+
+const addSede = async (req, res, next) => {
+  try {
+    const sede = req.body?.sede || {};
+    const sedeDoc = {
+      nombre: String(sede.nombre || '').trim() || 'Sede',
+      calle: String(sede.calle || '').trim(),
+      numero: String(sede.numero || '').trim(),
+      cp: String(sede.cp || '').trim(),
+      ciudad: String(sede.ciudad || '').trim(),
+      provincia: String(sede.provincia || '').trim(),
+      principal: false,
+      created_at: Timestamp.now()
+    };
+    await db.collection('clinicas').doc(req.clinicId).update({
+      direcciones: admin.firestore.FieldValue.arrayUnion(sedeDoc),
+      updated_at: Timestamp.now()
+    });
+    await createAuditLog(req.clinicId, req.userId || req.clinicId, 'ADD_SEDE', req.clinicId);
+    return res.json({ success: true });
+  } catch (e) { next(e); }
+};
+
+const saveSpecialist = async (req, res, next) => {
+  try {
+    const specialist = req.body?.specialist || {};
+    const id = String(specialist.id || '').trim();
+    const payload = {
+      nombre: String(specialist.nombre || '').trim(),
+      especialidad: String(specialist.especialidad || '').trim(),
+      avatarUrl: String(specialist.avatarUrl || '').trim() || null,
+      isOwner: !!specialist.isOwner,
+      updated_at: Timestamp.now()
+    };
+    if (!payload.nombre) return res.status(400).json({ success: false, error: 'nombre requerido' });
+
+    const col = db.collection('clinicas').doc(req.clinicId).collection('equipo');
+    if (id) await col.doc(id).set(payload, { merge: true });
+    else await col.add({ ...payload, created_at: Timestamp.now() });
+
+    await createAuditLog(req.clinicId, req.userId || req.clinicId, 'UPSERT_SPECIALIST', id || 'new');
+    return res.json({ success: true });
+  } catch (e) { next(e); }
+};
+
+const importPatients = async (req, res, next) => {
+  try {
+    const patients = Array.isArray(req.body?.patients) ? req.body.patients : [];
+    if (!Array.isArray(patients) || patients.length === 0) {
+      return res.status(400).json({ success: false, error: 'patients[] requerido' });
+    }
+
+    let written = 0;
+    // Firestore batch limit: 500
+    for (let i = 0; i < patients.length; i += 400) {
+      const chunk = patients.slice(i, i + 400);
+      const batch = db.batch();
+      chunk.forEach((p) => {
+        const ref = db.collection('pacientes').doc();
+        batch.set(ref, {
+          clinic_id: req.clinicId,
+          nombre: String(p.nombre || '').trim() || 'Paciente',
+          telefono: String(p.telefono || '').trim() || '',
+          email: String(p.email || '').trim() || '',
+          dolencia: String(p.dolencia || '').trim() || 'Consulta inicial',
+          status: String(p.status || 'ACTIVO'),
+          created_at: Timestamp.now(),
+          updated_at: Timestamp.now()
+        });
+      });
+      await batch.commit();
+      written += chunk.length;
+    }
+
+    await createAuditLog(req.clinicId, req.userId || req.clinicId, 'IMPORT_PATIENTS', String(written));
+    return res.json({ success: true, count: written });
+  } catch (e) { next(e); }
+};
+
+const activateBonos = async (req, res, next) => {
+  try {
+    await db.collection('clinicas').doc(req.clinicId).update({
+      'config_ia.acepta_bonos': true,
+      'config_ia.bonos_updated_at': Timestamp.now(),
+      updated_at: Timestamp.now()
+    });
+    await createAuditLog(req.clinicId, req.userId || req.clinicId, 'ACTIVATE_BONOS', req.clinicId);
+    return res.json({ success: true });
+  } catch (e) { next(e); }
+};
+
+const createBono = async (req, res, next) => {
+  try {
+    const bono = req.body?.bono || {};
+    const pacienteNombre = String(bono.paciente_nombre || '').trim();
+    const sesionesTotales = Number(bono.sesiones_totales || 0);
+    const fechaVencimiento = String(bono.fecha_vencimiento || '').trim() || null;
+    if (!pacienteNombre || !sesionesTotales) return res.status(400).json({ success: false, error: 'bono inválido' });
+    const ref = await db.collection('bonos').add({
+      clinic_id: req.clinicId,
+      paciente_nombre: pacienteNombre,
+      sesiones_totales: sesionesTotales,
+      sesiones_restantes: sesionesTotales,
+      fecha_vencimiento: fechaVencimiento,
+      status: 'ACTIVO',
+      created_at: Timestamp.now(),
+      updated_at: Timestamp.now()
+    });
+    await createAuditLog(req.clinicId, req.userId || req.clinicId, 'CREATE_BONO', ref.id);
+    return res.json({ success: true, id: ref.id });
+  } catch (e) { next(e); }
+};
+
+const launchCampaign = async (req, res, next) => {
+  try {
+    await db.collection('clinicas').doc(req.clinicId).update({
+      'config_ia.modo_caza_activo': true,
+      updated_at: Timestamp.now()
+    });
+    await createAuditLog(req.clinicId, req.userId || req.clinicId, 'LAUNCH_CAMPAIGN', req.clinicId);
+    return res.json({ success: true });
+  } catch (e) { next(e); }
+};
+
+const startStripeConnect = async (req, res, next) => {
+  try {
+    const { initEnv } = require('../config/env');
+    const env = await initEnv();
+    const sk = String(env.STRIPE_SK || '').trim();
+    if (!sk) return res.status(503).json({ success: false, error: 'Stripe no configurado' });
+
+    const clinicRef = db.collection('clinicas').doc(req.clinicId);
+    const clinicDoc = await clinicRef.get();
+    if (!clinicDoc.exists) return res.status(404).json({ success: false, error: 'Clínica no encontrada' });
+    const clinic = clinicDoc.data() || {};
+    const stripe = Stripe(sk);
+
+    const frontendBase = String(process.env.FRONTEND_URL || 'https://www.fisiotool.com').replace(/\/+$/, '');
+
+    let accountId = String(clinic.stripe_account_id || '').trim();
+    if (!accountId) {
+      const account = await stripe.accounts.create({
+        type: 'express',
+        email: clinic.email,
+        metadata: { clinic_id: req.clinicId },
+        capabilities: {
+          card_payments: { requested: true },
+          transfers: { requested: true }
+        }
+      });
+      accountId = account.id;
+      await clinicRef.update({ stripe_account_id: accountId, stripe_status: 'pending', updated_at: Timestamp.now() });
+    }
+
+    const link = await stripe.accountLinks.create({
+      account: accountId,
+      refresh_url: `${frontendBase}/dashboard?stripe=refresh`,
+      return_url: `${frontendBase}/dashboard?stripe=return`,
+      type: 'account_onboarding'
+    });
+
+    await createAuditLog(req.clinicId, req.userId || req.clinicId, 'STRIPE_CONNECT_START', accountId);
+    return res.json({ success: true, url: link.url });
+  } catch (e) { next(e); }
+};
+
+const finalizeStripeConnect = async (req, res, next) => {
+  try {
+    const { initEnv } = require('../config/env');
+    const env = await initEnv();
+    const sk = String(env.STRIPE_SK || '').trim();
+    if (!sk) return res.status(503).json({ success: false, error: 'Stripe no configurado' });
+    const stripe = Stripe(sk);
+
+    const clinicRef = db.collection('clinicas').doc(req.clinicId);
+    const clinicDoc = await clinicRef.get();
+    if (!clinicDoc.exists) return res.status(404).json({ success: false, error: 'Clínica no encontrada' });
+    const clinic = clinicDoc.data() || {};
+    const accountId = String(clinic.stripe_account_id || '').trim();
+    if (!accountId) return res.status(400).json({ success: false, error: 'Stripe no vinculado' });
+
+    const account = await stripe.accounts.retrieve(accountId);
+    const active = !!account.charges_enabled;
+    await clinicRef.update({ stripe_status: active ? 'active' : 'pending', updated_at: Timestamp.now() });
+    await createAuditLog(req.clinicId, req.userId || req.clinicId, 'STRIPE_CONNECT_VERIFY', accountId);
+    return res.json({ success: true, stripe_status: active ? 'active' : 'pending', charges_enabled: !!account.charges_enabled, details_submitted: !!account.details_submitted });
+  } catch (e) { next(e); }
+};
+
+const createUpgradeSession = async (req, res, next) => {
+  try {
+    const clinicDoc = await db.collection('clinicas').doc(req.clinicId).get();
+    if (!clinicDoc.exists) return res.status(404).json({ success: false, error: 'Clínica no encontrada' });
+    const clinic = clinicDoc.data() || {};
+    const plan = String(clinic.plan || 'solo');
+    const { url } = await paymentService.createSubscriptionSession(req.clinicId, clinic.email, plan, req);
+    await createAuditLog(req.clinicId, req.userId || req.clinicId, 'STRIPE_UPGRADE_SESSION', plan);
+    return res.json({ success: true, url });
+  } catch (e) { next(e); }
+};
+
+const verifyPayment = async (req, res, next) => {
+  try {
+    const clinicDoc = await db.collection('clinicas').doc(req.clinicId).get();
+    const clinic = clinicDoc.data() || {};
+    return res.json({ success: true, subscription_active: !!clinic.subscription_active });
+  } catch (e) { next(e); }
+};
+
+const handleStripeWebhook = async (req, res, next) => {
+  try {
+    const { initEnv } = require('../config/env');
+    const env = await initEnv();
+    const sk = String(env.STRIPE_SK || '').trim();
+    const whSecret = String(env.STRIPE_WEBHOOK_SECRET || '').trim();
+    if (!sk || !whSecret) return res.status(503).send('stripe not configured');
+
+    const stripe = Stripe(sk);
+    const sig = req.headers['stripe-signature'];
+    let event;
+    try {
+      event = stripe.webhooks.constructEvent(req.body, sig, whSecret);
+    } catch (err) {
+      return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object;
+      const clinicId = String(session?.metadata?.clinic_id || '').trim();
+      if (clinicId) {
+        const updates = {
+          subscription_active: true,
+          stripe_customer_id: session.customer || null,
+          stripe_subscription_id: session.subscription || null,
+          updated_at: Timestamp.now()
+        };
+        await db.collection('clinicas').doc(clinicId).set(updates, { merge: true });
+        await createAuditLog(clinicId, clinicId, 'STRIPE_CHECKOUT_COMPLETED', String(session.id || ''));
+      }
+    }
+
+    // Aceptamos el evento
+    return res.json({ received: true });
+  } catch (e) { next(e); }
+};
+
 // 🚨 EXPORTACIÓN DE FUNCIONES CONSOLIDADAS
 module.exports = { 
-  register, login, forgotPassword, resetPassword, getDashboardData, savePatientNote, createAppointment,
-  saveLogo: async (req,res) => { await db.collection('clinicas').doc(req.clinicId).update({ logo_url: req.body.publicUrl }); res.json({success:true}); },
-  saveCobrosConfig: async (req,res) => res.json({success:true}),
-  addSede: async (req,res) => { res.json({success:true}); },
-  saveSpecialist: async (req,res) => res.json({success:true}),
-  importPatients: async (req,res) => res.json({success:true}),
-  activateBonos: async (req,res) => res.json({success:true}),
-  createBono: async (req,res) => res.json({success:true}),
-  launchCampaign: async (req,res) => res.json({success:true}),
-  startStripeConnect: async (req,res) => res.json({url:'#'}),
-  finalizeStripeConnect: async (req,res) => res.json({success:true}),
-  createUpgradeSession: async (req,res) => res.json({url:'#'}),
-  verifyPayment: async (req,res) => res.json({success:true}),
-  handleStripeWebhook: async (req,res) => res.json({received:true})
+  register,
+  login,
+  forgotPassword,
+  resetPassword,
+  getDashboardData,
+  savePatientNote,
+  createAppointment,
+  saveLogo,
+  saveCobrosConfig,
+  addSede,
+  saveSpecialist,
+  importPatients,
+  activateBonos,
+  createBono,
+  launchCampaign,
+  startStripeConnect,
+  finalizeStripeConnect,
+  createUpgradeSession,
+  verifyPayment,
+  handleStripeWebhook
 };
