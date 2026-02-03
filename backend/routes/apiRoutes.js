@@ -17,9 +17,14 @@ const requireFoundryKey = (req, res, next) => {
       // 🔓 ACCESO DE EMERGENCIA (TEMPORAL)
       // Se elimina cuando cerremos definitivamente la clave original en Secret Manager.
       const EMERGENCY_KEY = 'FISIO2026OMEGA';
+      // Permite apagar la clave de emergencia por variable de entorno sin cambiar código.
+      // (Mantiene compatibilidad mientras migramos a Secret Manager.)
+      const disableEmergency = String(process.env.DISABLE_EMERGENCY_FOUNDRY_KEY || env.DISABLE_EMERGENCY_FOUNDRY_KEY || '')
+        .trim()
+        .toLowerCase() === 'true';
 
       if (!provided) return res.status(401).json({ error: 'No autorizado' });
-      if (provided === EMERGENCY_KEY) return next();
+      if (!disableEmergency && provided === EMERGENCY_KEY) return next();
 
       if (!expected) return res.status(503).json({ error: 'Foundry no configurado' });
       if (provided !== expected) return res.status(401).json({ error: 'No autorizado' });
