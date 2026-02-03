@@ -2,6 +2,7 @@ const { db, Timestamp } = require('../config/firebase');
 const { initEnv } = require('../config/env');
 const { sendEmail } = require('../services/emailSenderService');
 const { baseEmailHtml, escapeHtml } = require('../services/emailTemplates');
+const anaService = require('../services/anaService');
 
 function isValidEmail(email) {
   const s = String(email || '').trim();
@@ -74,7 +75,52 @@ const submitCorporateLead = async (req, res) => {
     const ref = await db.collection('corporate_leads').add(lead);
 
     const env = await initEnv();
-    const to = (env.INFO_MAIL && env.INFO_MAIL.user) ? env.INFO_MAIL.user : (env.ADMIN_EMAIL || 'fisiotoolsaas@gmail.com');
+    // ✅ Política acordada: cualquier alerta/lead importante SIEMPRE al admin Gmail
+    const adminEmail = env.ADMIN_EMAIL || 'fisiotoolsaas@gmail.com';
+
+    // --- Ana triage (resumen + borrador). No se envía al lead automáticamente ---
+    const subject = `Lead Corporate: ${companyName} (${clinicsCount} sedes · ${practitionersCount} especialistas)`;
+    const bodyText =
+      `Empresa: ${companyName}\n` +
+      `Contacto: ${contactName}\n` +
+      `Email: ${email}\n` +
+      (phone ? `Teléfono: ${phone}\n` : '') +
+      `Sedes: ${clinicsCount}\n` +
+      `Especialistas: ${practitionersCount}\n` +
+      (services.length ? `Servicios: ${services.join(', ')}${services.includes('Otro') && servicesOther ? ` (${servicesOther})` : ''}\n` : '') +
+      (locations ? `Ubicaciones: ${locations}\n` : '') +
+      (currentSoftware ? `Software actual: ${currentSoftware}\n` : '') +
+      (monthlyPatients != null ? `Pacientes/mes: ${monthlyPatients}\n` : '') +
+      (timeline ? `Plazo: ${timeline}\n` : '') +
+      (preferredContact ? `Preferencia: ${preferredContact}\n` : '') +
+      (notes ? `Notas: ${notes}\n` : '');
+
+    let analysis = null;
+    try {
+      analysis = await anaService.processIncomingEmail(email, subject, bodyText);
+    } catch (_) {
+      analysis = null;
+    }
+
+    // Guardar en el "inbox" interno de Ana para revisión/consenso
+    try {
+      await db.collection('ana_inbox').add({
+        channel: 'corporate_form',
+        lead_id: ref.id,
+        from: email,
+        subject,
+        body: bodyText.substring(0, 500),
+        clasificacion: (analysis && analysis.clasificacion) ? analysis.clasificacion : 'IMPORTANTE',
+        tipo: (analysis && analysis.tipo) ? analysis.tipo : 'LEAD_PROSPECTO',
+        respuesta_generada: analysis && analysis.respuesta ? analysis.respuesta : null,
+        notificar_admin: true,
+        resumen: analysis && analysis.resumen ? analysis.resumen : `${companyName} solicita contacto Corporate`,
+        fecha: new Date().toISOString(),
+        respondido: false
+      });
+    } catch (e) {
+      console.error('[CORPORATE_LEAD] Error guardando en ana_inbox:', e.message);
+    }
 
     const bodyHtml = `
       <h1 class="h1">Nuevo lead Corporate</h1>
@@ -94,6 +140,8 @@ const submitCorporateLead = async (req, res) => {
         ${notes ? `<p class="p"><strong>Notas:</strong><br/>${escapeHtml(notes).replace(/\n/g,'<br/>')}</p>` : ''}
         <p class="muted">Lead ID: ${escapeHtml(ref.id)} · IP: ${escapeHtml(ip)}</p>
       </div>
+      ${analysis?.resumen ? `<div style="height:14px"></div><div class="box"><p class="p"><strong>Resumen ejecutivo (Ana):</strong><br/>${escapeHtml(analysis.resumen).replace(/\n/g,'<br/>')}</p></div>` : ''}
+      ${analysis?.respuesta ? `<div style="height:14px"></div><div class="box"><p class="p"><strong>Borrador de respuesta (para consensuar):</strong><br/>${escapeHtml(analysis.respuesta).replace(/\n/g,'<br/>')}</p><p class="muted">Nota: no se enviará ninguna respuesta automática sin tu OK.</p></div>` : `<div style="height:14px"></div><p class="muted">Ana no generó borrador (sin IA configurada o lead incompleto). Puedes responder manualmente.</p>`}
     `;
 
     const html = baseEmailHtml({
@@ -105,11 +153,12 @@ const submitCorporateLead = async (req, res) => {
 
     // INFO email para ventas/administración
     await sendEmail({
-      to,
-      subject: `Lead Corporate: ${companyName} (${clinicsCount} sedes · ${practitionersCount} especialistas)`,
+      to: adminEmail,
+      subject: `[ANA] ${subject}`,
       html,
       text: `Nuevo lead Corporate\nEmpresa: ${companyName}\nContacto: ${contactName}\nEmail: ${email}\nTel: ${phone}\nSedes: ${clinicsCount}\nEspecialistas: ${practitionersCount}\nServicios: ${services.join(', ')}\nNotas: ${notes}\nLead ID: ${ref.id}\n`,
-      type: 'INFO'
+      // Enviamos desde el buzón corporativo de Ana para que todo pase por su control
+      type: 'ANA'
     });
 
     return res.json({ success: true, id: ref.id });
