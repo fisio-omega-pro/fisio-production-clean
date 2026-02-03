@@ -6,6 +6,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 const clinicController = require('../controllers/clinicController');
 const adminController = require('../controllers/adminController');
 const chatController = require('../controllers/chatController');
+const publicController = require('../controllers/publicController');
 const auth = require('../middleware/auth');
 const { initEnv } = require('../config/env');
 
@@ -44,6 +45,7 @@ router.post('/login', ensureHandler(clinicController.login, 'login'));
 router.post('/auth/forgot-password', ensureHandler(clinicController.forgotPassword, 'forgotPassword'));
 router.post('/auth/reset-password', ensureHandler(clinicController.resetPassword, 'resetPassword'));
 router.post('/register', ensureHandler(clinicController.register, 'register'));
+router.post('/public/corporate-lead', ensureHandler(publicController.submitCorporateLead, 'submitCorporateLead'));
 // Stripe webhook (body RAW se configura en server.js antes de bodyParser.json)
 router.post('/webhooks/stripe', ensureHandler(clinicController.handleStripeWebhook, 'handleStripeWebhook'));
 

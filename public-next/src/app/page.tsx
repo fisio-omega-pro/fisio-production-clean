@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Volume2, VolumeX } from 'lucide-react';
 
 // Importamos los componentes de Ingeniería (Bloques 1-4)
 import Navbar from '../components/landing/Navbar';
@@ -18,24 +17,6 @@ import Footer from '../components/landing/Footer';
 export const dynamic = 'force-dynamic';
 
 export default function LandingPage() {
-  const [voiceMode, setVoiceMode] = useState(false);
-
-  // --- MOTOR DE ACCESIBILIDAD (NIVEL OMEGA) ---
-  const toggleVoice = () => {
-    const newState = !voiceMode;
-    setVoiceMode(newState);
-    
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      if (newState) {
-        const msg = new SpeechSynthesisUtterance("Modo Accesibilidad Activado. Bienvenido a FisioTool Pro. Soy Ana, tu asistente de navegación.");
-        msg.lang = 'es-ES';
-        window.speechSynthesis.speak(msg);
-      } else {
-        window.speechSynthesis.cancel();
-      }
-    }
-  };
-
   // Efecto visual de fondo (Sutil y elegante)
   const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
   useEffect(() => {
@@ -78,34 +59,6 @@ export default function LandingPage() {
         <TrustBar />
         <Footer />
       </div>
-
-      {/* --- BOTÓN FLOTANTE ACCESIBILIDAD --- */}
-      <button 
-        onClick={toggleVoice}
-        style={{
-          position: 'fixed',
-          bottom: '30px',
-          right: '30px',
-          width: '60px',
-          height: '60px',
-          borderRadius: '50%',
-          background: voiceMode ? '#10b981' : 'rgba(255,255,255,0.1)',
-          backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255,255,255,0.2)',
-          color: '#fff',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          zIndex: 9999,
-          boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
-          transition: 'all 0.3s ease'
-        }}
-        aria-label={voiceMode ? "Desactivar narración" : "Activar modo lectura para invidentes"}
-        title="Accesibilidad / Modo Lectura"
-      >
-        {voiceMode ? <Volume2 size={24} /> : <VolumeX size={24} />}
-      </button>
 
     </main>
   );
