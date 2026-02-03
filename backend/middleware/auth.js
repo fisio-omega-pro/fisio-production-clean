@@ -14,6 +14,10 @@ const verifyToken = async (req, res, next) => {
   if (req.path.startsWith('/auth/')) {
     return next();
   }
+  // ✅ Permitir rutas públicas (formularios landing, etc.)
+  if (req.path.startsWith('/public/')) {
+    return next();
+  }
 
   try {
     const authHeader = req.headers['authorization'];
