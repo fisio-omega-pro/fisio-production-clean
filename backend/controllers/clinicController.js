@@ -227,11 +227,14 @@ const getDashboardData = async (req, res, next) => {
         if (equipo.length === 0) {
           equipo = [{ id: 'admin-lead', nombre: data.nombre_clinica, especialidad: 'Dirección', avatarUrl: data.logo_url, isOwner: true }];
         }
+        // 🔒 Nunca exponer hashes/credenciales al cliente
+        // eslint-disable-next-line no-unused-vars
+        const { password, ...safeClinic } = (data || {});
         res.json({ 
           success: true, 
           data: { 
             configStatus: { hasLogo: !!data.logo_url, hasStripe: data.stripe_status === 'active', hasSubscription: !!data.subscription_active },
-            clinicData: { id: req.clinicId, ...data },
+            clinicData: { id: req.clinicId, ...safeClinic },
             equipo: equipo, pacientes: pacientesSnap.docs.map(d => ({id: d.id, ...d.data()})),
             agenda: citasSnap.docs.map(d => ({id: d.id, ...d.data()})),
             bonos: bonosSnap.docs.map(d => ({id: d.id, ...d.data()})),
