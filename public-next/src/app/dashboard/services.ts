@@ -64,7 +64,12 @@ class DashboardService {
   public async useDefaultLogo(): Promise<void> { await this.request('/api/dashboard/save-logo', { method: 'POST', body: JSON.stringify({ publicUrl: 'https://via.placeholder.com/150' }) }); }
   public async connectStripe(): Promise<string> { const res = await this.request<{ url: string }>('/api/dashboard/stripe-connect', { method: 'POST' }); return res.url; }
   public async verifyStripe(): Promise<void> { await this.request('/api/dashboard/stripe-verify', { method: 'POST' }); }
-  public async verifySubscription(): Promise<void> { await this.request('/api/dashboard/payment-verify', { method: 'POST' }); }
+  public async verifySubscription(sessionId?: string): Promise<void> {
+    await this.request('/api/dashboard/payment-verify', {
+      method: 'POST',
+      body: JSON.stringify(sessionId ? { sessionId } : {})
+    });
+  }
   public async upgradePlan(): Promise<string> { const res = await this.request<{url:string}>('/api/dashboard/upgrade-plan', {method:'POST'}); return res.url; }
   public async createAppointment(d: any): Promise<void> { await this.request('/api/dashboard/appointment', { method: 'POST', body: JSON.stringify(d) }); }
   public async getPatientHistory(phone: string): Promise<{ paciente: any; historial: any[] }> {

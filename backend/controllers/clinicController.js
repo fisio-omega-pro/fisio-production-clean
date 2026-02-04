@@ -568,8 +568,41 @@ const createUpgradeSession = async (req, res, next) => {
 
 const verifyPayment = async (req, res, next) => {
   try {
-    const clinicDoc = await db.collection('clinicas').doc(req.clinicId).get();
+    const clinicRef = db.collection('clinicas').doc(req.clinicId);
+    const clinicDoc = await clinicRef.get();
     const clinic = clinicDoc.data() || {};
+
+    const sessionId = String(req.body?.sessionId || '').trim();
+    if (!sessionId) {
+      return res.json({ success: true, subscription_active: !!clinic.subscription_active });
+    }
+
+    const { initEnv } = require('../config/env');
+    const env = await initEnv();
+    const sk = String(env.STRIPE_SK || '').trim();
+    if (!sk) return res.status(503).json({ success: false, error: 'Stripe no configurado' });
+    if (!sk.startsWith('sk_')) return res.status(503).json({ success: false, error: 'Stripe mal configurado: STRIPE_SECRET_KEY debe empezar por sk_' });
+    const stripe = Stripe(sk);
+
+    // Verificación best-effort: si webhook tarda, esto sincroniza la suscripción
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    const sessionClinicId = String(session?.metadata?.clinic_id || session?.client_reference_id || '').trim();
+    if (sessionClinicId && sessionClinicId !== String(req.clinicId)) {
+      return res.status(403).json({ success: false, error: 'Sesión no corresponde a esta clínica' });
+    }
+    const paid = String(session?.payment_status || '').toLowerCase() === 'paid' || String(session?.status || '').toLowerCase() === 'complete';
+
+    if (paid) {
+      await clinicRef.set({
+        subscription_active: true,
+        stripe_customer_id: session.customer || clinic.stripe_customer_id || null,
+        stripe_subscription_id: session.subscription || clinic.stripe_subscription_id || null,
+        updated_at: Timestamp.now()
+      }, { merge: true });
+      await createAuditLog(req.clinicId, req.userId || req.clinicId, 'STRIPE_VERIFY_PAYMENT', sessionId);
+      return res.json({ success: true, subscription_active: true });
+    }
+
     return res.json({ success: true, subscription_active: !!clinic.subscription_active });
   } catch (e) { next(e); }
 };
@@ -592,6 +625,19 @@ const handleStripeWebhook = async (req, res, next) => {
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
+    // Deduplicación simple (idempotencia): evitamos re-procesar el mismo evento
+    try {
+      const eid = String(event.id || '').trim();
+      if (eid) {
+        const evRef = db.collection('stripe_events').doc(eid);
+        const evDoc = await evRef.get();
+        if (evDoc.exists) return res.json({ received: true, duplicate: true });
+        await evRef.set({ created_at: Timestamp.now(), type: event.type });
+      }
+    } catch (_) {
+      // best-effort
+    }
+
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object;
       const clinicId = String(session?.metadata?.clinic_id || '').trim();
@@ -600,10 +646,28 @@ const handleStripeWebhook = async (req, res, next) => {
           subscription_active: true,
           stripe_customer_id: session.customer || null,
           stripe_subscription_id: session.subscription || null,
+          stripe_subscription_status: 'active',
           updated_at: Timestamp.now()
         };
         await db.collection('clinicas').doc(clinicId).set(updates, { merge: true });
         await createAuditLog(clinicId, clinicId, 'STRIPE_CHECKOUT_COMPLETED', String(session.id || ''));
+      }
+    }
+
+    // Si se cancela la suscripción (o se marca como incompleta), reflejarlo
+    if (event.type === 'customer.subscription.deleted' || event.type === 'customer.subscription.updated') {
+      const sub = event.data.object;
+      const clinicId = String(sub?.metadata?.clinic_id || '').trim();
+      if (clinicId) {
+        const status = String(sub?.status || '').trim().toLowerCase();
+        const active = status === 'active' || status === 'trialing';
+        await db.collection('clinicas').doc(clinicId).set({
+          subscription_active: active,
+          stripe_subscription_status: status,
+          stripe_subscription_id: sub?.id || null,
+          updated_at: Timestamp.now()
+        }, { merge: true });
+        await createAuditLog(clinicId, clinicId, 'STRIPE_SUBSCRIPTION_STATUS', `${sub?.id || ''}:${status}`);
       }
     }
 

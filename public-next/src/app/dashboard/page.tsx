@@ -47,6 +47,19 @@ export default function DashboardOmega() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('id')) state.setClinicId(params.get('id')!);
+    // Stripe: si volvemos de checkout con session_id, sincronizar (best-effort) y limpiar la URL
+    const sid = params.get('session_id');
+    if (sid) {
+      dashboardAPI.verifySubscription(String(sid)).catch(() => {});
+      try {
+        params.delete('session_id');
+        const qs = params.toString();
+        const nextUrl = `${window.location.pathname}${qs ? `?${qs}` : ''}`;
+        window.history.replaceState({}, '', nextUrl);
+      } catch {
+        // best-effort
+      }
+    }
     state.refreshData();
   }, [state.refreshData]);
 
