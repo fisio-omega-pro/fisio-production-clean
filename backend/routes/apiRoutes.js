@@ -58,6 +58,7 @@ router.post('/auth/forgot-password', ensureHandler(clinicController.forgotPasswo
 router.post('/auth/reset-password', ensureHandler(clinicController.resetPassword, 'resetPassword'));
 router.post('/register', ensureHandler(clinicController.register, 'register'));
 router.post('/public/corporate-lead', ensureHandler(publicController.submitCorporateLead, 'submitCorporateLead'));
+router.get('/public/logo/:clinicId', ensureHandler(publicController.getClinicLogo, 'getClinicLogo'));
 // Stripe webhook (body RAW se configura en server.js antes de bodyParser.json)
 router.post('/webhooks/stripe', ensureHandler(clinicController.handleStripeWebhook, 'handleStripeWebhook'));
 
@@ -81,6 +82,7 @@ router.use(auth);
 router.get('/dashboard/data', ensureHandler(clinicController.getDashboardData, 'getDashboardData'));
 router.get('/dashboard/patient-history', ensureHandler(clinicController.getPatientHistory, 'getPatientHistory'));
 router.post('/dashboard/save-logo', ensureHandler(clinicController.saveLogo, 'saveLogo'));
+router.post('/dashboard/upload-logo', upload.single('logo'), ensureHandler(clinicController.uploadLogo, 'uploadLogo'));
 router.post('/dashboard/save-cobros', ensureHandler(clinicController.saveCobrosConfig, 'saveCobrosConfig'));
 router.post('/dashboard/appointment', ensureHandler(clinicController.createAppointment, 'createAppointment'));
 router.post('/dashboard/save-note', ensureHandler(clinicController.savePatientNote, 'savePatientNote'));

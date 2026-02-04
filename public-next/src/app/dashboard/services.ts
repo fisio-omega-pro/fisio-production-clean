@@ -55,9 +55,11 @@ class DashboardService {
   }
   public async addSede(sede: any): Promise<void> { await this.request('/api/dashboard/add-sede', { method: 'POST', body: JSON.stringify({ sede }) }); }
   public async saveSpecialist(specialist: any): Promise<void> { await this.request('/api/dashboard/save-specialist', { method: 'POST', body: JSON.stringify({ specialist }) }); }
-  // Nota: subida personalizada pendiente (storage). Mantener coherencia: UI debe ofrecer "usar genérico".
-  public async uploadLogo(_file: File): Promise<void> {
-    throw new Error('Subida de logo personalizada pendiente. Usa "Logo genérico" por ahora.');
+  public async uploadLogo(file: File): Promise<void> {
+    const fd = new FormData();
+    fd.append('logo', file);
+    const res = await this.request<{ success: boolean; logo_url?: string }>('/api/dashboard/upload-logo', { method: 'POST', body: fd as any });
+    if (!res?.success) throw new Error('No se pudo subir el logo.');
   }
   public async useDefaultLogo(): Promise<void> { await this.request('/api/dashboard/save-logo', { method: 'POST', body: JSON.stringify({ publicUrl: 'https://via.placeholder.com/150' }) }); }
   public async connectStripe(): Promise<string> { const res = await this.request<{ url: string }>('/api/dashboard/stripe-connect', { method: 'POST' }); return res.url; }

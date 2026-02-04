@@ -1,6 +1,8 @@
 /**
  * 📦 STORAGE SERVICE - GESTOR DE ARCHIVOS
- * Genera URLs firmadas para subidas seguras directas a Google Cloud.
+ * Utilidades sobre GCS (Cloud Storage).
+ *
+ * Nota: En Cloud Run usamos ADC (service account del servicio).
  */
 const { Storage } = require('@google-cloud/storage');
 
@@ -41,4 +43,29 @@ const generateUploadUrl = async (filename, filetype) => {
   }
 };
 
-module.exports = { generateUploadUrl };
+const uploadBuffer = async ({ filename, buffer, contentType, cacheControl }) => {
+  try {
+    const file = bucket.file(filename);
+    await file.save(buffer, {
+      resumable: false,
+      contentType: contentType || 'application/octet-stream',
+      metadata: cacheControl ? { cacheControl } : undefined,
+    });
+    return { filename };
+  } catch (error) {
+    console.error("🔥 [STORAGE] Error subiendo buffer:", error);
+    throw new Error("No se pudo subir el archivo al storage.");
+  }
+};
+
+const getReadStream = (filename) => {
+  const file = bucket.file(filename);
+  return file.createReadStream();
+};
+
+module.exports = {
+  BUCKET_NAME,
+  generateUploadUrl,
+  uploadBuffer,
+  getReadStream,
+};

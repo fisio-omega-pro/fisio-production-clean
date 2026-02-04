@@ -306,10 +306,47 @@ const saveLogo = async (req, res, next) => {
     if (!publicUrl) return res.status(400).json({ success: false, error: 'publicUrl requerido' });
     await db.collection('clinicas').doc(req.clinicId).update({
       logo_url: publicUrl,
+      logo_path: null,
       updated_at: Timestamp.now()
     });
     await createAuditLog(req.clinicId, req.userId || req.clinicId, 'UPDATE_LOGO', req.clinicId);
     return res.json({ success: true });
+  } catch (e) { next(e); }
+};
+
+const uploadLogo = async (req, res, next) => {
+  try {
+    const file = req.file;
+    if (!file) return res.status(400).json({ success: false, error: 'logo requerido' });
+    if (file.size > 2 * 1024 * 1024) return res.status(400).json({ success: false, error: 'Archivo demasiado pesado (máx 2MB)' });
+
+    const allowed = new Set(['image/png', 'image/jpeg', 'image/webp']);
+    const ct = String(file.mimetype || '').toLowerCase();
+    if (!allowed.has(ct)) return res.status(400).json({ success: false, error: 'Formato no soportado (png/jpg/webp)' });
+
+    const ext = ct === 'image/png' ? 'png' : ct === 'image/webp' ? 'webp' : 'jpg';
+    const safeId = String(req.clinicId || '').replace(/[^a-zA-Z0-9_-]/g, '');
+    const stamp = Date.now();
+    const rand = Math.random().toString(36).slice(2, 10);
+    const filename = `logos/${safeId}/${stamp}-${rand}.${ext}`;
+
+    const { uploadBuffer } = require('../services/storageService');
+    await uploadBuffer({
+      filename,
+      buffer: file.buffer,
+      contentType: ct,
+      cacheControl: 'public, max-age=3600'
+    });
+
+    const logoUrl = `/api/public/logo/${req.clinicId}`;
+    await db.collection('clinicas').doc(req.clinicId).update({
+      logo_path: filename,
+      logo_url: logoUrl,
+      updated_at: Timestamp.now()
+    });
+    await createAuditLog(req.clinicId, req.userId || req.clinicId, 'UPLOAD_LOGO', filename);
+
+    return res.json({ success: true, logo_url: logoUrl });
   } catch (e) { next(e); }
 };
 
@@ -586,6 +623,7 @@ module.exports = {
   getPatientHistory,
   createAppointment,
   saveLogo,
+  uploadLogo,
   saveCobrosConfig,
   addSede,
   saveSpecialist,

@@ -3,6 +3,7 @@ const { initEnv } = require('../config/env');
 const { sendEmail } = require('../services/emailSenderService');
 const { baseEmailHtml, escapeHtml } = require('../services/emailTemplates');
 const anaService = require('../services/anaService');
+const { getReadStream } = require('../services/storageService');
 
 function isValidEmail(email) {
   const s = String(email || '').trim();
@@ -194,5 +195,28 @@ const submitCorporateLead = async (req, res) => {
 
 module.exports = {
   submitCorporateLead,
+  // Logo público (no sensible) para apps/portal/pdfs
+  getClinicLogo: async (req, res) => {
+    try {
+      const clinicId = String(req.params.clinicId || '').trim();
+      if (!clinicId) return res.status(400).send('clinicId requerido');
+
+      const doc = await db.collection('clinicas').doc(clinicId).get();
+      if (!doc.exists) return res.status(404).send('not found');
+      const data = doc.data() || {};
+      const path = String(data.logo_path || '').trim();
+      if (!path) return res.status(404).send('no logo');
+
+      const ext = path.split('.').pop()?.toLowerCase();
+      const contentType = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      const stream = getReadStream(path);
+      stream.on('error', () => res.status(404).end());
+      stream.pipe(res);
+    } catch (e) {
+      return res.status(500).send('error');
+    }
+  }
 };
 
