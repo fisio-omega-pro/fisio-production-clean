@@ -134,6 +134,11 @@ export default function FoundryPage() {
         },
         body: JSON.stringify({ active: next })
       });
+      if (res.status === 404) {
+        // Backend no actualizado (revisión antigua en Cloud Run)
+        alert('Backend CAZA no está desplegado todavía (endpoint /admin/campaign no existe). Redeploy Cloud Run.');
+        return;
+      }
       const json = await res.json();
       if (res.ok && typeof json?.active === 'boolean') {
         setCampaignActive(!!json.active);
@@ -155,6 +160,10 @@ export default function FoundryPage() {
         headers: { 'Content-Type': 'application/json', 'x-foundry-key': getFoundryKey() },
         body: JSON.stringify({ estado, ultima_accion: `Estado → ${estado}` })
       });
+      if (res.status === 404) {
+        alert('Backend CAZA no está desplegado todavía (endpoint de estado de lead no existe). Redeploy Cloud Run.');
+        return;
+      }
       const json = await res.json();
       if (!res.ok) return alert(json?.error || 'No se pudo actualizar el lead');
       await loadData();
@@ -177,6 +186,10 @@ export default function FoundryPage() {
         headers: { 'Content-Type': 'application/json', 'x-foundry-key': getFoundryKey() },
         body: JSON.stringify({ to, leadInfo: lead, leadId: lead.id })
       });
+      if (res.status === 404) {
+        alert('Backend email no está desplegado (endpoint /admin/send-prospect-email no existe). Redeploy Cloud Run.');
+        return;
+      }
       const json = await res.json();
       if (!res.ok) return alert(json?.error || 'No se pudo enviar el email');
       setLeadPreview(String(json.preview || '').trim());
@@ -504,7 +517,7 @@ export default function FoundryPage() {
                     <tbody>
                       {data.leads && data.leads.length > 0 ? (
                         data.leads.map((lead: any, idx: number) => (
-                          <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer" onClick={() => setSelectedLead(lead)}>
+                          <tr key={lead?.id || idx} className="border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer" onClick={() => setSelectedLead(lead)}>
                             <td className="py-4 px-4">
                               <span className={`px-3 py-1 rounded-full text-xs font-bold ${
                                 (lead.estado || lead.status) === 'convertido' ? 'bg-green-500/20 text-green-400' :
