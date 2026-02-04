@@ -783,6 +783,13 @@ export default function FoundryPage() {
                                   ) : null}
                                 </div>
                               </div>
+                              <div className="text-[10px] text-gray-400 mt-2">
+                                {f.file_path ? (
+                                  <span className="font-semibold">{String(f.file_name || 'factura').slice(0, 80)}</span>
+                                ) : (
+                                  <span className="text-gray-600">Sin archivo (solo OCR)</span>
+                                )}
+                              </div>
                               <div className="text-[10px] text-gray-500 mt-2 line-clamp-2">
                                 {String(f.texto || '').slice(0, 160) || '—'}
                               </div>
