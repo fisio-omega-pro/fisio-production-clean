@@ -12,6 +12,19 @@ export const InstalacionView = () => {
       alert("Por favor, usa el menú de tu navegador (los 3 puntos) y busca la opción 'Instalar aplicación' para añadir FisioTool a tu escritorio.");
     }
   };
+  const howItWorks = () => {
+    alert(
+      [
+        "Cómo funciona la instalación (PWA):",
+        "",
+        "1) En Chrome/Edge: abre el menú ⋮ (arriba a la derecha).",
+        "2) Pulsa “Instalar aplicación” o “Añadir a pantalla de inicio”.",
+        "3) Acepta. Se creará un icono como una app.",
+        "",
+        "Si tu navegador soporta instalación automática, el botón “Instalar ahora” abrirá el diálogo directamente."
+      ].join("\n")
+    );
+  };
 
   return (
     <div className="flex flex-col gap-10 animate-in fade-in duration-700 max-w-4xl mx-auto py-12">
@@ -34,7 +47,7 @@ export const InstalacionView = () => {
             >
               <Download size={18} /> INSTALAR AHORA
             </button>
-            <button className="flex items-center gap-3 px-8 py-4 bg-white/5 text-white rounded-2xl font-black text-sm border border-white/10">
+            <button onClick={howItWorks} className="flex items-center gap-3 px-8 py-4 bg-white/5 text-white rounded-2xl font-black text-sm border border-white/10">
               <Zap size={18}/> ¿CÓMO FUNCIONA?
             </button>
          </div>

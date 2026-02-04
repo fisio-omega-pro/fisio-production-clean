@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { Upload, CreditCard, CheckCircle2, Building2, ChevronRight, Loader2, Crown, Image } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { CreditCard, CheckCircle2, Building2, ChevronRight, Loader2, Crown, Image } from 'lucide-react';
 import { dashboardAPI } from '../services';
 
 interface SetupProps {
@@ -10,7 +10,6 @@ interface SetupProps {
 
 export const SetupWizard: React.FC<SetupProps> = ({ status, onRefresh, isBlind }) => {
   const [loading, setLoading] = useState<string | null>(null); // Trackeamos qué botón carga
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!isBlind) return;
@@ -26,15 +25,6 @@ export const SetupWizard: React.FC<SetupProps> = ({ status, onRefresh, isBlind }
       // best-effort
     }
   }, [isBlind]);
-
-  // 1. Subir Logo Real
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]; if(!file) return; 
-    setLoading('upload');
-    try { await dashboardAPI.uploadLogo(file); await onRefresh(); } 
-    catch(e){ alert("Error subida. Prueba la opción provisional."); } 
-    setLoading(null);
-  };
 
   // 2. Usar Logo Provisional (FIXED)
   const handleSkipLogo = async () => {
@@ -74,14 +64,9 @@ export const SetupWizard: React.FC<SetupProps> = ({ status, onRefresh, isBlind }
         <div className="space-y-4">
           
           {/* PASO 1: LOGO */}
-          <StepBox completed={status.hasLogo} number="1" title="Identidad Visual" desc="Logo para tus facturas." active={true}>
+          <StepBox completed={status.hasLogo} number="1" title="Identidad Visual" desc="Logo para tus facturas (genérico por ahora)." active={true}>
             {!status.hasLogo && (
               <div className="flex gap-2 mt-2">
-                <input type="file" ref={fileInputRef} onChange={handleLogoUpload} className="hidden" accept="image/*" />
-                <button onClick={() => fileInputRef.current?.click()} disabled={!!loading} className="px-4 py-2 bg-white text-black text-xs font-bold rounded-lg hover:bg-gray-200 flex items-center gap-2">
-                  {loading === 'upload' ? <Loader2 className="animate-spin" size={14}/> : <><Upload size={14}/> SUBIR PROPIO</>}
-                </button>
-                {/* BOTÓN GRANDE Y CLARO */}
                 <button onClick={handleSkipLogo} disabled={!!loading} className="px-4 py-2 border border-white/20 text-gray-300 text-xs font-bold rounded-lg hover:bg-white/10 flex items-center gap-2">
                   {loading === 'skip' ? <Loader2 className="animate-spin" size={14}/> : <><Image size={14}/> USAR GENÉRICO</>}
                 </button>

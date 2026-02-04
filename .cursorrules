@@ -1,0 +1,228 @@
+# .cursorrules — FisioTool Pro (SaaS)
+
+Este archivo resume **lo construido**, **arquitectura**, **decisiones técnicas** y **pendientes**. Está pensado para que cualquier agente/colaborador pueda continuar sin romper producción.
+
+---
+
+## Contexto del producto
+
+FisioTool Pro es un SaaS para clínicas (fisioterapia y centros mixtos) con:
+
+- **Dashboard** para operación diaria (agenda, pacientes, notas, equipo, sedes, bonos, sugerencias, etc.).
+- **Landing pública** (marketing) + **plan Corporate** como formulario de captación.
+- **Foundry** (panel admin) con acceso por **clave Foundry** (header `x-foundry-key`).
+- “Ana” como asistente: triage de leads, emails, borradores para el admin, etc.
+- Flujos legales/contrato y recuperación de contraseña.
+- Soporte **accesibilidad**: experiencia audible para profesionales invidentes vía `/access`.
+
+---
+
+## Arquitectura técnica (alto nivel)
+
+### Frontend
+
+- **Next.js App Router** con `output: 'export'` (sitio estático).
+- Ubicación: `public-next/`
+- API base centralizada:
+  - `public-next/src/lib/apiBase.ts` → `API_BASE_URL` (usa `NEXT_PUBLIC_API_BASE_URL` o fallback a Cloud Run).
+- UI: React + Tailwind + Framer Motion.
+
+### Backend
+
+- Node.js + Express (Cloud Run).
+- Ubicación: `backend/`
+- Rutas: `backend/routes/apiRoutes.js`
+- Controladores principales:
+  - `backend/controllers/clinicController.js` (dashboard/auth/Stripe/etc)
+  - `backend/controllers/adminController.js` (Foundry, sugerencias, contratos, inbox Ana)
+  - `backend/controllers/publicController.js` (formularios públicos, ej. Corporate)
+  - `backend/controllers/chatController.js` (chat Ana/Lex)
+- Servicios:
+  - `backend/services/anaService.js` (IA, triage corporate, emails)
+  - `backend/services/emailReaderService.js` / `emailSenderService.js`
+  - `backend/services/paymentService.js` (Stripe checkout)
+  - `backend/services/contractService.js` (contrato + bienvenida)
+  - `backend/services/storageService.js` (GCS signed URLs; preparado)
+- Infra:
+  - **Firestore** como DB.
+  - **Secret Manager** para secretos (Google Cloud).
+  - **Cloud Run** para backend.
+  - **Vercel** para frontend estático.
+
+---
+
+## Decisiones clave (y por qué)
+
+### 1) Next.js estático + backend externo
+
+Como el frontend es estático (`output: 'export'`), **todas** las llamadas se hacen a Cloud Run con `API_BASE_URL`. Se evitó `fetch('/api/...')` relativo porque rompe en export.
+
+### 2) Seguridad Foundry por header
+
+Foundry requiere `x-foundry-key` en backend:
+
+- Middleware: `requireFoundryKey` en `backend/routes/apiRoutes.js`.
+- La clave vive en Secret Manager como `ADMIN_FOUNDRY_KEY`.
+- Se implementó **rotación sin downtime**: `ADMIN_FOUNDRY_KEY` admite **múltiples claves** separadas por comas: `NUEVA,ANTIGUA`.
+- Se endureció la “emergency key”:
+  - **Por defecto no funciona si hay clave real configurada**.
+  - Solo se permite emergencia si `ENABLE_EMERGENCY_FOUNDRY_KEY=true` (y no está deshabilitada).
+
+### 3) Hardening backend
+
+- Helmet + rate limiting + CORS configurable (`CORS_ORIGINS`).
+- `trust proxy` y límites de body.
+- Webhook Stripe con `express.raw` en ruta de webhook (firma).
+- `ensureHandler` para evitar crash por handlers undefined.
+
+### 4) Accesibilidad para invidentes
+
+- Ruta dedicada: `/access` (experiencia audible completa).
+- Flujo conectado:
+  - `/access` → ` /setup?plan=solo&is_blind=1`
+  - `setup` narra pasos/errores en modo invidente (best-effort TTS).
+  - `clinicController.register` persiste `is_blind`.
+  - `dashboard` activa voz cuando `clinicData.is_blind=true` y narra cambios de sección.
+  - `SetupWizard` también narra para invidentes.
+
+### 5) Corporate plan → lead + triage “Ana” (sin respuestas automáticas)
+
+- Frontend: modal Corporate en `public-next/src/components/landing/Pricing.tsx`
+  - Validación fuerte, honeypot, y campos enterprise (incluye `timezone` y `availability`).
+- Backend: `POST /api/public/corporate-lead`
+  - `backend/controllers/publicController.js`
+  - Guarda lead en `corporate_leads` (Firestore).
+  - Llama a `anaService.processCorporateLead`:
+    - **Nunca** clasifica como SPAM por palabras tipo “test/prueba”.
+    - Siempre genera **resumen ejecutivo**, **preguntas clave**, **borrador de respuesta**.
+    - No envía respuesta al lead automáticamente; solo notifica al admin.
+
+### 6) Dashboard “resiliente” sin Stripe
+
+Como Stripe está pendiente (cuenta LLC), el dashboard no se bloquea:
+
+- Se introdujo **modo limitado**:
+  - Se muestra un banner “Modo limitado”.
+  - Funciona Agenda/Pacientes/Notas/Equipo/Sedes/Bonos/Sugerencias.
+  - Cobros/licencia quedan como “pendiente” (sin romper UX).
+
+### 7) Auditoría: “si es clicable, debe persistir”
+
+Se cerraron gaps reales encontrados:
+
+- **Sugerencias**: UI ahora llama a `/api/dashboard/save-suggestion` y backend acepta `text|message|mensaje`.
+- **Especialistas**: backend tolera payload `{ specialist: {...} }` y formato plano.
+- **Ajustes**: dejó de ser visual; ahora persiste nombre/email via `/api/dashboard/update-settings` y el cambio de contraseña redirige al flujo de recuperación.
+- **Agenda**: dejó de simular; ahora renderiza citas reales y abre historial real.
+- **Historial**: se creó `GET /api/dashboard/patient-history` y el modal carga notas reales.
+
+---
+
+## Rutas API importantes (backend)
+
+### Públicas
+
+- `POST /api/login`
+- `POST /api/register`
+- `POST /api/auth/forgot-password`
+- `POST /api/auth/reset-password`
+- `POST /api/public/corporate-lead`
+- `POST /api/chat/ana-test` (diagnóstico)
+- `POST /api/webhooks/stripe` (raw body)
+
+### Foundry (requiere `x-foundry-key`)
+
+- `GET /api/admin/stats-globales`
+- `POST /api/admin/chat-legal`
+- `GET /api/admin/ana-diagnose`
+- `GET /api/admin/contratos/:id`
+- `GET /api/admin/ana-inbox`
+- `POST /api/admin/trigger-email-check`
+- `POST /api/admin/scan-invoice`
+
+### Dashboard (requiere JWT `Authorization: Bearer ...`)
+
+- `GET /api/dashboard/data`
+- `GET /api/dashboard/patient-history?phone=...` (historial)
+- `POST /api/dashboard/appointment`
+- `POST /api/dashboard/save-note`
+- `POST /api/dashboard/import-patients`
+- `POST /api/dashboard/save-specialist`
+- `POST /api/dashboard/add-sede`
+- `POST /api/dashboard/save-logo`
+- `POST /api/dashboard/save-cobros`
+- `POST /api/dashboard/create-bono`
+- `POST /api/dashboard/activate-bonos`
+- `POST /api/dashboard/launch-campaign`
+- `POST /api/dashboard/save-suggestion`
+- `POST /api/dashboard/update-settings`
+- Stripe:
+  - `POST /api/dashboard/upgrade-plan`
+  - `POST /api/dashboard/stripe-connect`
+  - `POST /api/dashboard/stripe-verify`
+  - `POST /api/dashboard/payment-verify`
+
+---
+
+## Secretos / configuración (GCP)
+
+### Secret Manager (principales)
+
+- `ADMIN_FOUNDRY_KEY` (**no deshabilitar `latest` en prod**; usar versión fija si quieres máxima estabilidad)
+- `GOOGLE_AI_KEY`, `GOOGLE_AI_MODEL`
+- `JWT_SECRET`
+- `EMAIL_USER_ANA`, `EMAIL_PASS_ANA`, `EMAIL_USER_INFO`, `EMAIL_PASS_INFO`
+- `STRIPE_SECRET_KEY` / `STRIPE_SK` (Stripe)
+- `STRIPE_WEBHOOK_SECRET`
+
+**Regla de oro**: Si un secret inyectado como env var queda en `DISABLED`, Cloud Run puede abortar arranque → 500 global.
+
+---
+
+## Operación / Deploy (reglas)
+
+- **Frontend**: Vercel despliega desde GitHub. Evitar llamadas relativas a `/api/*`.
+- **Backend**: Cloud Run debe redeployar cuando hay cambios backend; si ves 404 en endpoints nuevos, es que está sirviendo una revisión antigua.
+- Ante incidentes:
+  - Verificar `GET /diagnostics/health` (debe ser JSON 200).
+  - Si 500 HTML de Google → casi seguro secrets env var en estado `DISABLED`.
+
+---
+
+## Pendientes (backlog real)
+
+### Bloqueantes / de alto impacto
+
+1) **Stripe** (pendiente de cuenta/keys reales):
+   - Configurar `STRIPE_SECRET_KEY` (debe empezar por `sk_`) y webhook.
+   - Validar flujo completo: upgrade → checkout → webhook → `subscription_active=true`.
+   - Connect Express: onboarding → verify → `stripe_status=active`.
+
+2) **Foundry funcionalidades core**:
+   - **MODO DIOS**: métricas reales, filtros por mes/tipo, paginación consistente.
+   - **MODO CAZA**: cadencias reales, segmentación (videntes/invidentes), estados, canales (WhatsApp/email).
+   - **MODO LLC**: OCR facturas end-to-end + repositorio legal “real” + alertas robustas.
+
+### Auditoría adicional (para “perfecto”)
+
+- **Logo real**: actualmente el “uploadLogo” usa placeholder; integrar `storageService.js` (signed URL a GCS) y un endpoint para emitir `uploadUrl/publicUrl`.
+- **PWA instalación**: `InstalacionView` usa `(window as any).deferredPrompt`; falta un listener global `beforeinstallprompt` que lo rellene.
+- **Referidos**: hoy es estático (código fijo, métricas 0). Definir lógica real o marcar “próximamente”.
+- **Módulos legacy no usados**: `public-next/src/app/dashboard/modules/SuggestionsView.tsx` (stub) no se usa; decidir eliminar o ignorar.
+
+### Seguridad/operación
+
+- Fijar `ADMIN_FOUNDRY_KEY` a una **versión concreta** en Cloud Run para evitar caídas por cambios en `latest`.
+- Revisar que `diagnostics/*` no exponga nada sensible (ya se dejó `health` seguro y `env` protegido).
+
+---
+
+## Convenciones de cambios (para agentes)
+
+- No introducir claves en frontend ni hardcodear secretos.
+- Cuando se agregue un endpoint nuevo en backend, **siempre**:
+  - añadir ruta en `apiRoutes.js`
+  - validar con `node -c`
+  - desplegar Cloud Run y verificar 200/JSON
+- Si una UI tiene botón/CTA, debe existir endpoint y persistencia real, o se deshabilita/etiqueta como “próximamente”.
+

@@ -1,5 +1,5 @@
 'use client';
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LogOut, Sparkles, User, Bell, ChevronRight, Menu, X } from 'lucide-react';
 import { THEME } from '../theme';
@@ -25,6 +25,21 @@ const NavButton = React.memo(({ item, isActive, onClick }: { item: NavItemConfig
 export const DashboardLayout = ({ children, activeTab, onTabChange, navItems }: any) => {
   const [isMobileOpen, setIsMobileOpen] = React.useState(false);
   const date = useMemo(() => new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }), []);
+
+  // PWA: capturar beforeinstallprompt para que Instalación funcione
+  useEffect(() => {
+    const handler = (e: any) => {
+      try {
+        e.preventDefault();
+        (window as any).deferredPrompt = e;
+      } catch {
+        // best-effort
+      }
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
   return (
     <div className="flex h-screen w-screen bg-[#030507] text-white overflow-hidden font-sans">
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#0a0a0a] border-r border-white/5 transform transition-transform duration-300 lg:relative lg:translate-x-0 ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
