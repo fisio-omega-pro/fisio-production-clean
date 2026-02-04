@@ -83,6 +83,7 @@ router.post('/dashboard/import-patients', ensureHandler(clinicController.importP
 router.post('/dashboard/activate-bonos', ensureHandler(clinicController.activateBonos, 'activateBonos'));
 router.post('/dashboard/create-bono', ensureHandler(clinicController.createBono, 'createBono'));
 router.post('/dashboard/launch-campaign', ensureHandler(clinicController.launchCampaign, 'launchCampaign'));
+router.post('/dashboard/run-recaptacion', ensureHandler(clinicController.runRecaptacionNow, 'runRecaptacionNow'));
 router.post('/dashboard/stripe-connect', ensureHandler(clinicController.startStripeConnect, 'startStripeConnect'));
 router.post('/dashboard/stripe-verify', ensureHandler(clinicController.finalizeStripeConnect, 'finalizeStripeConnect'));
 router.post('/dashboard/upgrade-plan', ensureHandler(clinicController.createUpgradeSession, 'createUpgradeSession'));

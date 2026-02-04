@@ -502,6 +502,16 @@ const launchCampaign = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
+// Ejecutar recaptación ahora (para pruebas/operativa)
+const runRecaptacionNow = async (req, res, next) => {
+  try {
+    const { runRecaptacionForClinic } = require('../services/recaptacionAutopilotService');
+    const maxPerRun = Number(req.body?.maxPerRun || 5);
+    const r = await runRecaptacionForClinic(req.clinicId, { maxPerRun });
+    return res.json({ success: true, ...r });
+  } catch (e) { next(e); }
+};
+
 const startStripeConnect = async (req, res, next) => {
   try {
     const { initEnv } = require('../config/env');
@@ -717,6 +727,7 @@ module.exports = {
   activateBonos,
   createBono,
   launchCampaign,
+  runRecaptacionNow,
   startStripeConnect,
   finalizeStripeConnect,
   createUpgradeSession,

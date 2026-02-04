@@ -79,6 +79,7 @@ async function initialize(options = {}) {
     const { readEmails } = require('./services/emailReaderService');
     const { sendEmail } = require('./services/emailSenderService');
     const { runCazaAutopilot } = require('./services/cazaAutopilotService');
+    const { runRecaptacionAutopilot } = require('./services/recaptacionAutopilotService');
     setInterval(async () => {
       console.log('📧 [CRON] Ana revisando inbox...');
       try {
@@ -127,6 +128,14 @@ async function initialize(options = {}) {
         if (r && r.sent) console.log(`🎯 [CRON] CAZA autopiloto: enviados=${r.sent}`);
       } catch (e) {
         console.error('🔥 [CRON] Error en CAZA autopiloto:', e.message);
+      }
+
+      // 🚀 RECAPTACIÓN: campañas por clínica (si modo_caza_activo=true)
+      try {
+        const r = await runRecaptacionAutopilot();
+        if (r && r.sent) console.log(`🚀 [CRON] Recaptación: enviados=${r.sent} clinicas=${r.clinics}`);
+      } catch (e) {
+        console.error('🔥 [CRON] Error en recaptación:', e.message);
       }
     }, 5 * 60 * 1000); // 5 minutos
     
