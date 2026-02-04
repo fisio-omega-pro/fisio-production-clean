@@ -619,6 +619,19 @@ const runCazaAutopilotNow = async (req, res) => {
   }
 };
 
+// --- 🚀 RECAPTACIÓN: EJECUTAR AUTOPILOTO BAJO DEMANDA (global) ---
+const runRecaptacionAutopilotNow = async (req, res) => {
+  try {
+    const { runRecaptacionAutopilot } = require('../services/recaptacionAutopilotService');
+    const maxClinics = Number(req.body?.maxClinics || 10);
+    const maxPerRun = Number(req.body?.maxPerRun || 10);
+    const r = await runRecaptacionAutopilot({ maxClinics, maxPerRun });
+    return res.json({ success: true, ...r });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: e.message });
+  }
+};
+
 // --- 📄 CONTRATOS (Repositorio Legal) ---
 const getContrato = async (req, res) => {
   try {
@@ -651,5 +664,6 @@ module.exports = {
   updateLeadStatus,
   getExpenseFile,
   runCazaAutopilotNow,
+  runRecaptacionAutopilotNow,
   handleIncomingResponse: async (req,res) => res.json({success:true})
 };

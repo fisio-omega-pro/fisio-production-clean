@@ -203,6 +203,16 @@ Si quieres ajustar frecuencia:
 SCHEDULE_CAZA="*/2 * * * *" FOUNDRY_KEY='TU_CLAVE_FOUNDRY' ./scripts/setup-cloud-scheduler.sh
 ```
 
+### Job: recaptación (1 vez al día, recomendado)
+
+- **Endpoint**: `POST /api/admin/run-recaptacion-autopilot`
+- **Schedule sugerido**: `0 10 * * *` (10:00 Europe/Madrid)
+- Se crea por defecto en el script. Para desactivarlo:
+
+```bash
+ENABLE_RECAPTACION=0 FOUNDRY_KEY='TU_CLAVE_FOUNDRY' ./scripts/setup-cloud-scheduler.sh
+```
+
 ### Corporate leads
 
 - Endpoint público:
