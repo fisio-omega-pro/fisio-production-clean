@@ -37,6 +37,21 @@ class DashboardService {
     await this.request('/api/dashboard/launch-campaign', { method: 'POST' });
   }
 
+  public async runRecaptacion(maxPerRun = 5): Promise<{ sent: number }> {
+    const res = await this.request<{ success: boolean; sent?: number; clinics?: number; error?: string }>(
+      '/api/dashboard/run-recaptacion',
+      { method: 'POST', body: JSON.stringify({ maxPerRun }) }
+    );
+    return { sent: Number((res as any).sent || 0) };
+  }
+
+  public async getReferrals(): Promise<{ code: string; count: number; referred: any[] }> {
+    const res = await this.request<{ success: boolean; code: string; count: number; referred: any[] }>(
+      '/api/dashboard/referrals'
+    );
+    return { code: res.code, count: Number(res.count || 0), referred: Array.isArray(res.referred) ? res.referred : [] };
+  }
+
   public async activateBonos(): Promise<void> {
     await this.request('/api/dashboard/activate-bonos', { method: 'POST' });
   }

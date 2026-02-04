@@ -32,8 +32,30 @@ const register = async (req, res, next) => {
     const plan = d.plan || 'pro';
     const now = Timestamp.now();
     const legalAccepted = !!d.aceptacion_legal;
+    const referralCodeInput = String(d.referral_code || d.referralCode || d.ref || '').trim().toUpperCase();
     const ip = String((req.headers['x-forwarded-for'] || req.ip || '')).split(',')[0].trim();
     const userAgent = String(req.headers['user-agent'] || '');
+
+    const genReferralCode = () => Math.random().toString(36).slice(2, 6).toUpperCase() + Math.random().toString(36).slice(2, 6).toUpperCase();
+    let referral_code = '';
+    for (let i = 0; i < 6; i++) {
+      const candidate = genReferralCode();
+      // best-effort: evitar colisiones
+      const exists = await db.collection('clinicas').where('referral_code', '==', candidate).limit(1).get();
+      if (exists.empty) { referral_code = candidate; break; }
+    }
+    if (!referral_code) referral_code = genReferralCode();
+
+    // Resolver referidor (si viene código)
+    let referred_by_clinic_id = null;
+    let referred_by_code = null;
+    if (referralCodeInput) {
+      const refSnap = await db.collection('clinicas').where('referral_code', '==', referralCodeInput).limit(1).get();
+      if (!refSnap.empty) {
+        referred_by_clinic_id = refSnap.docs[0].id;
+        referred_by_code = referralCodeInput;
+      }
+    }
 
     const ref = await db.collection('clinicas').add({
       nombre_clinica: d.nombre,
@@ -43,6 +65,10 @@ const register = async (req, res, next) => {
       status: 'activo',
       subscription_active: false,
       is_blind: d.is_blind || false,
+      referral_code,
+      referred_by_clinic_id,
+      referred_by_code,
+      referred_at: referred_by_clinic_id ? now : null,
       config_ia: {
         precio: d.precio_sesion || 50,
         fianza: d.fianza || 15,
@@ -60,6 +86,17 @@ const register = async (req, res, next) => {
     });
     // 🚨 LOG: Nueva entidad creada
     await createAuditLog(ref.id, ref.id, 'CREATE_CLINIC', ref.id);
+
+    // 📈 Best-effort: incrementar contador del referidor
+    if (referred_by_clinic_id) {
+      try {
+        await db.collection('clinicas').doc(referred_by_clinic_id).set({
+          referrals_count: admin.firestore.FieldValue.increment(1),
+          referrals_last_at: now,
+        }, { merge: true });
+        await createAuditLog(referred_by_clinic_id, referred_by_clinic_id, 'REFERRAL_NEW_SIGNUP', ref.id);
+      } catch (_) {}
+    }
 
     // 📄 Contrato + Email de bienvenida (best-effort, no bloquea registro)
     if (legalAccepted) {
@@ -278,6 +315,26 @@ const getDashboardData = async (req, res, next) => {
         ]);
         // ... (retorno de datos)
         const data = clinicDoc.data();
+        // Referidos: asegurar que la clínica tenga código (best-effort)
+        let referralCode = String(data?.referral_code || '').trim().toUpperCase();
+        if (!referralCode) {
+          const genReferralCode = () => Math.random().toString(36).slice(2, 6).toUpperCase() + Math.random().toString(36).slice(2, 6).toUpperCase();
+          for (let i = 0; i < 6; i++) {
+            const candidate = genReferralCode();
+            const exists = await db.collection('clinicas').where('referral_code', '==', candidate).limit(1).get();
+            if (exists.empty) { referralCode = candidate; break; }
+          }
+          if (!referralCode) referralCode = genReferralCode();
+          try {
+            await db.collection('clinicas').doc(req.clinicId).set({ referral_code: referralCode, updated_at: Timestamp.now() }, { merge: true });
+          } catch (_) {}
+        }
+        // Stats de referidos (simple)
+        let referredCount = 0;
+        try {
+          const referredSnap = await db.collection('clinicas').where('referred_by_clinic_id', '==', req.clinicId).get();
+          referredCount = referredSnap.size || 0;
+        } catch (_) {}
         let equipo = equipoSnap.docs.map(d => ({id: d.id, ...d.data()}));
         if (equipo.length === 0) {
           equipo = [{ id: 'admin-lead', nombre: data.nombre_clinica, especialidad: 'Dirección', avatarUrl: data.logo_url, isOwner: true }];
@@ -308,10 +365,33 @@ const getDashboardData = async (req, res, next) => {
             equipo: equipo, pacientes: pacientesSnap.docs.map(d => ({id: d.id, ...d.data()})),
             agenda: citasSnap.docs.map(d => ({id: d.id, ...d.data()})),
             bonos: bonosSnap.docs.map(d => ({id: d.id, ...d.data()})),
-            balance: { real, potencial, roi, tendenciaMensual: 12 }
+            balance: { real, potencial, roi, tendenciaMensual: 12 },
+            referrals: { code: referralCode, count: referredCount }
           } 
         });
     } catch (e) { next(e); }
+};
+
+// Referidos: endpoint dedicado (para el tab Referidos)
+const getReferrals = async (req, res, next) => {
+  try {
+    const clinicDoc = await db.collection('clinicas').doc(req.clinicId).get();
+    if (!clinicDoc.exists) return res.status(404).json({ success: false, error: 'Clínica no encontrada' });
+    const data = clinicDoc.data() || {};
+    const code = String(data.referral_code || '').trim().toUpperCase();
+    const referredSnap = await db.collection('clinicas').where('referred_by_clinic_id', '==', req.clinicId).limit(50).get();
+    const referred = referredSnap.docs.map((d) => {
+      const x = d.data() || {};
+      return {
+        id: d.id,
+        nombre_clinica: x.nombre_clinica || null,
+        email: x.email || null,
+        plan: x.plan || null,
+        created_at: x.created_at || null,
+      };
+    });
+    return res.json({ success: true, code, count: referredSnap.size || 0, referred });
+  } catch (e) { next(e); }
 };
 
 // --- DASHBOARD: OPERACIONES REALES (sin stubs) ---
@@ -728,6 +808,7 @@ module.exports = {
   createBono,
   launchCampaign,
   runRecaptacionNow,
+  getReferrals,
   startStripeConnect,
   finalizeStripeConnect,
   createUpgradeSession,

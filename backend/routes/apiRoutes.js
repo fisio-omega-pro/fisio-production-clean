@@ -70,6 +70,7 @@ router.use(auth);
 
 router.get('/dashboard/data', ensureHandler(clinicController.getDashboardData, 'getDashboardData'));
 router.get('/dashboard/patient-history', ensureHandler(clinicController.getPatientHistory, 'getPatientHistory'));
+router.get('/dashboard/referrals', ensureHandler(clinicController.getReferrals, 'getReferrals'));
 router.post('/dashboard/save-logo', ensureHandler(clinicController.saveLogo, 'saveLogo'));
 router.post('/dashboard/upload-logo', upload.single('logo'), ensureHandler(clinicController.uploadLogo, 'uploadLogo'));
 router.post('/dashboard/save-cobros', ensureHandler(clinicController.saveCobrosConfig, 'saveCobrosConfig'));

@@ -14,6 +14,7 @@ import { API_BASE_URL } from '@/lib/apiBase';
 // --- TIPOS DE DATOS ---
 interface ClinicData {
   nombre: string; email: string; password: string;
+  referral_code?: string;
   calle: string; numero: string; ciudad: string; cp: string; provincia: string;
   apertura: string; cierre: string;
   hace_descanso: boolean; descanso_inicio: string; descanso_fin: string;
@@ -43,7 +44,7 @@ export default function OnboardingEpic() {
   const hasAnnouncedStep = useRef<number | null>(null);
   
   const [formData, setFormData] = useState<ClinicData>({
-    nombre: '', email: '', password: '', calle: '', numero: '', ciudad: '', cp: '', provincia: '',
+    nombre: '', email: '', password: '', referral_code: '', calle: '', numero: '', ciudad: '', cp: '', provincia: '',
     apertura: '09:00', cierre: '20:00', hace_descanso: false, descanso_inicio: '14:00', descanso_fin: '16:00',
     flags: [], acepta_bonos: false, precio_bono_5: 225, precio_sesion: 50, fianza: 15, metodos_pago: ['Stripe'],
     aceptacion_legal: false, plan: 'solo',
@@ -76,11 +77,12 @@ export default function OnboardingEpic() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const p = params.get('plan');
+    const refCode = params.get('ref') || params.get('referral') || params.get('codigo') || params.get('code');
     const isBlind =
       params.get('is_blind') === '1' ||
       params.get('blind') === '1' ||
       params.get('access') === '1';
-    setFormData(prev => ({ ...prev, plan: p || prev.plan, is_blind: isBlind || prev.is_blind }));
+    setFormData(prev => ({ ...prev, plan: p || prev.plan, is_blind: isBlind || prev.is_blind, referral_code: String(refCode || prev.referral_code || '').toUpperCase() }));
     if (isBlind && typeof window !== 'undefined') {
       try {
         window.speechSynthesis.cancel();
@@ -285,6 +287,19 @@ export default function OnboardingEpic() {
                         <span className={passCriteria.number ? 'text-green-500' : ''}>123</span>
                         <span className={passCriteria.special ? 'text-green-500' : ''}>#@!</span>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* REFERIDOS (OPCIONAL) */}
+                  <div className="mt-4">
+                    <Label>Código de referidos (opcional)</Label>
+                    <Input
+                      placeholder="Ej: A1B2C3D4"
+                      value={String(formData.referral_code || '')}
+                      onChange={(v: string) => update('referral_code', String(v || '').toUpperCase())}
+                    />
+                    <div className="mt-2 text-[11px] text-gray-500">
+                      Si te invitaron con un código, pégalo aquí para que quede registrado.
                     </div>
                   </div>
                 </div>
