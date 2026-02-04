@@ -5,7 +5,8 @@ import {
   Zap, Users, Target, Activity, Upload, Bell, ShieldCheck, FileText, Send, 
   Scale as ScaleIcon, Trash2, Search, ChevronLeft, ChevronRight, TrendingUp,
   Building2, Wallet, Euro, TrendingDown, Eye, EyeOff, Mail, CheckCircle2,
-  Clock, AlertCircle, XCircle, ArrowUpRight, BarChart3, Calendar, Filter, Copy
+  Clock, AlertCircle, XCircle, ArrowUpRight, BarChart3, Calendar, Filter, Copy,
+  FileDown, FileImage, File
 } from 'lucide-react';
 import { ActionButton, InputField } from '../dashboard/components/Atoms';
 import { API_BASE_URL } from '@/lib/apiBase';
@@ -324,12 +325,55 @@ export default function FoundryPage() {
       }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
-      window.open(url, '_blank', 'noopener,noreferrer');
+      const mime = String(f?.file_mime || blob.type || '').toLowerCase();
+      const name = String(f?.file_name || `factura-${f.id}`).replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 160) || `factura-${f.id}`;
+
+      // Intentar abrir en pestaña nueva (PDF/imagenes). Si el navegador bloquea popups, descargar.
+      let opened: Window | null = null;
+      try {
+        opened = window.open(url, '_blank', 'noopener,noreferrer');
+      } catch {
+        opened = null;
+      }
+      if (!opened) {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      } else {
+        // Si abre, en algunos navegadores conviene sugerir nombre al descargar desde el visor
+        // (no podemos forzar filename en inline con blob).
+      }
+
       // best-effort: revocar más tarde
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      setTimeout(() => URL.revokeObjectURL(url), 90_000);
     } catch {
       alert('Error de conexión');
     }
+  };
+
+  const facturaKind = (f: any) => {
+    const mime = String(f?.file_mime || '').toLowerCase();
+    if (mime.includes('pdf')) return 'pdf';
+    if (mime.startsWith('image/')) return 'image';
+    if (mime.startsWith('text/')) return 'text';
+    return mime ? 'file' : 'none';
+  };
+
+  const facturaActionLabel = (f: any) => {
+    const k = facturaKind(f);
+    return k === 'pdf' || k === 'image' ? 'VER' : 'DESCARGAR';
+  };
+
+  const FacturaIcon = ({ f }: { f: any }) => {
+    const k = facturaKind(f);
+    if (k === 'pdf') return <FileText size={14} className="text-[#d4af37]" />;
+    if (k === 'image') return <FileImage size={14} className="text-blue-400" />;
+    if (k === 'text') return <File size={14} className="text-gray-300" />;
+    if (k === 'file') return <FileDown size={14} className="text-gray-300" />;
+    return <FileDown size={14} className="text-gray-600" />;
   };
 
   const openContrato = async (contrato: any) => {
@@ -723,8 +767,9 @@ export default function FoundryPage() {
                           {data.facturas.slice(0, 10).map((f: any) => (
                             <div key={f.id} className="bg-black/30 p-3 rounded-xl border border-white/5">
                               <div className="flex items-center justify-between gap-4">
-                                <div className="text-xs font-black text-white">
-                                  {money(f.importe, f.moneda)}
+                                <div className="flex items-center gap-2 text-xs font-black text-white">
+                                  <FacturaIcon f={f} />
+                                  <span>{money(f.importe, f.moneda)}</span>
                                 </div>
                                 <div className="flex items-center gap-3">
                                   <div className="text-[10px] text-gray-500">{formatFecha(f.fecha)}</div>
@@ -733,7 +778,7 @@ export default function FoundryPage() {
                                       onClick={() => openFactura(f)}
                                       className="text-[10px] font-black px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 transition-all"
                                     >
-                                      VER
+                                      {facturaActionLabel(f)}
                                     </button>
                                   ) : null}
                                 </div>
