@@ -81,6 +81,9 @@ const normalizeLeadType = (v) => {
   return 'videntes';
 };
 
+// De momento CAZA es email-only (WhatsApp se habilitará más adelante)
+const normalizeLeadChannel = (_v) => 'email';
+
 // --- 🏛️ MODO DIOS: ESTADÍSTICAS CONSOLIDADAS ---
 const getGlobalStats = async (req, res, next) => {
   try {
@@ -142,7 +145,7 @@ const getGlobalStats = async (req, res, next) => {
       const raw = d.data() || {};
       const estado = normalizeLeadStatus(raw.estado || raw.status);
       const tipo = normalizeLeadType(raw.tipo || raw.lead_type);
-      const canal = String(raw.canal || raw.channel || raw.preferredContact || 'email').toLowerCase();
+      const canal = normalizeLeadChannel(raw.canal || raw.channel || raw.preferredContact || 'email');
       const ultimaAccion = String(raw.ultima_accion || raw.last_action || '').trim();
       return {
         id: d.id,
@@ -389,7 +392,8 @@ const updateLeadStatus = async (req, res) => {
       status: estado,
       updated_at: Timestamp.now(),
     };
-    if (req.body?.canal) patch.canal = String(req.body.canal).toLowerCase();
+    // Email-only: ignoramos cualquier intento de fijar canal distinto
+    patch.canal = 'email';
     if (req.body?.ultima_accion != null) patch.ultima_accion = String(req.body.ultima_accion || '').trim();
     await db.collection('leads').doc(id).set(patch, { merge: true });
     return res.json({ success: true, estado });

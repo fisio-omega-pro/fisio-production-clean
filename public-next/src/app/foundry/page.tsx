@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Zap, Users, Target, Activity, Upload, Bell, ShieldCheck, FileText, Send, 
   Scale as ScaleIcon, Trash2, Search, ChevronLeft, ChevronRight, TrendingUp,
-  Building2, Wallet, Euro, TrendingDown, Eye, EyeOff, Mail, Phone, CheckCircle2,
+  Building2, Wallet, Euro, TrendingDown, Eye, EyeOff, Mail, CheckCircle2,
   Clock, AlertCircle, XCircle, ArrowUpRight, BarChart3, Calendar, Filter, Copy
 } from 'lucide-react';
 import { ActionButton, InputField } from '../dashboard/components/Atoms';
@@ -473,14 +473,14 @@ export default function FoundryPage() {
                   <Activity size={16}/> Estado de la Campaña de Prospección
                 </h3>
                 <div className={`text-xs font-bold mb-6 px-4 py-2 rounded-full inline-block ${campaignActive ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}`}>
-                  {campaignActive ? '🟢 CAMPAÑA ACTIVA - Ana prospectando automáticamente' : '⚪ CAMPAÑA EN PAUSA'}
+                  {campaignActive ? '🟢 CAMPAÑA ACTIVA - Ana prospectando por email' : '⚪ CAMPAÑA EN PAUSA'}
                 </div>
                 <ActionButton 
                   onClick={toggleCampaign} 
                   fullWidth 
                   style={{background: campaignActive ? '#ef4444' : '#10b981', color:'#fff'}}
                 >
-                  {campaignActive ? '⏸ PAUSAR CAMPAÑA' : '▶ INICIAR CAMPAÑA DE PROSPECCIÓN'}
+                  {campaignActive ? '⏸ PAUSAR CAMPAÑA' : '▶ INICIAR CAMPAÑA (EMAIL)'}
                 </ActionButton>
               </div>
 
@@ -537,8 +537,8 @@ export default function FoundryPage() {
                               </span>
                             </td>
                             <td className="py-4 px-4">
-                              {(lead.canal || 'email') === 'whatsapp' ? <Phone size={14} className="inline text-green-400"/> : <Mail size={14} className="inline text-blue-400"/>}
-                              <span className="ml-2 text-xs">{lead.canal || 'email'}</span>
+                              <Mail size={14} className="inline text-blue-400"/>
+                              <span className="ml-2 text-xs">email</span>
                             </td>
                             <td className="py-4 px-4 text-xs text-gray-500">{lead.ultima_accion || lead.last_action || 'Sin contacto'}</td>
                           </tr>
@@ -651,10 +651,10 @@ export default function FoundryPage() {
                 <h2 className="text-2xl font-black flex items-center gap-3 mb-6">
                   <Mail size={24} color="#d4af37"/> Inbox de Ana - Respuestas de Leads
                 </h2>
-                <p className="text-xs text-gray-500 mb-4">Ana lee automáticamente todas las respuestas de sus prospecciones y continúa las conversaciones</p>
+                <p className="text-xs text-gray-500 mb-4">Ana lee automáticamente las respuestas por email y continúa las conversaciones</p>
                 <div className="bg-black/30 p-6 rounded-2xl border border-white/5">
                   <p className="text-sm text-gray-400">📧 Ana revisa su inbox cada 5 minutos automáticamente</p>
-                  <p className="text-xs text-gray-600 mt-2">Cuando un lead responde, Ana clasifica la respuesta y continúa la conversación según su cadencia de prospección.</p>
+                  <p className="text-xs text-gray-600 mt-2">Cuando un lead responde, Ana clasifica la respuesta y continúa la conversación por email.</p>
                 </div>
               </div>
 
