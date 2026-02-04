@@ -133,6 +133,20 @@ NUEVA_CLAVE,CLAVE_ANTIGUA
 **Importante**
 - `/diagnostics/env` solo acepta claves reales (no emergencia).
 
+### Recomendación crítica (resiliencia): no usar `latest` en secretos de Foundry
+
+Para evitar caídas por error humano (deshabilitar la versión “latest”), **pinea** la versión del secreto en Cloud Run:
+
+- **Cloud Run** → `fisio-backend-omega` → **Edit & deploy new revision**
+- Sección **Variables & Secrets**
+- En `ADMIN_FOUNDRY_KEY`:
+  - En vez de `versions/latest`, selecciona una **versión concreta ENABLED** (por ejemplo `versions/7`)
+- Deploy.
+
+Si rotas la clave:
+- Crea una nueva versión (p. ej. v8) con `NUEVA,ANTIGUA`, pinea v8 y despliega.
+- Cuando confirmes, crea v9 solo con `NUEVA`, pinea v9 y despliega.
+
 ---
 
 ## 6) Stripe — procedimiento cuando la cuenta LLC esté lista
