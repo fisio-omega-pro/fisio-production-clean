@@ -5,6 +5,7 @@ import { Send, Scale, ShieldCheck, FileText, AlertTriangle, Loader2 } from 'luci
 import { motion, AnimatePresence } from 'framer-motion';
 import { ActionButton } from '../components/Atoms';
 import { API_BASE_URL } from '@/lib/apiBase';
+import { dashboardAPI } from '../services';
 
 export const LegalView: React.FC = () => {
   const [input, setInput] = useState("");
@@ -12,11 +13,33 @@ export const LegalView: React.FC = () => {
     { role: 'lex', text: 'Bienvenido a la Asesoría Jurídica y Fiscal. Soy Lex. Superviso tu estructura LLC y el cumplimiento del RGPD. ¿Qué te preocupa hoy?' }
   ]);
   const [loading, setLoading] = useState(false);
+  const [sidebarLoading, setSidebarLoading] = useState(true);
+  const [sidebarError, setSidebarError] = useState<string | null>(null);
+  const [legal, setLegal] = useState<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [chat]);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      setSidebarLoading(true);
+      setSidebarError(null);
+      try {
+        const res = await dashboardAPI.getLegalStatus();
+        if (!mounted) return;
+        setLegal(res);
+      } catch (e: any) {
+        if (!mounted) return;
+        setSidebarError(e?.message || 'No se pudo cargar estado legal');
+      } finally {
+        if (mounted) setSidebarLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   const handleSend = async () => {
     if (!input.trim() || loading) return;
@@ -52,28 +75,58 @@ export const LegalView: React.FC = () => {
       
       {/* SIDEBAR DE ALERTAS */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-        <div style={cardStyle}>
-          <div style={{display:'flex', alignItems:'center', gap:'10px', color:'#10b981', fontWeight:800, fontSize:'12px', marginBottom:'10px'}}>
-            <ShieldCheck size={16} /> ESTRUCTURA OK
+        {sidebarLoading && (
+          <div style={cardStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', opacity: 0.7, fontWeight: 800, fontSize: '12px' }}>
+              <Loader2 className="animate-spin" size={16} /> CARGANDO ESTADO
+            </div>
+            <div style={{ fontSize: '11px', opacity: 0.6, marginTop: '8px' }}>Sincronizando obligaciones y estado del sistema…</div>
           </div>
-          <div style={{fontSize:'11px', opacity:0.6}}>Tu LLC en Wyoming está activa y al día.</div>
-        </div>
+        )}
 
-        <div style={{...cardStyle, borderLeft:'4px solid #f59e0b'}}>
-          <div style={{display:'flex', alignItems:'center', gap:'10px', color:'#f59e0b', fontWeight:800, fontSize:'12px', marginBottom:'10px'}}>
-            <AlertTriangle size={16} /> PRÓXIMO IMPUESTO
+        {sidebarError && (
+          <div style={{ ...cardStyle, borderLeft: '4px solid #ef4444' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#ef4444', fontWeight: 800, fontSize: '12px', marginBottom: '10px' }}>
+              <AlertTriangle size={16} /> ERROR
+            </div>
+            <div style={{ fontSize: '11px', opacity: 0.7 }}>{sidebarError}</div>
           </div>
-          <div style={{fontSize:'14px', fontWeight:900, marginBottom:'5px'}}>IVA Trimestral (OSS)</div>
-          <div style={{fontSize:'11px', opacity:0.6}}>Vence el 20 de Abril. Lex está recopilando las facturas de Stripe.</div>
-        </div>
+        )}
 
-        <div style={cardStyle}>
-          <div style={{display:'flex', alignItems:'center', gap:'10px', color:'#3b82f6', fontWeight:800, fontSize:'12px', marginBottom:'10px'}}>
-            <FileText size={16} /> FORMULARIO 5472
-          </div>
-          {/* CORRECCIÓN APLICADA AQUÍ: &gt; en lugar de > */}
-          <div style={{fontSize:'11px', opacity:0.6}}>Pendiente para Abril 2026. Recuerda guardar facturas de gastos &gt;$500.</div>
-        </div>
+        {!sidebarLoading && !sidebarError && (
+          <>
+            <div style={{ ...cardStyle, borderLeft: `4px solid ${legal?.status?.acceptedTerms ? '#10b981' : '#f59e0b'}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: legal?.status?.acceptedTerms ? '#10b981' : '#f59e0b', fontWeight: 800, fontSize: '12px', marginBottom: '10px' }}>
+                <ShieldCheck size={16} /> {legal?.status?.acceptedTerms ? 'RGPD/TÉRMINOS OK' : 'PENDIENTE RGPD'}
+              </div>
+              <div style={{ fontSize: '11px', opacity: 0.65 }}>
+                {legal?.status?.acceptedTerms ? 'Consentimientos registrados.' : 'Falta aceptación legal en el alta.'}
+              </div>
+            </div>
+
+            <div style={cardStyle}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#3b82f6', fontWeight: 800, fontSize: '12px', marginBottom: '10px' }}>
+                <FileText size={16} /> CONTRATOS ARCHIVADOS
+              </div>
+              <div style={{ fontSize: '24px', fontWeight: 900, marginBottom: '5px' }}>{Number(legal?.status?.contratosCount || 0)}</div>
+              <div style={{ fontSize: '11px', opacity: 0.65 }}>Repositorio legal asociado a tu clínica.</div>
+            </div>
+
+            {(Array.isArray(legal?.obligations) ? legal.obligations : []).slice(0, 3).map((o: any, idx: number) => {
+              const level = String(o?.level || 'info');
+              const color = level === 'ok' ? '#10b981' : level === 'warn' ? '#f59e0b' : '#94a3b8';
+              const Icon = level === 'warn' ? AlertTriangle : FileText;
+              return (
+                <div key={idx} style={{ ...cardStyle, borderLeft: `4px solid ${color}` }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color, fontWeight: 800, fontSize: '12px', marginBottom: '10px' }}>
+                    <Icon size={16} /> {String(o?.title || 'OBLIGACIÓN')}
+                  </div>
+                  <div style={{ fontSize: '11px', opacity: 0.65 }}>{String(o?.hint || '')}</div>
+                </div>
+              );
+            })}
+          </>
+        )}
       </div>
 
       {/* CHAT CON LEX */}

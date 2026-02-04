@@ -52,6 +52,10 @@ class DashboardService {
     return { code: res.code, count: Number(res.count || 0), referred: Array.isArray(res.referred) ? res.referred : [] };
   }
 
+  public async getLegalStatus(): Promise<any> {
+    return await this.request('/api/dashboard/legal-status');
+  }
+
   public async activateBonos(): Promise<void> {
     await this.request('/api/dashboard/activate-bonos', { method: 'POST' });
   }

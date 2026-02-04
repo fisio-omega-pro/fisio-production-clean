@@ -22,6 +22,7 @@ import { ReferidosView } from './modules/ReferidosView';
 import { AjustesView } from './modules/AjustesView';
 import { SugerenciasView } from './modules/SugerenciasView';
 import { InstalacionView } from './modules/InstalacionView';
+import { LegalView } from './modules/LegalView';
 import { VoiceModal } from './components/modals/VoiceModal';
 import { AppointmentModal } from './components/modals/AppointmentModal';
 import { BlockModal } from './components/modals/BlockModal';
@@ -128,7 +129,9 @@ export default function DashboardOmega() {
       case 'equipo': return <EquipoView equipo={state.equipo} onAddMember={() => state.setModalType('editar_perfil')} currentPlan={state.clinicData.plan} onViewCalendar={()=>state.setActiveTab('agenda')} onEditMember={(m)=> { state.setMemberToEdit(m); state.setModalType('editar_perfil'); }} />;
       case 'sedes': return <SedesView clinicData={state.clinicData} onAddSede={() => state.setModalType('sede')} />;
       case 'cobros': return <CobrosView hasStripe={state.configStatus.hasStripe} clinicData={state.clinicData} />;
+      case 'asistente': return <AsistenteView />;
       case 'referidos': return <ReferidosView />;
+      case 'legal': return <LegalView />;
       case 'ajustes': return <AjustesView clinicData={state.clinicData} onUpdated={state.refreshData} />;
       case 'sugerencias': return <SugerenciasView />;
       case 'instalacion': return <InstalacionView />;

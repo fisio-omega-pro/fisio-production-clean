@@ -394,6 +394,43 @@ const getReferrals = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
+// Legal sidebar: estado real (best-effort)
+const getLegalStatus = async (req, res, next) => {
+  try {
+    const clinicDoc = await db.collection('clinicas').doc(req.clinicId).get();
+    if (!clinicDoc.exists) return res.status(404).json({ success: false, error: 'Clínica no encontrada' });
+    const c = clinicDoc.data() || {};
+
+    let contratosCount = 0;
+    try {
+      const contratosSnap = await db.collection('contratos').where('clinicId', '==', req.clinicId).limit(50).get();
+      contratosCount = contratosSnap.size || 0;
+    } catch (_) {}
+
+    const legal = c.legal || {};
+    const status = {
+      acceptedTerms: !!legal.aceptado,
+      acceptedAt: legal.fecha || null,
+      hasStripe: c.stripe_status === 'active',
+      hasSubscription: !!c.subscription_active,
+      hasLogo: !!c.logo_url,
+      plan: c.plan || null,
+      contratosCount,
+      modoRecaptacion: !!c.config_ia?.modo_caza_activo,
+    };
+
+    // “Obligaciones” derivadas (reales, basadas en estado)
+    const obligations = [];
+    if (!status.acceptedTerms) obligations.push({ level: 'warn', title: 'Términos/RGPD sin aceptar', hint: 'Completa el alta legal en Setup.' });
+    if (!status.hasStripe) obligations.push({ level: 'warn', title: 'Stripe pendiente', hint: 'Conecta Stripe cuando tu cuenta esté aprobada.' });
+    if (!status.hasSubscription) obligations.push({ level: 'info', title: 'Licencia pendiente', hint: 'Puedes operar en modo limitado hasta activar la licencia.' });
+    if (!status.hasLogo) obligations.push({ level: 'info', title: 'Logo pendiente', hint: 'Sube tu logo para reforzar marca y confianza.' });
+    if (status.modoRecaptacion) obligations.push({ level: 'ok', title: 'Recaptación activa', hint: 'Ana enviará emails a pacientes inactivos (con límites).' });
+
+    return res.json({ success: true, status, obligations });
+  } catch (e) { next(e); }
+};
+
 // --- DASHBOARD: OPERACIONES REALES (sin stubs) ---
 const saveLogo = async (req, res, next) => {
   try {
@@ -809,6 +846,7 @@ module.exports = {
   launchCampaign,
   runRecaptacionNow,
   getReferrals,
+  getLegalStatus,
   startStripeConnect,
   finalizeStripeConnect,
   createUpgradeSession,
