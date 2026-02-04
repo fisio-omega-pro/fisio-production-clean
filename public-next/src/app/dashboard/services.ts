@@ -69,6 +69,9 @@ class DashboardService {
   public async saveSuggestion(text: string): Promise<void> {
     await this.request('/api/dashboard/save-suggestion', { method: 'POST', body: JSON.stringify({ text }) });
   }
+  public async updateSettings(nombre: string, email: string): Promise<void> {
+    await this.request('/api/dashboard/update-settings', { method: 'POST', body: JSON.stringify({ nombre, email }) });
+  }
 }
 
 export const dashboardAPI = DashboardService.getInstance();

@@ -114,7 +114,7 @@ export default function DashboardOmega() {
       case 'sedes': return <SedesView clinicData={state.clinicData} onAddSede={() => state.setModalType('sede')} />;
       case 'cobros': return <CobrosView hasStripe={state.configStatus.hasStripe} clinicData={state.clinicData} />;
       case 'referidos': return <ReferidosView />;
-      case 'ajustes': return <AjustesView />;
+      case 'ajustes': return <AjustesView clinicData={state.clinicData} onUpdated={state.refreshData} />;
       case 'sugerencias': return <SugerenciasView />;
       case 'instalacion': return <div>Instalación PWA</div>;
       default: return <div className="p-20 text-center text-gray-500">Módulo en construcción</div>;
