@@ -559,7 +559,10 @@ const createUpgradeSession = async (req, res, next) => {
     const clinicDoc = await db.collection('clinicas').doc(req.clinicId).get();
     if (!clinicDoc.exists) return res.status(404).json({ success: false, error: 'Clínica no encontrada' });
     const clinic = clinicDoc.data() || {};
-    const plan = String(clinic.plan || 'solo');
+    const requested = String(req.body?.plan || '').trim();
+    const current = String(clinic.plan || 'solo').trim();
+    // Si no especifican plan, por defecto subimos a team (upgrade)
+    const plan = requested || (current.toLowerCase() === 'corporate' ? 'corporate' : 'team');
     const { url } = await paymentService.createSubscriptionSession(req.clinicId, clinic.email, plan, req);
     await createAuditLog(req.clinicId, req.userId || req.clinicId, 'STRIPE_UPGRADE_SESSION', plan);
     return res.json({ success: true, url });
@@ -593,10 +596,12 @@ const verifyPayment = async (req, res, next) => {
     const paid = String(session?.payment_status || '').toLowerCase() === 'paid' || String(session?.status || '').toLowerCase() === 'complete';
 
     if (paid) {
+      const plan = String(session?.metadata?.plan || '').trim() || null;
       await clinicRef.set({
         subscription_active: true,
         stripe_customer_id: session.customer || clinic.stripe_customer_id || null,
         stripe_subscription_id: session.subscription || clinic.stripe_subscription_id || null,
+        ...(plan ? { plan } : {}),
         updated_at: Timestamp.now()
       }, { merge: true });
       await createAuditLog(req.clinicId, req.userId || req.clinicId, 'STRIPE_VERIFY_PAYMENT', sessionId);
@@ -642,11 +647,13 @@ const handleStripeWebhook = async (req, res, next) => {
       const session = event.data.object;
       const clinicId = String(session?.metadata?.clinic_id || '').trim();
       if (clinicId) {
+        const plan = String(session?.metadata?.plan || '').trim() || null;
         const updates = {
           subscription_active: true,
           stripe_customer_id: session.customer || null,
           stripe_subscription_id: session.subscription || null,
           stripe_subscription_status: 'active',
+          ...(plan ? { plan } : {}),
           updated_at: Timestamp.now()
         };
         await db.collection('clinicas').doc(clinicId).set(updates, { merge: true });

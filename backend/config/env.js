@@ -18,12 +18,17 @@ async function initEnv() {
     
     return {
         PROJECT_ID: process.env.PROJECT_ID || 'fisiotool-pro-2026',
+        FRONTEND_URL: process.env.FRONTEND_URL || await getSecret('FRONTEND_URL'),
         GOOGLE_AI_KEY: process.env.GOOGLE_AI_KEY || await getSecret('GOOGLE_AI_KEY'),
         GOOGLE_AI_MODEL: process.env.GOOGLE_AI_MODEL || await getSecret('GOOGLE_AI_MODEL'),
         JWT_SECRET: process.env.JWT_SECRET || await getSecret('JWT_SECRET') || 'fisiotool_master_key_2026',
         // Aceptamos tanto STRIPE_SK (preferido) como STRIPE_SECRET_KEY (legacy)
         STRIPE_SK: process.env.STRIPE_SK || process.env.STRIPE_SECRET_KEY || await getSecret('STRIPE_SECRET_KEY'),
         STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || await getSecret('STRIPE_WEBHOOK_SECRET'),
+        // IDs de precios (Stripe) por plan (configurable sin tocar código)
+        STRIPE_PRICE_SOLO: process.env.STRIPE_PRICE_SOLO || await getSecret('STRIPE_PRICE_SOLO'),
+        STRIPE_PRICE_TEAM: process.env.STRIPE_PRICE_TEAM || await getSecret('STRIPE_PRICE_TEAM'),
+        STRIPE_PRICE_CORPORATE: process.env.STRIPE_PRICE_CORPORATE || await getSecret('STRIPE_PRICE_CORPORATE'),
         ADMIN_FOUNDRY_KEY: process.env.ADMIN_FOUNDRY_KEY || await getSecret('ADMIN_FOUNDRY_KEY'),
         
         // 📧 Configuración de emails (secretos separados)

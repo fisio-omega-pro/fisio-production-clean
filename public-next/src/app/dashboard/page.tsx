@@ -41,6 +41,7 @@ export default function DashboardOmega() {
   const [blockData, setBlockData] = useState({ date: '', startTime: '09:00', endTime: '20:00', reason: '', allDay: false });
   const [sedeData, setSedeData] = useState({ nombre: '', calle: '', numero: '', cp: '', ciudad: '', provincia: '' });
   const [bonoData, setBonoData] = useState({ paciente_nombre: '', sesiones_totales: 10, fecha_vencimiento: '' });
+  const [upgradePlan, setUpgradePlan] = useState<'team' | 'corporate'>('team');
 
   useEffect(() => { if (transcript) state.setNoteContent(transcript); }, [transcript]);
   
@@ -218,8 +219,19 @@ export default function DashboardOmega() {
       <Modal isOpen={state.modalType === 'upgrade'} onClose={() => state.setModalType(null)} title="Mejorar Plan">
          <div className="text-center p-4">
            <Crown size={48} className="text-yellow-500 mx-auto mb-4" />
+           <div className="mb-4 text-left">
+             <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Selecciona plan</div>
+             <select
+               value={upgradePlan}
+               onChange={(e) => setUpgradePlan(e.target.value as any)}
+               className="w-full bg-[#0a0b10] border border-white/10 rounded-xl text-sm text-white px-4 py-3 appearance-none focus:outline-none focus:ring-1 focus:ring-yellow-500"
+             >
+               <option value="team">Team (multifisio)</option>
+               <option value="corporate">Corporate</option>
+             </select>
+           </div>
            <ActionButton
-             onClick={async()=>{ const url=await dashboardAPI.upgradePlan(); window.location.href=url; }}
+             onClick={async()=>{ const url=await dashboardAPI.upgradePlan(upgradePlan); window.location.href=url; }}
              fullWidth
              style={{background:'#fbbf24', color:'#000'}}
            >

@@ -70,7 +70,13 @@ class DashboardService {
       body: JSON.stringify(sessionId ? { sessionId } : {})
     });
   }
-  public async upgradePlan(): Promise<string> { const res = await this.request<{url:string}>('/api/dashboard/upgrade-plan', {method:'POST'}); return res.url; }
+  public async upgradePlan(plan?: string): Promise<string> {
+    const res = await this.request<{ url: string }>('/api/dashboard/upgrade-plan', {
+      method: 'POST',
+      body: JSON.stringify(plan ? { plan } : {})
+    });
+    return res.url;
+  }
   public async createAppointment(d: any): Promise<void> { await this.request('/api/dashboard/appointment', { method: 'POST', body: JSON.stringify(d) }); }
   public async getPatientHistory(phone: string): Promise<{ paciente: any; historial: any[] }> {
     const res = await this.request<{ success: boolean; paciente: any; historial: any[] }>(

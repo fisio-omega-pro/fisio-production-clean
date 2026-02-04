@@ -7,13 +7,13 @@ const { initEnv } = require('../config/env');
 
 let stripeInstance = null;
 
-// TUS IDs (Los que dices que son correctos)
-const PLANS = {
-  'solo':   'price_1SdAs2EarlGG7cm4RRmu49VM', // 100€ (DETECTADO)
-  // Como solo ha aparecido uno en el log, usaremos el mismo para todos temporalmente
-  // para evitar errores, hasta que crees los otros productos en Stripe.
-  'team':   'price_1SdAs2EarlGG7cm4RRmu49VM', 
-  'clinic': 'price_1SdAs2EarlGG7cm4RRmu49VM'  
+const normalizePlan = (v) => {
+  const s = String(v || '').trim().toLowerCase();
+  if (!s) return 'solo';
+  if (['pro', 'professional'].includes(s)) return 'solo';
+  if (['business', 'clinic'].includes(s)) return 'team';
+  if (['team', 'corporate', 'solo'].includes(s)) return s;
+  return 'solo';
 };
 
 const getStripe = async () => {
@@ -33,6 +33,21 @@ const getStripe = async () => {
   
   stripeInstance = Stripe(sk);
   return stripeInstance;
+};
+
+const getPriceIdForPlan = async (plan) => {
+  const env = await initEnv();
+  const p = normalizePlan(plan);
+  // Preferir env (configurable). Si no existe, fallback a un price temporal conocido (evita romper).
+  const map = {
+    solo: String(env.STRIPE_PRICE_SOLO || '').trim(),
+    team: String(env.STRIPE_PRICE_TEAM || '').trim(),
+    corporate: String(env.STRIPE_PRICE_CORPORATE || '').trim(),
+  };
+  const configured = map[p];
+  if (configured) return configured;
+  // Fallback legacy (temporal)
+  return 'price_1SdAs2EarlGG7cm4RRmu49VM';
 };
 
 const getFrontendBase = async (req) => {
@@ -59,7 +74,8 @@ const createSubscriptionSession = async (clinicId, email, plan = 'solo', req) =>
     return { url: `${frontendBase}/dashboard?id=${clinicId}&mode=offline` };
   }
 
-  const priceId = PLANS[plan] || PLANS['solo'];
+  const normalized = normalizePlan(plan);
+  const priceId = await getPriceIdForPlan(normalized);
 
   try {
     const session = await stripe.checkout.sessions.create({
@@ -68,10 +84,10 @@ const createSubscriptionSession = async (clinicId, email, plan = 'solo', req) =>
       line_items: [{ price: priceId, quantity: 1 }],
       mode: 'subscription',
       client_reference_id: clinicId,
-      metadata: { clinic_id: clinicId, plan },
+      metadata: { clinic_id: clinicId, plan: normalized },
       subscription_data: {
         trial_period_days: 30,
-        metadata: { clinic_id: clinicId, plan }
+        metadata: { clinic_id: clinicId, plan: normalized }
       },
       success_url: `${frontendBase}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${frontendBase}/setup?error=payment_cancelled`,
