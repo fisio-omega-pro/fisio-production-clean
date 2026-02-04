@@ -64,17 +64,35 @@ const pick = (row, keys) => {
   return '';
 };
 
+const normalizeLeadStatus = (v) => {
+  const s = String(v || '').trim().toLowerCase();
+  if (!s) return 'pendiente';
+  if (['pendiente', 'pending', 'nuevo', 'new'].includes(s)) return 'pendiente';
+  if (['en_proceso', 'en proceso', 'in_process', 'in process', 'procesando', 'contactado'].includes(s)) return 'en_proceso';
+  if (['interesado', 'interested', 'qualified'].includes(s)) return 'interesado';
+  if (['convertido', 'converted', 'cliente', 'closed_won'].includes(s)) return 'convertido';
+  return s.replace(/\s+/g, '_');
+};
+
+const normalizeLeadType = (v) => {
+  const s = String(v || '').trim().toLowerCase();
+  if (!s) return 'videntes';
+  if (['invidentes', 'blind', 'accesible', 'access'].includes(s)) return 'invidentes';
+  return 'videntes';
+};
+
 // --- 🏛️ MODO DIOS: ESTADÍSTICAS CONSOLIDADAS ---
 const getGlobalStats = async (req, res, next) => {
   try {
-    const [clinics, alerts, expenses, suggestions, contratosSnap, leadsSnap] = await Promise.all([
+    const [clinics, alerts, expenses, suggestions, contratosSnap, leadsSnap, prosSnap] = await Promise.all([
       db.collection('clinicas').get(),
       db.collection('foundry_alerts').get(),
       db.collection('foundry_llc_expenses').get(),
       db.collection('sugerencias').get(),
       db.collection('contratos').orderBy('createdAt', 'desc').limit(50).get(),
       // Leads (para MODO CAZA). Limit para evitar respuestas enormes.
-      db.collection('leads').orderBy('created_at', 'desc').limit(2000).get()
+      db.collection('leads').orderBy('created_at', 'desc').limit(2000).get(),
+      db.collection('foundry_settings').doc('prospeccion').get(),
     ]);
 
     const PLAN_PRICE = {
@@ -120,11 +138,30 @@ const getGlobalStats = async (req, res, next) => {
     let totalExp = 0;
     expenses.forEach(d => totalExp += (d.data().importe_detectado || 0));
 
-    const leads = leadsSnap.docs.map((d) => ({ id: d.id, ...(d.data() || {}) }));
+    const leads = leadsSnap.docs.map((d) => {
+      const raw = d.data() || {};
+      const estado = normalizeLeadStatus(raw.estado || raw.status);
+      const tipo = normalizeLeadType(raw.tipo || raw.lead_type);
+      const canal = String(raw.canal || raw.channel || raw.preferredContact || 'email').toLowerCase();
+      const ultimaAccion = String(raw.ultima_accion || raw.last_action || '').trim();
+      return {
+        id: d.id,
+        ...raw,
+        // Compat UI Foundry (front usa estado/tipo/canal/ultima_accion)
+        estado,
+        tipo,
+        canal,
+        ultima_accion: ultimaAccion,
+        // Compat data model (back usa status/lead_type)
+        status: estado,
+        lead_type: tipo,
+      };
+    });
     const leadsCount = leads.length;
-    const enProceso = leads.filter((l) => String(l.status || '').toLowerCase() === 'en_proceso').length;
-    const interesados = leads.filter((l) => String(l.status || '').toLowerCase() === 'interesado').length;
-    const convertidos = leads.filter((l) => String(l.status || '').toLowerCase() === 'convertido').length;
+    const enProceso = leads.filter((l) => String(l.estado || l.status || '').toLowerCase() === 'en_proceso').length;
+    const interesados = leads.filter((l) => String(l.estado || l.status || '').toLowerCase() === 'interesado').length;
+    const convertidos = leads.filter((l) => String(l.estado || l.status || '').toLowerCase() === 'convertido').length;
+    const campaignActive = !!(prosSnap && prosSnap.exists && (prosSnap.data() || {}).active);
 
     res.json({
       success: true,
@@ -140,6 +177,7 @@ const getGlobalStats = async (req, res, next) => {
         enProceso,
         interesados,
         convertidos,
+        campaignActive,
       },
       // 🔒 Seguridad: nunca exponer hashes/credenciales (p.ej. `password`) en Foundry
       clinicas: clinics.docs.map((d) => {
@@ -296,14 +334,19 @@ const importLeads = async (req, res) => {
         if (!email && !phone) return;
 
         const ref = col.doc();
+        const tipo = normalizeLeadType(leadType);
         batch.set(ref, {
-          lead_type: leadType,
+          lead_type: tipo,
+          tipo,
           nombre,
           clinica,
           email,
           telefono: phone,
           ciudad,
-          status: 'nuevo',
+          status: 'pendiente',
+          estado: 'pendiente',
+          canal: 'email',
+          ultima_accion: '',
           source: 'csv',
           raw: row,
           created_at: now,
@@ -315,6 +358,41 @@ const importLeads = async (req, res) => {
     }
 
     return res.json({ success: true, imported });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: e.message });
+  }
+};
+
+// --- 🎯 MODO CAZA: CONTROL DE CAMPAÑA (persistente) ---
+const setCampaign = async (req, res) => {
+  try {
+    const active = !!req.body?.active;
+    await db.collection('foundry_settings').doc('prospeccion').set({
+      active,
+      updated_at: Timestamp.now(),
+    }, { merge: true });
+    return res.json({ success: true, active });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: e.message });
+  }
+};
+
+// --- 🎯 MODO CAZA: ACTUALIZAR ESTADO DE LEAD ---
+const updateLeadStatus = async (req, res) => {
+  try {
+    const id = String(req.params?.id || '').trim();
+    if (!id) return res.status(400).json({ success: false, error: 'id requerido' });
+    const nextRaw = (req.body && (req.body.estado ?? req.body.status)) ?? '';
+    const estado = normalizeLeadStatus(nextRaw);
+    const patch = {
+      estado,
+      status: estado,
+      updated_at: Timestamp.now(),
+    };
+    if (req.body?.canal) patch.canal = String(req.body.canal).toLowerCase();
+    if (req.body?.ultima_accion != null) patch.ultima_accion = String(req.body.ultima_accion || '').trim();
+    await db.collection('leads').doc(id).set(patch, { merge: true });
+    return res.json({ success: true, estado });
   } catch (e) {
     return res.status(500).json({ success: false, error: e.message });
   }
@@ -375,7 +453,7 @@ const getAnaInbox = async (req, res) => {
 
 const sendProspectEmail = async (req, res) => {
   try {
-    const { to, leadInfo } = req.body;
+    const { to, leadInfo, leadId } = req.body;
     const { sendEmail } = require('../services/emailSenderService');
     
     // Generar email con IA
@@ -392,6 +470,20 @@ const sendProspectEmail = async (req, res) => {
       leadInfo,
       fecha: Timestamp.now()
     });
+
+    // Si nos pasan leadId, marcamos estado y última acción (best-effort)
+    try {
+      const id = String(leadId || '').trim();
+      if (id) {
+        await db.collection('leads').doc(id).set({
+          estado: 'en_proceso',
+          status: 'en_proceso',
+          canal: 'email',
+          ultima_accion: `Email enviado (${new Date().toISOString().slice(0, 10)})`,
+          updated_at: Timestamp.now(),
+        }, { merge: true });
+      }
+    } catch (_) {}
     
     res.json({ success: true, preview: emailBody });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -433,5 +525,7 @@ module.exports = {
   getAnaInbox, sendProspectEmail, triggerEmailCheck, getContrato,
   importLeads,
   uploadContrato,
+  setCampaign,
+  updateLeadStatus,
   handleIncomingResponse: async (req,res) => res.json({success:true})
 };

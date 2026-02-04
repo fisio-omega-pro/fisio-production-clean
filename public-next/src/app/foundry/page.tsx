@@ -34,6 +34,8 @@ export default function FoundryPage() {
   const [csvStatus, setCsvStatus] = useState("");
   const [campaignActive, setCampaignActive] = useState(false);
   const [selectedLead, setSelectedLead] = useState<any>(null);
+  const [leadBusy, setLeadBusy] = useState(false);
+  const [leadPreview, setLeadPreview] = useState<string>('');
   const csvVidentesRef = useRef<HTMLInputElement>(null);
   const csvInvidentesRef = useRef<HTMLInputElement>(null);
 
@@ -90,6 +92,10 @@ export default function FoundryPage() {
       if (res.ok) {
         const json = await res.json();
         setData(json);
+        // Sincronizar estado persistente de campaña (backend)
+        if (typeof json?.stats?.campaignActive === 'boolean') {
+          setCampaignActive(!!json.stats.campaignActive);
+        }
       }
     } catch (e) { console.error("Error sync"); }
   };
@@ -118,8 +124,68 @@ export default function FoundryPage() {
   };
 
   const toggleCampaign = async () => {
-    setCampaignActive(!campaignActive);
-    // TODO: Endpoint para activar/pausar campaña de prospección
+    try {
+      const next = !campaignActive;
+      const res = await fetch(`${API_BASE_URL}/api/admin/campaign`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-foundry-key': getFoundryKey()
+        },
+        body: JSON.stringify({ active: next })
+      });
+      const json = await res.json();
+      if (res.ok && typeof json?.active === 'boolean') {
+        setCampaignActive(!!json.active);
+        loadData();
+      } else {
+        alert(json?.error || 'No se pudo actualizar la campaña');
+      }
+    } catch {
+      alert('Error de conexión');
+    }
+  };
+
+  const updateLeadStatus = async (lead: any, estado: string) => {
+    if (!lead?.id) return;
+    setLeadBusy(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/leads/${lead.id}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-foundry-key': getFoundryKey() },
+        body: JSON.stringify({ estado, ultima_accion: `Estado → ${estado}` })
+      });
+      const json = await res.json();
+      if (!res.ok) return alert(json?.error || 'No se pudo actualizar el lead');
+      await loadData();
+      setSelectedLead((prev: any) => prev ? { ...prev, estado: json.estado } : prev);
+    } catch {
+      alert('Error de conexión');
+    } finally {
+      setLeadBusy(false);
+    }
+  };
+
+  const sendLeadEmail = async (lead: any) => {
+    const to = String(lead?.email || '').trim();
+    if (!to) return alert('Este lead no tiene email.');
+    setLeadBusy(true);
+    setLeadPreview('');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/send-prospect-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-foundry-key': getFoundryKey() },
+        body: JSON.stringify({ to, leadInfo: lead, leadId: lead.id })
+      });
+      const json = await res.json();
+      if (!res.ok) return alert(json?.error || 'No se pudo enviar el email');
+      setLeadPreview(String(json.preview || '').trim());
+      await loadData();
+    } catch {
+      alert('Error de conexión');
+    } finally {
+      setLeadBusy(false);
+    }
   };
 
   // --- MODO LLC: GESTIÓN LEGAL ---
@@ -441,27 +507,27 @@ export default function FoundryPage() {
                           <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer" onClick={() => setSelectedLead(lead)}>
                             <td className="py-4 px-4">
                               <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                                lead.estado === 'convertido' ? 'bg-green-500/20 text-green-400' :
-                                lead.estado === 'interesado' ? 'bg-blue-500/20 text-blue-400' :
-                                lead.estado === 'en_proceso' ? 'bg-yellow-500/20 text-yellow-400' :
+                                (lead.estado || lead.status) === 'convertido' ? 'bg-green-500/20 text-green-400' :
+                                (lead.estado || lead.status) === 'interesado' ? 'bg-blue-500/20 text-blue-400' :
+                                (lead.estado || lead.status) === 'en_proceso' ? 'bg-yellow-500/20 text-yellow-400' :
                                 'bg-gray-500/20 text-gray-400'
                               }`}>
-                                {lead.estado || 'pendiente'}
+                                {lead.estado || lead.status || 'pendiente'}
                               </span>
                             </td>
                             <td className="py-4 px-4 font-bold">{lead.nombre || 'Sin nombre'}</td>
                             <td className="py-4 px-4 text-gray-400">{lead.email || lead.telefono}</td>
                             <td className="py-4 px-4">
-                              <span className={`px-3 py-1 rounded-full text-xs ${lead.tipo === 'invidentes' ? 'bg-[#d4af37]/20 text-[#d4af37]' : 'bg-blue-500/20 text-blue-400'}`}>
-                                {lead.tipo === 'invidentes' ? <EyeOff size={12} className="inline mr-1"/> : <Eye size={12} className="inline mr-1"/>}
-                                {lead.tipo || 'videntes'}
+                              <span className={`px-3 py-1 rounded-full text-xs ${(lead.tipo || lead.lead_type) === 'invidentes' ? 'bg-[#d4af37]/20 text-[#d4af37]' : 'bg-blue-500/20 text-blue-400'}`}>
+                                {(lead.tipo || lead.lead_type) === 'invidentes' ? <EyeOff size={12} className="inline mr-1"/> : <Eye size={12} className="inline mr-1"/>}
+                                {lead.tipo || lead.lead_type || 'videntes'}
                               </span>
                             </td>
                             <td className="py-4 px-4">
-                              {lead.canal === 'whatsapp' ? <Phone size={14} className="inline text-green-400"/> : <Mail size={14} className="inline text-blue-400"/>}
+                              {(lead.canal || 'email') === 'whatsapp' ? <Phone size={14} className="inline text-green-400"/> : <Mail size={14} className="inline text-blue-400"/>}
                               <span className="ml-2 text-xs">{lead.canal || 'email'}</span>
                             </td>
-                            <td className="py-4 px-4 text-xs text-gray-500">{lead.ultima_accion || 'Sin contacto'}</td>
+                            <td className="py-4 px-4 text-xs text-gray-500">{lead.ultima_accion || lead.last_action || 'Sin contacto'}</td>
                           </tr>
                         ))
                       ) : (
@@ -476,6 +542,96 @@ export default function FoundryPage() {
                   </table>
                 </div>
               </div>
+
+              {/* MODAL DE OPERACIÓN DEL LEAD (mínimo pero real) */}
+              <AnimatePresence>
+                {selectedLead && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-6"
+                    onClick={() => { setSelectedLead(null); setLeadPreview(''); }}
+                  >
+                    <motion.div
+                      initial={{ scale: 0.98, y: 10 }}
+                      animate={{ scale: 1, y: 0 }}
+                      exit={{ scale: 0.98, y: 10 }}
+                      className="w-full max-w-2xl bg-[#0b0d12] border border-white/10 rounded-3xl p-8"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="flex items-start justify-between gap-6">
+                        <div>
+                          <div className="text-xs text-gray-500 font-black uppercase tracking-widest">Lead</div>
+                          <div className="text-2xl font-black mt-1">{selectedLead.nombre || 'Sin nombre'}</div>
+                          <div className="text-sm text-gray-400 mt-2">
+                            {selectedLead.email ? (
+                              <span className="inline-flex items-center gap-2"><Mail size={14}/> {selectedLead.email}</span>
+                            ) : (
+                              <span className="inline-flex items-center gap-2"><Phone size={14}/> {selectedLead.telefono || 'Sin contacto'}</span>
+                            )}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-2">
+                            Estado actual: <span className="text-white font-bold">{selectedLead.estado || selectedLead.status || 'pendiente'}</span>
+                          </div>
+                        </div>
+                        <button
+                          className="p-2 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white"
+                          onClick={() => { setSelectedLead(null); setLeadPreview(''); }}
+                          aria-label="Cerrar"
+                        >
+                          <XCircle />
+                        </button>
+                      </div>
+
+                      <div className="mt-6 grid grid-cols-2 gap-3">
+                        <ActionButton onClick={() => updateLeadStatus(selectedLead, 'pendiente')} fullWidth style={{ background: '#111827', color: '#fff' }}>
+                          Pendiente
+                        </ActionButton>
+                        <ActionButton onClick={() => updateLeadStatus(selectedLead, 'en_proceso')} fullWidth style={{ background: '#f59e0b', color: '#000' }}>
+                          En proceso
+                        </ActionButton>
+                        <ActionButton onClick={() => updateLeadStatus(selectedLead, 'interesado')} fullWidth style={{ background: '#3b82f6', color: '#fff' }}>
+                          Interesado
+                        </ActionButton>
+                        <ActionButton onClick={() => updateLeadStatus(selectedLead, 'convertido')} fullWidth style={{ background: '#10b981', color: '#000' }}>
+                          Convertido
+                        </ActionButton>
+                      </div>
+
+                      <div className="mt-6 flex gap-3">
+                        <ActionButton
+                          onClick={() => sendLeadEmail(selectedLead)}
+                          fullWidth
+                          style={{ background: '#d4af37', color: '#000' }}
+                        >
+                          <Send size={16} className="mr-2" /> Enviar email de prospección
+                        </ActionButton>
+                        <ActionButton
+                          onClick={() => { navigator.clipboard?.writeText?.(String(selectedLead.email || selectedLead.telefono || '')); }}
+                          fullWidth
+                          style={{ background: 'rgba(255,255,255,0.06)', color: '#fff' }}
+                        >
+                          <Copy size={16} className="mr-2" /> Copiar contacto
+                        </ActionButton>
+                      </div>
+
+                      {leadBusy && (
+                        <div className="mt-4 text-xs text-gray-400">Procesando...</div>
+                      )}
+
+                      {leadPreview && (
+                        <div className="mt-6">
+                          <div className="text-xs font-black uppercase tracking-widest text-gray-500 mb-2">Preview email (texto)</div>
+                          <div className="bg-black/30 border border-white/10 rounded-2xl p-4 text-sm text-gray-200 whitespace-pre-wrap max-h-64 overflow-auto">
+                            {leadPreview}
+                          </div>
+                        </div>
+                      )}
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* INBOX DE RESPUESTAS DE LEADS */}
               <div className="bg-white/5 p-10 rounded-[40px] border border-white/10 mt-8">
