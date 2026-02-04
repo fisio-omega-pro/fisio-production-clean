@@ -150,6 +150,9 @@ const getGlobalStats = async (req, res, next) => {
         moneda: raw.moneda ?? 'EUR',
         fecha: raw.fecha ?? raw.created_at ?? null,
         texto: raw.texto_completo ?? raw.text ?? '',
+        file_path: raw.file_path ?? null,
+        file_mime: raw.file_mime ?? null,
+        file_name: raw.file_name ?? null,
       };
     });
 
@@ -315,12 +318,82 @@ const deleteAlert = async (req, res) => {
 
 const processInvoice = async (req, res) => {
   try {
-    const { rawText, importe, moneda } = await scanInvoice(req.file.buffer);
-    await db.collection('foundry_llc_expenses').add({
-      importe_detectado: importe, moneda, texto_completo: rawText, fecha: Timestamp.now()
+    const file = req.file;
+    if (!file) return res.status(400).json({ success: false, error: 'invoice requerido' });
+    if (file.size > 10 * 1024 * 1024) return res.status(400).json({ success: false, error: 'Archivo demasiado pesado (máx 10MB)' });
+
+    const { rawText, importe, moneda } = await scanInvoice(file.buffer);
+
+    // Guardar el fichero original en GCS (repositorio legal/contable)
+    const ct = String(file.mimetype || '').toLowerCase() || 'application/octet-stream';
+    const safeName = String(file.originalname || 'factura')
+      .replace(/[^a-zA-Z0-9._-]/g, '_')
+      .slice(0, 160);
+    const stamp = Date.now();
+    const rand = Math.random().toString(36).slice(2, 10);
+    const filename = `llc/expenses/${stamp}-${rand}-${safeName}`;
+    let uploadedPath = null;
+    try {
+      const { uploadBuffer } = require('../services/storageService');
+      await uploadBuffer({
+        filename,
+        buffer: file.buffer,
+        contentType: ct,
+        cacheControl: 'private, max-age=0, no-cache'
+      });
+      uploadedPath = filename;
+    } catch (e) {
+      // Si falla storage, no bloqueamos OCR/archivado en Firestore (best-effort)
+      console.error('⚠️ [LLC] No se pudo subir factura a GCS:', e.message);
+    }
+
+    const ref = await db.collection('foundry_llc_expenses').add({
+      importe_detectado: importe,
+      moneda,
+      texto_completo: rawText,
+      fecha: Timestamp.now(),
+      file_path: uploadedPath,
+      file_mime: uploadedPath ? ct : null,
+      file_name: uploadedPath ? safeName : null,
+      file_size: uploadedPath ? (file.size || null) : null,
+      created_at: Timestamp.now(),
+      updated_at: Timestamp.now(),
     });
-    res.json({ success: true, importe, moneda, text: rawText });
+
+    res.json({ success: true, id: ref.id, importe, moneda, text: rawText });
   } catch (e) { res.status(500).json({ error: e.message }); }
+};
+
+// --- 📄 MODO LLC: DESCARGA/LECTURA DE FACTURA (GCS) ---
+const getExpenseFile = async (req, res) => {
+  try {
+    const id = String(req.params?.id || '').trim();
+    if (!id) return res.status(400).json({ success: false, error: 'id requerido' });
+    const doc = await db.collection('foundry_llc_expenses').doc(id).get();
+    if (!doc.exists) return res.status(404).json({ success: false, error: 'Factura no encontrada' });
+    const data = doc.data() || {};
+    const path = String(data.file_path || '').trim();
+    if (!path) return res.status(404).json({ success: false, error: 'Factura sin archivo' });
+
+    const ct = String(data.file_mime || 'application/octet-stream');
+    const name = String(data.file_name || `factura-${id}`).replace(/[\r\n"]/g, '').slice(0, 160);
+
+    const { getReadStream } = require('../services/storageService');
+    res.setHeader('Content-Type', ct);
+    res.setHeader('Cache-Control', 'private, max-age=0, no-cache');
+    // inline para PDF/imágenes en navegador, pero descarga si el navegador no soporta
+    res.setHeader('Content-Disposition', `inline; filename=\"${name}\"`);
+
+    const stream = getReadStream(path);
+    stream.on('error', (err) => {
+      console.error('🔥 [LLC] Error leyendo archivo GCS:', err.message);
+      if (!res.headersSent) res.status(500).json({ success: false, error: 'No se pudo leer el archivo' });
+      else res.end();
+    });
+    stream.pipe(res);
+  } catch (e) {
+    return res.status(500).json({ success: false, error: e.message });
+  }
 };
 
 // --- 🎯 MODO CAZA: IMPORTAR LEADS DESDE CSV ---
@@ -544,5 +617,6 @@ module.exports = {
   uploadContrato,
   setCampaign,
   updateLeadStatus,
+  getExpenseFile,
   handleIncomingResponse: async (req,res) => res.json({success:true})
 };

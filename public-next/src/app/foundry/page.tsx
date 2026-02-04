@@ -310,6 +310,28 @@ export default function FoundryPage() {
     }
   };
 
+  const openFactura = async (f: any) => {
+    try {
+      if (!f?.id) return;
+      const res = await fetch(`${API_BASE_URL}/api/admin/expense-file/${f.id}`, {
+        headers: { 'x-foundry-key': getFoundryKey() }
+      });
+      if (!res.ok) {
+        let msg = 'No se pudo abrir la factura';
+        try { const j = await res.json(); msg = j?.error || msg; } catch {}
+        alert(msg);
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank', 'noopener,noreferrer');
+      // best-effort: revocar más tarde
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch {
+      alert('Error de conexión');
+    }
+  };
+
   const openContrato = async (contrato: any) => {
     setSelectedContrato(contrato);
     setContratoText('');
@@ -704,7 +726,17 @@ export default function FoundryPage() {
                                 <div className="text-xs font-black text-white">
                                   {money(f.importe, f.moneda)}
                                 </div>
-                                <div className="text-[10px] text-gray-500">{formatFecha(f.fecha)}</div>
+                                <div className="flex items-center gap-3">
+                                  <div className="text-[10px] text-gray-500">{formatFecha(f.fecha)}</div>
+                                  {f.file_path ? (
+                                    <button
+                                      onClick={() => openFactura(f)}
+                                      className="text-[10px] font-black px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 transition-all"
+                                    >
+                                      VER
+                                    </button>
+                                  ) : null}
+                                </div>
                               </div>
                               <div className="text-[10px] text-gray-500 mt-2 line-clamp-2">
                                 {String(f.texto || '').slice(0, 160) || '—'}

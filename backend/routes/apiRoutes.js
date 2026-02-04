@@ -60,6 +60,7 @@ router.post('/admin/trigger-email-check', requireFoundryKey, ensureHandler(admin
 router.post('/admin/campaign', requireFoundryKey, ensureHandler(adminController.setCampaign, 'setCampaign'));
 router.post('/admin/leads/:id/status', requireFoundryKey, ensureHandler(adminController.updateLeadStatus, 'updateLeadStatus'));
 router.post('/admin/scan-invoice', requireFoundryKey, upload.single('invoice'), ensureHandler(adminController.processInvoice, 'processInvoice'));
+router.get('/admin/expense-file/:id', requireFoundryKey, ensureHandler(adminController.getExpenseFile, 'getExpenseFile'));
 router.post('/admin/import-leads', requireFoundryKey, upload.single('file'), ensureHandler(adminController.importLeads, 'importLeads'));
 router.post('/admin/upload-contrato', requireFoundryKey, upload.single('contrato'), ensureHandler(adminController.uploadContrato, 'uploadContrato'));
 router.get('/admin/contratos/:id', requireFoundryKey, ensureHandler(adminController.getContrato, 'getContrato'));
