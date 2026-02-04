@@ -56,7 +56,10 @@ const getGlobalStats = async (req, res, next) => {
 // --- 💡 BUZÓN DE SUGERENCIAS (Punto 2) ---
 const saveSuggestion = async (req, res) => {
   try {
-    const { text } = req.body;
+    // Aceptar distintas shapes (robustez)
+    const raw = (req.body && (req.body.text ?? req.body.mensaje ?? req.body.message)) ?? '';
+    const text = String(raw || '').trim();
+    if (!text) return res.status(400).json({ success: false, error: 'texto requerido' });
     await db.collection('sugerencias').add({
       clinic_id: req.clinicId,
       mensaje: text,

@@ -23,9 +23,15 @@ const requireFoundryKey = (req, res, next) => {
       const disableEmergency = String(process.env.DISABLE_EMERGENCY_FOUNDRY_KEY || env.DISABLE_EMERGENCY_FOUNDRY_KEY || '')
         .trim()
         .toLowerCase() === 'true';
+      // Permite habilitar explícitamente la clave de emergencia si hiciera falta.
+      // Por defecto: si ADMIN_FOUNDRY_KEY está configurada, la emergencia NO debe funcionar.
+      const enableEmergency = String(process.env.ENABLE_EMERGENCY_FOUNDRY_KEY || env.ENABLE_EMERGENCY_FOUNDRY_KEY || '')
+        .trim()
+        .toLowerCase() === 'true';
 
       if (!provided) return res.status(401).json({ error: 'No autorizado' });
-      if (!disableEmergency && provided === EMERGENCY_KEY) return next();
+      const emergencyAllowed = !disableEmergency && (enableEmergency || !expected);
+      if (emergencyAllowed && provided === EMERGENCY_KEY) return next();
 
       if (!expected) return res.status(503).json({ error: 'Foundry no configurado' });
       if (provided !== expected) return res.status(401).json({ error: 'No autorizado' });

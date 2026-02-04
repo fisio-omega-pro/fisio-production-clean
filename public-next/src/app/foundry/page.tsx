@@ -8,8 +8,7 @@ import {
   Clock, AlertCircle, XCircle, ArrowUpRight, BarChart3, Calendar, Filter, Copy
 } from 'lucide-react';
 import { ActionButton, InputField } from '../dashboard/components/Atoms';
-
-const API_BASE_URL = 'https://fisio-backend-omega-740657183492.europe-west1.run.app';
+import { API_BASE_URL } from '@/lib/apiBase';
 
 export default function FoundryPage() {
   const [isAuthorized, setIsAuthorized] = useState(false);
@@ -62,7 +61,8 @@ export default function FoundryPage() {
   const getFoundryKey = (override?: string) => {
     if (override) return override;
     if (pass) return pass;
-    return localStorage.getItem('foundryKey') || '';
+    // Preferimos sessionStorage para reducir persistencia accidental.
+    return sessionStorage.getItem('foundryKey') || localStorage.getItem('foundryKey') || '';
   };
 
   // --- AUTENTICACIÓN ---
@@ -74,7 +74,8 @@ export default function FoundryPage() {
         headers: { 'x-foundry-key': key }
       });
       if (!res.ok) return alert("ACCESO DENEGADO");
-      localStorage.setItem('foundryKey', key);
+      try { sessionStorage.setItem('foundryKey', key); } catch {}
+      // Compatibilidad: si ya existía guardado en localStorage de antes, lo dejamos.
       setIsAuthorized(true);
       loadData(key);
     } catch (e) { alert("Error de conexión"); }

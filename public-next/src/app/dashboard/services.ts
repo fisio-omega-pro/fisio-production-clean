@@ -63,7 +63,12 @@ class DashboardService {
   public async upgradePlan(): Promise<string> { const res = await this.request<{url:string}>('/api/dashboard/upgrade-plan', {method:'POST'}); return res.url; }
   public async createAppointment(d: any): Promise<void> { await this.request('/api/dashboard/appointment', { method: 'POST', body: JSON.stringify(d) }); }
   public async getPatientHistory(phone: string): Promise<any> { return { paciente: { nombre: 'Demo', telefono: phone }, historial: [] }; }
-  public async savePatientNote(p: string, c: string): Promise<void> { await this.request('/api/dashboard/save-note', { method: 'POST', body: JSON.stringify({ p, c }) }); }
+  public async savePatientNote(patientId: string, content: string): Promise<void> {
+    await this.request('/api/dashboard/save-note', { method: 'POST', body: JSON.stringify({ patientId, content }) });
+  }
+  public async saveSuggestion(text: string): Promise<void> {
+    await this.request('/api/dashboard/save-suggestion', { method: 'POST', body: JSON.stringify({ text }) });
+  }
 }
 
 export const dashboardAPI = DashboardService.getInstance();

@@ -131,7 +131,28 @@ export default function DashboardOmega() {
       <BlockModal isOpen={state.modalType === 'bloqueo'} onClose={() => state.setModalType(null)} data={blockData} setData={setBlockData} onSubmit={() => state.setModalType(null)} />
       <EditProfileModal isOpen={state.modalType === 'editar_perfil'} onClose={() => state.setModalType(null)} member={state.memberToEdit} setMember={state.setMemberToEdit} onSave={() => { state.setModalType(null); state.refreshData(); }} onUpload={async()=>{}} uploading={state.loading} />
       <ImportModal isOpen={state.modalType === 'importar'} onClose={() => state.setModalType(null)} fileInputRef={fileInputRef} onFileSelect={(e) => e.target.files && state.handleImportFile(e.target.files[0])} isImporting={state.importing} />
-      <VoiceModal isOpen={state.modalType === 'voz'} onClose={() => { state.setModalType(null); setTranscript(""); }} isRecording={isRecording} toggleRecording={toggleRecording} noteContent={state.noteContent} setNoteContent={state.setNoteContent} pacientes={state.pacientes} selectedPatientId={state.selectedPatientId} setSelectedPatientId={state.setSelectedPatientId} onSave={()=>{}} loading={state.loading} />
+      <VoiceModal
+        isOpen={state.modalType === 'voz'}
+        onClose={() => { state.setModalType(null); setTranscript(""); }}
+        isRecording={isRecording}
+        toggleRecording={toggleRecording}
+        noteContent={state.noteContent}
+        setNoteContent={state.setNoteContent}
+        pacientes={state.pacientes}
+        selectedPatientId={state.selectedPatientId}
+        setSelectedPatientId={state.setSelectedPatientId}
+        onSave={async () => {
+          try {
+            await state.handleSaveNote();
+            state.setModalType(null);
+            setTranscript("");
+            alert("✅ Informe guardado.");
+          } catch {
+            alert("Error al guardar informe.");
+          }
+        }}
+        loading={state.loading}
+      />
       
       <Modal isOpen={state.modalType === 'nuevo_bono'} onClose={() => state.setModalType(null)} title="Emitir Bono de Sesiones">
          <div className="flex flex-col gap-6 p-2">

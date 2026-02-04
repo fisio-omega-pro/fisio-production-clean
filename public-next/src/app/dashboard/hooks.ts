@@ -61,6 +61,19 @@ export const useDashboardState = () => {
     }
   }, []);
 
+  const handleSaveNote = useCallback(async () => {
+    if (!noteContent.trim() || !selectedPatientId) return;
+    setLoading(true);
+    try {
+      await dashboardAPI.savePatientNote(selectedPatientId, noteContent.trim());
+      setNoteContent("");
+      setSelectedPatientId("");
+      await refreshData();
+    } finally {
+      setLoading(false);
+    }
+  }, [noteContent, selectedPatientId, refreshData]);
+
   // 5. MANEJADORES OPERATIVOS
   const handleImportFile = async (file: File) => {
     setImporting(true);
@@ -103,7 +116,7 @@ export const useDashboardState = () => {
     clinicId, setClinicId, loading, setLoading, voiceEnabled, setVoiceEnabled,
     noteContent, setNoteContent, selectedPatientId, setSelectedPatientId,
     selectedEvent, setSelectedEvent, memberToEdit, setMemberToEdit, importing,
-    refreshData, handleSaveNote: async () => {}, handleImportFile
+    refreshData, handleSaveNote, handleImportFile
   };
 };
 

@@ -295,7 +295,8 @@ const addSede = async (req, res, next) => {
 
 const saveSpecialist = async (req, res, next) => {
   try {
-    const specialist = req.body?.specialist || {};
+    // Aceptar { specialist: {...} } (frontend) y formato plano (robustez)
+    const specialist = req.body?.specialist || req.body || {};
     const id = String(specialist.id || '').trim();
     const payload = {
       nombre: String(specialist.nombre || '').trim(),
