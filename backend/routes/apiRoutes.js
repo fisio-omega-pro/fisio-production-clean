@@ -36,7 +36,6 @@ const ensureHandler = (fn, name) => {
 };
 
 // --- 🔓 RUTAS PÚBLICAS ---
-router.post('/chat/ana-test', ensureHandler(chatController.handleWebChat, 'handleWebChat'));
 router.post('/login', ensureHandler(clinicController.login, 'login'));
 router.post('/auth/forgot-password', ensureHandler(clinicController.forgotPassword, 'forgotPassword'));
 router.post('/auth/reset-password', ensureHandler(clinicController.resetPassword, 'resetPassword'));

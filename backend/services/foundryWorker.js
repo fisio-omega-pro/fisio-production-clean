@@ -26,5 +26,6 @@ const runFoundryTasks = async () => {
   } catch (e) { console.error("Error LLC:", e.message); }
 };
 
-setInterval(runFoundryTasks, 1000 * 60 * 30); // Cada 30 min
+// Nota: el worker NO debe auto-ejecutarse al importar el módulo.
+// La orquestación se hace desde `server.js` para evitar duplicar crons.
 module.exports = { runFoundryTasks };

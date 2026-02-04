@@ -304,7 +304,24 @@ const diagnoseAna = async (req, res) => {
 
 const saveAlert = async (req, res) => {
   try {
-    await db.collection('foundry_alerts').add({ ...req.body, creado_el: Timestamp.now() });
+    const b = req.body || {};
+    const title = String(b.title || b.titulo || '').trim();
+    const date = String(b.date || b.fecha || '').trim(); // YYYY-MM-DD
+    const tipo = String(b.tipo || 'fiscal').trim();
+    if (!title || !date) return res.status(400).json({ success: false, error: 'title y date requeridos' });
+    const d = new Date(date);
+    if (Number.isNaN(d.getTime())) return res.status(400).json({ success: false, error: 'date inválida' });
+
+    await db.collection('foundry_alerts').add({
+      title,
+      date,              // compat UI
+      target_date: date, // compat worker/cron
+      tipo,
+      status: 'vigilando',
+      notified_days: [],
+      created_at: Timestamp.now(),
+      updated_at: Timestamp.now(),
+    });
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 };

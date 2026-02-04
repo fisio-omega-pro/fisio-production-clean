@@ -7,6 +7,8 @@ const helmet = require('helmet');
 const apiRoutes = require('./routes/apiRoutes');
 const errorHandler = require('./middleware/errorHandler');
 const rateLimit = require('express-rate-limit');
+const admin = require('firebase-admin');
+const { db, Timestamp } = require('./config/firebase');
 
 async function initialize(options = {}) {
   const { listen = true, startCron = true } = options;
@@ -75,12 +77,47 @@ async function initialize(options = {}) {
   if (startCron) {
     // 📧 CRON JOB: Ana revisa su inbox cada 5 minutos
     const { readEmails } = require('./services/emailReaderService');
+    const { sendEmail } = require('./services/emailSenderService');
     setInterval(async () => {
       console.log('📧 [CRON] Ana revisando inbox...');
       try {
         await readEmails();
       } catch (e) {
         console.error('🔥 [CRON] Error en revisión de emails:', e.message);
+      }
+
+      // 🧾 LLC: alertas de obligaciones (3/2/1/0 días). Idempotente por diffDays.
+      try {
+        const snap = await db.collection('foundry_alerts').where('status', '==', 'vigilando').get();
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        for (const doc of snap.docs) {
+          const a = doc.data() || {};
+          const dateStr = String(a.target_date || a.date || '').trim();
+          if (!dateStr) continue;
+          const target = new Date(dateStr);
+          if (Number.isNaN(target.getTime())) continue;
+          target.setHours(0, 0, 0, 0);
+          const diffDays = Math.ceil((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          if (![3, 2, 1, 0].includes(diffDays)) continue;
+
+          const notified = Array.isArray(a.notified_days) ? a.notified_days : [];
+          if (notified.includes(diffDays)) continue;
+
+          await sendEmail({
+            to: env.ADMIN_EMAIL || 'fisiotoolsaas@gmail.com',
+            subject: `⚠️ LLC: ${a.title || 'Obligación'} (${diffDays} día(s))`,
+            text: `Plazo legal: quedan ${diffDays} día(s) para "${a.title || 'Obligación'}". Fecha objetivo: ${dateStr}.`,
+            type: 'INFO'
+          });
+
+          await db.collection('foundry_alerts').doc(doc.id).set({
+            notified_days: admin.firestore.FieldValue.arrayUnion(diffDays),
+            updated_at: Timestamp.now(),
+          }, { merge: true });
+        }
+      } catch (e) {
+        console.error('🔥 [CRON] Error en alertas LLC:', e.message);
       }
     }, 5 * 60 * 1000); // 5 minutos
     

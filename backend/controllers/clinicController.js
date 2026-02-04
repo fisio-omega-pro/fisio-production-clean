@@ -285,6 +285,21 @@ const getDashboardData = async (req, res, next) => {
         // 🔒 Nunca exponer hashes/credenciales al cliente
         // eslint-disable-next-line no-unused-vars
         const { password, ...safeClinic } = (data || {});
+        // Balance simple (real/potencial) a partir de citas + precio de sesión configurado
+        const precioSesion = Number((data?.config_ia && data.config_ia.precio) || 50);
+        let real = 0;
+        let potencial = 0;
+        citasSnap.docs.forEach((d) => {
+          const c = d.data() || {};
+          const amount = Number(c.precio_sesion || precioSesion || 0);
+          const pagado = !!c.pagado || String(c.estado || '').toLowerCase() === 'pagado' || String(c.estado || '').toLowerCase() === 'pagada';
+          if (pagado) real += amount;
+          else potencial += amount;
+        });
+        const plan = String(data?.plan || 'solo').toLowerCase();
+        const planPrice = plan === 'corporate' ? 500 : plan === 'team' ? 300 : 100;
+        const roi = planPrice > 0 ? Math.round((real / planPrice) * 100) : 0;
+
         res.json({ 
           success: true, 
           data: { 
@@ -293,7 +308,7 @@ const getDashboardData = async (req, res, next) => {
             equipo: equipo, pacientes: pacientesSnap.docs.map(d => ({id: d.id, ...d.data()})),
             agenda: citasSnap.docs.map(d => ({id: d.id, ...d.data()})),
             bonos: bonosSnap.docs.map(d => ({id: d.id, ...d.data()})),
-            balance: { real: 0, potencial: 0, roi: 0, tendenciaMensual: 12 }
+            balance: { real, potencial, roi, tendenciaMensual: 12 }
           } 
         });
     } catch (e) { next(e); }

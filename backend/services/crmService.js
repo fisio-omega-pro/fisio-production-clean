@@ -106,13 +106,6 @@ const buscarPaciente = async (clinicId, telefono) => {
   return doc.exists ? doc.data() : null;
 };
 
-module.exports = {
-  getClinica,
-  consultarHueco,
-  registrarReserva,
-  buscarPaciente,
-  db // Exportamos db para operaciones directas en otros servicios si fuera necesario
-};
 // --- 📊 5. RESUMEN MAESTRO PARA EL DASHBOARD ---
 const getResumenDashboard = async (clinicId) => {
   try {
@@ -121,7 +114,7 @@ const getResumenDashboard = async (clinicId) => {
       db.collection('citas').where('clinic_id', '==', clinicId).get(),
       db.collection('pacientes')
         .where('clinic_id', '==', clinicId)
-        .orderBy('creado_el', 'desc')
+        .orderBy('created_at', 'desc')
         .limit(10) // Solo los 10 más recientes para el resumen
         .get()
     ]);
@@ -144,7 +137,7 @@ const getResumenDashboard = async (clinicId) => {
     const pacientes = pacientesSnap.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
-      creado_el: doc.data().creado_el?.toDate().toISOString()
+      created_at: doc.data().created_at?.toDate?.() ? doc.data().created_at.toDate().toISOString() : null
     }));
 
     return { balance, pacientes };
@@ -154,8 +147,11 @@ const getResumenDashboard = async (clinicId) => {
   }
 };
 
-// No olvides actualizar el module.exports
 module.exports = {
-  // ... las anteriores,
-  getResumenDashboard
+  getClinica,
+  consultarHueco,
+  registrarReserva,
+  buscarPaciente,
+  getResumenDashboard,
+  db, // Exportamos db para operaciones directas en otros servicios si fuera necesario
 };

@@ -4,7 +4,7 @@ import { Send, Bot, Loader2 } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/apiBase';
 
 export const AsistenteView = () => {
-  const [messages, setMessages] = useState([{ role: 'ana', text: 'CONEXIÓN DE PRUEBA ACTIVA. Hola, soy Ana. ¿En qué puedo ayudarte?' }]);
+  const [messages, setMessages] = useState([{ role: 'ana', text: 'Hola, soy Ana. ¿En qué puedo ayudarte?' }]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -21,17 +21,20 @@ export const AsistenteView = () => {
     setLoading(true);
 
     try {
-      // 🛡️ LLAMADA A RUTA PÚBLICA SIN CABECERAS (Para evitar el bloqueo del túnel)
-      const res = await fetch(`${API_BASE_URL}/api/chat/ana-test`, {
+      const token = localStorage.getItem('fisio_token');
+      const res = await fetch(`${API_BASE_URL}/api/chat/dashboard`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMsg }),
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ message: userMsg, agent: 'ana' }),
       });
 
       const data = await res.json();
       setMessages(prev => [...prev, { role: 'ana', text: data.reply }]);
     } catch (e: any) {
-      setMessages(prev => [...prev, { role: 'ana', text: "⚠️ Error: El túnel de Google sigue bloqueando el POST. Intenta refrescar el Web Preview." }]);
+      setMessages(prev => [...prev, { role: 'ana', text: "⚠️ Error de conexión con Ana." }]);
     } finally { setLoading(false); }
   };
 
