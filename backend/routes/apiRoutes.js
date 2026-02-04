@@ -74,6 +74,8 @@ router.get('/admin/ana-inbox', requireFoundryKey, ensureHandler(adminController.
 router.post('/admin/send-prospect-email', requireFoundryKey, ensureHandler(adminController.sendProspectEmail, 'sendProspectEmail'));
 router.post('/admin/trigger-email-check', requireFoundryKey, ensureHandler(adminController.triggerEmailCheck, 'triggerEmailCheck'));
 router.post('/admin/scan-invoice', requireFoundryKey, upload.single('invoice'), ensureHandler(adminController.processInvoice, 'processInvoice'));
+router.post('/admin/import-leads', requireFoundryKey, upload.single('file'), ensureHandler(adminController.importLeads, 'importLeads'));
+router.post('/admin/upload-contrato', requireFoundryKey, upload.single('contrato'), ensureHandler(adminController.uploadContrato, 'uploadContrato'));
 router.get('/admin/contratos/:id', requireFoundryKey, ensureHandler(adminController.getContrato, 'getContrato'));
 
 // --- 🛡️ ZONA PRIVADA (TOKEN) ---

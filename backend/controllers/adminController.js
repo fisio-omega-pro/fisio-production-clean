@@ -3,15 +3,78 @@ const anaService = require('../services/anaService');
 const { scanInvoice } = require('../services/visionService');
 const { initEnv } = require('../config/env');
 
+// --- helpers ---
+const detectDelimiter = (headerLine) => {
+  const c = (headerLine.match(/,/g) || []).length;
+  const s = (headerLine.match(/;/g) || []).length;
+  return s > c ? ';' : ',';
+};
+
+const splitCsvLine = (line, delimiter) => {
+  const out = [];
+  let cur = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      // escape ""
+      if (inQuotes && line[i + 1] === '"') {
+        cur += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+    if (!inQuotes && ch === delimiter) {
+      out.push(cur);
+      cur = '';
+      continue;
+    }
+    cur += ch;
+  }
+  out.push(cur);
+  return out.map((s) => String(s ?? '').trim());
+};
+
+const parseCsv = (text) => {
+  const raw = String(text || '');
+  const lines = raw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (!lines.length) return [];
+  const delimiter = detectDelimiter(lines[0]);
+  const headers = splitCsvLine(lines[0], delimiter)
+    .map((h) => h.toLowerCase().replace(/\s+/g, '_').trim())
+    .filter(Boolean);
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = splitCsvLine(lines[i], delimiter);
+    if (!cols.some((x) => String(x).trim())) continue;
+    const obj = {};
+    for (let j = 0; j < headers.length; j++) obj[headers[j]] = cols[j] ?? '';
+    rows.push(obj);
+  }
+  return rows;
+};
+
+const pick = (row, keys) => {
+  for (const k of keys) {
+    const v = row[k];
+    if (v != null && String(v).trim()) return String(v).trim();
+  }
+  return '';
+};
+
 // --- 🏛️ MODO DIOS: ESTADÍSTICAS CONSOLIDADAS ---
 const getGlobalStats = async (req, res, next) => {
   try {
-    const [clinics, alerts, expenses, suggestions, contratosSnap] = await Promise.all([
+    const [clinics, alerts, expenses, suggestions, contratosSnap, leadsSnap] = await Promise.all([
       db.collection('clinicas').get(),
       db.collection('foundry_alerts').get(),
       db.collection('foundry_llc_expenses').get(),
       db.collection('sugerencias').get(),
-      db.collection('contratos').orderBy('createdAt', 'desc').limit(50).get()
+      db.collection('contratos').orderBy('createdAt', 'desc').limit(50).get(),
+      // Leads (para MODO CAZA). Limit para evitar respuestas enormes.
+      db.collection('leads').orderBy('created_at', 'desc').limit(2000).get()
     ]);
 
     const PLAN_PRICE = {
@@ -57,6 +120,12 @@ const getGlobalStats = async (req, res, next) => {
     let totalExp = 0;
     expenses.forEach(d => totalExp += (d.data().importe_detectado || 0));
 
+    const leads = leadsSnap.docs.map((d) => ({ id: d.id, ...(d.data() || {}) }));
+    const leadsCount = leads.length;
+    const enProceso = leads.filter((l) => String(l.status || '').toLowerCase() === 'en_proceso').length;
+    const interesados = leads.filter((l) => String(l.status || '').toLowerCase() === 'interesado').length;
+    const convertidos = leads.filter((l) => String(l.status || '').toLowerCase() === 'convertido').length;
+
     res.json({
       success: true,
       stats: { 
@@ -67,6 +136,10 @@ const getGlobalStats = async (req, res, next) => {
         pendingSuggestions: suggestions.size,
         byPlan,
         mrrByPlan,
+        leadsCount,
+        enProceso,
+        interesados,
+        convertidos,
       },
       // 🔒 Seguridad: nunca exponer hashes/credenciales (p.ej. `password`) en Foundry
       clinicas: clinics.docs.map((d) => {
@@ -95,7 +168,8 @@ const getGlobalStats = async (req, res, next) => {
           fecha: raw.createdAt || raw.acceptedAt || null
         };
       }),
-      alerts: alerts.docs.map(d => ({id:d.id, ...d.data()}))
+      alerts: alerts.docs.map(d => ({id:d.id, ...d.data()})),
+      leads
     });
   } catch (e) { next(e); }
 };
@@ -195,6 +269,97 @@ const processInvoice = async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 };
 
+// --- 🎯 MODO CAZA: IMPORTAR LEADS DESDE CSV ---
+const importLeads = async (req, res) => {
+  try {
+    const leadType = String(req.body?.leadType || '').trim().toLowerCase() || 'videntes';
+    const file = req.file;
+    if (!file) return res.status(400).json({ success: false, error: 'CSV requerido (file)' });
+    const csvText = file.buffer.toString('utf8');
+    const rows = parseCsv(csvText);
+    if (!rows.length) return res.json({ success: true, imported: 0 });
+
+    const now = Timestamp.now();
+    const col = db.collection('leads');
+
+    let imported = 0;
+    // batch limit 500
+    for (let i = 0; i < rows.length; i += 400) {
+      const chunk = rows.slice(i, i + 400);
+      const batch = db.batch();
+      chunk.forEach((row) => {
+        const email = pick(row, ['email', 'mail', 'correo', 'correo_electronico']).toLowerCase();
+        const phone = pick(row, ['telefono', 'teléfono', 'phone', 'movil', 'móvil', 'whatsapp']);
+        const nombre = pick(row, ['nombre', 'name', 'contacto', 'persona', 'responsable']) || 'Lead';
+        const clinica = pick(row, ['clinica', 'clínica', 'nombre_clinica', 'empresa', 'company', 'centro']) || '';
+        const ciudad = pick(row, ['ciudad', 'city', 'poblacion', 'población']) || '';
+        if (!email && !phone) return;
+
+        const ref = col.doc();
+        batch.set(ref, {
+          lead_type: leadType,
+          nombre,
+          clinica,
+          email,
+          telefono: phone,
+          ciudad,
+          status: 'nuevo',
+          source: 'csv',
+          raw: row,
+          created_at: now,
+          updated_at: now,
+        });
+        imported++;
+      });
+      await batch.commit();
+    }
+
+    return res.json({ success: true, imported });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: e.message });
+  }
+};
+
+// --- 📄 MODO LLC: SUBIR CONTRATO MANUAL (repositorio legal) ---
+const uploadContrato = async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) return res.status(400).json({ success: false, error: 'contrato requerido' });
+    if (file.size > 10 * 1024 * 1024) return res.status(400).json({ success: false, error: 'Archivo demasiado pesado (máx 10MB)' });
+
+    const ct = String(file.mimetype || '').toLowerCase();
+    const safeName = String(file.originalname || 'contrato').replace(/[^a-zA-Z0-9._-]/g, '_');
+    const stamp = Date.now();
+    const rand = Math.random().toString(36).slice(2, 10);
+    const filename = `contratos/manual/${stamp}-${rand}-${safeName}`;
+
+    const { uploadBuffer } = require('../services/storageService');
+    await uploadBuffer({ filename, buffer: file.buffer, contentType: ct, cacheControl: 'private, max-age=0, no-cache' });
+
+    let text = '';
+    if (ct.startsWith('text/') || safeName.toLowerCase().endsWith('.txt')) {
+      text = file.buffer.toString('utf8').slice(0, 200000);
+    }
+
+    const contractNumber = `MANUAL-${stamp}`;
+    const ref = await db.collection('contratos').add({
+      contractNumber,
+      nombre_clinica: 'MANUAL',
+      email: '',
+      plan: 'llc',
+      source: 'manual_upload',
+      file_path: filename,
+      file_mime: ct,
+      text,
+      createdAt: Timestamp.now()
+    });
+
+    return res.json({ success: true, id: ref.id, contractNumber });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: e.message });
+  }
+};
+
 // 📧 GESTIÓN DEL INBOX DE ANA
 const getAnaInbox = async (req, res) => {
   try {
@@ -266,6 +431,7 @@ const getContrato = async (req, res) => {
 module.exports = { 
   getGlobalStats, handleAdminChat, diagnoseAna, saveAlert, deleteAlert, processInvoice, saveSuggestion, updateSettings,
   getAnaInbox, sendProspectEmail, triggerEmailCheck, getContrato,
-  importLeads: async (req,res) => res.json({success:true}),
+  importLeads,
+  uploadContrato,
   handleIncomingResponse: async (req,res) => res.json({success:true})
 };
