@@ -567,7 +567,10 @@ const sendProspectEmail = async (req, res) => {
     const emailBody = await anaService.generateProspectEmail(leadInfo || {});
     
     // Enviar
-    await sendEmail(to, 'Te presento FisioTool Pro', emailBody, 'ANA');
+    const sendResult = await sendEmail({ to, subject: 'Te presento FisioTool Pro', text: emailBody, type: 'ANA' });
+    if (!sendResult || sendResult.ok !== true) {
+      return res.status(400).json({ success: false, error: sendResult?.reason || sendResult?.error || 'No se pudo enviar el email' });
+    }
     
     // Guardar en historial
     await db.collection('ana_sent_emails').add({

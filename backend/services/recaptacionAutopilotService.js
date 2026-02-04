@@ -21,6 +21,8 @@ const toMs = (ts) => {
 const shouldRecap = (patient, recentSet, nowMs) => {
   const email = String(patient.email || '').trim().toLowerCase();
   if (!email || !email.includes('@')) return false;
+  if (patient.do_not_email === true) return false;
+  if (patient.email_bounced === true) return false;
   const phone = String(patient.telefono || '').trim();
   if (recentSet.has(email) || (phone && recentSet.has(phone))) return false;
   const last = patient.last_recap_at;

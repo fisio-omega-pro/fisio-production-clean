@@ -22,6 +22,7 @@ const isDue = (lead, nowMs) => {
   const email = String(lead.email || '').trim();
   if (!email || !email.includes('@')) return false;
   if (lead.opt_out === true) return false;
+  if (lead.email_bounced === true) return false;
 
   const attempts = Number(lead.cadence_attempts || lead.attempts || 0);
   if (attempts >= cadenceDelaysDays.length) return true; // se marcará como no_responde

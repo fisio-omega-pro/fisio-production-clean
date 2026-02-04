@@ -4,7 +4,46 @@ const { initEnv } = require('../config/env');
 const adminController = require('../controllers/adminController');
 const anaService = require('./anaService');
 const { sendEmail } = require('./emailSenderService');
-const { db } = require('../config/firebase');
+const { db, Timestamp } = require('../config/firebase');
+
+const isBounceEmail = (from, subject, body) => {
+  const f = String(from || '').toLowerCase();
+  const s = String(subject || '').toLowerCase();
+  const b = String(body || '').toLowerCase();
+  return (
+    f.includes('mailer-daemon') ||
+    f.includes('postmaster') ||
+    s.includes('mail delivery failed') ||
+    s.includes('undelivered mail') ||
+    s.includes('delivery status notification') ||
+    b.includes('this message was created automatically by mail delivery software') ||
+    b.includes('no such user') ||
+    b.includes('the following address') && b.includes('failed')
+  );
+};
+
+const extractFailedRecipients = (body) => {
+  const text = String(body || '');
+  const emails = new Set();
+  // capturar emails tras “failed” típicos
+  const lines = text.split('\n').slice(0, 400); // limita
+  for (const ln of lines) {
+    if (!ln) continue;
+    const m = ln.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/ig);
+    if (m) m.forEach((e) => emails.add(String(e).trim().toLowerCase()));
+  }
+  return Array.from(emails);
+};
+
+const guessBounceReason = (body) => {
+  const b = String(body || '');
+  const m =
+    b.match(/No Such User Here/i) ||
+    b.match(/User unknown/i) ||
+    b.match(/Mailbox unavailable/i) ||
+    b.match(/Recipient address rejected/i);
+  return m ? String(m[0]) : '';
+};
 
 const readEmails = async () => {
   const env = await initEnv();
@@ -36,6 +75,76 @@ const readEmails = async () => {
 
               console.log(`📧 [ANA INBOX] Procesando email de ${from}: ${subject}`);
 
+              // 📌 Rebotes (Mailer-Daemon): NO pasan por IA, se registran y bloquean reintentos
+              if (isBounceEmail(from, subject, body)) {
+                const failed = extractFailedRecipients(body);
+                const reason = guessBounceReason(body);
+                try {
+                  await db.collection('email_bounces').add({
+                    from,
+                    subject,
+                    failed,
+                    reason,
+                    body_snippet: String(body || '').slice(0, 800),
+                    createdAt: Timestamp.now(),
+                  });
+                } catch (dbErr) {
+                  console.error('🔥 Error guardando bounce:', dbErr?.message || dbErr);
+                }
+
+                // Marcar destinatarios como bounced/do-not-email (best-effort)
+                for (const r of failed.slice(0, 10)) {
+                  try {
+                    const leadSnap = await db.collection('leads').where('email', '==', String(r)).limit(10).get();
+                    for (const d of leadSnap.docs) {
+                      await d.ref.set({
+                        email_bounced: true,
+                        opt_out: true,
+                        estado: 'no_responde',
+                        status: 'no_responde',
+                        ultima_accion: `Email rebotado: ${reason || 'fallo permanente'}`,
+                        updated_at: Timestamp.now(),
+                      }, { merge: true });
+                    }
+                  } catch (_) {}
+                  try {
+                    const pSnap = await db.collection('pacientes').where('email', '==', String(r)).limit(10).get();
+                    for (const d of pSnap.docs) {
+                      await d.ref.set({
+                        email_bounced: true,
+                        do_not_email: true,
+                        last_bounce_reason: reason || 'fallo permanente',
+                        last_bounce_at: Timestamp.now(),
+                        updated_at: Timestamp.now(),
+                      }, { merge: true });
+                    }
+                  } catch (_) {}
+                }
+
+                // 🔕 Evitar spam al admin: solo avisar si NO es un rebote interno de pruebas
+                const shouldNotify = failed.some((r) => {
+                  const s = String(r || '').toLowerCase();
+                  const at = s.lastIndexOf('@');
+                  const local = at > 0 ? s.slice(0, at) : s;
+                  const domain = at > 0 ? s.slice(at + 1) : '';
+                  if (domain === 'fisiotool.com' && local.includes('+')) return false;
+                  return true;
+                });
+                if (shouldNotify) {
+                  try {
+                    const adminEmail = env.ADMIN_EMAIL || 'fisiotoolsaas@gmail.com';
+                    await sendEmail({
+                      to: adminEmail,
+                      subject: `[ANA ALERTA] IMPORTANTE: Rebote de email`,
+                      text: `De: ${from}\nAsunto: ${subject}\n\nDestinatarios fallidos:\n- ${failed.slice(0, 10).join('\n- ')}\n\nMotivo: ${reason || 'fallo permanente'}`,
+                      type: 'ANA'
+                    });
+                  } catch (_) {}
+                }
+
+                return;
+              }
+
               // 🧠 Ana procesa el email con IA
               const analysis = await anaService.processIncomingEmail(from, subject, body);
 
@@ -59,8 +168,13 @@ const readEmails = async () => {
 
               // 📨 Si Ana generó una respuesta, enviarla automáticamente
               if (analysis.respuesta && analysis.tipo !== 'SPAM') {
-                await sendEmail(from, `Re: ${subject}`, analysis.respuesta, 'ANA');
-                console.log(`✅ [ANA] Respuesta automática enviada a ${from}`);
+                const r = await sendEmail({ to: from, subject: `Re: ${subject}`, text: analysis.respuesta, type: 'ANA' });
+                if (r && r.ok) {
+                  console.log(`✅ [ANA] Respuesta automática enviada a ${from}`);
+                } else {
+                  console.warn(`⚠️ [ANA] No se pudo responder automáticamente a ${from}`);
+                  return;
+                }
                 
                 // Marcar como respondido
                 try {
