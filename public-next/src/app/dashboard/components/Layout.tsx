@@ -26,6 +26,23 @@ export const DashboardLayout = ({ children, activeTab, onTabChange, navItems }: 
   const [isMobileOpen, setIsMobileOpen] = React.useState(false);
   const date = useMemo(() => new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }), []);
 
+  const handleLogout = () => {
+    try {
+      // Evitar que se quede hablando en segundo plano
+      // (especialmente relevante para el modo audible)
+      if (typeof window !== 'undefined') window.speechSynthesis?.cancel?.();
+    } catch {
+      // best-effort
+    }
+    try {
+      localStorage.removeItem('fisio_token');
+      localStorage.removeItem('fisio_is_blind');
+    } catch {
+      // best-effort
+    }
+    window.location.href = '/login';
+  };
+
   // PWA: capturar beforeinstallprompt para que Instalación funcione
   useEffect(() => {
     const handler = (e: any) => {
@@ -63,7 +80,7 @@ export const DashboardLayout = ({ children, activeTab, onTabChange, navItems }: 
           <div className="flex items-center gap-3 p-2 bg-white/5 rounded-xl border border-white/5">
              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center"><User size={14} color="#fff"/></div>
              <div className="flex-1"><div className="text-xs font-bold">Mi Clínica</div><div className="text-[9px] text-gray-500 uppercase">Premium Plan</div></div>
-             <button onClick={() => window.location.href = '/login'} className="p-1 hover:text-red-500 transition-colors"><LogOut size={16} /></button>
+             <button onClick={handleLogout} className="p-1 hover:text-red-500 transition-colors" aria-label="Cerrar sesión"><LogOut size={16} /></button>
           </div>
         </div>
       </aside>
