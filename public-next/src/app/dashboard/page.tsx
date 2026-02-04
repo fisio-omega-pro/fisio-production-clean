@@ -21,6 +21,7 @@ import { BonosView } from './modules/BonosView';
 import { ReferidosView } from './modules/ReferidosView';
 import { AjustesView } from './modules/AjustesView';
 import { SugerenciasView } from './modules/SugerenciasView';
+import { InstalacionView } from './modules/InstalacionView';
 import { VoiceModal } from './components/modals/VoiceModal';
 import { AppointmentModal } from './components/modals/AppointmentModal';
 import { BlockModal } from './components/modals/BlockModal';
@@ -116,7 +117,7 @@ export default function DashboardOmega() {
       case 'referidos': return <ReferidosView />;
       case 'ajustes': return <AjustesView clinicData={state.clinicData} onUpdated={state.refreshData} />;
       case 'sugerencias': return <SugerenciasView />;
-      case 'instalacion': return <div>Instalación PWA</div>;
+      case 'instalacion': return <InstalacionView />;
       default: return <div className="p-20 text-center text-gray-500">Módulo en construcción</div>;
     }
   };
