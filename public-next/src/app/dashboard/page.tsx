@@ -97,10 +97,9 @@ export default function DashboardOmega() {
     } catch (e) { alert("Error al emitir bono."); }
   };
 
-  // 🚨 EL MURO DE SEGURIDAD REACTIVADO (Descomentamos)
-  if (!state.isLoading && (!state.configStatus.hasSubscription || !state.configStatus.hasStripe)) {
-    return <SetupWizard status={state.configStatus} onRefresh={state.refreshData} isBlind={!!state.clinicData?.is_blind} />;
-  }
+  const needsSubscription = !state.configStatus?.hasSubscription;
+  const needsStripe = !state.configStatus?.hasStripe;
+  const needsSetup = !state.isLoading && (needsSubscription || needsStripe);
 
   const renderContent = () => {
     if (state.isLoading) return <div className="p-20 text-center text-blue-500 animate-pulse font-black text-xs uppercase tracking-widest">Sincronizando...</div>;
@@ -124,6 +123,36 @@ export default function DashboardOmega() {
 
   return (
     <DashboardLayout activeTab={state.activeTab} onTabChange={state.setActiveTab} navItems={NAV_ITEMS}>
+      {needsSetup && (
+        <div className="mb-6 rounded-3xl border border-amber-500/20 bg-amber-500/5 p-5">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-amber-400">Modo limitado</div>
+              <div className="text-sm font-bold text-white mt-1">
+                Cobros y/o licencia pendientes. Puedes usar Agenda, Pacientes, Equipo y Sedes sin problema.
+              </div>
+              <div className="text-[11px] text-amber-200/70 mt-1">
+                {needsSubscription ? 'Licencia: pendiente. ' : ''}{needsStripe ? 'Stripe: pendiente o no disponible. ' : ''}Completa Pagos cuando esté listo.
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <button
+                onClick={() => state.setActiveTab('cobros')}
+                className="px-4 py-3 rounded-2xl bg-white text-black text-[11px] font-black hover:bg-gray-200 transition"
+              >
+                Ir a Pagos
+              </button>
+              <button
+                onClick={() => state.setModalType('upgrade')}
+                className="px-4 py-3 rounded-2xl bg-[#d4af37] text-black text-[11px] font-black hover:bg-yellow-500 transition"
+                title={needsStripe ? 'Stripe no está listo aún: se abrirá en modo offline.' : undefined}
+              >
+                Gestionar licencia
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {renderContent()}
 
       {/* --- REGISTRO INTEGRAL DE MODALES --- */}
@@ -173,7 +202,21 @@ export default function DashboardOmega() {
       
       <Modal isOpen={state.modalType === 'reactivacion'} onClose={() => state.setModalType(null)} title="Motor ASG"><div className="text-center p-4"><Zap size={48} className="text-yellow-500 mx-auto mb-4" /><ActionButton onClick={() => state.setModalType(null)} fullWidth style={{background:'#facc15', color:'#000'}}>LANZAR CAMPAÑA</ActionButton></div></Modal>
       <Modal isOpen={state.modalType === 'upgrade'} onClose={() => state.setModalType(null)} title="Mejorar Plan">
-         <div className="text-center p-4"><Crown size={48} className="text-yellow-500 mx-auto mb-4" /><ActionButton onClick={async()=>{ const url=await dashboardAPI.upgradePlan(); window.location.href=url; }} fullWidth style={{background:'#fbbf24', color:'#000'}}>IR A PASARELA DE PAGO</ActionButton></div>
+         <div className="text-center p-4">
+           <Crown size={48} className="text-yellow-500 mx-auto mb-4" />
+           <ActionButton
+             onClick={async()=>{ const url=await dashboardAPI.upgradePlan(); window.location.href=url; }}
+             fullWidth
+             style={{background:'#fbbf24', color:'#000'}}
+           >
+             IR A PASARELA DE PAGO
+           </ActionButton>
+           {(needsStripe || needsSubscription) && (
+             <div className="text-[11px] text-gray-400 mt-3">
+               Si Stripe está en revisión, la pasarela puede abrirse en modo offline temporalmente.
+             </div>
+           )}
+         </div>
       </Modal>
 
       {state.selectedEvent && <HistoryModal event={state.selectedEvent} onClose={() => state.setSelectedEvent(null)} />}

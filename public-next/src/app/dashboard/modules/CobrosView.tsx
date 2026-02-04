@@ -13,14 +13,17 @@ export const CobrosView: React.FC<CobrosProps> = ({ hasStripe, clinicData }) => 
   const [loading, setLoading] = useState(false);
   const [bizum, setBizum] = useState(clinicData?.config_pagos?.bizum || "");
   const [savingBizum, setSavingBizum] = useState(false);
+  const [stripeError, setStripeError] = useState<string | null>(null);
 
   const handleConnectStripe = async () => {
     setLoading(true);
+    setStripeError(null);
     try {
       const url = await dashboardAPI.connectStripe();
       window.location.href = url;
     } catch (e) { 
-      alert("Error de conexión"); 
+      const msg = (e as any)?.message || 'No se pudo conectar Stripe.';
+      setStripeError(msg);
       setLoading(false); // 🚨 Corregido: false en lugar de null
     }
   };
@@ -68,13 +71,20 @@ export const CobrosView: React.FC<CobrosProps> = ({ hasStripe, clinicData }) => 
               <CheckCircle2 size={18}/> Conexión Activa
             </div>
           ) : (
-            <button 
-              onClick={handleConnectStripe} 
-              disabled={loading}
-              className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-2xl text-xs flex items-center justify-center gap-2 uppercase tracking-widest disabled:opacity-50"
-            >
-              {loading ? <Loader2 className="animate-spin" size={16}/> : <>Vincular Banco <ChevronRight size={14}/></>}
-            </button>
+            <div className="flex flex-col gap-3">
+              {stripeError && (
+                <div className="text-[11px] text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4">
+                  {stripeError.includes('sk_') ? 'Stripe pendiente o mal configurado en este entorno. Mientras tanto, puedes usar Bizum.' : stripeError}
+                </div>
+              )}
+              <button 
+                onClick={handleConnectStripe} 
+                disabled={loading}
+                className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-2xl text-xs flex items-center justify-center gap-2 uppercase tracking-widest disabled:opacity-50"
+              >
+                {loading ? <Loader2 className="animate-spin" size={16}/> : <>Vincular Banco <ChevronRight size={14}/></>}
+              </button>
+            </div>
           )}
         </div>
 

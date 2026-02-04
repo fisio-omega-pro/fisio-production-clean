@@ -108,6 +108,10 @@ export const SetupWizard: React.FC<SetupProps> = ({ status, onRefresh, isBlind }
           </StepBox>
 
         </div>
+
+        <div className="mt-8 text-center text-[10px] text-gray-500">
+          Nota: Si Stripe está en revisión, puedes seguir operando el dashboard en modo limitado.
+        </div>
       </div>
     </div>
   );
