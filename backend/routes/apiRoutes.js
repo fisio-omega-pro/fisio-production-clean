@@ -13,7 +13,12 @@ const { initEnv } = require('../config/env');
 const requireFoundryKey = (req, res, next) => {
   initEnv()
     .then((env) => {
-      const expected = (env.ADMIN_FOUNDRY_KEY || '').trim();
+      const expectedRaw = String(env.ADMIN_FOUNDRY_KEY || '').trim();
+      // Permitir rotación sin downtime: "NUEVA,ANTIGUA"
+      const expectedKeys = expectedRaw
+        .split(',')
+        .map((s) => String(s || '').trim())
+        .filter(Boolean);
       const provided = String(req.headers['x-foundry-key'] || '').trim();
       // 🔓 ACCESO DE EMERGENCIA (TEMPORAL)
       // Se elimina cuando cerremos definitivamente la clave original en Secret Manager.
@@ -30,11 +35,12 @@ const requireFoundryKey = (req, res, next) => {
         .toLowerCase() === 'true';
 
       if (!provided) return res.status(401).json({ error: 'No autorizado' });
-      const emergencyAllowed = !disableEmergency && (enableEmergency || !expected);
+      const hasRealKeyConfigured = expectedKeys.length > 0;
+      const emergencyAllowed = !disableEmergency && (enableEmergency || !hasRealKeyConfigured);
       if (emergencyAllowed && provided === EMERGENCY_KEY) return next();
 
-      if (!expected) return res.status(503).json({ error: 'Foundry no configurado' });
-      if (provided !== expected) return res.status(401).json({ error: 'No autorizado' });
+      if (!hasRealKeyConfigured) return res.status(503).json({ error: 'Foundry no configurado' });
+      if (!expectedKeys.includes(provided)) return res.status(401).json({ error: 'No autorizado' });
       return next();
     })
     .catch(next);

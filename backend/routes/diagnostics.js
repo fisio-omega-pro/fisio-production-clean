@@ -24,9 +24,14 @@ router.get('/env', async (req, res) => {
   try {
     const provided = String(req.headers['x-foundry-key'] || '').trim();
     const env = await initEnv();
-    const expected = String(env.ADMIN_FOUNDRY_KEY || '').trim();
-    if (!expected) return res.status(503).json({ error: 'Foundry no configurado' });
-    if (!provided || provided !== expected) return res.status(401).json({ error: 'No autorizado' });
+    const expectedRaw = String(env.ADMIN_FOUNDRY_KEY || '').trim();
+    const expectedKeys = expectedRaw
+      .split(',')
+      .map((s) => String(s || '').trim())
+      .filter(Boolean);
+    if (!expectedKeys.length) return res.status(503).json({ error: 'Foundry no configurado' });
+    // Importante: /diagnostics/env NO acepta clave de emergencia, solo clave(s) real(es)
+    if (!provided || !expectedKeys.includes(provided)) return res.status(401).json({ error: 'No autorizado' });
 
     res.json({
       status: 'online',
