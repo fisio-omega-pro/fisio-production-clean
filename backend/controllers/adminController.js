@@ -87,10 +87,11 @@ const normalizeLeadChannel = (_v) => 'email';
 // --- 🏛️ MODO DIOS: ESTADÍSTICAS CONSOLIDADAS ---
 const getGlobalStats = async (req, res, next) => {
   try {
-    const [clinics, alerts, expenses, suggestions, contratosSnap, leadsSnap, prosSnap] = await Promise.all([
+    const [clinics, alerts, expenses, expensesListSnap, suggestions, contratosSnap, leadsSnap, prosSnap] = await Promise.all([
       db.collection('clinicas').get(),
       db.collection('foundry_alerts').get(),
       db.collection('foundry_llc_expenses').get(),
+      db.collection('foundry_llc_expenses').orderBy('fecha', 'desc').limit(50).get(),
       db.collection('sugerencias').get(),
       db.collection('contratos').orderBy('createdAt', 'desc').limit(50).get(),
       // Leads (para MODO CAZA). Limit para evitar respuestas enormes.
@@ -140,6 +141,17 @@ const getGlobalStats = async (req, res, next) => {
     
     let totalExp = 0;
     expenses.forEach(d => totalExp += (d.data().importe_detectado || 0));
+
+    const facturas = (expensesListSnap?.docs || []).map((d) => {
+      const raw = d.data() || {};
+      return {
+        id: d.id,
+        importe: raw.importe_detectado ?? raw.importe ?? null,
+        moneda: raw.moneda ?? 'EUR',
+        fecha: raw.fecha ?? raw.created_at ?? null,
+        texto: raw.texto_completo ?? raw.text ?? '',
+      };
+    });
 
     const leads = leadsSnap.docs.map((d) => {
       const raw = d.data() || {};
@@ -210,6 +222,7 @@ const getGlobalStats = async (req, res, next) => {
         };
       }),
       alerts: alerts.docs.map(d => ({id:d.id, ...d.data()})),
+      facturas,
       leads
     });
   } catch (e) { next(e); }

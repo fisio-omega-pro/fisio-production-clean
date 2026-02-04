@@ -299,6 +299,17 @@ export default function FoundryPage() {
     }
   };
 
+  const money = (importe: any, moneda?: any) => {
+    try {
+      const n = Number(importe);
+      if (!Number.isFinite(n)) return '-';
+      const cur = String(moneda || 'EUR').toUpperCase();
+      return new Intl.NumberFormat('es-ES', { style: 'currency', currency: cur, maximumFractionDigits: 2 }).format(n);
+    } catch {
+      return `${importe ?? ''}${moneda ? ` ${moneda}` : ''}`.trim() || '-';
+    }
+  };
+
   const openContrato = async (contrato: any) => {
     setSelectedContrato(contrato);
     setContratoText('');
@@ -681,9 +692,30 @@ export default function FoundryPage() {
                     <ActionButton onClick={()=>invoiceRef.current?.click()} fullWidth style={{background:'#d4af37', color:'#000'}}>
                       SUBIR FACTURA
                     </ActionButton>
-                    {data.facturas && data.facturas.length > 0 && (
-                      <div className="mt-6 text-xs text-gray-500 text-center">
-                        📄 {data.facturas.length} facturas archivadas
+                    {data.facturas && data.facturas.length > 0 ? (
+                      <div className="mt-6">
+                        <div className="text-xs text-gray-500 text-center">
+                          📄 {data.facturas.length} facturas/gastos (últimas)
+                        </div>
+                        <div className="mt-4 space-y-2 max-h-[240px] overflow-y-auto">
+                          {data.facturas.slice(0, 10).map((f: any) => (
+                            <div key={f.id} className="bg-black/30 p-3 rounded-xl border border-white/5">
+                              <div className="flex items-center justify-between gap-4">
+                                <div className="text-xs font-black text-white">
+                                  {money(f.importe, f.moneda)}
+                                </div>
+                                <div className="text-[10px] text-gray-500">{formatFecha(f.fecha)}</div>
+                              </div>
+                              <div className="text-[10px] text-gray-500 mt-2 line-clamp-2">
+                                {String(f.texto || '').slice(0, 160) || '—'}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-6 text-[10px] text-gray-600 text-center">
+                        Aún no hay facturas archivadas.
                       </div>
                     )}
                   </div>
