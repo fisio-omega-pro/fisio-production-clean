@@ -132,7 +132,16 @@ async function runCazaAutopilot(options = {}) {
     }
 
     try {
-      await sendEmail({ to, subject, text: body, type: 'ANA' });
+      const r = await sendEmail({ to, subject, text: body, type: 'ANA' });
+      if (!r || r.ok !== true) {
+        await finalizeLead(locked.id, {
+          opt_out: r?.reason === 'BLOQUEADO_PLUS_FISIOTOOL' ? true : (locked.opt_out || false),
+          email_invalid: r?.reason === 'BLOQUEADO_PLUS_FISIOTOOL' ? true : (locked.email_invalid || false),
+          ultima_accion: `No enviado: ${String(r?.reason || r?.error || 'fallo')}`.slice(0, 160),
+        });
+        continue;
+      }
+
       await db.collection('ana_sent_emails').add({
         to,
         subject,

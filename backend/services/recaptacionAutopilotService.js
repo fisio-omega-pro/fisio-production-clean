@@ -103,19 +103,27 @@ async function runRecaptacionForClinic(clinicId, options = {}) {
       `Un saludo,\nAna`;
 
     try {
-      await sendEmail({ to, subject, text, type: 'ANA' });
-      await db.collection('recaptacion_sent').add({
-        clinic_id: clinicId,
-        patient_id: locked.id,
-        to,
-        subject,
-        fecha: Timestamp.now(),
-      });
-      await finalizePatient(locked.id, {
-        last_recap_at: Timestamp.now(),
-        last_recap_subject: subject,
-      });
-      sent++;
+      const r = await sendEmail({ to, subject, text, type: 'ANA' });
+      if (!r || r.ok !== true) {
+        await finalizePatient(locked.id, {
+          do_not_email: r?.reason === 'BLOQUEADO_PLUS_FISIOTOOL' ? true : (locked.do_not_email || false),
+          email_invalid: r?.reason === 'BLOQUEADO_PLUS_FISIOTOOL' ? true : (locked.email_invalid || false),
+          last_recap_error: String(r?.reason || r?.error || 'fallo').slice(0, 180),
+        });
+      } else {
+        await db.collection('recaptacion_sent').add({
+          clinic_id: clinicId,
+          patient_id: locked.id,
+          to,
+          subject,
+          fecha: Timestamp.now(),
+        });
+        await finalizePatient(locked.id, {
+          last_recap_at: Timestamp.now(),
+          last_recap_subject: subject,
+        });
+        sent++;
+      }
     } catch (e) {
       await finalizePatient(locked.id, {
         last_recap_error: String(e?.message || 'error').slice(0, 180),
