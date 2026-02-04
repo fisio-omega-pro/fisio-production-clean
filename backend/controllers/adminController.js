@@ -14,8 +14,45 @@ const getGlobalStats = async (req, res, next) => {
       db.collection('contratos').orderBy('createdAt', 'desc').limit(50).get()
     ]);
 
+    const PLAN_PRICE = {
+      solo: 100,
+      professional: 100,
+      pro: 100,
+      team: 300,
+      business: 300,
+      clinic: 300,
+      corporate: 500,
+    };
+    const normalizePlan = (v) => String(v || '').trim().toLowerCase() || 'solo';
+    const planToTipo = (plan) => (plan === 'solo' || plan === 'professional' || plan === 'pro' ? 'solo' : 'multi');
+    const toIsoMonth = (ts) => {
+      try {
+        if (!ts) return '';
+        let d;
+        if (ts.toDate) d = ts.toDate();
+        else if (typeof ts === 'string') d = new Date(ts);
+        else if (ts._seconds) d = new Date(ts._seconds * 1000);
+        else d = new Date(ts);
+        if (Number.isNaN(d.getTime())) return '';
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        return `${y}-${m}`;
+      } catch {
+        return '';
+      }
+    };
+
     let mrr = 0;
-    clinics.forEach(d => mrr += (d.data().plan === 'pro' ? 300 : 100));
+    const byPlan = {};
+    const mrrByPlan = {};
+    clinics.forEach((doc) => {
+      const raw = doc.data() || {};
+      const plan = normalizePlan(raw.plan);
+      const price = PLAN_PRICE[plan] ?? 100;
+      mrr += price;
+      byPlan[plan] = (byPlan[plan] || 0) + 1;
+      mrrByPlan[plan] = (mrrByPlan[plan] || 0) + price;
+    });
     
     let totalExp = 0;
     expenses.forEach(d => totalExp += (d.data().importe_detectado || 0));
@@ -27,14 +64,24 @@ const getGlobalStats = async (req, res, next) => {
         mrr: `${mrr}€`, 
         beneficioNeto: `${(mrr - totalExp).toFixed(2)}€`,
         totalExpenses: `${totalExp.toFixed(2)}€`,
-        pendingSuggestions: suggestions.size
+        pendingSuggestions: suggestions.size,
+        byPlan,
+        mrrByPlan,
       },
       // 🔒 Seguridad: nunca exponer hashes/credenciales (p.ej. `password`) en Foundry
       clinicas: clinics.docs.map((d) => {
         const raw = d.data() || {};
         // eslint-disable-next-line no-unused-vars
         const { password, ...safe } = raw;
-        return { id: d.id, ...safe };
+        const plan = normalizePlan(safe.plan);
+        return {
+          id: d.id,
+          ...safe,
+          plan,
+          // Compat con filtros actuales de Foundry
+          tipo: safe.tipo ? String(safe.tipo).trim().toLowerCase() : planToTipo(plan),
+          fecha_registro: safe.fecha_registro ? String(safe.fecha_registro) : (toIsoMonth(safe.created_at || safe.legal?.fecha || safe.updated_at) || ''),
+        };
       }),
       contratos: contratosSnap.docs.map((d) => {
         const raw = d.data() || {};
@@ -44,7 +91,7 @@ const getGlobalStats = async (req, res, next) => {
           contractNumber: raw.contractNumber,
           nombre: raw.nombre_clinica,
           email: raw.email,
-          plan: raw.plan,
+          plan: normalizePlan(raw.plan),
           fecha: raw.createdAt || raw.acceptedAt || null
         };
       }),

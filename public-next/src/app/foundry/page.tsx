@@ -674,8 +674,8 @@ export default function FoundryPage() {
                     className="bg-black border border-white/10 rounded-xl px-4 py-2 text-sm text-white outline-none focus:border-[#d4af37]"
                   >
                     <option value="">Todos los tipos</option>
-                    <option value="solo">Solo fisio</option>
-                    <option value="multi">Multi fisio</option>
+                    <option value="solo">Solo</option>
+                    <option value="multi">Multi</option>
                   </select>
                   <input 
                     type="text"
@@ -736,7 +736,9 @@ export default function FoundryPage() {
                             </td>
                             <td className="py-4 px-4">
                               <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                                clinic.plan === 'pro' ? 'bg-[#d4af37] text-black' : 'bg-white/10 text-white'
+                                clinic.plan === 'corporate' ? 'bg-[#d4af37] text-black'
+                                : clinic.plan === 'team' ? 'bg-blue-600/20 text-blue-300'
+                                : 'bg-white/10 text-white'
                               }`}>
                                 {clinic.plan?.toUpperCase() || 'BASE'}
                               </span>
