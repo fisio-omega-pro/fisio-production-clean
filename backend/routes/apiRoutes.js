@@ -79,6 +79,7 @@ router.get('/admin/contratos/:id', requireFoundryKey, ensureHandler(adminControl
 router.use(auth);
 
 router.get('/dashboard/data', ensureHandler(clinicController.getDashboardData, 'getDashboardData'));
+router.get('/dashboard/patient-history', ensureHandler(clinicController.getPatientHistory, 'getPatientHistory'));
 router.post('/dashboard/save-logo', ensureHandler(clinicController.saveLogo, 'saveLogo'));
 router.post('/dashboard/save-cobros', ensureHandler(clinicController.saveCobrosConfig, 'saveCobrosConfig'));
 router.post('/dashboard/appointment', ensureHandler(clinicController.createAppointment, 'createAppointment'));

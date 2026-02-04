@@ -208,6 +208,61 @@ const savePatientNote = async (req, res) => {
     } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 };
 
+// 3b. HISTORIAL CLÍNICO (para el modal de Agenda)
+const getPatientHistory = async (req, res, next) => {
+  try {
+    const phone = String(req.query?.phone || '').trim();
+    const patientId = String(req.query?.patientId || '').trim();
+
+    let patientDoc = null;
+    if (patientId) {
+      const doc = await db.collection('pacientes').doc(patientId).get();
+      if (doc.exists) patientDoc = doc;
+    } else if (phone) {
+      const snap = await db.collection('pacientes')
+        .where('clinic_id', '==', req.clinicId)
+        .where('telefono', '==', phone)
+        .limit(1)
+        .get();
+      if (!snap.empty) patientDoc = snap.docs[0];
+    } else {
+      return res.status(400).json({ success: false, error: 'phone o patientId requeridos' });
+    }
+
+    if (!patientDoc || !patientDoc.exists) {
+      return res.json({ success: true, paciente: null, historial: [] });
+    }
+
+    const paciente = { id: patientDoc.id, ...(patientDoc.data() || {}) };
+    if (String(paciente.clinic_id || '') !== String(req.clinicId || '')) {
+      return res.status(403).json({ success: false, error: 'No autorizado' });
+    }
+
+    const notasSnap = await db.collection('pacientes')
+      .doc(patientDoc.id)
+      .collection('notas')
+      .orderBy('created_at', 'desc')
+      .limit(20)
+      .get();
+
+    const historial = notasSnap.docs.map((d) => {
+      const raw = d.data() || {};
+      const ts = raw.created_at;
+      const ms =
+        ts && typeof ts.toMillis === 'function' ? ts.toMillis()
+          : ts && ts._seconds ? ts._seconds * 1000
+          : Date.now();
+      return {
+        id: d.id,
+        fecha: ms,
+        contenido: String(raw.content || '').trim(),
+      };
+    });
+
+    return res.json({ success: true, paciente, historial });
+  } catch (e) { next(e); }
+};
+
 // 4. ACCESO AL DASHBOARD
 const getDashboardData = async (req, res, next) => {
     try {
@@ -528,6 +583,7 @@ module.exports = {
   resetPassword,
   getDashboardData,
   savePatientNote,
+  getPatientHistory,
   createAppointment,
   saveLogo,
   saveCobrosConfig,

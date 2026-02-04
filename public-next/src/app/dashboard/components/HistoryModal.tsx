@@ -10,7 +10,7 @@ export const HistoryModal = ({ event, onClose }: { event: any, onClose: () => vo
 
   useEffect(() => {
     const load = async () => {
-      const phone = event.phone || '000000000'; 
+      const phone = event.telefono || event.phone || event.telephone || '000000000'; 
       try {
         const res = await dashboardAPI.getPatientHistory(phone);
         setData(res);

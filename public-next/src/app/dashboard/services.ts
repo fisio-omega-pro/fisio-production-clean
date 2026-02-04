@@ -62,7 +62,12 @@ class DashboardService {
   public async verifySubscription(): Promise<void> { await this.request('/api/dashboard/payment-verify', { method: 'POST' }); }
   public async upgradePlan(): Promise<string> { const res = await this.request<{url:string}>('/api/dashboard/upgrade-plan', {method:'POST'}); return res.url; }
   public async createAppointment(d: any): Promise<void> { await this.request('/api/dashboard/appointment', { method: 'POST', body: JSON.stringify(d) }); }
-  public async getPatientHistory(phone: string): Promise<any> { return { paciente: { nombre: 'Demo', telefono: phone }, historial: [] }; }
+  public async getPatientHistory(phone: string): Promise<{ paciente: any; historial: any[] }> {
+    const res = await this.request<{ success: boolean; paciente: any; historial: any[] }>(
+      `/api/dashboard/patient-history?phone=${encodeURIComponent(phone)}`
+    );
+    return { paciente: res.paciente, historial: res.historial || [] };
+  }
   public async savePatientNote(patientId: string, content: string): Promise<void> {
     await this.request('/api/dashboard/save-note', { method: 'POST', body: JSON.stringify({ patientId, content }) });
   }
