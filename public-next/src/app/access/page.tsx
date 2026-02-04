@@ -102,7 +102,7 @@ export default function LandingProfesional() {
     const handleKeys = (e: KeyboardEvent) => {
       if (e.code === 'Space') { e.preventDefault(); togglePause(); }
       if (e.key.toLowerCase() === 'r') speak(currentSection);
-      if (e.key === 'Enter' && currentSection === 'cta') window.location.href = '/registro';
+      if (e.key === 'Enter' && currentSection === 'cta') window.location.href = '/setup?plan=solo&is_blind=1';
     };
     window.addEventListener('keydown', handleKeys);
     return () => window.removeEventListener('keydown', handleKeys);
@@ -163,7 +163,7 @@ export default function LandingProfesional() {
           <div style={styles.container}>
             <button 
               style={styles.hugeBtn}
-              onClick={() => window.location.href = '/registro'}
+              onClick={() => window.location.href = '/setup?plan=solo&is_blind=1'}
               onFocus={() => speak('cta')}
             >
               RECLAMAR MI MES GRATIS AHORA

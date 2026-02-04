@@ -33,6 +33,7 @@ export default function DashboardOmega() {
   const state = useDashboardState();
   const { isRecording, transcript, toggleRecording, setTranscript } = useVoiceAssistant(state.voiceEnabled);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const lastSpokenTab = useRef<string>('');
   
   // DATOS DE FORMULARIOS
   const [apptData, setApptData] = useState({ nombre: '', telefono: '', email: '', fecha: '', hora: '', docId: '' });
@@ -47,6 +48,25 @@ export default function DashboardOmega() {
     if (params.get('id')) state.setClinicId(params.get('id')!);
     state.refreshData();
   }, [state.refreshData]);
+
+  // Narración ligera de navegación para invidentes
+  useEffect(() => {
+    if (!state.clinicData?.is_blind) return;
+    const tabId = String(state.activeTab || '');
+    if (!tabId || tabId === lastSpokenTab.current) return;
+    lastSpokenTab.current = tabId;
+    try {
+      const allItems = Object.values(NAV_ITEMS).flat();
+      const label = allItems.find((x: any) => x.id === tabId)?.label || tabId;
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(`Sección: ${label}.`);
+      u.lang = 'es-ES';
+      u.rate = 0.95;
+      window.speechSynthesis.speak(u);
+    } catch {
+      // best-effort
+    }
+  }, [state.activeTab, state.clinicData?.is_blind]);
 
   const handleCreateAppt = async () => {
     try {
@@ -79,7 +99,7 @@ export default function DashboardOmega() {
 
   // 🚨 EL MURO DE SEGURIDAD REACTIVADO (Descomentamos)
   if (!state.isLoading && (!state.configStatus.hasSubscription || !state.configStatus.hasStripe)) {
-    return <SetupWizard status={state.configStatus} onRefresh={state.refreshData} />;
+    return <SetupWizard status={state.configStatus} onRefresh={state.refreshData} isBlind={!!state.clinicData?.is_blind} />;
   }
 
   const renderContent = () => {

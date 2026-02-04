@@ -43,12 +43,15 @@ export const useDashboardState = () => {
         setEquipo(data.equipo || []);
         
         // Protocolo de voz para invidentes
-        if (data.clinicData?.is_blind && !hasGreeted.current) {
+        if (data.clinicData?.is_blind) {
+          // Por defecto, siempre activo (el saludo solo una vez por sesión)
           setVoiceEnabled(true);
-          const welcome = new SpeechSynthesisUtterance(`Bienvenido, soy Ana. El sistema está sincronizado.`);
-          welcome.lang = 'es-ES';
-          window.speechSynthesis.speak(welcome);
-          hasGreeted.current = true;
+          if (!hasGreeted.current) {
+            const welcome = new SpeechSynthesisUtterance(`Bienvenido, soy Ana. El sistema está sincronizado.`);
+            welcome.lang = 'es-ES';
+            window.speechSynthesis.speak(welcome);
+            hasGreeted.current = true;
+          }
         }
       }
     } catch (err) { 

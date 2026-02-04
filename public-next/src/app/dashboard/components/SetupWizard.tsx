@@ -1,15 +1,31 @@
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Upload, CreditCard, CheckCircle2, Building2, ChevronRight, Loader2, Crown, Image } from 'lucide-react';
 import { dashboardAPI } from '../services';
 
 interface SetupProps {
   status: { hasLogo: boolean; hasSubscription: boolean; hasStripe: boolean; };
   onRefresh: () => void;
+  isBlind?: boolean;
 }
 
-export const SetupWizard: React.FC<SetupProps> = ({ status, onRefresh }) => {
+export const SetupWizard: React.FC<SetupProps> = ({ status, onRefresh, isBlind }) => {
   const [loading, setLoading] = useState<string | null>(null); // Trackeamos qué botón carga
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!isBlind) return;
+    try {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(
+        'Configuración inicial. Paso uno: logo. Paso dos: licencia. Paso tres: conectar Stripe. Puedes usar el logo genérico para avanzar.'
+      );
+      u.lang = 'es-ES';
+      u.rate = 0.95;
+      window.speechSynthesis.speak(u);
+    } catch {
+      // best-effort
+    }
+  }, [isBlind]);
 
   // 1. Subir Logo Real
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

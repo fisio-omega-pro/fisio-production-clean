@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Building2, ArrowRight, ArrowLeft, Eye, EyeOff, Mail, Lock, 
@@ -20,6 +20,7 @@ interface ClinicData {
   flags: string[]; acepta_bonos: boolean; precio_bono_5: number;
   precio_sesion: number; fianza: number; metodos_pago: string[];
   aceptacion_legal: boolean; plan: string;
+  is_blind: boolean;
 }
 
 const PROVINCIAS = ["Álava", "Albacete", "Alicante", "Almería", "Asturias", "Ávila", "Badajoz", "Barcelona", "Burgos", "Cáceres", "Cádiz", "Cantabria", "Castellón", "Ciudad Real", "Córdoba", "Cuenca", "Girona", "Granada", "Guadalajara", "Guipúzcoa", "Huelva", "Huesca", "Jaén", "La Rioja", "Las Palmas", "León", "Lleida", "Lugo", "Madrid", "Málaga", "Murcia", "Navarra", "Ourense", "Palencia", "Pontevedra", "Salamanca", "Santa Cruz de Tenerife", "Segovia", "Sevilla", "Soria", "Tarragona", "Teruel", "Toledo", "Valencia", "Valladolid", "Vizcaya", "Zamora", "Zaragoza", "Ceuta", "Melilla"];
@@ -39,13 +40,29 @@ export default function OnboardingEpic() {
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
   const [errors, setErrors] = useState<Record<string, boolean>>({});
+  const hasAnnouncedStep = useRef<number | null>(null);
   
   const [formData, setFormData] = useState<ClinicData>({
     nombre: '', email: '', password: '', calle: '', numero: '', ciudad: '', cp: '', provincia: '',
     apertura: '09:00', cierre: '20:00', hace_descanso: false, descanso_inicio: '14:00', descanso_fin: '16:00',
     flags: [], acepta_bonos: false, precio_bono_5: 225, precio_sesion: 50, fianza: 15, metodos_pago: ['Stripe'],
-    aceptacion_legal: false, plan: 'solo'
+    aceptacion_legal: false, plan: 'solo',
+    is_blind: false
   });
+
+  const speak = useCallback((text: string) => {
+    if (typeof window === 'undefined') return;
+    if (!formData.is_blind) return;
+    try {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(String(text || '').trim());
+      u.lang = 'es-ES';
+      u.rate = 0.95;
+      window.speechSynthesis.speak(u);
+    } catch {
+      // best-effort: si el navegador no soporta TTS, no bloqueamos
+    }
+  }, [formData.is_blind]);
 
   // --- LÓGICA DE CONTRASEÑA ---
   const passCriteria = {
@@ -59,8 +76,35 @@ export default function OnboardingEpic() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const p = params.get('plan');
-    if (p) setFormData(prev => ({...prev, plan: p}));
+    const isBlind =
+      params.get('is_blind') === '1' ||
+      params.get('blind') === '1' ||
+      params.get('access') === '1';
+    setFormData(prev => ({ ...prev, plan: p || prev.plan, is_blind: isBlind || prev.is_blind }));
+    if (isBlind && typeof window !== 'undefined') {
+      try {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance('Modo audible activado. Vamos a configurar tu cuenta en tres pasos.');
+        u.lang = 'es-ES';
+        u.rate = 0.95;
+        window.speechSynthesis.speak(u);
+      } catch {
+        // best-effort
+      }
+    }
   }, []);
+
+  useEffect(() => {
+    if (!formData.is_blind) return;
+    if (hasAnnouncedStep.current === step) return;
+    hasAnnouncedStep.current = step;
+    const scripts: Record<number, string> = {
+      1: 'Paso 1 de 3. Identidad corporativa. Rellena nombre comercial, dirección fiscal, email y contraseña. Luego pulsa “Siguiente paso”.',
+      2: 'Paso 2 de 3. Operativa y reglas. Define tu horario, la pausa de mediodía y el triaje de seguridad. Luego pulsa “Siguiente”.',
+      3: 'Paso 3 de 3. Facturación y legal. Configura tarifa, fianza, métodos de cobro y acepta los términos para finalizar el alta.',
+    };
+    speak(scripts[step] || `Paso ${step}.`);
+  }, [step, formData.is_blind, speak]);
 
   const update = (field: keyof ClinicData, val: any) => {
     setFormData(prev => ({...prev, [field]: val}));
@@ -87,6 +131,10 @@ export default function OnboardingEpic() {
       if (!isPassValid) newErrors.password = true;
     }
     setErrors(newErrors);
+    if (formData.is_blind && Object.keys(newErrors).length) {
+      const missing = Object.keys(newErrors).filter((k) => k !== 'legal');
+      if (missing.length) speak(`Faltan campos obligatorios en este paso: ${missing.join(', ')}.`);
+    }
     return Object.keys(newErrors).length === 0;
   };
 
@@ -107,6 +155,7 @@ export default function OnboardingEpic() {
       
       if (data.success) {
         localStorage.setItem('fisio_token', data.token);
+        if (formData.is_blind) localStorage.setItem('fisio_is_blind', '1');
         // Pregunta sibilina para evitar fricción
         const irPago = confirm("✅ CUENTA CREADA.\n\n¿Deseas configurar la pasarela de pago ahora?\n[ACEPTAR] = Sí, configurar cobros\n[CANCELAR] = Entrar al Dashboard primero");
         window.location.href = irPago && data.payment_url ? data.payment_url : '/dashboard';
