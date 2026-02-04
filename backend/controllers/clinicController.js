@@ -400,6 +400,7 @@ const startStripeConnect = async (req, res, next) => {
     const env = await initEnv();
     const sk = String(env.STRIPE_SK || '').trim();
     if (!sk) return res.status(503).json({ success: false, error: 'Stripe no configurado' });
+    if (!sk.startsWith('sk_')) return res.status(503).json({ success: false, error: 'Stripe mal configurado: STRIPE_SECRET_KEY debe empezar por sk_' });
 
     const clinicRef = db.collection('clinicas').doc(req.clinicId);
     const clinicDoc = await clinicRef.get();
@@ -442,6 +443,7 @@ const finalizeStripeConnect = async (req, res, next) => {
     const env = await initEnv();
     const sk = String(env.STRIPE_SK || '').trim();
     if (!sk) return res.status(503).json({ success: false, error: 'Stripe no configurado' });
+    if (!sk.startsWith('sk_')) return res.status(503).json({ success: false, error: 'Stripe mal configurado: STRIPE_SECRET_KEY debe empezar por sk_' });
     const stripe = Stripe(sk);
 
     const clinicRef = db.collection('clinicas').doc(req.clinicId);
@@ -486,6 +488,7 @@ const handleStripeWebhook = async (req, res, next) => {
     const sk = String(env.STRIPE_SK || '').trim();
     const whSecret = String(env.STRIPE_WEBHOOK_SECRET || '').trim();
     if (!sk || !whSecret) return res.status(503).send('stripe not configured');
+    if (!sk.startsWith('sk_')) return res.status(503).send('stripe misconfigured: secret key must start with sk_');
 
     const stripe = Stripe(sk);
     const sig = req.headers['stripe-signature'];

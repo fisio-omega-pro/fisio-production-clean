@@ -21,6 +21,11 @@ const getStripe = async () => {
   const env = await initEnv();
   const sk = String(env.STRIPE_SK || env.STRIPE_SECRET_KEY || '').trim();
   if (!sk) return null;
+  // Validación defensiva: la secret key debe empezar por sk_
+  if (!sk.startsWith('sk_')) {
+    console.error('🔥 [STRIPE INIT] Clave inválida: debe empezar por "sk_". Revisa STRIPE_SECRET_KEY en Secret Manager.');
+    return null;
+  }
   
   // LOG DE SEGURIDAD: Vemos qué tipo de llave estamos usando
   const keyType = sk.startsWith('sk_live') ? 'PRODUCCIÓN (LIVE)' : 'PRUEBAS (TEST)';
