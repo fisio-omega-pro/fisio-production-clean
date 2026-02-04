@@ -21,7 +21,8 @@ async function initEnv() {
         GOOGLE_AI_KEY: process.env.GOOGLE_AI_KEY || await getSecret('GOOGLE_AI_KEY'),
         GOOGLE_AI_MODEL: process.env.GOOGLE_AI_MODEL || await getSecret('GOOGLE_AI_MODEL'),
         JWT_SECRET: process.env.JWT_SECRET || await getSecret('JWT_SECRET') || 'fisiotool_master_key_2026',
-        STRIPE_SK: process.env.STRIPE_SK || await getSecret('STRIPE_SECRET_KEY'),
+        // Aceptamos tanto STRIPE_SK (preferido) como STRIPE_SECRET_KEY (legacy)
+        STRIPE_SK: process.env.STRIPE_SK || process.env.STRIPE_SECRET_KEY || await getSecret('STRIPE_SECRET_KEY'),
         STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || await getSecret('STRIPE_WEBHOOK_SECRET'),
         ADMIN_FOUNDRY_KEY: process.env.ADMIN_FOUNDRY_KEY || await getSecret('ADMIN_FOUNDRY_KEY'),
         
