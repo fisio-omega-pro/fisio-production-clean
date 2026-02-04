@@ -78,6 +78,7 @@ async function initialize(options = {}) {
     // 📧 CRON JOB: Ana revisa su inbox cada 5 minutos
     const { readEmails } = require('./services/emailReaderService');
     const { sendEmail } = require('./services/emailSenderService');
+    const { runCazaAutopilot } = require('./services/cazaAutopilotService');
     setInterval(async () => {
       console.log('📧 [CRON] Ana revisando inbox...');
       try {
@@ -118,6 +119,14 @@ async function initialize(options = {}) {
         }
       } catch (e) {
         console.error('🔥 [CRON] Error en alertas LLC:', e.message);
+      }
+
+      // 🎯 CAZA: autopiloto de prospección por email (si campaignActive=true)
+      try {
+        const r = await runCazaAutopilot();
+        if (r && r.sent) console.log(`🎯 [CRON] CAZA autopiloto: enviados=${r.sent}`);
+      } catch (e) {
+        console.error('🔥 [CRON] Error en CAZA autopiloto:', e.message);
       }
     }, 5 * 60 * 1000); // 5 minutos
     
