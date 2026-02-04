@@ -113,24 +113,80 @@ Responde SOLO en JSON:
   "respuesta": "borrador de email"
 }`;
 
+    const defaultQuestions = () => ([
+      '¿Cuántas sedes y servicios deben gestionarse en el mismo panel (y qué jerarquía de permisos necesitáis)?',
+      '¿Qué integraciones son imprescindibles (ERP, facturación, contabilidad, CRM, BI) y en qué formato queréis exportaciones?',
+      '¿Cómo queréis gestionar agenda por especialidad/sede (recursos, salas, equipos) y reglas de cobro/no-show?',
+      '¿Necesitáis migración desde vuestro sistema actual (Excel/otro software) y cuántos pacientes/citas históricas?',
+      '¿Qué requerimientos legales/compliance tenéis (RGPD, consentimientos, auditoría, logs, roles)?',
+      '¿Cuál es el objetivo de la demo: reducir no-shows, centralizar sedes, reporting por unidad, automatización comercial?',
+    ]);
+
+    const defaultDraft = (questions) => {
+      const q = (questions || defaultQuestions()).slice(0, 6);
+      const greetingName = contactName || 'equipo';
+      return [
+        `Hola ${greetingName},`,
+        ``,
+        `Soy Ana de FisioTool Pro. Gracias por tu interés en el plan Corporate para ${companyName || 'vuestro grupo'}.`,
+        `Por lo que indicas (${clinicsCount} sedes, ${practitionersCount} especialistas y servicios mixtos), lo más eficiente es hacer una llamada breve (15–20 min) para mapear requisitos y devolverte una propuesta concisa.`,
+        ``,
+        `Para prepararla, ¿me confirmas por favor:`,
+        ...q.map((x) => `- ${x}`),
+        ``,
+        `Si te encaja, dime 2 franjas horarias (y zona horaria) y te agendo una demo.`,
+        ``,
+        `Un saludo,`,
+        `Ana · FisioTool Pro`,
+      ].join('\n');
+    };
+
+    const normalizeQuestions = (value) => {
+      if (!value) return [];
+      if (Array.isArray(value)) return value.map((x) => safe(x)).filter(Boolean);
+      const s = safe(value);
+      if (!s) return [];
+      // Split por líneas o bullets
+      return s
+        .split(/\n|•|- |\u2022/g)
+        .map((x) => safe(x).replace(/^\d+[\)\.\-]\s*/,''))
+        .filter(Boolean)
+        .slice(0, 6);
+    };
+
+    const coerceClasificacion = (v) => {
+      const s = safe(v).toUpperCase();
+      if (s === 'URGENTE' || s === 'IMPORTANTE' || s === 'NORMAL') return s;
+      return 'IMPORTANTE';
+    };
+
     try {
       const reply = await callAnaEngine(prompt);
       const jsonMatch = reply.match(/\{[\s\S]*\}/);
-      if (jsonMatch) return JSON.parse(jsonMatch[0]);
-      return {
-        clasificacion: "IMPORTANTE",
-        tipo: "LEAD_PROSPECTO",
-        resumen: `Lead Corporate: ${companyName} (${clinicsCount} sedes, ${practitionersCount} especialistas)`,
-        preguntas_clave: [],
-        respuesta: null
+      const raw = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+
+      const preguntas =
+        normalizeQuestions(raw.preguntas_clave) ||
+        normalizeQuestions(raw.preguntasClave) ||
+        normalizeQuestions(raw.preguntas) ||
+        [];
+
+      const normalized = {
+        clasificacion: coerceClasificacion(raw.clasificacion),
+        tipo: 'LEAD_PROSPECTO',
+        resumen: safe(raw.resumen) || `Lead Corporate: ${companyName} (${clinicsCount} sedes, ${practitionersCount} especialistas)`,
+        preguntas_clave: preguntas.length ? preguntas : defaultQuestions(),
+        respuesta: safe(raw.respuesta) || defaultDraft(preguntas.length ? preguntas : defaultQuestions())
       };
+
+      return normalized;
     } catch (e) {
       return {
         clasificacion: "IMPORTANTE",
         tipo: "LEAD_PROSPECTO",
         resumen: `Lead Corporate sin IA: ${companyName} (${clinicsCount} sedes, ${practitionersCount} especialistas)`,
-        preguntas_clave: [],
-        respuesta: null
+        preguntas_clave: defaultQuestions(),
+        respuesta: defaultDraft(defaultQuestions())
       };
     }
   },
