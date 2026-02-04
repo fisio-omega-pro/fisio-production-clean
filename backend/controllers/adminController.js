@@ -604,6 +604,18 @@ const triggerEmailCheck = async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 };
 
+// --- 🎯 CAZA: EJECUTAR AUTOPILOTO BAJO DEMANDA (para resiliencia) ---
+const runCazaAutopilotNow = async (req, res) => {
+  try {
+    const { runCazaAutopilot } = require('../services/cazaAutopilotService');
+    const maxPerRun = Number(req.body?.maxPerRun || 5);
+    const r = await runCazaAutopilot({ maxPerRun });
+    return res.json({ success: true, ...r });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: e.message });
+  }
+};
+
 // --- 📄 CONTRATOS (Repositorio Legal) ---
 const getContrato = async (req, res) => {
   try {
@@ -635,5 +647,6 @@ module.exports = {
   setCampaign,
   updateLeadStatus,
   getExpenseFile,
+  runCazaAutopilotNow,
   handleIncomingResponse: async (req,res) => res.json({success:true})
 };

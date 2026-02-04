@@ -56,6 +56,7 @@ router.delete('/admin/delete-alert/:id', requireFoundryKey, ensureHandler(adminC
 router.get('/admin/ana-inbox', requireFoundryKey, ensureHandler(adminController.getAnaInbox, 'getAnaInbox'));
 router.post('/admin/send-prospect-email', requireFoundryKey, ensureHandler(adminController.sendProspectEmail, 'sendProspectEmail'));
 router.post('/admin/trigger-email-check', requireFoundryKey, ensureHandler(adminController.triggerEmailCheck, 'triggerEmailCheck'));
+router.post('/admin/run-caza-autopilot', requireFoundryKey, ensureHandler(adminController.runCazaAutopilotNow, 'runCazaAutopilotNow'));
 router.post('/admin/campaign', requireFoundryKey, ensureHandler(adminController.setCampaign, 'setCampaign'));
 router.post('/admin/leads/:id/status', requireFoundryKey, ensureHandler(adminController.updateLeadStatus, 'updateLeadStatus'));
 router.post('/admin/scan-invoice', requireFoundryKey, upload.single('invoice'), ensureHandler(adminController.processInvoice, 'processInvoice'));
