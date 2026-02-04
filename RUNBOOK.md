@@ -176,6 +176,33 @@ Si rotas la clave:
 - Endpoint manual (Foundry):
   - `POST /api/admin/trigger-email-check` (requiere `x-foundry-key`)
 
+---
+
+## 7b) Cloud Scheduler (recomendado para resiliencia)
+
+Cloud Run puede escalar a 0, y los `setInterval` no son garantía. Para que CAZA funcione **siempre**, usamos Cloud Scheduler llamando a un endpoint Foundry-protegido.
+
+### Job: autopiloto CAZA (cada 5 min)
+
+- **Endpoint**: `POST /api/admin/run-caza-autopilot`
+- **Auth**: header `x-foundry-key`
+- **Job sugerido**: `caza-autopilot-5m` (región `europe-west1`, zona `Europe/Madrid`)
+
+### Script (recomendado)
+
+Desde la raíz del repo:
+
+```bash
+chmod +x ./scripts/setup-cloud-scheduler.sh
+FOUNDRY_KEY='TU_CLAVE_FOUNDRY' ./scripts/setup-cloud-scheduler.sh
+```
+
+Si quieres ajustar frecuencia:
+
+```bash
+SCHEDULE_CAZA="*/2 * * * *" FOUNDRY_KEY='TU_CLAVE_FOUNDRY' ./scripts/setup-cloud-scheduler.sh
+```
+
 ### Corporate leads
 
 - Endpoint público:
