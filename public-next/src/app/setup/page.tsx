@@ -15,6 +15,7 @@ import { API_BASE_URL } from '@/lib/apiBase';
 interface ClinicData {
   nombre: string; email: string; password: string;
   referral_code?: string;
+  timezone?: string;
   calle: string; numero: string; ciudad: string; cp: string; provincia: string;
   apertura: string; cierre: string;
   hace_descanso: boolean; descanso_inicio: string; descanso_fin: string;
@@ -44,7 +45,7 @@ export default function OnboardingEpic() {
   const hasAnnouncedStep = useRef<number | null>(null);
   
   const [formData, setFormData] = useState<ClinicData>({
-    nombre: '', email: '', password: '', referral_code: '', calle: '', numero: '', ciudad: '', cp: '', provincia: '',
+    nombre: '', email: '', password: '', referral_code: '', timezone: '', calle: '', numero: '', ciudad: '', cp: '', provincia: '',
     apertura: '09:00', cierre: '20:00', hace_descanso: false, descanso_inicio: '14:00', descanso_fin: '16:00',
     flags: [], acepta_bonos: false, precio_bono_5: 225, precio_sesion: 50, fianza: 15, metodos_pago: ['Stripe'],
     aceptacion_legal: false, plan: 'solo',
@@ -78,11 +79,24 @@ export default function OnboardingEpic() {
     const params = new URLSearchParams(window.location.search);
     const p = params.get('plan');
     const refCode = params.get('ref') || params.get('referral') || params.get('codigo') || params.get('code');
+    const tzParam = params.get('tz') || params.get('timezone');
     const isBlind =
       params.get('is_blind') === '1' ||
       params.get('blind') === '1' ||
       params.get('access') === '1';
-    setFormData(prev => ({ ...prev, plan: p || prev.plan, is_blind: isBlind || prev.is_blind, referral_code: String(refCode || prev.referral_code || '').toUpperCase() }));
+    let detectedTz = '';
+    try {
+      detectedTz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    } catch {
+      detectedTz = '';
+    }
+    setFormData(prev => ({
+      ...prev,
+      plan: p || prev.plan,
+      is_blind: isBlind || prev.is_blind,
+      referral_code: String(refCode || prev.referral_code || '').toUpperCase(),
+      timezone: String(tzParam || prev.timezone || detectedTz || 'Europe/Brussels')
+    }));
     if (isBlind && typeof window !== 'undefined') {
       try {
         window.speechSynthesis.cancel();

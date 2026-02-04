@@ -186,7 +186,7 @@ Cloud Run puede escalar a 0, y los `setInterval` no son garantía. Para que CAZA
 
 - **Endpoint**: `POST /api/admin/run-caza-autopilot`
 - **Auth**: header `x-foundry-key`
-- **Job sugerido**: `caza-autopilot-5m` (región `europe-west1`, zona `Europe/Madrid`)
+- **Job sugerido**: `caza-autopilot-5m` (región `europe-west1`, zona `Europe/Brussels`)
 
 ### Script (recomendado)
 
@@ -206,11 +206,23 @@ SCHEDULE_CAZA="*/2 * * * *" FOUNDRY_KEY='TU_CLAVE_FOUNDRY' ./scripts/setup-cloud
 ### Job: recaptación (1 vez al día, recomendado)
 
 - **Endpoint**: `POST /api/admin/run-recaptacion-autopilot`
-- **Schedule sugerido**: `0 10 * * *` (10:00 Europe/Madrid)
+- **Schedule sugerido**: `0 10 * * *` (10:00 Europe/Brussels)
 - Se crea por defecto en el script. Para desactivarlo:
 
 ```bash
 ENABLE_RECAPTACION=0 FOUNDRY_KEY='TU_CLAVE_FOUNDRY' ./scripts/setup-cloud-scheduler.sh
+```
+
+### Job: recordatorio fianza (1h antes, sin molestar)
+
+- **Endpoint**: `POST /api/admin/run-deposit-reminders`
+- **Schedule sugerido**: `*/10 8-20 * * *` (cada 10 min, solo 08:00–20:00)
+- Regla de oro UX: **nunca** antes de 8am ni después de 8pm.
+
+Se crea por defecto en el script. Para desactivarlo:
+
+```bash
+ENABLE_FIANZA_REMINDERS=0 FOUNDRY_KEY='TU_CLAVE_FOUNDRY' ./scripts/setup-cloud-scheduler.sh
 ```
 
 ### Corporate leads

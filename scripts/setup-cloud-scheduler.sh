@@ -9,12 +9,17 @@ SERVICE_URL="${SERVICE_URL:-https://fisio-backend-omega-740657183492.europe-west
 # Jobs
 JOB_CAZA="${JOB_CAZA:-caza-autopilot-5m}"
 SCHEDULE_CAZA="${SCHEDULE_CAZA:-*/5 * * * *}"
-TIMEZONE="${TIMEZONE:-Europe/Madrid}"
+TIMEZONE="${TIMEZONE:-Europe/Brussels}"
 
 # Recaptación (recomendado: 1 vez al día)
 ENABLE_RECAPTACION="${ENABLE_RECAPTACION:-1}"
 JOB_RECAPTACION="${JOB_RECAPTACION:-recaptacion-autopilot-daily}"
-SCHEDULE_RECAPTACION="${SCHEDULE_RECAPTACION:-0 10 * * *}" # 10:00 Europe/Madrid
+SCHEDULE_RECAPTACION="${SCHEDULE_RECAPTACION:-0 10 * * *}" # 10:00 Europe/Brussels
+
+# Recordatorios fianza: cada 10 min solo en ventana 08:00–20:00
+ENABLE_FIANZA_REMINDERS="${ENABLE_FIANZA_REMINDERS:-1}"
+JOB_FIANZA="${JOB_FIANZA:-deposit-reminders-10m}"
+SCHEDULE_FIANZA="${SCHEDULE_FIANZA:-*/10 8-20 * * *}"
 
 # Seguridad
 # OJO: este header es el mismo que Foundry. Solo IAM con acceso a Scheduler podrá verlo.
@@ -36,6 +41,7 @@ gcloud services enable cloudscheduler.googleapis.com --project="$PROJECT_ID" >/d
 
 URI_CAZA="$SERVICE_URL/api/admin/run-caza-autopilot"
 URI_RECAP="$SERVICE_URL/api/admin/run-recaptacion-autopilot"
+URI_FIANZA="$SERVICE_URL/api/admin/run-deposit-reminders"
 
 echo ""
 echo "2) Creando/actualizando job: $JOB_CAZA"
@@ -110,3 +116,37 @@ if [[ "$ENABLE_RECAPTACION" == "1" ]]; then
     --format='table(name,schedule,timeZone,state,httpTarget.uri)'
 fi
 
+if [[ "$ENABLE_FIANZA_REMINDERS" == "1" ]]; then
+  echo ""
+  echo "6) Creando/actualizando job: $JOB_FIANZA (fianza 08-20 cada 10 min)"
+  if gcloud scheduler jobs describe "$JOB_FIANZA" --location="$REGION" --project="$PROJECT_ID" >/dev/null 2>&1; then
+    gcloud scheduler jobs update http "$JOB_FIANZA" \
+      --project="$PROJECT_ID" \
+      --location="$REGION" \
+      --schedule="$SCHEDULE_FIANZA" \
+      --time-zone="$TIMEZONE" \
+      --uri="$URI_FIANZA" \
+      --http-method=POST \
+      --headers="Content-Type=application/json,x-foundry-key=$FOUNDRY_KEY" \
+      --message-body='{"maxPerRun":25}' \
+      --attempt-deadline=60s
+  else
+    gcloud scheduler jobs create http "$JOB_FIANZA" \
+      --project="$PROJECT_ID" \
+      --location="$REGION" \
+      --schedule="$SCHEDULE_FIANZA" \
+      --time-zone="$TIMEZONE" \
+      --uri="$URI_FIANZA" \
+      --http-method=POST \
+      --headers="Content-Type=application/json,x-foundry-key=$FOUNDRY_KEY" \
+      --message-body='{"maxPerRun":25}' \
+      --attempt-deadline=60s
+  fi
+
+  echo ""
+  echo "7) Ejecutando fianza 1 vez (smoke test)..."
+  gcloud scheduler jobs run "$JOB_FIANZA" --location="$REGION" --project="$PROJECT_ID" >/dev/null
+
+  gcloud scheduler jobs describe "$JOB_FIANZA" --location="$REGION" --project="$PROJECT_ID" \
+    --format='table(name,schedule,timeZone,state,httpTarget.uri)'
+fi

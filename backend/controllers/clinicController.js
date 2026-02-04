@@ -32,6 +32,7 @@ const register = async (req, res, next) => {
     const plan = d.plan || 'pro';
     const now = Timestamp.now();
     const legalAccepted = !!d.aceptacion_legal;
+    const timezone = String(d.timezone || d.tz || 'Europe/Brussels').trim() || 'Europe/Brussels';
     const referralCodeInput = String(d.referral_code || d.referralCode || d.ref || '').trim().toUpperCase();
     const ip = String((req.headers['x-forwarded-for'] || req.ip || '')).split(',')[0].trim();
     const userAgent = String(req.headers['user-agent'] || '');
@@ -65,6 +66,7 @@ const register = async (req, res, next) => {
       status: 'activo',
       subscription_active: false,
       is_blind: d.is_blind || false,
+      timezone,
       referral_code,
       referred_by_clinic_id,
       referred_by_code,

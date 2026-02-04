@@ -632,6 +632,18 @@ const runRecaptacionAutopilotNow = async (req, res) => {
   }
 };
 
+// --- ⏳ FIANZA: RECORDATORIO 1H ANTES (quiet hours) ---
+const runDepositRemindersNow = async (req, res) => {
+  try {
+    const { runDepositReminders } = require('../services/depositReminderService');
+    const maxPerRun = Number(req.body?.maxPerRun || 25);
+    const r = await runDepositReminders({ maxPerRun });
+    return res.json({ success: true, ...r });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: e.message });
+  }
+};
+
 // --- 📄 CONTRATOS (Repositorio Legal) ---
 const getContrato = async (req, res) => {
   try {
@@ -665,5 +677,6 @@ module.exports = {
   getExpenseFile,
   runCazaAutopilotNow,
   runRecaptacionAutopilotNow,
+  runDepositRemindersNow,
   handleIncomingResponse: async (req,res) => res.json({success:true})
 };

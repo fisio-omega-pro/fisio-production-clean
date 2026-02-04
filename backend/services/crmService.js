@@ -3,6 +3,7 @@
  * Gestiona pacientes, citas y disponibilidad con precisión atómica.
  */
 const { db, Timestamp, FieldValue } = require('../config/firebase');
+const { clampExpiryToQuietHours, DEFAULT_TZ } = require('./depositReminderService');
 
 // --- 🛠️ UTILIDADES INTERNAS ---
 const normalizarTlf = (t) => t ? String(t).replace(/\D/g, '').slice(-9) : "";
@@ -80,13 +81,23 @@ const consultarHueco = async (clinicId, fechaStr, horaStr) => {
 // --- 📝 3. CREACIÓN DE RESERVA CON BLINDAJE LEGAL ---
 const registrarReserva = async (datos, ip = "0.0.0.0") => {
   const tlf = normalizarTlf(datos.telefono);
-  const expira = new Date(Date.now() + 12 * 60 * 60 * 1000); // 12 horas para pagar
+  // 12 horas para pagar (con quiet hours para evitar fricción 08:00–20:00)
+  let tz = DEFAULT_TZ;
+  try {
+    const clinica = await getClinica(datos.clinic_id);
+    if (clinica && (clinica.timezone || clinica.tz)) tz = String(clinica.timezone || clinica.tz);
+  } catch (_) {}
+  const rawExpiry = new Date(Date.now() + 12 * 60 * 60 * 1000);
+  const expira = clampExpiryToQuietHours(rawExpiry, tz);
+  const reminder = new Date(expira.getTime() - 60 * 60 * 1000); // 1 hora antes
 
   const citaData = {
     ...datos,
     paciente_telefono: tlf,
     creado_el: Timestamp.now(),
     expira_el: Timestamp.fromDate(expira),
+    reminder_el: Timestamp.fromDate(reminder),
+    deposit_reminder_sent: false,
     status: datos.status || 'pendiente_pago',
     huella_legal: {
       ip_registro: ip,
