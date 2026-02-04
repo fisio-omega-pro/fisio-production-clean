@@ -97,7 +97,19 @@ const submitCorporateLead = async (req, res) => {
 
     let analysis = null;
     try {
-      analysis = await anaService.processIncomingEmail(email, subject, bodyText);
+      analysis = await anaService.processCorporateLead({
+        companyName,
+        contactName,
+        email,
+        phone,
+        clinicsCount,
+        practitionersCount,
+        services,
+        locations,
+        timeline,
+        preferredContact,
+        notes
+      });
     } catch (_) {
       analysis = null;
     }
@@ -111,10 +123,11 @@ const submitCorporateLead = async (req, res) => {
         subject,
         body: bodyText.substring(0, 500),
         clasificacion: (analysis && analysis.clasificacion) ? analysis.clasificacion : 'IMPORTANTE',
-        tipo: (analysis && analysis.tipo) ? analysis.tipo : 'LEAD_PROSPECTO',
+        tipo: 'LEAD_PROSPECTO',
         respuesta_generada: analysis && analysis.respuesta ? analysis.respuesta : null,
         notificar_admin: true,
         resumen: analysis && analysis.resumen ? analysis.resumen : `${companyName} solicita contacto Corporate`,
+        preguntas_clave: Array.isArray(analysis?.preguntas_clave) ? analysis.preguntas_clave : [],
         fecha: new Date().toISOString(),
         respondido: false
       });
@@ -141,7 +154,8 @@ const submitCorporateLead = async (req, res) => {
         <p class="muted">Lead ID: ${escapeHtml(ref.id)} · IP: ${escapeHtml(ip)}</p>
       </div>
       ${analysis?.resumen ? `<div style="height:14px"></div><div class="box"><p class="p"><strong>Resumen ejecutivo (Ana):</strong><br/>${escapeHtml(analysis.resumen).replace(/\n/g,'<br/>')}</p></div>` : ''}
-      ${analysis?.respuesta ? `<div style="height:14px"></div><div class="box"><p class="p"><strong>Borrador de respuesta (para consensuar):</strong><br/>${escapeHtml(analysis.respuesta).replace(/\n/g,'<br/>')}</p><p class="muted">Nota: no se enviará ninguna respuesta automática sin tu OK.</p></div>` : `<div style="height:14px"></div><p class="muted">Ana no generó borrador (sin IA configurada o lead incompleto). Puedes responder manualmente.</p>`}
+      ${Array.isArray(analysis?.preguntas_clave) && analysis.preguntas_clave.length ? `<div style="height:14px"></div><div class="box"><p class="p"><strong>Preguntas clave (Ana):</strong></p><ul class="p" style="margin:0; padding-left:18px">${analysis.preguntas_clave.slice(0,6).map(q=>`<li>${escapeHtml(q)}</li>`).join('')}</ul></div>` : ''}
+      ${analysis?.respuesta ? `<div style="height:14px"></div><div class="box"><p class="p"><strong>Borrador de respuesta (para consensuar):</strong><br/>${escapeHtml(analysis.respuesta).replace(/\n/g,'<br/>')}</p><p class="muted">Nota: no se enviará ninguna respuesta automática sin tu OK.</p></div>` : `<div style="height:14px"></div><p class="muted">Ana no generó borrador (sin IA configurada). Puedes responder manualmente.</p>`}
     `;
 
     const html = baseEmailHtml({

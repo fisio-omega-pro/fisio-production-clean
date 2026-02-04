@@ -58,6 +58,83 @@ module.exports = {
     } catch (e) { return { reply: "Error de conexión en el cerebro legal." }; }
   },
 
+  // 🏢 NUEVA: Triage específico para formulario Corporate (siempre lead, siempre borrador)
+  processCorporateLead: async (lead) => {
+    const safe = (v) => String(v ?? '').trim();
+    const companyName = safe(lead.companyName);
+    const contactName = safe(lead.contactName);
+    const email = safe(lead.email);
+    const phone = safe(lead.phone);
+    const clinicsCount = safe(lead.clinicsCount);
+    const practitionersCount = safe(lead.practitionersCount);
+    const services = Array.isArray(lead.services) ? lead.services.map((x) => safe(x)).filter(Boolean) : [];
+    const locations = safe(lead.locations);
+    const timeline = safe(lead.timeline);
+    const preferredContact = safe(lead.preferredContact);
+    const notes = safe(lead.notes);
+
+    const prompt = `Eres Ana, asesora comercial y operativa de FisioTool Pro.
+
+CONTEXTO:
+Esto NO es un email inbound, es un lead captado desde el formulario "Corporate" de la landing.
+Tu misión es ayudar al CEO (Augusto) con un resumen ejecutivo y un borrador de respuesta.
+IMPORTANTE:
+- NUNCA clasifiques como SPAM por incluir palabras como "prueba", "test" o similares.
+- Para Corporate, asume LEAD_PROSPECTO salvo que sea claramente malicioso (porn/spam de links/crypto).
+- No se envía nada al lead automáticamente: solo propones el borrador.
+
+LEAD:
+Empresa: ${companyName}
+Contacto: ${contactName}
+Email: ${email}
+Teléfono: ${phone}
+Sedes: ${clinicsCount}
+Especialistas: ${practitionersCount}
+Servicios: ${services.join(', ')}
+Ubicaciones: ${locations}
+Plazo: ${timeline}
+Preferencia contacto: ${preferredContact}
+Notas: ${notes}
+
+INSTRUCCIONES:
+1) Clasificación: URGENTE | IMPORTANTE | NORMAL
+   - URGENTE si (sedes>=3 o especialistas>=10) o si plazo es 0-30d.
+2) Tipo: LEAD_PROSPECTO
+3) Resumen ejecutivo: 3-6 bullets muy concretos.
+4) Preguntas clave para avanzar (máx 6) adaptadas a multiclínica/multi-servicio.
+5) Borrador de respuesta (email) profesional y conciso, proponiendo una llamada/demo y pidiendo datos faltantes.
+
+Responde SOLO en JSON:
+{
+  "clasificacion": "URGENTE|IMPORTANTE|NORMAL",
+  "tipo": "LEAD_PROSPECTO",
+  "resumen": "bullets",
+  "preguntas_clave": ["..."],
+  "respuesta": "borrador de email"
+}`;
+
+    try {
+      const reply = await callAnaEngine(prompt);
+      const jsonMatch = reply.match(/\{[\s\S]*\}/);
+      if (jsonMatch) return JSON.parse(jsonMatch[0]);
+      return {
+        clasificacion: "IMPORTANTE",
+        tipo: "LEAD_PROSPECTO",
+        resumen: `Lead Corporate: ${companyName} (${clinicsCount} sedes, ${practitionersCount} especialistas)`,
+        preguntas_clave: [],
+        respuesta: null
+      };
+    } catch (e) {
+      return {
+        clasificacion: "IMPORTANTE",
+        tipo: "LEAD_PROSPECTO",
+        resumen: `Lead Corporate sin IA: ${companyName} (${clinicsCount} sedes, ${practitionersCount} especialistas)`,
+        preguntas_clave: [],
+        respuesta: null
+      };
+    }
+  },
+
   // 📧 NUEVA FUNCIONALIDAD: Procesar emails entrantes
   processIncomingEmail: async (from, subject, body) => {
     const prompt = `Eres Ana, asistente IA de FisioTool Pro. Clasifica este email y decide qué hacer:
