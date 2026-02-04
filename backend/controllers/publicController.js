@@ -30,6 +30,8 @@ const submitCorporateLead = async (req, res) => {
     const locations = String(b.locations || '').trim();
     const timeline = String(b.timeline || '').trim();
     const preferredContact = String(b.preferredContact || '').trim();
+    const timezone = String(b.timezone || '').trim();
+    const availability = String(b.availability || '').trim();
     const notes = String(b.notes || '').trim();
 
     if (!companyName || !contactName || !email) {
@@ -66,6 +68,8 @@ const submitCorporateLead = async (req, res) => {
       locations,
       timeline,
       preferredContact,
+      timezone,
+      availability,
       notes,
       ip,
       userAgent,
@@ -93,6 +97,8 @@ const submitCorporateLead = async (req, res) => {
       (monthlyPatients != null ? `Pacientes/mes: ${monthlyPatients}\n` : '') +
       (timeline ? `Plazo: ${timeline}\n` : '') +
       (preferredContact ? `Preferencia: ${preferredContact}\n` : '') +
+      (timezone ? `Zona horaria: ${timezone}\n` : '') +
+      (availability ? `Disponibilidad: ${availability}\n` : '') +
       (notes ? `Notas: ${notes}\n` : '');
 
     let analysis = null;
@@ -108,6 +114,8 @@ const submitCorporateLead = async (req, res) => {
         locations,
         timeline,
         preferredContact,
+        timezone,
+        availability,
         notes
       });
     } catch (_) {
@@ -150,6 +158,8 @@ const submitCorporateLead = async (req, res) => {
         ${monthlyPatients != null ? `<p class="p"><strong>Pacientes/mes:</strong> ${escapeHtml(monthlyPatients)}</p>` : ''}
         ${timeline ? `<p class="p"><strong>Plazo:</strong> ${escapeHtml(timeline)}</p>` : ''}
         ${preferredContact ? `<p class="p"><strong>Preferencia:</strong> ${escapeHtml(preferredContact)}</p>` : ''}
+        ${timezone ? `<p class="p"><strong>Zona horaria:</strong> ${escapeHtml(timezone)}</p>` : ''}
+        ${availability ? `<p class="p"><strong>Disponibilidad:</strong> ${escapeHtml(availability)}</p>` : ''}
         ${notes ? `<p class="p"><strong>Notas:</strong><br/>${escapeHtml(notes).replace(/\n/g,'<br/>')}</p>` : ''}
         <p class="muted">Lead ID: ${escapeHtml(ref.id)} · IP: ${escapeHtml(ip)}</p>
       </div>

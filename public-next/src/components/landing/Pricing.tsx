@@ -25,6 +25,8 @@ export default function Pricing() {
     locations: '',
     timeline: '0-30d',
     preferredContact: 'email',
+    timezone: 'Europe/Madrid',
+    availability: '',
     notes: '',
     consent: false,
     website: '', // honeypot anti-spam
@@ -68,6 +70,8 @@ export default function Pricing() {
       locations: '',
       timeline: '0-30d',
       preferredContact: 'email',
+      timezone: 'Europe/Madrid',
+      availability: '',
       notes: '',
       consent: false,
       website: '',
@@ -83,9 +87,13 @@ export default function Pricing() {
     const companyName = corpForm.companyName.trim();
     const contactName = corpForm.contactName.trim();
     const email = corpForm.email.trim();
+    const phone = corpForm.phone.trim();
     const clinicsCount = corpForm.clinicsCount.trim();
     const practitionersCount = corpForm.practitionersCount.trim();
     if (!companyName || !contactName || !email) return setCorpError('Empresa, contacto y email son obligatorios.');
+    if ((corpForm.preferredContact === 'whatsapp' || corpForm.preferredContact === 'phone') && !phone) {
+      return setCorpError('Si prefieres WhatsApp/teléfono, indica un número de contacto.');
+    }
     if (!corpForm.consent) return setCorpError('Debes aceptar el tratamiento de datos para que podamos contactarte.');
     if (!clinicsCount || !practitionersCount) return setCorpError('Indica número de sedes y número de especialistas.');
 
@@ -98,7 +106,7 @@ export default function Pricing() {
           companyName,
           contactName,
           email,
-          phone: corpForm.phone.trim(),
+          phone,
           clinicsCount: Number(clinicsCount),
           practitionersCount: Number(practitionersCount),
           services: corpForm.services,
@@ -108,6 +116,8 @@ export default function Pricing() {
           locations: corpForm.locations.trim(),
           timeline: corpForm.timeline,
           preferredContact: corpForm.preferredContact,
+          timezone: corpForm.timezone,
+          availability: corpForm.availability.trim(),
           notes: corpForm.notes.trim(),
         }),
       });
@@ -297,6 +307,24 @@ export default function Pricing() {
                       <option value="phone">Teléfono</option>
                       <option value="whatsapp">WhatsApp</option>
                     </select>
+                  </div>
+                  <div>
+                    <div style={modalStyles.fieldLabel}>Zona horaria</div>
+                    <select value={corpForm.timezone} onChange={(e) => setCorpForm(p => ({ ...p, timezone: e.target.value }))} style={modalStyles.select}>
+                      <option value="Europe/Madrid">Europe/Madrid</option>
+                      <option value="Europe/Lisbon">Europe/Lisbon</option>
+                      <option value="Europe/London">Europe/London</option>
+                      <option value="America/New_York">America/New_York</option>
+                    </select>
+                  </div>
+
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <Field
+                      label="Disponibilidad (2 franjas horarias)"
+                      value={corpForm.availability}
+                      onChange={(v) => setCorpForm(p => ({ ...p, availability: v }))}
+                      placeholder="Ej: Mar 10-12 / Jue 16-18"
+                    />
                   </div>
 
                   <div style={{ gridColumn: '1 / -1' }}>

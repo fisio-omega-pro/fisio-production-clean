@@ -71,6 +71,8 @@ module.exports = {
     const locations = safe(lead.locations);
     const timeline = safe(lead.timeline);
     const preferredContact = safe(lead.preferredContact);
+    const timezone = safe(lead.timezone);
+    const availability = safe(lead.availability);
     const notes = safe(lead.notes);
 
     const prompt = `Eres Ana, asesora comercial y operativa de FisioTool Pro.
@@ -94,6 +96,8 @@ Servicios: ${services.join(', ')}
 Ubicaciones: ${locations}
 Plazo: ${timeline}
 Preferencia contacto: ${preferredContact}
+Zona horaria: ${timezone}
+Disponibilidad: ${availability}
 Notas: ${notes}
 
 INSTRUCCIONES:
@@ -130,6 +134,8 @@ Responde SOLO en JSON:
         ``,
         `Soy Ana de FisioTool Pro. Gracias por tu interés en el plan Corporate para ${companyName || 'vuestro grupo'}.`,
         `Por lo que indicas (${clinicsCount} sedes, ${practitionersCount} especialistas y servicios mixtos), lo más eficiente es hacer una llamada breve (15–20 min) para mapear requisitos y devolverte una propuesta concisa.`,
+        availability ? `` : '',
+        availability ? `He visto esta disponibilidad: ${availability}${timezone ? ` (${timezone})` : ''}. Si te encaja, puedo proponerte una demo en una de esas franjas.` : '',
         ``,
         `Para prepararla, ¿me confirmas por favor:`,
         ...q.map((x) => `- ${x}`),
