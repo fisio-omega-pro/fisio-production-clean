@@ -15,6 +15,7 @@ const FOOTER_DATA = {
     { label: 'Privacidad Pro', href: '/privacidad' },
     { label: 'Términos de Servicio', href: '/terminos' },
     { label: 'Contrato RGPD', href: '/rgpd' },
+    { label: 'Cookies', href: '/cookies' },
     { label: 'Aviso Legal', href: '/aviso-legal' },
   ],
   soporte: [

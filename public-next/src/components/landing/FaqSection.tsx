@@ -35,28 +35,59 @@ const FAQS: FaqItem[] = [
 export default function FaqSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   return (
-    <section style={{ padding: '120px 5%', background: '#020305' }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        <div style={{ marginBottom: '80px', textAlign: 'center' }}>
+    <section style={{ padding: '120px 5%', background: '#020305', overflow: 'hidden', boxSizing: 'border-box' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
+        <div style={{ marginBottom: '80px', textAlign: 'center', padding: '0 8px' }}>
            <small style={{color:'#0066ff', fontWeight:900, letterSpacing:'3px', textTransform:'uppercase'}}>Resolución de Dudas</small>
-           <h2 style={{ fontSize: '42px', fontWeight: 900, color: '#fff', marginTop: '15px' }}>Consultas Frecuentes.</h2>
+           <h2 style={{ fontSize: 'clamp(28px, 8vw, 42px)', fontWeight: 900, color: '#fff', marginTop: '15px', lineHeight: 1.2 }}>Consultas Frecuentes.</h2>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '25px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: '25px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
           {FAQS.map((item, i) => {
             const config = TYPE_CONFIG[item.type];
             const isOpen = openIndex === i;
             return (
-              <div key={i} onClick={() => setOpenIndex(isOpen ? null : i)} style={{ borderRadius: '24px', border: `1px solid ${isOpen ? config.color : 'rgba(255,255,255,0.05)'}`, background: 'rgba(255,255,255,0.02)', cursor: 'pointer', padding: '30px', transition: '0.3s', boxShadow: isOpen ? `0 10px 30px -10px ${config.color}30` : 'none' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: config.color, fontSize: '10px', fontWeight: 800, marginBottom: '15px', letterSpacing: '1px' }}>
+              <div
+                key={i}
+                onClick={() => setOpenIndex(isOpen ? null : i)}
+                style={{
+                  borderRadius: '24px',
+                  border: `1px solid ${isOpen ? config.color : 'rgba(255,255,255,0.05)'}`,
+                  background: 'rgba(255,255,255,0.02)',
+                  cursor: 'pointer',
+                  padding: '20px',
+                  transition: '0.3s',
+                  boxShadow: isOpen ? `0 10px 30px -10px ${config.color}30` : 'none',
+                  overflow: 'hidden',
+                  minWidth: 0,
+                  boxSizing: 'border-box',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: config.color, fontSize: '10px', fontWeight: 800, marginBottom: '15px', letterSpacing: '1px', flexShrink: 0 }}>
                   <config.icon size={14} /> {config.label}
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#fff', fontWeight: 700, alignItems: 'center', gap: '20px' }}>
-                  <span style={{flex: 1, fontSize: '17px'}}>{item.q}</span>
-                  <ChevronDown size={20} style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: '0.3s', opacity: 0.3 }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#fff', fontWeight: 700, alignItems: 'flex-start', gap: '12px', minWidth: 0 }}>
+                  <span style={{ flex: 1, fontSize: 'clamp(15px, 4vw, 17px)', lineHeight: 1.35, minWidth: 0, overflowWrap: 'break-word', wordBreak: 'break-word' }}>{item.q}</span>
+                  <ChevronDown size={20} style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: '0.3s', opacity: 0.3, flexShrink: 0 }} />
                 </div>
                 <AnimatePresence>
                   {isOpen && (
-                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} style={{ marginTop: '20px', color: 'rgba(255,255,255,0.5)', lineHeight: '1.7', fontSize: '15px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '20px' }}>
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25 }}
+                      style={{
+                        marginTop: '20px',
+                        color: 'rgba(255,255,255,0.5)',
+                        lineHeight: '1.7',
+                        fontSize: 'clamp(14px, 3.5vw, 15px)',
+                        borderTop: '1px solid rgba(255,255,255,0.05)',
+                        paddingTop: '20px',
+                        overflowWrap: 'break-word',
+                        wordBreak: 'break-word',
+                        minWidth: 0,
+                      }}
+                    >
                       {item.a}
                     </motion.div>
                   )}

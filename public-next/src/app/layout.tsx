@@ -1,4 +1,5 @@
 import './globals.css';
+import CookieBanner from '@/components/CookieBanner';
 
 export const metadata = {
   title: 'FisioTool Pro - Gestión Clínica con IA',
@@ -30,7 +31,10 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: `(${registerServiceWorker.toString()})()` }} />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <CookieBanner />
+      </body>
     </html>
   );
 }
