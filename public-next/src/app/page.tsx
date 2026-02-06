@@ -5,10 +5,10 @@ import React, { useState, useEffect } from 'react';
 // Importamos los componentes de Ingeniería (Bloques 1-4)
 import Navbar from '../components/landing/Navbar';
 import Hero from '../components/landing/Hero';
+import VideoPresentacion from '../components/landing/VideoPresentacion';
 import Features from '../components/landing/Features';
 import AnaDemo from '../components/landing/AnaDemo';
 import RoiSection from '../components/landing/RoiSection';
-import TestimonialsGallery from '../components/landing/TestimonialsGallery';
 import Pricing from '../components/landing/Pricing';
 import FaqSection from '../components/landing/FaqSection';
 import TrustBar from '../components/landing/TrustBar';
@@ -46,14 +46,14 @@ export default function LandingPage() {
         background: `radial-gradient(circle at ${mousePos.x}% ${mousePos.y}%, rgba(0, 102, 255, 0.08) 0%, transparent 40%)` 
       }} />
 
-      {/* --- ESTRUCTURA MODULAR --- */}
+      {/* Bloque 1: Hero. Bloque 2: Video presentación (único vídeo). Sin testimonios. */}
       <div style={{ position: 'relative', zIndex: 1 }}>
         <Navbar />
         <Hero />
+        <VideoPresentacion />
         <Features />
         <AnaDemo />
         <RoiSection />
-        <TestimonialsGallery />
         <Pricing />
         <FaqSection />
         <TrustBar />
