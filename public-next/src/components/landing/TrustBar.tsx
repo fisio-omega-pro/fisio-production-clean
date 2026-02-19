@@ -16,8 +16,8 @@ export default function TrustBar() {
             <div style={{width:'50px', height:'50px', background:'rgba(0,102,255,0.1)', borderRadius:'14px', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:'30px'}}>
               <Lock size={24} color="#0066ff" />
             </div>
-            <h4 style={{color:'#fff', marginBottom:'15px', fontWeight: 800, fontSize: '20px'}}>Cifrado Grado Militar</h4>
-            <p style={{fontSize:'15px', color:'rgba(255,255,255,0.5)', lineHeight: '1.8'}}>Implementamos protocolos AES-256 de extremo a extremo. Los historiales clínicos permanecen cifrados en reposo y en tránsito, garantizando que solo el profesional autorizado posea la clave de lectura.</p>
+            <h4 style={{color:'#fff', marginBottom:'15px', fontWeight: 800, fontSize: '20px'}}>Cifrado de Alto Nivel</h4>
+            <p style={{fontSize:'15px', color:'rgba(255,255,255,0.5)', lineHeight: '1.8'}}>Los historiales clínicos se almacenan en Google Cloud con cifrado AES-256 en reposo y se transmiten siempre por canal TLS (HTTPS). El acceso está restringido al profesional autorizado mediante autenticación y control de identidad.</p>
           </div>
 
           <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', padding: '50px 40px', borderRadius: '40px', textAlign: 'left' }}>

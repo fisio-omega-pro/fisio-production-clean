@@ -20,6 +20,9 @@ export default function CookieBanner() {
   const accept = () => {
     localStorage.setItem(STORAGE_KEY, 'accepted');
     setVisible(false);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('fisiotool-cookie-consent', { detail: 'accepted' }));
+    }
   };
 
   const reject = () => {

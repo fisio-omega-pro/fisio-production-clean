@@ -1,5 +1,6 @@
 import './globals.css';
 import CookieBanner from '@/components/CookieBanner';
+import GoogleAnalytics from '@/components/GoogleAnalytics';
 
 export const metadata = {
   title: 'FisioTool Pro - Gestión Clínica con IA',
@@ -34,6 +35,7 @@ export default function RootLayout({
       <body>
         {children}
         <CookieBanner />
+        <GoogleAnalytics />
       </body>
     </html>
   );

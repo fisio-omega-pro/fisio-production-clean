@@ -1,12 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: 'export', // ✅ Obliga a Next.js a crear una carpeta 'out' con todo el diseño
+  output: 'export',
+  trailingSlash: true, // Genera aviso-legal/index.html → el host sirve /aviso-legal/ sin 404
   images: {
-    unoptimized: true, // Necesario para que las imágenes funcionen sin servidor Next activo
+    unoptimized: true,
   },
   typescript: {
-    ignoreBuildErrors: true, // ✅ Permite build aunque haya errores de TypeScript
+    ignoreBuildErrors: true,
   },
 };
 

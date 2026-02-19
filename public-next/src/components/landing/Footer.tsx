@@ -4,24 +4,27 @@ import React from 'react';
 import Link from 'next/link';
 import { MessageCircle, ExternalLink } from 'lucide-react';
 
-// Configuración de enlaces para fácil mantenimiento
+// Enlaces del pie: solo rutas que existen en /app (aviso-legal, terminos, privacidad, devolucion, rgpd, cookies, pagos).
+// Devoluciones/reembolsos destacado para cumplimiento Stripe.
 const FOOTER_DATA = {
   producto: [
-    { label: 'Características', href: '#ventajas' },
-    { label: 'Planes y Precios', href: '#precios' },
-    { label: 'Simulación IA', href: '#demo' },
+    { label: 'Características', href: '/#ventajas' },
+    { label: 'Planes y Precios', href: '/#precios' },
+    { label: 'Simulación IA', href: '/#demo' },
   ],
   legal: [
-    { label: 'Privacidad Pro', href: '/privacidad' },
+    { label: 'Aviso Legal', href: '/aviso-legal' },
     { label: 'Términos de Servicio', href: '/terminos' },
+    { label: 'Privacidad', href: '/privacidad' },
+    { label: 'Devoluciones y reembolsos', href: '/devolucion' },
     { label: 'Contrato RGPD', href: '/rgpd' },
     { label: 'Cookies', href: '/cookies' },
-    { label: 'Aviso Legal', href: '/aviso-legal' },
+    { label: 'Métodos de pago', href: '/pagos' },
   ],
   soporte: [
     { label: 'ana@fisiotool.com', href: 'mailto:ana@fisiotool.com', isEmail: true },
-    { label: 'Soporte Directo', href: 'https://wa.me/34615200612', isWhatsApp: true },
-  ]
+    { label: 'Soporte por WhatsApp', href: 'https://wa.me/34615200612', isWhatsApp: true },
+  ],
 };
 
 export default function Footer() {
@@ -139,7 +142,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: '#888',
     textDecoration: 'none',
     transition: 'color 0.2s ease',
-    cursor: 'pointer'
+    cursor: 'pointer',
   },
   whatsappLink: {
     display: 'flex',

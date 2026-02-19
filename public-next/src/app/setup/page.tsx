@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Building2, ArrowRight, ArrowLeft, Eye, EyeOff, Mail, Lock, 
   Clock, PauseCircle, AlertTriangle, Stethoscope, Baby, Car, ShieldAlert, Activity,
-  Ticket, Euro, Check, CreditCard, Banknote, Smartphone, FileText, Loader2, Info,
+  Ticket, Euro, Check, CreditCard, Banknote, Smartphone, FileText, Loader2,
   Landmark, MapPin, X
 } from 'lucide-react';
 import { dashboardAPI } from '../dashboard/services';
@@ -172,9 +172,8 @@ export default function OnboardingEpic() {
       if (data.success) {
         localStorage.setItem('fisio_token', data.token);
         if (formData.is_blind) localStorage.setItem('fisio_is_blind', '1');
-        // Pregunta sibilina para evitar fricción
-        const irPago = confirm("✅ CUENTA CREADA.\n\n¿Deseas configurar la pasarela de pago ahora?\n[ACEPTAR] = Sí, configurar cobros\n[CANCELAR] = Entrar al Dashboard primero");
-        window.location.href = irPago && data.payment_url ? data.payment_url : '/dashboard';
+        // Tras aceptar términos, ir siempre a la pasarela de pago. Si no hay URL (ej. Stripe no configurado), dashboard con banner de pendientes.
+        window.location.href = data.payment_url ? data.payment_url : '/dashboard';
       } else { 
         alert(data.error || "Error en el registro"); 
       }
@@ -231,10 +230,6 @@ export default function OnboardingEpic() {
                       onChange={(v:string) => update('nombre', v)} 
                       error={errors.nombre} 
                     />
-                    <div className="mt-2 flex items-center gap-2 text-[11px] text-blue-400/80 bg-blue-500/5 p-2 rounded-lg border border-blue-500/10">
-                      <Info size={12} />
-                      <span>Nota: Si tienes más clínicas, podrás añadirlas después en el Dashboard.</span>
-                    </div>
                   </div>
 
                   {/* DIRECCIÓN GRID */}

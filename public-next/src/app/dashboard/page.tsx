@@ -31,8 +31,21 @@ import { EditProfileModal } from './components/modals/EditProfileModal';
 import { HistoryModal } from './components/HistoryModal';
 import { Crown, Loader2, Zap, Ticket, User, Building2, MapPin, Info } from 'lucide-react';
 
+// Planes que incluyen multi-sede (300€): al subir de nivel se activa automáticamente en el dashboard
+const PLANS_MULTI_CLINIC = ['team', 'business', 'clinic', 'corporate'];
+
 export default function DashboardOmega() {
   const state = useDashboardState();
+  const plan = String(state.clinicData?.plan || 'solo').toLowerCase();
+  const hasMultiClinicPlan = PLANS_MULTI_CLINIC.includes(plan);
+  const navItemsFiltered = React.useMemo(() => {
+    return Object.fromEntries(
+      Object.entries(NAV_ITEMS).map(([group, items]) => [
+        group,
+        (items as any[]).filter((item) => item.id !== 'sedes' || hasMultiClinicPlan),
+      ])
+    );
+  }, [hasMultiClinicPlan]);
   const { isRecording, transcript, toggleRecording, setTranscript } = useVoiceAssistant(state.voiceEnabled);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const lastSpokenTab = useRef<string>('');
@@ -127,7 +140,18 @@ export default function DashboardOmega() {
       case 'finanzas': return <FinanzasView balance={state.balance} onActivateCampaign={async()=>{ await dashboardAPI.launchCampaign(); state.refreshData(); }} clinicData={state.clinicData} />;
       case 'bonos': return <BonosView clinicData={state.clinicData} bonos={state.bonos} onActivate={async () => { await dashboardAPI.activateBonos(); state.refreshData(); }} onNewBono={() => state.setModalType('nuevo_bono')} />;
       case 'equipo': return <EquipoView equipo={state.equipo} onAddMember={() => state.setModalType('editar_perfil')} currentPlan={state.clinicData.plan} onViewCalendar={()=>state.setActiveTab('agenda')} onEditMember={(m)=> { state.setMemberToEdit(m); state.setModalType('editar_perfil'); }} />;
-      case 'sedes': return <SedesView clinicData={state.clinicData} onAddSede={() => state.setModalType('sede')} />;
+      case 'sedes':
+        if (!hasMultiClinicPlan) {
+          return (
+            <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-8 max-w-lg">
+              <Crown size={40} className="text-amber-500 mb-4" />
+              <h2 className="text-xl font-bold text-white mb-2">Mis Clínicas (Multi-Sede)</h2>
+              <p className="text-gray-400 text-sm mb-6">Esta función está disponible en el plan Business (300€/mes). Gestiona varias sedes desde un solo panel.</p>
+              <ActionButton onClick={() => state.setModalType('upgrade')} style={{ background: '#fbbf24', color: '#000' }}>Mejorar plan</ActionButton>
+            </div>
+          );
+        }
+        return <SedesView clinicData={state.clinicData} onAddSede={() => state.setModalType('sede')} />;
       case 'cobros': return <CobrosView hasStripe={state.configStatus.hasStripe} clinicData={state.clinicData} />;
       case 'asistente': return <AsistenteView />;
       case 'referidos': return <ReferidosView />;
@@ -140,14 +164,14 @@ export default function DashboardOmega() {
   };
 
   return (
-    <DashboardLayout activeTab={state.activeTab} onTabChange={state.setActiveTab} navItems={NAV_ITEMS}>
+    <DashboardLayout activeTab={state.activeTab} onTabChange={state.setActiveTab} navItems={navItemsFiltered}>
       {needsSetup && (
         <div className="mb-6 rounded-3xl border border-amber-500/20 bg-amber-500/5 p-5">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <div className="text-[10px] font-black uppercase tracking-widest text-amber-400">Modo limitado</div>
               <div className="text-sm font-bold text-white mt-1">
-                Cobros y/o licencia pendientes. Puedes usar Agenda, Pacientes, Equipo y Sedes sin problema.
+                Cobros y/o licencia pendientes. Puedes usar Agenda, Pacientes y Equipo sin problema.
               </div>
               <div className="text-[11px] text-amber-200/70 mt-1">
                 {needsSubscription ? 'Licencia: pendiente. ' : ''}{needsStripe ? 'Stripe: pendiente o no disponible. ' : ''}Completa Pagos cuando esté listo.
@@ -210,7 +234,7 @@ export default function DashboardOmega() {
          </div>
       </Modal>
 
-      <Modal isOpen={state.modalType === 'sede'} onClose={() => state.setModalType(null)} title="Nueva Sede">
+      <Modal isOpen={state.modalType === 'sede' && hasMultiClinicPlan} onClose={() => state.setModalType(null)} title="Nueva Sede">
          <div className="flex flex-col gap-6 p-2">
             <InputField label="Nombre" value={sedeData.nombre} onChange={(v)=>setSedeData({...sedeData, nombre:v})} />
             <InputField label="Calle" value={sedeData.calle} onChange={(v)=>setSedeData({...sedeData, calle:v})} />

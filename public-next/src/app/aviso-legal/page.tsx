@@ -75,7 +75,6 @@ export default function AvisoLegalPage() {
   );
 }
 
-// --- ESTILOS (MANTENIDOS) ---
 const pageContainer: React.CSSProperties = { backgroundColor: '#020305', minHeight: '100vh', color: '#fff', fontFamily: 'Inter, sans-serif', position: 'relative', overflowX: 'hidden' };
 const glowWhite: React.CSSProperties = { position: 'absolute', top: 0, left: 0, width: '100%', height: '600px', background: 'radial-gradient(circle at 50% 10%, rgba(255,255,255,0.03) 0%, transparent 50%)', zIndex: 0 };
 const navStyle: React.CSSProperties = { position: 'fixed', top: '40px', left: '40px', zIndex: 100 };
