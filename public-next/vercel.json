@@ -1,6 +1,11 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": ".next",
-  "framework": "nextjs",
-  "installCommand": "npm install"
+  "rewrites": [
+    { "source": "/aviso-legal", "destination": "/aviso-legal/" },
+    { "source": "/devolucion", "destination": "/devolucion/" },
+    { "source": "/terminos", "destination": "/terminos/" },
+    { "source": "/privacidad", "destination": "/privacidad/" },
+    { "source": "/rgpd", "destination": "/rgpd/" },
+    { "source": "/cookies", "destination": "/cookies/" },
+    { "source": "/pagos", "destination": "/pagos/" }
+  ]
 }

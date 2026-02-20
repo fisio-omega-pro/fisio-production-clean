@@ -1,8 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: 'export',
-  trailingSlash: true, // Genera aviso-legal/index.html → el host sirve /aviso-legal/ sin 404
+  // Sin output: 'export' para que Vercel despliegue con .next y sirva todas las rutas (aviso-legal, devolucion, terminos…)
+  trailingSlash: true,
   images: {
     unoptimized: true,
   },
