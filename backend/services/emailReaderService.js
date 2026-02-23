@@ -45,27 +45,57 @@ const guessBounceReason = (body) => {
   return m ? String(m[0]) : '';
 };
 
+const connectImap = (credentials) => {
+  return new Promise((resolve, reject) => {
+    const imap = new Imap({
+      user: credentials.user,
+      password: credentials.pass,
+      host: 'gmadm1033.siteground.biz',
+      port: 993,
+      tls: true,
+      tlsOptions: { rejectUnauthorized: false },
+      connTimeout: 30000,  // 30s (default 10s) — SiteGround tarda desde Cloud Run
+      authTimeout: 25000,  // 25s (default 5s)
+      keepalive: { interval: 10000, idleInterval: 300000, forceNoop: true }
+    });
+    const timeout = setTimeout(() => {
+      try { imap.end(); } catch (_) {}
+      reject(new Error('IMAP: timeout global 45s'));
+    }, 45000);
+    imap.once('ready', () => { clearTimeout(timeout); resolve(imap); });
+    imap.once('error', (err) => { clearTimeout(timeout); reject(err); });
+    imap.connect();
+  });
+};
+
 const readEmails = async () => {
   const env = await initEnv();
   const credentials = env.ANA_MAIL; // 🚀 Ana lee su propio buzón
 
   if (!credentials.user || !credentials.pass) return;
 
-  const imap = new Imap({
-    user: credentials.user,
-    password: credentials.pass,
-    host: 'gmadm1033.siteground.biz',
-    port: 993,
-    tls: true,
-    tlsOptions: { rejectUnauthorized: false }
-  });
+  let imap;
+  const MAX_RETRIES = 2;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      imap = await connectImap(credentials);
+      console.log(`✅ [IMAP] Conectado (intento ${attempt + 1})`);
+      break;
+    } catch (err) {
+      console.warn(`⚠️ [IMAP] Intento ${attempt + 1}/${MAX_RETRIES + 1} falló: ${err.message}`);
+      if (attempt === MAX_RETRIES) {
+        console.error('🔥 [IMAP] Error: Agotados todos los reintentos');
+        return;
+      }
+      await new Promise(r => setTimeout(r, 3000)); // esperar 3s antes de reintentar
+    }
+  }
 
-  imap.once('ready', () => {
-    imap.openBox('INBOX', false, (err) => {
-      if (err) { imap.end(); return; }
-      imap.search(['UNSEEN'], (err, results) => {
-        if (err || !results || !results.length) { imap.end(); return; }
-        const f = imap.fetch(results, { bodies: '' });
+  imap.openBox('INBOX', false, (err) => {
+    if (err) { imap.end(); return; }
+    imap.search(['UNSEEN'], (err, results) => {
+      if (err || !results || !results.length) { imap.end(); return; }
+      const f = imap.fetch(results, { bodies: '' });
         f.on('message', (msg) => {
           msg.on('body', (stream) => {
             simpleParser(stream, async (e, parsed) => {
@@ -239,9 +269,6 @@ const readEmails = async () => {
         f.once('end', () => imap.end());
       });
     });
-  });
-  imap.once('error', (err) => console.error('🔥 [IMAP] Error:', err.message));
-  imap.connect();
 };
 
 module.exports = { readEmails };
