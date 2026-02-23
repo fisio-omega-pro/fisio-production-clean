@@ -134,26 +134,42 @@ const register = async (req, res, next) => {
 
     const token = jwt.sign({ clinicId: ref.id }, env.JWT_SECRET, { expiresIn: '30d' });
 
-    // Tras aceptar términos: redirigir a pasarela de pago (Stripe). Trial 30 días solo para los primeros 50 fisios; a partir del 51 solo referidos (50%) o 100%.
+    // Tras aceptar términos: Trial gratuito (primeros 50 fisios) o pasarela Stripe.
     let payment_url = null;
     let payment_error = null;
     try {
-      const paymentService = require('../services/paymentService');
-      const regPlan = String(d.plan || 'solo').trim().toLowerCase() || 'solo';
-      let referrerStripeCustomerId = null;
-      if (referred_by_clinic_id) {
-        const refClinic = await db.collection('clinicas').doc(referred_by_clinic_id).get();
-        if (refClinic.exists) referrerStripeCustomerId = (refClinic.data() || {}).stripe_customer_id || null;
-      }
       const countSnap = await db.collection('clinicas').count().get();
       const totalClinics = (typeof countSnap.data === 'function' ? countSnap.data() : {})?.count ?? 0;
-      const trialCap = (await initEnv()).FREE_TRIAL_CAP ?? 50;
-      const allowTrial = totalClinics <= trialCap;
-      const { url } = await paymentService.createSubscriptionSession(ref.id, d.email.toLowerCase().trim(), regPlan, req, {
-        referrerStripeCustomerId,
-        allowTrial,
-      });
-      payment_url = url || null;
+      const trialCap = Number((await initEnv()).FREE_TRIAL_CAP) || 50;
+      const isTrial = totalClinics <= trialCap;
+
+      if (isTrial) {
+        // 🎁 Primeros 50: acceso GRATIS 30 días, sin pedir tarjeta.
+        const trialEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+        await db.collection('clinicas').doc(ref.id).set({
+          subscription_active: true,
+          is_trial: true,
+          trial_started_at: now,
+          trial_expires_at: Timestamp.fromDate(trialEnd),
+          updated_at: now,
+        }, { merge: true });
+        console.log(`🎁 [REGISTER] Clínica ${ref.id} activada en modo TRIAL gratuito (nº ${totalClinics}/${trialCap}). Expira: ${trialEnd.toISOString()}`);
+        // payment_url queda null → frontend redirige al dashboard
+      } else {
+        // 💳 A partir del 51: Stripe checkout (con cupón referido si aplica)
+        const paymentService = require('../services/paymentService');
+        const regPlan = String(d.plan || 'solo').trim().toLowerCase() || 'solo';
+        let referrerStripeCustomerId = null;
+        if (referred_by_clinic_id) {
+          const refClinic = await db.collection('clinicas').doc(referred_by_clinic_id).get();
+          if (refClinic.exists) referrerStripeCustomerId = (refClinic.data() || {}).stripe_customer_id || null;
+        }
+        const { url } = await paymentService.createSubscriptionSession(ref.id, d.email.toLowerCase().trim(), regPlan, req, {
+          referrerStripeCustomerId,
+          allowTrial: false,
+        });
+        payment_url = url || null;
+      }
     } catch (e) {
       const stripeMsg = String(e?.message || e || '');
       console.error('🔥 [REGISTER] Fallo al crear sesión Stripe:', stripeMsg);

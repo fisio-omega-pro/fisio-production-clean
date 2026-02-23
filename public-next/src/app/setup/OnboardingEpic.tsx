@@ -224,8 +224,11 @@ export default function OnboardingEpic() {
 
         if (data.payment_url) {
           window.location.href = data.payment_url;
+        } else if (!data.payment_error) {
+          // 🎁 Trial gratuito: acceso directo al dashboard sin pedir tarjeta
+          window.location.href = '/dashboard';
         } else {
-          setPaymentError(data.payment_error || 'No se pudo conectar con la pasarela de pago.');
+          setPaymentError(data.payment_error);
           setStep(4);
         }
       } else {
