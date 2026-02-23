@@ -277,7 +277,20 @@ function AnaChatContent() {
               Precios
             </button>
             <button 
-              onClick={() => window.open(`https://fisiotool.com/ana?ref=${clinicId}`, '_blank')}
+              onClick={() => {
+                // Detectar si es iOS o Android y abrir la store correspondiente
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+                const isAndroid = /Android/.test(navigator.userAgent);
+                
+                if (isIOS) {
+                  window.open('https://apps.apple.com/app/fisiotool', '_blank');
+                } else if (isAndroid) {
+                  window.open('https://play.google.com/store/apps/details?id=com.fisiotool.app', '_blank');
+                } else {
+                  // Para desktop, abrir página web de descarga
+                  window.open('https://fisiotool.com/descargar', '_blank');
+                }
+              }}
               className="px-3 py-1 bg-white border border-gray-300 rounded-full text-xs text-gray-700 whitespace-nowrap hover:bg-gray-50 transition flex items-center gap-1"
             >
               <Download size={12} />

@@ -250,6 +250,8 @@ const anaChat = async (req, res) => {
 
 module.exports = {
   submitCorporateLead,
+  getClinicInfo,
+  anaChat,
   getClinicLogo: async (req, res) => {
     try {
       const clinicId = String(req.params.clinicId || '').trim();
