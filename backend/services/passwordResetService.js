@@ -12,15 +12,31 @@ async function createResetRequest(email) {
   if (!normalized) return { ok: false, error: 'Email requerido' };
 
   const snap = await db.collection('clinicas').where('email', '==', normalized).limit(1).get();
-  // Seguridad: no revelamos si existe o no
-  if (snap.empty) return { ok: true };
-
   const token = generateToken();
   const expiresAt = Timestamp.fromDate(new Date(Date.now() + 60 * 60 * 1000)); // 1h
 
+  if (!snap.empty) {
+    await db.collection('password_resets').add({
+      email: normalized,
+      clinicId: snap.docs[0].id,
+      type: 'clinic',
+      token,
+      used: false,
+      createdAt: Timestamp.now(),
+      expiresAt
+    });
+    return { ok: true, token };
+  }
+
+  const staffDoc = await db.collection('staff_logins').doc(normalized).get();
+  if (!staffDoc.exists) return { ok: true };
+
+  const staffData = staffDoc.data() || {};
   await db.collection('password_resets').add({
     email: normalized,
-    clinicId: snap.docs[0].id,
+    type: 'staff',
+    clinic_id: staffData.clinic_id || null,
+    specialist_id: staffData.specialist_id || null,
     token,
     used: false,
     createdAt: Timestamp.now(),
@@ -41,15 +57,23 @@ async function sendResetEmail(email, token) {
     `— Ana`;
 
   const bodyHtml = `
-    <div class="h1">Recuperación de contraseña</div>
-    <p class="p">Hemos recibido una solicitud para restablecer tu contraseña de <strong>FisioTool Pro</strong>.</p>
-    <p class="p">Este enlace es válido durante <strong>1 hora</strong>:</p>
-    <p><a class="cta" href="${resetLink}">Restablecer contraseña</a></p>
-    <div class="box">
-      <div class="muted">Si el botón no funciona, copia y pega este enlace:</div>
-      <div class="muted" style="word-break:break-all">${escapeHtml(resetLink)}</div>
+    <div class="block-w">
+      <div class="h1">Recuperación de contraseña</div>
+      <p class="p">Hemos recibido una solicitud para restablecer tu contraseña de <strong>FisioTool Pro</strong>.</p>
     </div>
-    <p class="muted" style="margin-top:12px">Si no solicitaste este cambio, ignora este email.</p>
+    <div class="block-w2">
+      <p class="p">Este enlace es válido durante <strong>1 hora</strong>:</p>
+      <p><a class="cta" href="${resetLink}">Restablecer contraseña</a></p>
+    </div>
+    <div class="block-w">
+      <div class="box">
+        <div class="muted">Si el botón no funciona, copia y pega este enlace:</div>
+        <div class="muted" style="word-break:break-all">${escapeHtml(resetLink)}</div>
+      </div>
+    </div>
+    <div class="block-w2">
+      <p class="muted" style="margin:0">Si no solicitaste este cambio, ignora este email.</p>
+    </div>
   `;
 
   const html = baseEmailHtml({
@@ -77,10 +101,22 @@ async function consumeResetToken(token, newPasswordHash) {
     return { ok: false, error: 'Token expirado' };
   }
 
-  await db.collection('clinicas').doc(data.clinicId).update({
-    password: newPasswordHash,
-    updated_at: Timestamp.now()
-  });
+  if (data.type === 'staff' && data.email) {
+    await db.collection('staff_logins').doc(data.email).set({
+      password: newPasswordHash,
+      updated_at: Timestamp.now()
+    }, { merge: true });
+  } else {
+    const clinicId = data.clinicId || data.clinic_id;
+    if (clinicId) {
+      await db.collection('clinicas').doc(clinicId).update({
+        password: newPasswordHash,
+        updated_at: Timestamp.now()
+      });
+    } else {
+      return { ok: false, error: 'Token inválido' };
+    }
+  }
 
   await db.collection('password_resets').doc(doc.id).update({
     used: true,

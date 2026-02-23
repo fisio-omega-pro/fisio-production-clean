@@ -50,7 +50,7 @@ export const ReferidosView = () => {
         <div className="flex items-center justify-between gap-4 mb-6">
           <div>
             <div className="text-[10px] font-black uppercase tracking-widest text-blue-500">Referidos</div>
-            <h3 className="text-2xl font-black text-white mt-1">Tu código y tracking</h3>
+            <h3 className="text-2xl font-black text-white mt-1">Comparte tu enlace</h3>
           </div>
           <button
             onClick={load}
@@ -68,24 +68,16 @@ export const ReferidosView = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="rounded-3xl border border-white/10 bg-black/20 p-5">
-            <div className="text-[10px] font-black uppercase tracking-widest text-gray-500">Código</div>
-            <div className="mt-2 text-xl font-black tracking-widest text-white">
-              {data?.code || '—'}
-            </div>
-            <button
-              onClick={() => data?.code && copy(data.code)}
-              disabled={!data?.code}
-              className="mt-3 px-4 py-2 rounded-2xl bg-white text-black text-[11px] font-black flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {copied ? <Check size={14} /> : <Copy size={14} />}
-              {copied ? 'Copiado' : 'Copiar'}
-            </button>
-          </div>
+        <div className="rounded-3xl border border-[#d4af37]/30 bg-[#d4af37]/5 p-6 mb-6">
+          <p className="text-[11px] font-black uppercase tracking-widest text-[#d4af37]">50% tú, 50% quien se registre</p>
+          <p className="text-sm text-gray-300 mt-1">
+            Quien entre por tu enlace paga la mitad el primer mes y tú también recibes 50% de descuento ese mes. Comparte el enlace; no hace falta que peguen ningún código.
+          </p>
+        </div>
 
-          <div className="rounded-3xl border border-white/10 bg-black/20 p-5 md:col-span-2">
-            <div className="text-[10px] font-black uppercase tracking-widest text-gray-500">Enlace de invitación</div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="rounded-3xl border border-white/10 bg-black/20 p-5 md:col-span-2 order-2 md:order-1">
+            <div className="text-[10px] font-black uppercase tracking-widest text-gray-500">Enlace de invitación (lleva al setup directamente)</div>
             <div className="mt-2 text-[12px] text-gray-300 break-all">
               {referralLink || '—'}
             </div>
@@ -98,8 +90,23 @@ export const ReferidosView = () => {
               Copiar enlace
             </button>
             <div className="mt-3 text-[11px] text-gray-500">
-              Cuando una clínica se registra con tu enlace, aparecerá aquí en el tracking.
+              Quien haga clic en el enlace irá al registro con tu referido ya aplicado.
             </div>
+          </div>
+
+          <div className="rounded-3xl border border-white/10 bg-black/20 p-5 order-1 md:order-2">
+            <div className="text-[10px] font-black uppercase tracking-widest text-gray-500">Código (incluido en el enlace)</div>
+            <div className="mt-2 text-xl font-black tracking-widest text-white">
+              {data?.code || '—'}
+            </div>
+            <button
+              onClick={() => data?.code && copy(data.code)}
+              disabled={!data?.code}
+              className="mt-3 px-4 py-2 rounded-2xl bg-white/10 text-white text-[11px] font-black flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {copied ? <Check size={14} /> : <Copy size={14} />}
+              {copied ? 'Copiado' : 'Copiar código'}
+            </button>
           </div>
         </div>
 

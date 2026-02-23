@@ -1,4 +1,4 @@
-import { Users, Calendar, PieChart, MessageSquare, Building2, CreditCard, Gift, Home, Lightbulb, MapPin, Ticket, Smartphone, Settings, Scale } from 'lucide-react';
+import { Users, Calendar, PieChart, MessageSquare, Building2, CreditCard, Gift, Home, Lightbulb, MapPin, Ticket, Settings } from 'lucide-react';
 import { NavItemConfig } from '../types';
 
 export const NAV_ITEMS: Record<string, NavItemConfig[]> = {
@@ -15,13 +15,11 @@ export const NAV_ITEMS: Record<string, NavItemConfig[]> = {
   ],
   inteligencia: [
     { id: 'asistente', label: 'Consultoría Ana', icon: MessageSquare },
-    { id: 'legal', label: 'Lex Legal', icon: Scale },
   ],
   configuracion: [
     { id: 'cobros', label: 'Pagos', icon: CreditCard },
     { id: 'referidos', label: 'Referidos', icon: Gift },
     { id: 'ajustes', label: 'Ajustes', icon: Settings },
     { id: 'sugerencias', label: 'Sugerencias', icon: Lightbulb },
-    { id: 'instalacion', label: 'Instalar App', icon: Smartphone } // 🚨 ID VÁLIDO EN LA LEY
   ]
 };

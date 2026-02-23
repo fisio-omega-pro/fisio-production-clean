@@ -80,17 +80,21 @@ router.post('/dashboard/save-cobros', ensureHandler(clinicController.saveCobrosC
 router.post('/dashboard/appointment', ensureHandler(clinicController.createAppointment, 'createAppointment'));
 router.post('/dashboard/save-note', ensureHandler(clinicController.savePatientNote, 'savePatientNote'));
 router.post('/dashboard/save-suggestion', ensureHandler(adminController.saveSuggestion, 'saveSuggestion'));
+router.post('/dashboard/create-ticket', ensureHandler(adminController.createTicket, 'createTicket'));
 router.post('/dashboard/update-settings', ensureHandler(adminController.updateSettings, 'updateSettings'));
 router.post('/dashboard/add-sede', ensureHandler(clinicController.addSede, 'addSede'));
 router.post('/dashboard/save-specialist', ensureHandler(clinicController.saveSpecialist, 'saveSpecialist'));
 router.post('/dashboard/import-patients', ensureHandler(clinicController.importPatients, 'importPatients'));
 router.post('/dashboard/activate-bonos', ensureHandler(clinicController.activateBonos, 'activateBonos'));
+router.post('/dashboard/deactivate-bonos', ensureHandler(clinicController.deactivateBonos, 'deactivateBonos'));
 router.post('/dashboard/create-bono', ensureHandler(clinicController.createBono, 'createBono'));
 router.post('/dashboard/launch-campaign', ensureHandler(clinicController.launchCampaign, 'launchCampaign'));
 router.post('/dashboard/run-recaptacion', ensureHandler(clinicController.runRecaptacionNow, 'runRecaptacionNow'));
 router.post('/dashboard/stripe-connect', ensureHandler(clinicController.startStripeConnect, 'startStripeConnect'));
 router.post('/dashboard/stripe-verify', ensureHandler(clinicController.finalizeStripeConnect, 'finalizeStripeConnect'));
 router.post('/dashboard/upgrade-plan', ensureHandler(clinicController.createUpgradeSession, 'createUpgradeSession'));
+router.post('/dashboard/cancel-subscription', ensureHandler(clinicController.cancelSubscription, 'cancelSubscription'));
+router.post('/dashboard/cobrar-cita-bono', ensureHandler(clinicController.createCitaBonoCheckout, 'createCitaBonoCheckout'));
 router.post('/dashboard/payment-verify', ensureHandler(clinicController.verifyPayment, 'verifyPayment'));
 router.post('/chat/dashboard', ensureHandler(chatController.handleChat, 'handleChat'));
 

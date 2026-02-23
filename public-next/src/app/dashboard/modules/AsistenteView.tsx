@@ -4,7 +4,7 @@ import { Send, Bot, Loader2 } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/apiBase';
 
 export const AsistenteView = () => {
-  const [messages, setMessages] = useState([{ role: 'ana', text: 'Hola, soy Ana. ¿En qué puedo ayudarte?' }]);
+  const [messages, setMessages] = useState([{ role: 'ana', text: 'Hola, soy Ana. Puedo explicarte al detalle cómo funciona cada parte de tu dashboard y cómo sacarle partido. ¿Por qué sección quieres que empecemos?' }]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -40,9 +40,12 @@ export const AsistenteView = () => {
 
   return (
     <div className="flex flex-col h-[70vh] max-w-4xl mx-auto bg-[#0a0a0c] border border-white/5 rounded-3xl overflow-hidden shadow-2xl">
-      <div className="p-4 border-b border-white/5 bg-white/[0.02] flex items-center gap-4">
-        <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center"><Bot size={18} color="#fff" /></div>
-        <span className="text-xs font-bold text-white uppercase tracking-widest">Modo Diagnóstico Ana</span>
+      <div className="p-4 border-b border-white/5 bg-white/[0.02]">
+        <div className="flex items-center gap-4">
+          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center"><Bot size={18} color="#fff" /></div>
+          <span className="text-xs font-bold text-white uppercase tracking-widest">Consultoría Ana</span>
+        </div>
+        <p className="text-[10px] text-gray-500 mt-2 ml-12">Deja que Ana te capacite: pregúntale cómo funciona cada parte del panel y cómo sacarle el máximo partido.</p>
       </div>
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4">
         {messages.map((m, i) => (

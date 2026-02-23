@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Copy, Smartphone, CheckCircle2, ExternalLink, 
-  Zap, Database, Activity, Lock, ArrowRight
+  Monitor, Database, Activity, MessageSquare
 } from 'lucide-react';
 
 interface HomeProps {
@@ -11,9 +11,10 @@ interface HomeProps {
   configStatus: { hasLogo: boolean; hasStripe: boolean };
   clinicData: { nombre: string; logo?: string };
   onRefresh: () => void;
+  onGoToAsistente?: () => void;
 }
 
-export const HomeView: React.FC<HomeProps> = ({ clinicId, configStatus, clinicData }) => {
+export const HomeView: React.FC<HomeProps> = ({ clinicId, configStatus, clinicData, onGoToAsistente }) => {
   const [copied, setCopied] = useState(false);
   const [origin, setOrigin] = useState('');
   const [isMobile, setIsMobile] = useState(false);
@@ -51,6 +52,16 @@ export const HomeView: React.FC<HomeProps> = ({ clinicId, configStatus, clinicDa
         <p className="text-gray-400 text-sm md:text-lg max-w-2xl leading-relaxed">
           Tu sistema operativo está listo. Usa tu <strong>Portal del Paciente</strong> para automatizar tu agenda y profesionalizar la atención.
         </p>
+        {onGoToAsistente && (
+          <button
+            type="button"
+            onClick={onGoToAsistente}
+            className="mt-4 inline-flex items-center gap-2 text-xs font-bold text-blue-400 hover:text-blue-300 uppercase tracking-widest"
+          >
+            <MessageSquare size={14} />
+            Deja que Ana te capacite: pregúntale cómo sacar partido al panel
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
@@ -94,10 +105,12 @@ export const HomeView: React.FC<HomeProps> = ({ clinicId, configStatus, clinicDa
               <button 
                 onClick={() => window.open(publicLink, '_blank')} 
                 className="py-4 px-6 rounded-xl font-bold text-sm text-gray-400 border border-white/10 hover:bg-white/5 hover:text-white transition-all flex items-center justify-center gap-2"
+                title="Ver la página que reciben tus pacientes al hacer clic en el enlace"
               >
-                <ExternalLink size={18} /> <span className="hidden sm:inline">PROBAR PORTAL</span><span className="sm:hidden">PROBAR</span>
+                <ExternalLink size={18} /> <span className="hidden sm:inline">VISTA PREVIA ENLACE PACIENTE</span><span className="sm:hidden">VISTA PREVIA</span>
               </button>
             </div>
+            <p className="text-[11px] text-gray-500 mt-2">Ese enlace es el que reciben tus pacientes al hacer clic; úsalo para comprobar qué ven antes de enviarlo por WhatsApp.</p>
           </div>
         </div>
 
@@ -110,24 +123,38 @@ export const HomeView: React.FC<HomeProps> = ({ clinicId, configStatus, clinicDa
                 <Smartphone size={20} className="text-purple-500" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-white">App de Gestión</h3>
-                <p className="text-xs text-gray-500">Instala el panel en tu móvil.</p>
+                <h3 className="text-base font-bold text-white">FisioTool Pro en tu móvil</h3>
+                <p className="text-xs text-gray-500">Escanea el QR para abrir el panel en el teléfono.</p>
               </div>
             </div>
             
-            <div className="flex gap-6 items-center">
+            <div className="flex gap-6 items-start">
               <div className="bg-white p-2 rounded-xl shrink-0">
                  <img 
-                   src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${origin}/dashboard&bgcolor=000&color=fff&margin=10`} 
+                   src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(origin + '/dashboard')}&bgcolor=000&color=fff&margin=10`} 
                    className="w-24 h-24 md:w-28 md:h-28 rounded-lg filter invert" 
-                   alt="QR Acceso"
+                   alt="QR Acceso al dashboard"
                  />
               </div>
-              <div className="space-y-2">
-                 <p className="text-xs text-gray-300 font-medium">1. Escanea el QR.</p>
-                 <p className="text-xs text-gray-300 font-medium">2. Opción "Compartir".</p>
-                 <p className="text-xs text-blue-400 font-bold">3. "Añadir a Inicio".</p>
+              <div className="space-y-2 flex-1">
+                 <p className="text-xs text-gray-300 font-medium flex items-center gap-1.5"><span className="text-blue-400 font-bold">1.</span> <strong>Escanear:</strong> abre FisioTool Pro en el navegador del móvil.</p>
+                 <p className="text-xs text-gray-300 font-medium flex items-center gap-1.5"><span className="text-blue-400 font-bold">2.</span> <strong>Compartir:</strong> envía el enlace a otro dispositivo por WhatsApp o email.</p>
+                 <p className="text-xs text-gray-300 font-medium flex items-center gap-1.5"><span className="text-blue-400 font-bold">3.</span> <strong>Añadir al inicio:</strong> instala FisioTool Pro como app (icono en la pantalla de inicio).</p>
               </div>
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-white/10">
+              <div className="flex items-center gap-3 mb-2">
+                <Monitor size={18} className="text-blue-400" />
+                <h4 className="text-sm font-bold text-white">FisioTool Pro en el ordenador</h4>
+              </div>
+              <p className="text-xs text-gray-400 mb-3">Abre el panel en el PC o instálalo como aplicación: en Chrome o Edge, menú ⋮ → «Instalar FisioTool Pro» o «Añadir a aplicaciones».</p>
+              <button 
+                onClick={() => window.open(`${origin}/dashboard`, '_blank')} 
+                className="w-full py-3 px-4 rounded-xl font-bold text-sm bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 transition-all flex items-center justify-center gap-2"
+              >
+                <Monitor size={18} /> Abrir FisioTool Pro en PC
+              </button>
             </div>
           </div>
 

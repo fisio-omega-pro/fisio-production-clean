@@ -10,37 +10,90 @@ const rateLimit = require('express-rate-limit');
 const admin = require('firebase-admin');
 const { db, Timestamp } = require('./config/firebase');
 
+// Orígenes permitidos para CORS (siempre aplicados; no dependen de env)
+const CORS_ALLOW_ORIGINS = [
+  'https://www.fisiotool.com',
+  'https://fisiotool.com',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'http://localhost:3001',
+  'http://127.0.0.1:3001',
+];
+
+function isOriginAllowed(origin) {
+  if (!origin) return true;
+  if (CORS_ALLOW_ORIGINS.includes(origin)) return true;
+  if (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) return true;
+  return false;
+}
+
+// 🔒 CORS: cabeceras en TODAS las respuestas (sin depender de initEnv ni async).
+// Esto garantiza que incluso si initialize() no ha terminado o ha fallado,
+// las respuestas POST/GET tendrán CORS headers y el navegador no las bloqueará.
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (isOriginAllowed(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-foundry-key');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Max-Age', '86400');
+    return res.status(204).end();
+  }
+  next();
+});
+
 async function initialize(options = {}) {
   const { listen = true, startCron = true } = options;
   const env = await initEnv();
 
   // Cloud Run / proxies
   app.set('trust proxy', 1);
-  
-  // 🔓 APERTURA DE CORS PARA PRODUCCIÓN (VERCEL)
-  // Por defecto permitimos todo (legacy). Para endurecer, configura CORS_ORIGINS como CSV:
-  // ej: "https://www.fisiotool.com,https://fisiotool.com,https://<tu-proyecto>.vercel.app"
-  const corsOriginsRaw = String(process.env.CORS_ORIGINS || env.CORS_ORIGINS || '*').trim();
+
+  // 🔒 CORS para el resto de peticiones: lista fija + env (CORS_ORIGINS / FRONTEND_URL)
+  const defaultProdOrigins = ['https://www.fisiotool.com', 'https://fisiotool.com'];
+  let corsOriginsRaw = String(env.CORS_ORIGINS || process.env.CORS_ORIGINS || '').trim();
+  if (!corsOriginsRaw && env.FRONTEND_URL) {
+    const base = String(env.FRONTEND_URL).replace(/\/+$/, '');
+    const withWww = base.includes('www.') ? base : base.replace(/^(https?:\/\/)/, '$1www.');
+    const withoutWww = base.replace(/^(https?:\/\/)www\./, '$1');
+    corsOriginsRaw = [base, withWww, withoutWww].filter((u, i, a) => a.indexOf(u) === i).join(',');
+  }
+  if (!corsOriginsRaw) corsOriginsRaw = '*';
+  const allowList = corsOriginsRaw === '*'
+    ? null
+    : [...defaultProdOrigins, ...corsOriginsRaw.split(',').map((s) => s.trim()).filter(Boolean)].filter((u, i, a) => a.indexOf(u) === i);
   const corsOrigin =
-    !corsOriginsRaw || corsOriginsRaw === '*'
+    corsOriginsRaw === '*'
       ? '*'
       : (origin, cb) => {
-          // Permitir requests sin origin (p.ej. server-to-server, curl)
           if (!origin) return cb(null, true);
-          const allow = corsOriginsRaw
-            .split(',')
-            .map((s) => s.trim())
-            .filter(Boolean);
-          return allow.includes(origin) ? cb(null, true) : cb(new Error('CORS blocked'), false);
+          if (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) return cb(null, true);
+          if (allowList && allowList.includes(origin)) return cb(null, true);
+          if (isOriginAllowed(origin)) return cb(null, true);
+          return cb(new Error('CORS blocked'), false);
         };
 
   app.use(cors({
-    origin: corsOrigin, 
+    origin: corsOrigin,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-foundry-key']
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-foundry-key'],
+    credentials: true
   }));
 
-  app.use(helmet({ contentSecurityPolicy: false }));
+  // 🔒 Headers de seguridad (X-Frame-Options, X-Content-Type-Options, HSTS, etc.)
+  app.use(helmet({
+    contentSecurityPolicy: false,
+    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+    xFrameOptions: { action: 'deny' },
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
+  }));
+  app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    next();
+  });
 
   // ⚠️ Stripe Webhook requiere cuerpo RAW para verificar firma
   // Importante: esto debe ir ANTES del bodyParser.json
@@ -62,14 +115,38 @@ async function initialize(options = {}) {
   const diagnostics = require('./routes/diagnostics');
   app.use('/diagnostics', diagnostics);
   
-  // 🧱 Rate limiting básico (protege de abuso)
+  // 🧱 Rate limiting: general API y límite estricto en auth (anti brute-force)
   const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     limit: 600,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
   });
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 15,
+    message: { error: 'Demasiados intentos. Espera 15 minutos e inténtalo de nuevo.' },
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+  });
   app.use('/api', apiLimiter);
+  app.use('/api/login', authLimiter);
+  app.use('/api/register', authLimiter);
+  app.use('/api/auth/forgot-password', authLimiter);
+
+  // 📋 Log de peticiones (método, ruta, IP, status, duración) — sin cuerpos ni tokens
+  app.use((req, res, next) => {
+    const start = Date.now();
+    const ip = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').toString().split(',')[0].trim();
+    res.on('finish', () => {
+      const duration = Date.now() - start;
+      const log = `${req.method} ${req.originalUrl || req.url} ${res.statusCode} ${duration}ms ${ip}`;
+      if (res.statusCode >= 500) console.error(`🔥 ${log}`);
+      else if (res.statusCode >= 400) console.warn(`⚠️ ${log}`);
+      else if (process.env.NODE_ENV !== 'production') console.log(`📋 ${log}`);
+    });
+    next();
+  });
 
   app.use('/api', apiRoutes);
   app.get('/', (req, res) => res.status(200).send('FISIOTOOL PRO ONLINE'));
@@ -157,10 +234,24 @@ async function initialize(options = {}) {
   return { app, port: PORT };
 }
 
+// Arranque: escuchar ANTES de initEnv() para que OPTIONS (CORS) responda aunque Secret Manager falle o tarde
+const PORT = process.env.PORT || 8080;
 if (require.main === module) {
-  initialize().catch(e => {
-    console.error("🔥 FALLO AL INICIAR:", e.message);
-    process.exit(1);
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 MOTOR OMEGA ESCUCHANDO | PUERTO: ${PORT} (CORS listo para todas las respuestas)`);
+    initialize({ listen: false })
+      .then(() => {
+        console.log(`📋 Rutas y middleware cargados`);
+      })
+      .catch(e => {
+        console.error("🔥 FALLO AL CARGAR RUTAS:", e.message);
+        console.error("🔄 Reintentando en 5s... (el servidor sigue escuchando para CORS y health)");
+        setTimeout(() => {
+          initialize({ listen: false })
+            .then(() => console.log('📋 Rutas cargadas en segundo intento'))
+            .catch(e2 => console.error('🔥 Segundo intento fallido:', e2.message));
+        }, 5000);
+      });
   });
 } else {
   module.exports = { app, initialize };

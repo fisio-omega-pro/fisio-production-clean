@@ -5,46 +5,51 @@ import { Users, Plus, Crown, ShieldCheck, Settings, Calendar, ArrowUpRight, User
 import { Especialista } from '../types';
 
 interface EquipoProps {
+  currentUser?: { specialistId: string | null; isOwner: boolean };
   equipo: Especialista[];
   onAddMember: () => void;
   currentPlan: string;
   onViewCalendar: (id: string) => void;
-  onEditMember: (member: Especialista) => void; // 🚨 Restaurada en el contrato
+  onEditMember: (member: Especialista) => void;
 }
 
-export const EquipoView: React.FC<EquipoProps> = ({ equipo, onAddMember, currentPlan, onViewCalendar, onEditMember }) => {
+export const EquipoView: React.FC<EquipoProps> = ({ currentUser, equipo, onAddMember, currentPlan, onViewCalendar, onEditMember }) => {
   const isSolo = currentPlan === 'solo';
+  const isStaff = !!(currentUser?.specialistId);
+  const membersToShow = isStaff ? equipo.filter((m) => m.id === currentUser!.specialistId) : equipo;
 
   return (
     <div className="flex flex-col gap-12 max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
       
-      {/* HEADER DINÁMICO */}
+      {/* HEADER DINÁMICO (solo jefe ve botón añadir / upgrade) */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-8 border-b border-white/5 pb-10">
         <div className="max-w-xl">
           <div className="flex items-center gap-2 text-blue-500 mb-4">
             <UserCheck size={20} />
-            <span className="text-[10px] font-black uppercase tracking-[0.2em]">Gestión de Especialistas</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.2em]">{isStaff ? 'Mi perfil' : 'Gestión de Especialistas'}</span>
           </div>
-          <h2 className="text-4xl font-black text-white tracking-tight mb-4 uppercase italic">Estructura Clínica</h2>
+          <h2 className="text-4xl font-black text-white tracking-tight mb-4 uppercase italic">{isStaff ? 'Mi ficha' : 'Estructura Clínica'}</h2>
           <p className="text-gray-400 text-sm leading-relaxed">
-            Organiza a tu equipo médico, supervisa sus agendas y define su impacto en la clínica. Un equipo bien gestionado multiplica por 3 la retención de pacientes.
+            {isStaff ? 'Tu ficha en la clínica. Solo el administrador puede ver y gestionar el resto del equipo.' : 'Organiza a tu equipo médico, supervisa sus agendas y define su impacto en la clínica. Un equipo bien gestionado multiplica por 3 la retención de pacientes.'}
           </p>
         </div>
         
-        <button 
-          onClick={onAddMember}
-          className={`group flex items-center gap-3 px-8 py-4 rounded-2xl font-black text-xs transition-all duration-300 ${isSolo ? 'bg-amber-500 text-black shadow-xl shadow-amber-500/10' : 'bg-white text-black hover:bg-blue-600 hover:text-white'}`}
-        >
-          {isSolo ? <Crown size={16} /> : <Plus size={18} />}
-          {isSolo ? 'MEJORAR A PLAN TEAM' : 'REGISTRAR ESPECIALISTA'}
-        </button>
+        {!isStaff && (
+          <button 
+            onClick={onAddMember}
+            className={`group flex items-center gap-3 px-8 py-4 rounded-2xl font-black text-xs transition-all duration-300 ${isSolo ? 'bg-amber-500 text-black shadow-xl shadow-amber-500/10' : 'bg-white text-black hover:bg-blue-600 hover:text-white'}`}
+          >
+            {isSolo ? <Crown size={16} /> : <Plus size={18} />}
+            {isSolo ? 'MEJORAR A PLAN TEAM' : 'REGISTRAR ESPECIALISTA'}
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         
-        {/* COLUMNA IZQUIERDA: TARJETAS DE EQUIPO */}
+        {/* COLUMNA IZQUIERDA: TARJETAS (staff solo ve la suya) */}
         <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
-          {equipo.map((member) => (
+          {membersToShow.map((member) => (
             <div key={member.id} className="group relative bg-white/[0.02] border border-white/5 rounded-[40px] p-8 hover:border-white/10 transition-all">
               <div className="flex flex-col items-center text-center">
                 <div className="relative w-24 h-24 mb-6">
@@ -77,9 +82,9 @@ export const EquipoView: React.FC<EquipoProps> = ({ equipo, onAddMember, current
           ))}
         </div>
 
-        {/* COLUMNA DERECHA: ANALÍTICA Y UPGRADE */}
+        {/* COLUMNA DERECHA: ANALÍTICA Y UPGRADE (solo jefe) */}
         <div className="space-y-6">
-          {isSolo && (
+          {!isStaff && isSolo && (
             <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-[40px] p-8 text-black relative overflow-hidden shadow-2xl">
               <Crown className="absolute -right-4 -top-4 w-32 h-32 opacity-20 rotate-12" />
               <h3 className="text-xl font-black mb-2 uppercase italic leading-tight">Plan Solo Activo</h3>

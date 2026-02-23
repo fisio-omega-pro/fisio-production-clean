@@ -21,8 +21,6 @@ import { BonosView } from './modules/BonosView';
 import { ReferidosView } from './modules/ReferidosView';
 import { AjustesView } from './modules/AjustesView';
 import { SugerenciasView } from './modules/SugerenciasView';
-import { InstalacionView } from './modules/InstalacionView';
-import { LegalView } from './modules/LegalView';
 import { VoiceModal } from './components/modals/VoiceModal';
 import { AppointmentModal } from './components/modals/AppointmentModal';
 import { BlockModal } from './components/modals/BlockModal';
@@ -38,14 +36,8 @@ export default function DashboardOmega() {
   const state = useDashboardState();
   const plan = String(state.clinicData?.plan || 'solo').toLowerCase();
   const hasMultiClinicPlan = PLANS_MULTI_CLINIC.includes(plan);
-  const navItemsFiltered = React.useMemo(() => {
-    return Object.fromEntries(
-      Object.entries(NAV_ITEMS).map(([group, items]) => [
-        group,
-        (items as any[]).filter((item) => item.id !== 'sedes' || hasMultiClinicPlan),
-      ])
-    );
-  }, [hasMultiClinicPlan]);
+  // Mis Clínicas visible para todos: plan 100€ ve solo CTA "Añadir más clínicas"; plan 300€ ve la gestión completa.
+  const navItemsFiltered = React.useMemo(() => NAV_ITEMS, []);
   const { isRecording, transcript, toggleRecording, setTranscript } = useVoiceAssistant(state.voiceEnabled);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const lastSpokenTab = useRef<string>('');
@@ -65,7 +57,7 @@ export default function DashboardOmega() {
     // Stripe: si volvemos de checkout con session_id, sincronizar (best-effort) y limpiar la URL
     const sid = params.get('session_id');
     if (sid) {
-      dashboardAPI.verifySubscription(String(sid)).catch(() => {});
+      dashboardAPI.verifySubscription(String(sid)).then(() => state.refreshData()).catch(() => {});
       try {
         params.delete('session_id');
         const qs = params.toString();
@@ -75,8 +67,8 @@ export default function DashboardOmega() {
         // best-effort
       }
     }
-    state.refreshData();
-  }, [state.refreshData]);
+    // refreshData ya se llama en hooks.ts al montar; aquí solo re-sincronizamos tras verificar Stripe
+  }, []);
 
   // Narración ligera de navegación para invidentes
   useEffect(() => {
@@ -134,20 +126,22 @@ export default function DashboardOmega() {
     if (state.isLoading) return <div className="p-20 text-center text-blue-500 animate-pulse font-black text-xs uppercase tracking-widest">Sincronizando...</div>;
     
     switch (state.activeTab) {
-      case 'home': return <HomeView clinicId={state.clinicId} configStatus={state.configStatus} clinicData={state.clinicData} onRefresh={state.refreshData} />;
-      case 'agenda': return <AgendaView equipo={state.equipo} agenda={state.agenda} horario={state.clinicData.horario || {apertura:'09:00', cierre:'20:00'}} onBlockSchedule={() => state.setModalType('bloqueo')} onNewAppointment={(d:any)=> { setApptData({...apptData, fecha: d.date, hora: d.time}); state.setModalType('cita'); }} onEventClick={state.setSelectedEvent} />;
+      case 'home': return <HomeView clinicId={state.clinicId} configStatus={state.configStatus} clinicData={state.clinicData} onRefresh={state.refreshData} onGoToAsistente={() => state.setActiveTab('asistente')} />;
+      case 'agenda': return <AgendaView currentUser={state.currentUser} equipo={state.equipo} agenda={state.agenda} horario={state.clinicData.horario || {apertura:'09:00', cierre:'20:00'}} onBlockSchedule={() => state.setModalType('bloqueo')} onNewAppointment={(d:any)=> { setApptData({...apptData, fecha: d.date, hora: d.time}); state.setModalType('cita'); }} onEventClick={state.setSelectedEvent} />;
       case 'pacientes': return <PacientesView pacientes={state.pacientes} onDictate={() => state.setModalType('voz')} onImport={() => state.setModalType('importar')} />;
-      case 'finanzas': return <FinanzasView balance={state.balance} onActivateCampaign={async()=>{ await dashboardAPI.launchCampaign(); state.refreshData(); }} clinicData={state.clinicData} />;
-      case 'bonos': return <BonosView clinicData={state.clinicData} bonos={state.bonos} onActivate={async () => { await dashboardAPI.activateBonos(); state.refreshData(); }} onNewBono={() => state.setModalType('nuevo_bono')} />;
-      case 'equipo': return <EquipoView equipo={state.equipo} onAddMember={() => state.setModalType('editar_perfil')} currentPlan={state.clinicData.plan} onViewCalendar={()=>state.setActiveTab('agenda')} onEditMember={(m)=> { state.setMemberToEdit(m); state.setModalType('editar_perfil'); }} />;
+      case 'finanzas': return <FinanzasView balance={state.balance} pacientes={state.pacientes} onActivateCampaign={async()=>{ await dashboardAPI.launchCampaign(); state.refreshData(); }} clinicData={state.clinicData} onGoToImport={() => { state.setActiveTab('pacientes'); state.setModalType('importar'); }} />;
+      case 'bonos': return <BonosView clinicData={state.clinicData} bonos={state.bonos} onActivate={async () => { await dashboardAPI.activateBonos(); state.refreshData(); }} onDeactivate={async () => { await dashboardAPI.deactivateBonos(); state.refreshData(); }} onNewBono={() => state.setModalType('nuevo_bono')} />;
+      case 'equipo': return <EquipoView currentUser={state.currentUser} equipo={state.equipo} onAddMember={() => state.setModalType('editar_perfil')} currentPlan={state.clinicData.plan} onViewCalendar={()=>state.setActiveTab('agenda')} onEditMember={(m)=> { state.setMemberToEdit(m); state.setModalType('editar_perfil'); }} />;
       case 'sedes':
         if (!hasMultiClinicPlan) {
           return (
-            <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-8 max-w-lg">
-              <Crown size={40} className="text-amber-500 mb-4" />
-              <h2 className="text-xl font-bold text-white mb-2">Mis Clínicas (Multi-Sede)</h2>
-              <p className="text-gray-400 text-sm mb-6">Esta función está disponible en el plan Business (300€/mes). Gestiona varias sedes desde un solo panel.</p>
-              <ActionButton onClick={() => state.setModalType('upgrade')} style={{ background: '#fbbf24', color: '#000' }}>Mejorar plan</ActionButton>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-8 max-w-md">
+              <Building2 size={32} className="text-blue-500 mb-4" />
+              <h2 className="text-xl font-bold text-white mb-2">Mis Clínicas</h2>
+              <p className="text-gray-400 text-sm mb-6">Para añadir y gestionar varias clínicas desde un solo panel necesitas el plan Multi-Sede (300€/mes). Al subir de plan, solo pagas la parte proporcional hasta tu próxima factura.</p>
+              <ActionButton onClick={async () => { const url = await dashboardAPI.upgradePlan('team'); if (url) window.location.href = url; }} style={{ background: '#0066ff', color: '#fff' }}>
+                Subir a plan Multi-Sede (300€/mes)
+              </ActionButton>
             </div>
           );
         }
@@ -155,10 +149,8 @@ export default function DashboardOmega() {
       case 'cobros': return <CobrosView hasStripe={state.configStatus.hasStripe} clinicData={state.clinicData} />;
       case 'asistente': return <AsistenteView />;
       case 'referidos': return <ReferidosView />;
-      case 'legal': return <LegalView />;
       case 'ajustes': return <AjustesView clinicData={state.clinicData} onUpdated={state.refreshData} />;
       case 'sugerencias': return <SugerenciasView />;
-      case 'instalacion': return <InstalacionView />;
       default: return <div className="p-20 text-center text-gray-500">Módulo en construcción</div>;
     }
   };
@@ -200,7 +192,25 @@ export default function DashboardOmega() {
       {/* --- REGISTRO INTEGRAL DE MODALES --- */}
       <AppointmentModal isOpen={state.modalType === 'cita'} onClose={() => state.setModalType(null)} data={apptData} setData={setApptData} onSubmit={handleCreateAppt} />
       <BlockModal isOpen={state.modalType === 'bloqueo'} onClose={() => state.setModalType(null)} data={blockData} setData={setBlockData} onSubmit={() => state.setModalType(null)} />
-      <EditProfileModal isOpen={state.modalType === 'editar_perfil'} onClose={() => state.setModalType(null)} member={state.memberToEdit} setMember={state.setMemberToEdit} onSave={() => { state.setModalType(null); state.refreshData(); }} onUpload={async()=>{}} uploading={state.loading} />
+      <EditProfileModal
+        isOpen={state.modalType === 'editar_perfil'}
+        onClose={() => state.setModalType(null)}
+        member={state.memberToEdit}
+        setMember={state.setMemberToEdit}
+        canEditLoginEmail={state.currentUser?.isOwner}
+        onSave={async () => {
+          if (!state.memberToEdit) return;
+          try {
+            await dashboardAPI.saveSpecialist({ ...state.memberToEdit, login_email: state.memberToEdit.login_email ?? '' });
+            state.setModalType(null);
+            state.refreshData();
+          } catch (e: any) {
+            alert(e?.message || 'Error al guardar el especialista.');
+          }
+        }}
+        onUpload={async()=>{}}
+        uploading={state.loading}
+      />
       <ImportModal isOpen={state.modalType === 'importar'} onClose={() => state.setModalType(null)} fileInputRef={fileInputRef} onFileSelect={(e) => e.target.files && state.handleImportFile(e.target.files[0])} isImporting={state.importing} />
       <VoiceModal
         isOpen={state.modalType === 'voz'}

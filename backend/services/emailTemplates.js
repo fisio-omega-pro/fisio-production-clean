@@ -31,6 +31,9 @@ function baseEmailHtml({ title, preheader, bodyHtml, footerNoteHtml, unsubscribe
       .header { background: linear-gradient(135deg,#0066ff 0%,#38bdf8 100%); padding: 26px 26px 20px; }
       .brand { font-weight: 900; letter-spacing: .3px; color:#fff; font-size: 16px; }
       .content { padding: 26px; }
+      .block-w, .block-w2 { margin: 0 -26px; padding: 14px 26px; font-size: 14px; line-height: 1.6; color:#111827; }
+      .block-w { background: #ffffff; }
+      .block-w2 { background: #fcfcfd; }
       .h1 { margin: 0 0 10px; font-size: 22px; font-weight: 900; color:#0b1220; }
       .p { margin: 0 0 14px; font-size: 14px; line-height: 1.6; color:#111827; }
       .muted { color:#6b7280; font-size: 12px; line-height: 1.6; }

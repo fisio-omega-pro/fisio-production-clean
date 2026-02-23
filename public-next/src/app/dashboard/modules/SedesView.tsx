@@ -117,10 +117,10 @@ export const SedesView: React.FC<SedesViewProps> = ({ clinicData, onAddSede }) =
                  <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500">
                     <Layers size={16} />
                  </div>
-                 <h4 className="text-xs font-black uppercase tracking-widest">Organización Documental</h4>
+                 <h4 className="text-xs font-black uppercase tracking-widest">Expedientes y facturas por sede</h4>
               </div>
               <p className="text-[11px] text-gray-500 leading-relaxed">
-                FisioTool Pro te permite vincular expedientes y facturas a cada sede específica. Esto te ayuda a mantener un orden impecable para tus reportes administrativos y de seguros, ahorrándote horas de burocracia.
+                Cada sede puede tener sus expedientes y facturas asociados. Así generas reportes y documentación por centro (útil para seguros, inspecciones o gestión interna) sin mezclar datos entre clínicas.
               </p>
            </div>
         </div>

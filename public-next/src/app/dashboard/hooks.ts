@@ -12,7 +12,8 @@ export const useDashboardState = () => {
   const [clinicData, setClinicData] = useState<any>({ nombre: '', is_blind: false });
   const [configStatus, setConfigStatus] = useState({ hasLogo: false, hasSubscription: false, hasStripe: false });
   const [equipo, setEquipo] = useState<Especialista[]>([]);
-  
+  const [currentUser, setCurrentUser] = useState<{ specialistId: string | null; isOwner: boolean }>({ specialistId: null, isOwner: true });
+
   // 2. CONTROL DE UI
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabId>('home');
@@ -41,7 +42,8 @@ export const useDashboardState = () => {
         setConfigStatus(data.configStatus);
         setClinicData(data.clinicData);
         setEquipo(data.equipo || []);
-        
+        setCurrentUser(data.currentUser || { specialistId: null, isOwner: true });
+
         // Protocolo de voz para invidentes
         if (data.clinicData?.is_blind) {
           // Por defecto, siempre activo (el saludo solo una vez por sesión)
@@ -111,7 +113,7 @@ export const useDashboardState = () => {
 
   // 6. RETORNO DE CONTRATO (Íntegro y sin omisiones)
   return {
-    pacientes, agenda, bonos, balance, clinicData, configStatus, equipo,
+    pacientes, agenda, bonos, balance, clinicData, configStatus, equipo, currentUser,
     isLoading, activeTab, setActiveTab, modalType, setModalType, 
     clinicId, setClinicId, loading, setLoading, voiceEnabled, setVoiceEnabled,
     noteContent, setNoteContent, selectedPatientId, setSelectedPatientId,

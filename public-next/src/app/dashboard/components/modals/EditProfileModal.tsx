@@ -13,9 +13,11 @@ interface EditProfileProps {
   onSave: () => void;
   onUpload: (file: File) => Promise<void>;
   uploading: boolean;
+  /** Solo el jefe puede asignar email de acceso; los fisios no ven este campo */
+  canEditLoginEmail?: boolean;
 }
 
-export const EditProfileModal = ({ isOpen, onClose, member, setMember, onSave, onUpload, uploading }: EditProfileProps) => {
+export const EditProfileModal = ({ isOpen, onClose, member, setMember, onSave, onUpload, uploading, canEditLoginEmail = true }: EditProfileProps) => {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -66,22 +68,26 @@ export const EditProfileModal = ({ isOpen, onClose, member, setMember, onSave, o
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+           {canEditLoginEmail && (
+             <div>
+               <p className="text-[10px] font-black text-gray-500 uppercase mb-2 ml-1 tracking-widest text-left">Email de acceso (solo su agenda)</p>
+               <InputField icon={<Mail size={14}/>} placeholder="fisio@clinica.com" value={member?.login_email || ''} onChange={(v) => setMember({...member!, login_email: v})} />
+             </div>
+           )}
            <div>
-              <p className="text-[10px] font-black text-gray-500 uppercase mb-2 ml-1 tracking-widest text-left">Email de Acceso</p>
-              <InputField icon={<Mail size={14}/>} placeholder="marcos@clinica.com" value={(member as any)?.email || ''} onChange={(v) => setMember({...member!, email: v} as any)} />
-           </div>
-           <div>
-              <p className="text-[10px] font-black text-gray-500 uppercase mb-2 ml-1 tracking-widest text-left">Teléfono Directo</p>
+              <p className="text-[10px] font-black text-gray-500 uppercase mb-2 ml-1 tracking-widest text-left">Teléfono directo</p>
               <InputField icon={<Phone size={14}/>} placeholder="+34 ..." value={(member as any)?.telefono || ''} onChange={(v) => setMember({...member!, telefono: v} as any)} />
            </div>
         </div>
 
-        <div className="bg-white/5 p-4 rounded-2xl border border-white/5 flex gap-3 items-center">
-           <Info size={16} className="text-gray-500" />
-           <p className="text-[10px] text-gray-400 leading-relaxed">
-             Ana usará estos datos para coordinar las agendas. El especialista recibirá un email para configurar su contraseña personal.
-           </p>
-        </div>
+        {canEditLoginEmail && (
+          <div className="bg-white/5 p-4 rounded-2xl border border-white/5 flex gap-3 items-center">
+             <Info size={16} className="text-gray-500" />
+             <p className="text-[10px] text-gray-400 leading-relaxed">
+               Si asignas un email de acceso, ese fisio recibirá un email para configurar su contraseña. Podrá entrar con ese email y su contraseña (o la de la clínica hasta que la configure) y ver solo su agenda. El jefe sigue entrando con el email de la clínica y ve todas las agendas.
+             </p>
+          </div>
+        )}
 
         <ActionButton onClick={onSave} fullWidth style={{height: '55px'}}>
           {uploading ? <Loader2 className="animate-spin" /> : <><Save size={16} className="mr-2"/> SINCRONIZAR ESPECIALISTA ➜</>}

@@ -35,6 +35,7 @@ const verifyToken = async (req, res, next) => {
         return res.status(403).json({ error: "Token inválido" });
       }
       req.clinicId = decoded.clinicId;
+      req.specialistId = decoded.specialistId || null;
       next();
     });
 

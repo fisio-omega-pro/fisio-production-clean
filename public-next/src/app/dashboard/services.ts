@@ -60,6 +60,10 @@ class DashboardService {
     await this.request('/api/dashboard/activate-bonos', { method: 'POST' });
   }
 
+  public async deactivateBonos(): Promise<void> {
+    await this.request('/api/dashboard/deactivate-bonos', { method: 'POST' });
+  }
+
   public async createBono(bono: any): Promise<void> {
     await this.request('/api/dashboard/create-bono', { 
       method: 'POST', 
@@ -96,6 +100,15 @@ class DashboardService {
     });
     return res.url;
   }
+
+  /** Cancela la suscripción al final del periodo de facturación. Devuelve la fecha (Unix segundos) hasta la que tendrá acceso. */
+  public async cancelSubscription(): Promise<{ cancel_at: number | null }> {
+    const res = await this.request<{ success: boolean; cancel_at: number | null }>(
+      '/api/dashboard/cancel-subscription',
+      { method: 'POST' }
+    );
+    return { cancel_at: res.cancel_at ?? null };
+  }
   public async createAppointment(d: any): Promise<void> { await this.request('/api/dashboard/appointment', { method: 'POST', body: JSON.stringify(d) }); }
   public async getPatientHistory(phone: string): Promise<{ paciente: any; historial: any[] }> {
     const res = await this.request<{ success: boolean; paciente: any; historial: any[] }>(
@@ -109,6 +122,16 @@ class DashboardService {
   public async saveSuggestion(text: string): Promise<void> {
     await this.request('/api/dashboard/save-suggestion', { method: 'POST', body: JSON.stringify({ text }) });
   }
+
+  /** Crear ticket: type 'consulta' (Ana responde por email) o 'tecnico' (urgente a equipo). */
+  public async createTicket(type: 'consulta' | 'tecnico', message: string): Promise<{ ticketId: string }> {
+    const res = await this.request<{ success: boolean; ticketId: string }>(
+      '/api/dashboard/create-ticket',
+      { method: 'POST', body: JSON.stringify({ type, message: message.trim() }) }
+    );
+    return { ticketId: res.ticketId || '' };
+  }
+
   public async updateSettings(nombre: string, email: string): Promise<void> {
     await this.request('/api/dashboard/update-settings', { method: 'POST', body: JSON.stringify({ nombre, email }) });
   }

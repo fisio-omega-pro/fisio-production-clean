@@ -6,7 +6,7 @@ import {
   Scale as ScaleIcon, Trash2, Search, ChevronLeft, ChevronRight, TrendingUp,
   Building2, Wallet, Euro, TrendingDown, Eye, EyeOff, Mail, CheckCircle2,
   Clock, AlertCircle, XCircle, ArrowUpRight, BarChart3, Calendar, Filter, Copy,
-  FileDown, FileImage, File
+  FileDown, FileImage, File, Phone
 } from 'lucide-react';
 import { ActionButton, InputField } from '../dashboard/components/Atoms';
 import { API_BASE_URL } from '@/lib/apiBase';
@@ -43,7 +43,7 @@ export default function FoundryPage() {
   // MODO LLC
   const [chatMsg, setChatMsg] = useState("");
   const [chatHistory, setChatHistory] = useState<{role:string, text:string}[]>([
-    { role: 'ana', text: 'Bienvenido a la Sala de Juntas. Soy tu Directora Legal y CFO. ¿Hablamos de impuestos USA, estrategia fiscal o seguridad legal?' }
+    { role: 'ana', text: 'Bienvenido a la Asesoría Jurídica y Fiscal. Soy Lex. Superviso tu estructura LLC y el cumplimiento del RGPD. ¿Qué te preocupa hoy?' }
   ]);
   const [chatLoading, setChatLoading] = useState(false);
   const [newAlert, setNewAlert] = useState({ title: "", date: "", tipo: "fiscal" });
@@ -880,7 +880,7 @@ export default function FoundryPage() {
                   </div>
                 </div>
 
-                {/* COLUMNA DERECHA: SALA DE JUNTAS */}
+                {/* COLUMNA DERECHA: LEX LEGAL (solo Foundry / dueño) */}
                 <div className="bg-[#0a0a0c] border border-white/10 rounded-[32px] flex flex-col overflow-hidden shadow-2xl h-[800px]">
                   <div className="p-6 border-b border-white/5 bg-white/[0.02] flex justify-between items-center">
                     <div className="flex items-center gap-3">
@@ -888,8 +888,8 @@ export default function FoundryPage() {
                         <ScaleIcon size={16} className="text-black"/>
                       </div>
                       <div>
-                        <p className="text-xs font-black text-white">SALA DE JUNTAS</p>
-                        <p className="text-[9px] text-[#d4af37]">Ana Legal & CFO</p>
+                        <p className="text-xs font-black text-white">LEX LEGAL</p>
+                        <p className="text-[9px] text-[#d4af37]">Asesoría jurídica y fiscal (LLC, IVA, RGPD)</p>
                       </div>
                     </div>
                   </div>
@@ -903,13 +903,13 @@ export default function FoundryPage() {
                         </div>
                       </div>
                     ))}
-                    {chatLoading && <div className="text-[10px] text-gray-500 animate-pulse ml-4">Ana consultando jurisprudencia...</div>}
+                    {chatLoading && <div className="text-[10px] text-gray-500 animate-pulse ml-4">Lex consultando jurisprudencia...</div>}
                   </div>
                   <div className="p-4 border-t border-white/5 bg-white/[0.02]">
                     <div className="flex gap-2">
                       <input 
                         className="flex-1 bg-black border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#d4af37]"
-                        placeholder="Pregunta sobre LLC, IVA, Modelos..."
+                        placeholder="Ej: ¿Tengo que cobrar IVA a un cliente de Alemania?"
                         value={chatMsg}
                         onChange={(e)=>setChatMsg(e.target.value)}
                         onKeyPress={(e)=>e.key==='Enter' && sendLegalQuery()}

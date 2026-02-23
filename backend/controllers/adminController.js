@@ -248,6 +248,74 @@ const saveSuggestion = async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 };
 
+// --- 🎫 TICKETS: consulta (Ana responde por email) o técnico (urgente a admin) ---
+const createTicket = async (req, res) => {
+  try {
+    const type = String(req.body?.type || req.body?.tipo || 'consulta').toLowerCase();
+    const raw = req.body?.message ?? req.body?.mensaje ?? req.body?.text ?? '';
+    const message = String(raw || '').trim();
+    if (!message) return res.status(400).json({ success: false, error: 'mensaje requerido' });
+    if (!['consulta', 'tecnico'].includes(type)) return res.status(400).json({ success: false, error: 'tipo debe ser consulta o tecnico' });
+
+    const clinicDoc = await db.collection('clinicas').doc(req.clinicId).get();
+    if (!clinicDoc.exists) return res.status(404).json({ success: false, error: 'Clínica no encontrada' });
+    const clinic = clinicDoc.data() || {};
+    const email = String(clinic.email || '').trim().toLowerCase();
+    const nombreClinica = String(clinic.nombre_clinica || clinic.nombre || 'Clínica').trim();
+    if (!email || !email.includes('@')) return res.status(400).json({ success: false, error: 'Clínica sin email válido' });
+
+    const env = await initEnv();
+    const adminEmail = String(env.ADMIN_EMAIL || 'fisiotoolsaas@gmail.com').trim();
+    const { sendEmail } = require('../services/emailSenderService');
+
+    const ticketPayload = {
+      clinic_id: req.clinicId,
+      type,
+      message,
+      email,
+      nombre_clinica: nombreClinica,
+      status: 'pendiente',
+      created_at: Timestamp.now(),
+    };
+    const ref = await db.collection('tickets').add(ticketPayload);
+
+    if (type === 'consulta') {
+      const { reply } = await anaService.respondSupportTicket(message);
+      await sendEmail({
+        to: email,
+        subject: 'Ana te responde – FisioTool Pro',
+        text: `Hola,\n\n${reply}\n\nSi necesitas más ayuda, responde a este correo o abre otro ticket desde el panel.\n\nAna · FisioTool Pro`,
+        type: 'ANA',
+      });
+      await db.collection('tickets').doc(ref.id).update({ status: 'respondido_ana', updated_at: Timestamp.now() });
+      await sendEmail({
+        to: adminEmail,
+        subject: `[Consulta FisioTool] ${nombreClinica}`,
+        text: `Clínica: ${nombreClinica} (${email})\nMensaje: ${message}\n\nAna ya ha enviado respuesta automática al usuario.`,
+        type: 'INFO',
+      });
+    } else {
+      await sendEmail({
+        to: adminEmail,
+        subject: `URGENTE – Problema técnico FisioTool – ${nombreClinica}`,
+        text: `Clínica: ${nombreClinica}\nEmail: ${email}\nClinic ID: ${req.clinicId}\n\nMensaje:\n${message}\n\n---\nTicket ID: ${ref.id}`,
+        type: 'INFO',
+      });
+      await sendEmail({
+        to: email,
+        subject: 'Hemos recibido tu aviso – FisioTool Pro',
+        text: `Hola,\n\nHemos recibido tu aviso de problema técnico. El equipo te responderá lo antes posible.\n\nSi es urgente, puedes contestar a este correo.\n\nFisioTool Pro`,
+        type: 'ANA',
+      });
+    }
+
+    res.json({ success: true, ticketId: ref.id });
+  } catch (e) {
+    console.error('createTicket:', e);
+    res.status(500).json({ error: e.message });
+  }
+};
+
 // --- ⚙️ AJUSTES DE PERFIL (Punto 12) ---
 const updateSettings = async (req, res) => {
   try {
@@ -263,7 +331,7 @@ const updateSettings = async (req, res) => {
 
 const handleAdminChat = async (req, res) => {
   try {
-    const { reply } = await anaService.processAdminConsultation(req.body.message);
+    const { reply } = await anaService.consultLex(req.body.message);
     res.json({ success: true, reply });
   } catch (e) { res.status(500).json({ error: e.message }); }
 };
@@ -560,11 +628,16 @@ const getAnaInbox = async (req, res) => {
 
 const sendProspectEmail = async (req, res) => {
   try {
-    const { to, leadInfo, leadId } = req.body;
+    const { to, leadInfo, leadId, angle } = req.body;
     const { sendEmail } = require('../services/emailSenderService');
     
     // Generar email con IA
-    const emailBody = await anaService.generateProspectEmail(leadInfo || {});
+    const emailBody = await anaService.generateProspectEmail({
+      ...(leadInfo || {}),
+      angle: String(angle || leadInfo?.angle || leadInfo?.angulo || '').trim() || undefined,
+      link: 'https://fisiotool.com',
+      contexto: (leadInfo && leadInfo.contexto) ? leadInfo.contexto : 'Prospección manual (Foundry)',
+    });
     
     // Enviar
     const sendResult = await sendEmail({ to, subject: 'Te presento FisioTool Pro', text: emailBody, type: 'ANA' });
@@ -590,6 +663,8 @@ const sendProspectEmail = async (req, res) => {
           status: 'en_proceso',
           canal: 'email',
           ultima_accion: `Email enviado (${new Date().toISOString().slice(0, 10)})`,
+          caza_angle: String(angle || leadInfo?.angle || leadInfo?.angulo || '').trim().toUpperCase() || undefined,
+          landing_url: 'https://fisiotool.com',
           updated_at: Timestamp.now(),
         }, { merge: true });
       }
@@ -668,7 +743,7 @@ const getContrato = async (req, res) => {
 };
 
 module.exports = { 
-  getGlobalStats, handleAdminChat, diagnoseAna, saveAlert, deleteAlert, processInvoice, saveSuggestion, updateSettings,
+  getGlobalStats, handleAdminChat, diagnoseAna, saveAlert, deleteAlert, processInvoice, saveSuggestion, createTicket, updateSettings,
   getAnaInbox, sendProspectEmail, triggerEmailCheck, getContrato,
   importLeads,
   uploadContrato,
@@ -678,5 +753,22 @@ module.exports = {
   runCazaAutopilotNow,
   runRecaptacionAutopilotNow,
   runDepositRemindersNow,
-  handleIncomingResponse: async (req,res) => res.json({success:true})
+  handleIncomingResponse: async (req, res) => {
+    try {
+      const from = req.body?.from || req.body?.email;
+      if (from && typeof from === 'string') {
+        const leadSnap = await db.collection('leads').where('email', '==', String(from).trim().toLowerCase()).limit(1).get();
+        if (!leadSnap.empty) {
+          await leadSnap.docs[0].ref.set({
+            last_reply_at: Timestamp.now(),
+            ultima_accion: 'Lead respondió (email recibido)',
+            estado: 'respondido',
+            status: 'respondido',
+            updated_at: Timestamp.now(),
+          }, { merge: true });
+        }
+      }
+    } catch (_) {}
+    return res.json({ success: true });
+  }
 };

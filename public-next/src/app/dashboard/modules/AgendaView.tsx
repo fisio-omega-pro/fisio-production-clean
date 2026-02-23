@@ -1,21 +1,27 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Users, Clock, Filter, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Especialista } from '../types';
 
 interface AgendaProps {
+  currentUser?: { specialistId: string | null; isOwner: boolean };
   equipo: Especialista[];
-  agenda: any[]; // Las citas reales
+  agenda: any[];
   horario: { apertura?: string; cierre?: string };
   onBlockSchedule: () => void;
   onNewAppointment: (data: any) => void;
   onEventClick: (event: any) => void;
 }
 
-export const AgendaView: React.FC<AgendaProps> = ({ equipo, agenda, horario, onBlockSchedule, onNewAppointment, onEventClick }) => {
+export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda, horario, onBlockSchedule, onNewAppointment, onEventClick }) => {
+  const isStaff = !!(currentUser?.specialistId);
+  const staffSpecId = currentUser?.specialistId || '';
   const [viewMode, setViewMode] = useState<'dia' | 'mes'>('dia');
   const [selectedSpec, setSelectedSpec] = useState<string>('all');
+  useEffect(() => {
+    if (isStaff && staffSpecId) setSelectedSpec(staffSpecId);
+  }, [isStaff, staffSpecId]);
   const [monthCursor, setMonthCursor] = useState(() => {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1);
@@ -36,13 +42,14 @@ export const AgendaView: React.FC<AgendaProps> = ({ equipo, agenda, horario, onB
     return hArray;
   }, [horario]);
 
-  // 2. EQUIPO A MOSTRAR
+  const effectiveSpec = isStaff ? staffSpecId : selectedSpec;
+  // 2. EQUIPO A MOSTRAR (si es staff solo ve su columna)
   const displayTeam = useMemo(() => {
     if (!equipo || equipo.length === 0) {
       return [{ id: 'admin', nombre: 'Agenda Principal', especialidad: 'Clínica' }];
     }
-    return equipo.filter(e => selectedSpec === 'all' || e.id === selectedSpec);
-  }, [equipo, selectedSpec]);
+    return equipo.filter(e => effectiveSpec === 'all' || e.id === effectiveSpec);
+  }, [equipo, effectiveSpec]);
 
   // 3. LÓGICA DE COLORES (Semáforo Financiero)
   const getApptStatus = (appt: any) => {
@@ -93,7 +100,7 @@ export const AgendaView: React.FC<AgendaProps> = ({ equipo, agenda, horario, onB
 
   const findApptForSlot = (specId: string, hour: string) => {
     const hourNum = Number(String(hour || '').split(':')[0] || '0');
-    const list = agendaForDate.filter((a) => (selectedSpec === 'all' || String(a.specialist_id || '') === specId));
+    const list = agendaForDate.filter((a) => (effectiveSpec === 'all' || String(a.specialist_id || '') === specId));
     return list.find((a) => {
       const h = String(a.hora || '');
       const hNum = Number(h.split(':')[0] || '0');
@@ -111,14 +118,23 @@ export const AgendaView: React.FC<AgendaProps> = ({ equipo, agenda, horario, onB
           <button onClick={() => setViewMode('mes')} className={`px-6 py-2 rounded-xl text-[10px] font-black transition-all ${viewMode === 'mes' ? 'bg-white text-black shadow-lg' : 'text-gray-500 hover:text-white'}`}>MES</button>
         </div>
 
-        {/* SELECTOR DE ESPECIALISTAS */}
+        {/* SELECTOR DE ESPECIALISTAS (solo jefe ve TODOS y puede cambiar; staff solo ve su agenda) */}
         <div className="flex items-center gap-2 overflow-x-auto max-w-sm no-scrollbar px-2">
-          <button onClick={() => setSelectedSpec('all')} className={`px-4 py-2 rounded-full border text-[9px] font-black transition-all ${selectedSpec === 'all' ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white/5 border-white/10 text-gray-500'}`}>TODOS</button>
-          {equipo.map(s => (
-            <button key={s.id} onClick={() => setSelectedSpec(s.id)} className={`px-4 py-2 rounded-full border text-[9px] font-black whitespace-nowrap transition-all ${selectedSpec === s.id ? 'bg-white border-white text-black' : 'bg-white/5 border-white/10 text-gray-500'}`}>
-              {s.nombre.toUpperCase()}
-            </button>
-          ))}
+          {!isStaff && (
+            <>
+              <button onClick={() => setSelectedSpec('all')} className={`px-4 py-2 rounded-full border text-[9px] font-black transition-all ${selectedSpec === 'all' ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white/5 border-white/10 text-gray-500'}`}>TODOS</button>
+              {equipo.map(s => (
+                <button key={s.id} onClick={() => setSelectedSpec(s.id)} className={`px-4 py-2 rounded-full border text-[9px] font-black whitespace-nowrap transition-all ${selectedSpec === s.id ? 'bg-white border-white text-black' : 'bg-white/5 border-white/10 text-gray-500'}`}>
+                  {s.nombre.toUpperCase()}
+                </button>
+              ))}
+            </>
+          )}
+          {isStaff && equipo.length > 0 && (
+            <span className="px-4 py-2 rounded-full border border-blue-500/30 bg-blue-600/10 text-[9px] font-black text-blue-400 uppercase">
+              {equipo[0]?.nombre || 'Mi agenda'}
+            </span>
+          )}
         </div>
 
         <div className="flex gap-2">

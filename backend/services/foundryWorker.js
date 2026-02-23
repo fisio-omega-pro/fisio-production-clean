@@ -20,7 +20,10 @@ const runFoundryTasks = async () => {
       const diffDays = Math.ceil((target - now) / (1000 * 60 * 60 * 24));
 
       if ([3, 2, 1].includes(diffDays)) {
-        await sendEmail('fisiotoolsaas@gmail.com', `⚠️ ALERTA: ${alert.title}`, `Plazo legal: Quedan ${diffDays} días para ${alert.title}.`, 'INFO');
+        const { initEnv } = require('../config/env');
+        const env = await initEnv();
+        const to = String(env.ADMIN_EMAIL || 'fisiotoolsaas@gmail.com').trim();
+        await sendEmail(to, `⚠️ ALERTA: ${alert.title}`, `Plazo legal: Quedan ${diffDays} días para ${alert.title}.`, 'INFO');
       }
     }
   } catch (e) { console.error("Error LLC:", e.message); }

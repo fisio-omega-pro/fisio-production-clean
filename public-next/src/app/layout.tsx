@@ -9,6 +9,11 @@ export const metadata = {
   manifest: '/manifest.json', 
   themeColor: '#d4af37',
   viewport: 'width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover',
+  icons: {
+    icon: '/logo_fisiotool.png',
+    shortcut: '/logo_fisiotool.png',
+    apple: '/logo_fisiotool.png',
+  },
 };
 
 // 🚨 REGISTRO DEL SERVICE WORKER (CLIENTE)
@@ -28,11 +33,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es">
+    <html lang="es" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: `(${registerServiceWorker.toString()})()` }} />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         {children}
         <CookieBanner />
         <GoogleAnalytics />

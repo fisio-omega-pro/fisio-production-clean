@@ -5,18 +5,28 @@ import { Ticket, Loader2, CheckCircle2, Zap, Star } from 'lucide-react';
 interface BonosProps {
   clinicData: any;
   bonos: any[];
-  onActivate: () => Promise<void>; // Cambiado a Promise para manejar el loading
+  onActivate: () => Promise<void>;
+  onDeactivate?: () => Promise<void>;
   onNewBono: () => void;
 }
 
-export const BonosView: React.FC<BonosProps> = ({ clinicData, bonos, onActivate, onNewBono }) => {
+export const BonosView: React.FC<BonosProps> = ({ clinicData, bonos, onActivate, onDeactivate, onNewBono }) => {
   const [isActivating, setIsActivating] = useState(false);
+  const [isDeactivating, setIsDeactivating] = useState(false);
   const isActivated = clinicData?.config_ia?.acepta_bonos;
 
   const handleActivate = async () => {
     setIsActivating(true);
     await onActivate();
     setIsActivating(false);
+  };
+
+  const handleDeactivate = async () => {
+    if (!onDeactivate) return;
+    if (!confirm('¿Desactivar el módulo de bonos? Los bonos ya emitidos seguirán visibles pero no podrás emitir nuevos hasta volver a activarlo.')) return;
+    setIsDeactivating(true);
+    await onDeactivate();
+    setIsDeactivating(false);
   };
 
   if (!isActivated) {
@@ -55,9 +65,22 @@ export const BonosView: React.FC<BonosProps> = ({ clinicData, bonos, onActivate,
           <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">Monedero Virtual</h2>
           <p className="text-gray-500 text-sm">Control de bonos activos.</p>
         </div>
-        <button onClick={onNewBono} className="flex items-center gap-3 px-8 py-4 bg-white text-black hover:bg-blue-600 hover:text-white rounded-2xl font-black text-xs transition-all shadow-2xl">
-           EMITIR NUEVO BONO
-        </button>
+        <div className="flex items-center gap-4">
+          {onDeactivate && (
+            <button
+              type="button"
+              onClick={handleDeactivate}
+              disabled={isDeactivating}
+              className="flex items-center gap-2 text-[10px] font-bold text-gray-500 hover:text-gray-300 uppercase tracking-widest disabled:opacity-50"
+            >
+              {isDeactivating ? <Loader2 className="animate-spin w-3.5 h-3.5" /> : null}
+              Desactivar módulo
+            </button>
+          )}
+          <button onClick={onNewBono} className="flex items-center gap-3 px-8 py-4 bg-white text-black hover:bg-blue-600 hover:text-white rounded-2xl font-black text-xs transition-all shadow-2xl">
+             EMITIR NUEVO BONO
+          </button>
+        </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {bonos.length === 0 ? (

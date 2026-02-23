@@ -1,31 +1,17 @@
 'use client';
 import React from 'react';
-import { TrendingUp, PieChart, Sparkles, Zap, Rocket, ChevronRight, AlertCircle } from 'lucide-react';
+import { TrendingUp, PieChart, Sparkles, Zap, Rocket, AlertCircle, Users } from 'lucide-react';
 
-export const FinanzasView = ({ balance, onActivateCampaign, clinicData }: any) => {
+export const FinanzasView = ({ balance, pacientes = [], onActivateCampaign, clinicData, onGoToImport }: any) => {
   const isHunting = clinicData?.config_ia?.modo_caza_activo;
+  const hasPatients = Array.isArray(pacientes) && pacientes.length > 0;
+  const canActivateCampaign = hasPatients && !isHunting;
 
   return (
     <div className="flex flex-col gap-10 animate-in fade-in duration-700">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-white/5 pb-8">
-        <div>
-          <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">Rendimiento</h2>
-          <p className="text-gray-500 text-sm">Análisis de rentabilidad y proyección inteligente.</p>
-        </div>
-        
-        {/* 🚀 BOTÓN DE IGNICIÓN (Punto 9) */}
-        <div className="flex flex-col items-end gap-2">
-           <button 
-            onClick={onActivateCampaign}
-            disabled={isHunting}
-            className={`flex items-center gap-4 px-10 py-5 rounded-[20px] font-black text-xs transition-all duration-500 ${isHunting ? 'bg-green-500/10 text-green-500 border border-green-500/20 cursor-default' : 'bg-blue-600 text-white hover:bg-blue-500 shadow-[0_20px_40px_-10px_rgba(37,99,235,0.4)] hover:scale-105 active:scale-95'}`}
-          >
-            {isHunting ? <Zap size={18} className="animate-pulse" /> : <Rocket size={18} />}
-            {isHunting ? 'ANA EN MODO PROSPECCIÓN' : 'DESPLEGAR CAMPAÑA DE RECAPTACIÓN'}
-            {!isHunting && <ChevronRight size={14} />}
-          </button>
-          {!isHunting && <p className="text-[9px] font-black text-blue-500 uppercase tracking-widest animate-pulse mr-2">Ana lista para vender</p>}
-        </div>
+      <div className="border-b border-white/5 pb-8">
+        <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">Rendimiento</h2>
+        <p className="text-gray-500 text-sm mt-1">Análisis de rentabilidad y proyección inteligente.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -34,17 +20,46 @@ export const FinanzasView = ({ balance, onActivateCampaign, clinicData }: any) =
         <StatCard label="EFICIENCIA IA" value={`${balance.roi}%`} icon={<Sparkles color="#3b82f6"/>} trend="STABLE" color="border-blue-500" />
       </div>
 
-      <div className="bg-white/[0.02] border border-white/10 rounded-[40px] p-10 flex flex-col md:flex-row gap-8 items-center relative overflow-hidden">
-         <div className="absolute top-0 right-0 p-8 opacity-5"><Zap size={120}/></div>
-         <div className="w-16 h-16 rounded-2xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-blue-500">
-            <AlertCircle size={32} />
-         </div>
-         <div className="flex-1">
-            <h3 className="text-xl font-black text-white uppercase italic mb-2 tracking-tighter">Estrategia de Caza Activa</h3>
-            <p className="text-gray-400 text-sm leading-relaxed max-w-2xl">
-              Al activar esta campaña, Ana contactará a los pacientes importados que no han agendado en los últimos 30 días para ofrecerles bonos exclusivos. Recibirás notificaciones en tiempo real cuando un paciente responda.
-            </p>
-         </div>
+      {/* Recuperar pacientes inactivos: bloqueo si no hay base de datos */}
+      <div className="bg-white/[0.02] border border-white/10 rounded-3xl p-8 flex flex-col sm:flex-row gap-6 items-start sm:items-center justify-between">
+        <div className="flex-1 max-w-xl">
+          <h3 className="text-lg font-bold text-white mb-2">Recuperar pacientes inactivos</h3>
+          <p className="text-gray-400 text-sm leading-relaxed">
+            Ana envía emails a los pacientes que no han venido en los últimos 30 días y les ofrece bonos. Tú solo activas la campaña; cuando alguien responda, te avisamos.
+          </p>
+          {!hasPatients && (
+            <div className="mt-4 flex items-start gap-3 rounded-xl bg-amber-500/10 border border-amber-500/20 p-4">
+              <AlertCircle size={20} className="text-amber-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-amber-200 text-sm font-medium">Necesitas tener pacientes en el sistema</p>
+                <p className="text-amber-200/80 text-xs mt-1">Para activar la campaña, primero importa o sube tu base de pacientes desde la sección Pacientes. Sin datos, Ana no tiene a quién contactar.</p>
+                {onGoToImport && (
+                  <button
+                    type="button"
+                    onClick={onGoToImport}
+                    className="mt-3 flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 text-sm font-bold transition-colors"
+                  >
+                    <Users size={16} /> Ir a Pacientes e importar
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+        <button
+          onClick={canActivateCampaign ? onActivateCampaign : undefined}
+          disabled={!canActivateCampaign}
+          className={`shrink-0 flex items-center gap-2 px-6 py-4 rounded-xl font-bold text-sm transition-all ${
+            isHunting
+              ? 'bg-green-500/20 text-green-400 border border-green-500/30 cursor-default'
+              : hasPatients
+                ? 'bg-blue-600 text-white hover:bg-blue-500'
+                : 'bg-white/5 text-gray-500 border border-white/10 cursor-not-allowed'
+          }`}
+        >
+          {isHunting ? <Zap size={18} className="animate-pulse" /> : <Rocket size={18} />}
+          {isHunting ? 'Campaña activa' : hasPatients ? 'Activar campaña' : 'Primero importa pacientes'}
+        </button>
       </div>
     </div>
   );

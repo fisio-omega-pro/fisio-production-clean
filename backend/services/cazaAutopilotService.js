@@ -2,6 +2,7 @@ const admin = require('firebase-admin');
 const { db, Timestamp } = require('../config/firebase');
 const anaService = require('./anaService');
 const { sendEmail } = require('./emailSenderService');
+const { getZonedParts, zonedTimeToUtc, DEFAULT_TZ } = require('./depositReminderService');
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -15,6 +16,47 @@ const computeNextEmailAt = (attempts, nowMs) => {
   return Timestamp.fromMillis(nowMs + days * 24 * 60 * 60 * 1000);
 };
 
+const pickLeadTimezone = (lead) => {
+  const tz = String(lead?.timezone || lead?.tz || '').trim();
+  return tz || DEFAULT_TZ;
+};
+
+const nextAllowedWindow = (nowMs, tz) => {
+  const p = getZonedParts(new Date(nowMs), tz);
+  // Permitido: 08:00 <= hora < 20:00
+  if (p.hour < 8) {
+    return zonedTimeToUtc({ year: p.year, month: p.month, day: p.day, hour: 8, minute: 0 }, tz);
+  }
+  if (p.hour >= 20) {
+    const base = zonedTimeToUtc({ year: p.year, month: p.month, day: p.day, hour: 8, minute: 0 }, tz);
+    return new Date(base.getTime() + 24 * 60 * 60 * 1000);
+  }
+  return new Date(nowMs);
+};
+
+const isWithinProspectingWindow = (nowMs, tz) => {
+  const p = getZonedParts(new Date(nowMs), tz);
+  return p.hour >= 8 && p.hour < 20;
+};
+
+const hashString = (s) => {
+  const str = String(s || '');
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0);
+};
+
+const pickAngle = (lead) => {
+  const existing = String(lead?.caza_angle || lead?.prospect_angle || '').trim().toUpperCase();
+  if (existing === 'A' || existing === 'B' || existing === 'C') return existing;
+  const email = String(lead?.email || '').toLowerCase().trim();
+  const mod = hashString(email) % 3;
+  return mod === 0 ? 'A' : mod === 1 ? 'B' : 'C';
+};
+
 const isDue = (lead, nowMs) => {
   const estado = normalizeEstado(lead.estado || lead.status);
   if (!estado || estado === 'convertido' || estado === 'no_responde') return false;
@@ -26,6 +68,10 @@ const isDue = (lead, nowMs) => {
 
   const attempts = Number(lead.cadence_attempts || lead.attempts || 0);
   if (attempts >= cadenceDelaysDays.length) return true; // se marcará como no_responde
+
+  // Quiet hours para prospección: si está fuera de 08:00–20:00, NO está due ahora
+  const tz = pickLeadTimezone(lead);
+  if (!isWithinProspectingWindow(nowMs, tz)) return false;
 
   // Si hay next_email_at, usarlo
   const next = lead.next_email_at;
@@ -95,6 +141,20 @@ async function runCazaAutopilot(options = {}) {
   let sent = 0;
   for (const c of candidates) {
     if (sent >= maxPerRun) break;
+    // Si sería due pero está fuera de ventana horaria, empujar next_email_at a 08:00 local
+    try {
+      const tz = pickLeadTimezone(c);
+      if (!isWithinProspectingWindow(nowMs, tz)) {
+        const next = nextAllowedWindow(nowMs, tz);
+        await db.collection('leads').doc(c.id).set({
+          next_email_at: Timestamp.fromDate(next),
+          ultima_accion: 'Esperando ventana horaria (08:00–20:00)',
+          updated_at: Timestamp.now(),
+        }, { merge: true });
+        continue;
+      }
+    } catch (_) {}
+
     if (!isDue(c, nowMs)) continue;
 
     const locked = await lockLead(c.id, nowMs);
@@ -111,7 +171,8 @@ async function runCazaAutopilot(options = {}) {
     }
 
     const to = String(locked.email || '').trim();
-    const subject = '¿Podemos enseñarte FisioTool Pro?';
+    const subject = attempts === 0 ? 'FisioTool: menos caos en tu agenda' : 'Seguimiento rápido — FisioTool';
+    const angle = pickAngle(locked);
     let body = '';
     try {
       body = await anaService.generateProspectEmail({
@@ -119,6 +180,10 @@ async function runCazaAutopilot(options = {}) {
         clinica: locked.clinica,
         contexto: attempts === 0 ? 'Primer contacto' : `Seguimiento ${attempts}`,
         tipo: locked.tipo || locked.lead_type,
+        angle,
+        link: 'https://fisiotool.com',
+        attempts,
+        cadence_attempts: attempts,
       });
     } catch {
       body = '';
@@ -138,6 +203,8 @@ async function runCazaAutopilot(options = {}) {
           opt_out: r?.reason === 'BLOQUEADO_PLUS_FISIOTOOL' ? true : (locked.opt_out || false),
           email_invalid: r?.reason === 'BLOQUEADO_PLUS_FISIOTOOL' ? true : (locked.email_invalid || false),
           ultima_accion: `No enviado: ${String(r?.reason || r?.error || 'fallo')}`.slice(0, 160),
+          caza_angle: angle,
+          prospect_segment: locked.prospect_segment || 'unknown',
         });
         continue;
       }
@@ -151,6 +218,8 @@ async function runCazaAutopilot(options = {}) {
         fecha: Timestamp.now(),
         source: 'caza_autopilot',
         attempts,
+        angle,
+        segment: locked.prospect_segment || 'unknown',
       });
 
       const next = computeNextEmailAt(attempts + 1, nowMs);
@@ -162,6 +231,9 @@ async function runCazaAutopilot(options = {}) {
         last_email_at: Timestamp.now(),
         cadence_attempts: attempts + 1,
         next_email_at: next,
+        caza_angle: angle,
+        prospect_segment: locked.prospect_segment || 'unknown',
+        landing_url: 'https://fisiotool.com',
       });
 
       sent++;

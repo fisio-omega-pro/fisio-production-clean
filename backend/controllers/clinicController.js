@@ -22,10 +22,14 @@ const createAuditLog = async (clinicId, userId, action, resourceId) => {
 
 // --- APLICACIÓN DE AUDITORÍA A FUNCIONES SENSIBLES ---
 
+const { validatePasswordStrength } = require('../utils/security');
+
 // 1. REGISTRO (Nueva Clínica)
 const register = async (req, res, next) => {
   try {
     const d = req.body;
+    const pwCheck = validatePasswordStrength(d.password);
+    if (!pwCheck.ok) return res.status(400).json({ success: false, error: pwCheck.error });
     const { initEnv } = require('../config/env');
     const env = await initEnv();
     const hash = await bcrypt.hash(d.password, 10);
@@ -75,6 +79,7 @@ const register = async (req, res, next) => {
         precio: d.precio_sesion || 50,
         fianza: d.fianza || 15,
         acepta_bonos: !!d.acepta_bonos,
+        precio_bono_5: Number(d.precio_bono_5) || 225,
         modo_caza_activo: false
       },
       // Auditoría legal mínima
@@ -123,7 +128,34 @@ const register = async (req, res, next) => {
     }
 
     const token = jwt.sign({ clinicId: ref.id }, env.JWT_SECRET, { expiresIn: '30d' });
-    res.json({ success: true, token, clinicId: ref.id });
+
+    // Tras aceptar términos: redirigir a pasarela de pago (Stripe). Trial 30 días solo para los primeros 50 fisios; a partir del 51 solo referidos (50%) o 100%.
+    let payment_url = null;
+    let payment_error = null;
+    try {
+      const paymentService = require('../services/paymentService');
+      const regPlan = String(d.plan || 'solo').trim().toLowerCase() || 'solo';
+      let referrerStripeCustomerId = null;
+      if (referred_by_clinic_id) {
+        const refClinic = await db.collection('clinicas').doc(referred_by_clinic_id).get();
+        if (refClinic.exists) referrerStripeCustomerId = (refClinic.data() || {}).stripe_customer_id || null;
+      }
+      const countSnap = await db.collection('clinicas').count().get();
+      const totalClinics = (typeof countSnap.data === 'function' ? countSnap.data() : {})?.count ?? 0;
+      const trialCap = (await initEnv()).FREE_TRIAL_CAP ?? 50;
+      const allowTrial = totalClinics <= trialCap;
+      const { url } = await paymentService.createSubscriptionSession(ref.id, d.email.toLowerCase().trim(), regPlan, req, {
+        referrerStripeCustomerId,
+        allowTrial,
+      });
+      payment_url = url || null;
+    } catch (e) {
+      const stripeMsg = String(e?.message || e || '');
+      console.error('🔥 [REGISTER] Fallo al crear sesión Stripe:', stripeMsg);
+      payment_error = stripeMsg;
+    }
+
+    res.json({ success: true, token, clinicId: ref.id, payment_url, payment_error });
   } catch (error) { next(error); }
 };
 
@@ -135,21 +167,41 @@ const login = async (req, res, next) => {
 
     const { initEnv } = require('../config/env');
     const env = await initEnv();
+    const normalizedEmail = String(email).toLowerCase().trim();
 
     const snap = await db.collection('clinicas')
-      .where('email', '==', String(email).toLowerCase().trim())
+      .where('email', '==', normalizedEmail)
       .limit(1)
       .get();
 
-    if (snap.empty) return res.status(401).json({ success: false, error: 'Credenciales incorrectas' });
+    if (!snap.empty) {
+      const doc = snap.docs[0];
+      const data = doc.data() || {};
+      const ok = await bcrypt.compare(String(password), String(data.password || ''));
+      if (!ok) return res.status(401).json({ success: false, error: 'Credenciales incorrectas' });
+      const token = jwt.sign({ clinicId: doc.id }, env.JWT_SECRET, { expiresIn: '30d' });
+      return res.json({ success: true, token, clinicId: doc.id });
+    }
 
-    const doc = snap.docs[0];
-    const data = doc.data() || {};
-    const ok = await bcrypt.compare(String(password), String(data.password || ''));
+    const staffDoc = await db.collection('staff_logins').doc(normalizedEmail).get();
+    if (!staffDoc.exists) return res.status(401).json({ success: false, error: 'Credenciales incorrectas' });
+    const staffData = staffDoc.data() || {};
+    const clinicId = String(staffData.clinic_id || '').trim();
+    const specialistId = String(staffData.specialist_id || '').trim();
+    if (!clinicId || !specialistId) return res.status(401).json({ success: false, error: 'Credenciales incorrectas' });
+    const staffPassword = String(staffData.password || '').trim();
+    let ok = false;
+    if (staffPassword) {
+      ok = await bcrypt.compare(String(password), staffPassword);
+    } else {
+      const clinicDoc = await db.collection('clinicas').doc(clinicId).get();
+      if (!clinicDoc.exists) return res.status(401).json({ success: false, error: 'Credenciales incorrectas' });
+      const clinicData = clinicDoc.data() || {};
+      ok = await bcrypt.compare(String(password), String(clinicData.password || ''));
+    }
     if (!ok) return res.status(401).json({ success: false, error: 'Credenciales incorrectas' });
-
-    const token = jwt.sign({ clinicId: doc.id }, env.JWT_SECRET, { expiresIn: '30d' });
-    return res.json({ success: true, token, clinicId: doc.id });
+    const token = jwt.sign({ clinicId, specialistId }, env.JWT_SECRET, { expiresIn: '30d' });
+    return res.json({ success: true, token, clinicId, specialistId });
   } catch (error) { next(error); }
 };
 
@@ -174,7 +226,8 @@ const resetPassword = async (req, res, next) => {
   try {
     const { token, newPassword } = req.body || {};
     if (!token || !newPassword) return res.status(400).json({ success: false, error: 'Token y contraseña requeridos' });
-    if (String(newPassword).length < 6) return res.status(400).json({ success: false, error: 'La contraseña debe tener al menos 6 caracteres' });
+    const pwCheck = validatePasswordStrength(newPassword);
+    if (!pwCheck.ok) return res.status(400).json({ success: false, error: pwCheck.error });
 
     const hash = await bcrypt.hash(String(newPassword), 10);
     const { consumeResetToken } = require('../services/passwordResetService');
@@ -341,6 +394,14 @@ const getDashboardData = async (req, res, next) => {
         if (equipo.length === 0) {
           equipo = [{ id: 'admin-lead', nombre: data.nombre_clinica, especialidad: 'Dirección', avatarUrl: data.logo_url, isOwner: true }];
         }
+        let agendaRaw = citasSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const specialistId = String(req.specialistId || '').trim() || null;
+        if (specialistId) {
+          agendaRaw = agendaRaw.filter((c) => String(c.specialist_id || '') === specialistId);
+          const onlyMe = equipo.filter((e) => e.id === specialistId);
+          if (onlyMe.length) equipo = onlyMe;
+        }
+        const currentUser = { specialistId: specialistId || null, isOwner: !specialistId };
         // 🔒 Nunca exponer hashes/credenciales al cliente
         // eslint-disable-next-line no-unused-vars
         const { password, ...safeClinic } = (data || {});
@@ -348,8 +409,7 @@ const getDashboardData = async (req, res, next) => {
         const precioSesion = Number((data?.config_ia && data.config_ia.precio) || 50);
         let real = 0;
         let potencial = 0;
-        citasSnap.docs.forEach((d) => {
-          const c = d.data() || {};
+        agendaRaw.forEach((c) => {
           const amount = Number(c.precio_sesion || precioSesion || 0);
           const pagado = !!c.pagado || String(c.estado || '').toLowerCase() === 'pagado' || String(c.estado || '').toLowerCase() === 'pagada';
           if (pagado) real += amount;
@@ -364,11 +424,13 @@ const getDashboardData = async (req, res, next) => {
           data: { 
             configStatus: { hasLogo: !!data.logo_url, hasStripe: data.stripe_status === 'active', hasSubscription: !!data.subscription_active },
             clinicData: { id: req.clinicId, ...safeClinic },
-            equipo: equipo, pacientes: pacientesSnap.docs.map(d => ({id: d.id, ...d.data()})),
-            agenda: citasSnap.docs.map(d => ({id: d.id, ...d.data()})),
+            equipo,
+            pacientes: pacientesSnap.docs.map(d => ({id: d.id, ...d.data()})),
+            agenda: agendaRaw,
             bonos: bonosSnap.docs.map(d => ({id: d.id, ...d.data()})),
             balance: { real, potencial, roi, tendenciaMensual: 12 },
-            referrals: { code: referralCode, count: referredCount }
+            referrals: { code: referralCode, count: referredCount },
+            currentUser
           } 
         });
     } catch (e) { next(e); }
@@ -497,8 +559,19 @@ const saveCobrosConfig = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
+const PLANS_MULTI_CLINIC = ['team', 'business', 'clinic', 'corporate'];
+
 const addSede = async (req, res, next) => {
   try {
+    const clinicDoc = await db.collection('clinicas').doc(req.clinicId).get();
+    if (!clinicDoc.exists) return res.status(404).json({ success: false, error: 'Clínica no encontrada' });
+    const plan = String((clinicDoc.data() || {}).plan || 'solo').toLowerCase();
+    if (!PLANS_MULTI_CLINIC.includes(plan)) {
+      return res.status(403).json({
+        success: false,
+        error: 'La gestión de varias sedes está disponible en el plan Business (300€). Mejora tu plan para activarla.',
+      });
+    }
     const sede = req.body?.sede || {};
     const sedeDoc = {
       nombre: String(sede.nombre || '').trim() || 'Sede',
@@ -521,9 +594,12 @@ const addSede = async (req, res, next) => {
 
 const saveSpecialist = async (req, res, next) => {
   try {
-    // Aceptar { specialist: {...} } (frontend) y formato plano (robustez)
     const specialist = req.body?.specialist || req.body || {};
     const id = String(specialist.id || '').trim();
+    const loginEmail = String(specialist.login_email || specialist.loginEmail || '').trim().toLowerCase() || null;
+    const isOwner = !req.specialistId;
+    let sendPasswordSetupEmail = false;
+
     const payload = {
       nombre: String(specialist.nombre || '').trim(),
       especialidad: String(specialist.especialidad || '').trim(),
@@ -534,10 +610,51 @@ const saveSpecialist = async (req, res, next) => {
     if (!payload.nombre) return res.status(400).json({ success: false, error: 'nombre requerido' });
 
     const col = db.collection('clinicas').doc(req.clinicId).collection('equipo');
-    if (id) await col.doc(id).set(payload, { merge: true });
-    else await col.add({ ...payload, created_at: Timestamp.now() });
+    let finalId = id;
+    if (id) {
+      if (isOwner && loginEmail !== undefined) {
+        payload.login_email = loginEmail || null;
+        const currentDoc = await col.doc(id).get();
+        const current = (currentDoc.data() || {});
+        const previousEmail = String(current.login_email || '').trim().toLowerCase() || null;
+        if (previousEmail && previousEmail !== (loginEmail || '')) {
+          try { await db.collection('staff_logins').doc(previousEmail).delete(); } catch (_) {}
+        }
+        if (loginEmail) {
+          await db.collection('staff_logins').doc(loginEmail).set({
+            clinic_id: req.clinicId,
+            specialist_id: id,
+            updated_at: Timestamp.now()
+          }, { merge: true });
+          if (previousEmail !== loginEmail) sendPasswordSetupEmail = true;
+        } else if (previousEmail) {
+          try { await db.collection('staff_logins').doc(previousEmail).delete(); } catch (_) {}
+        }
+      }
+      await col.doc(id).set(payload, { merge: true });
+    } else {
+      if (isOwner && loginEmail) payload.login_email = loginEmail;
+      const ref = await col.add({ ...payload, created_at: Timestamp.now() });
+      finalId = ref.id;
+      if (isOwner && loginEmail) {
+        await db.collection('staff_logins').doc(loginEmail).set({
+          clinic_id: req.clinicId,
+          specialist_id: finalId,
+          updated_at: Timestamp.now()
+        }, { merge: true });
+        sendPasswordSetupEmail = true;
+      }
+    }
 
-    await createAuditLog(req.clinicId, req.userId || req.clinicId, 'UPSERT_SPECIALIST', id || 'new');
+    if (sendPasswordSetupEmail && loginEmail) {
+      try {
+        const { createResetRequest, sendResetEmail } = require('../services/passwordResetService');
+        const result = await createResetRequest(loginEmail);
+        if (result.ok && result.token) await sendResetEmail(loginEmail, result.token);
+      } catch (e) { console.error('saveSpecialist: email configura contraseña', e.message); }
+    }
+
+    await createAuditLog(req.clinicId, req.userId || req.clinicId, 'UPSERT_SPECIALIST', finalId || 'new');
     return res.json({ success: true });
   } catch (e) { next(e); }
 };
@@ -584,6 +701,18 @@ const activateBonos = async (req, res, next) => {
       updated_at: Timestamp.now()
     });
     await createAuditLog(req.clinicId, req.userId || req.clinicId, 'ACTIVATE_BONOS', req.clinicId);
+    return res.json({ success: true });
+  } catch (e) { next(e); }
+};
+
+const deactivateBonos = async (req, res, next) => {
+  try {
+    await db.collection('clinicas').doc(req.clinicId).update({
+      'config_ia.acepta_bonos': false,
+      'config_ia.bonos_updated_at': Timestamp.now(),
+      updated_at: Timestamp.now()
+    });
+    await createAuditLog(req.clinicId, req.userId || req.clinicId, 'DEACTIVATE_BONOS', req.clinicId);
     return res.json({ success: true });
   } catch (e) { next(e); }
 };
@@ -645,7 +774,7 @@ const startStripeConnect = async (req, res, next) => {
     const clinic = clinicDoc.data() || {};
     const stripe = Stripe(sk);
 
-    const frontendBase = String(process.env.FRONTEND_URL || 'https://www.fisiotool.com').replace(/\/+$/, '');
+    const frontendBase = String(env.FRONTEND_URL || process.env.FRONTEND_URL || 'https://www.fisiotool.com').replace(/\/+$/, '');
 
     let accountId = String(clinic.stripe_account_id || '').trim();
     if (!accountId) {
@@ -705,10 +834,70 @@ const createUpgradeSession = async (req, res, next) => {
     const clinic = clinicDoc.data() || {};
     const requested = String(req.body?.plan || '').trim();
     const current = String(clinic.plan || 'solo').trim();
-    // Si no especifican plan, por defecto subimos a team (upgrade)
     const plan = requested || (current.toLowerCase() === 'corporate' ? 'corporate' : 'team');
-    const { url } = await paymentService.createSubscriptionSession(req.clinicId, clinic.email, plan, req);
+    const subId = String(clinic.stripe_subscription_id || '').trim();
+
+    // Si ya tiene suscripción activa: upgrade con prorrateo (Stripe cobra solo la parte proporcional)
+    if (subId && clinic.subscription_active) {
+      const { url } = await paymentService.upgradeExistingSubscription(subId, plan, req);
+      await createAuditLog(req.clinicId, req.userId || req.clinicId, 'STRIPE_UPGRADE_PRORATION', plan);
+      return res.json({ success: true, url });
+    }
+
+    // Sin suscripción previa: Checkout nuevo (alta o re-alta). Trial solo si total fisios ≤ FREE_TRIAL_CAP.
+    let allowTrial = true;
+    try {
+      const { initEnv } = require('../config/env');
+      const countSnap = await db.collection('clinicas').count().get();
+      const totalClinics = (typeof countSnap.data === 'function' ? countSnap.data() : {})?.count ?? 0;
+      const trialCap = (await initEnv()).FREE_TRIAL_CAP ?? 50;
+      allowTrial = totalClinics <= trialCap;
+    } catch (_) {}
+    const { url } = await paymentService.createSubscriptionSession(req.clinicId, clinic.email, plan, req, { allowTrial });
     await createAuditLog(req.clinicId, req.userId || req.clinicId, 'STRIPE_UPGRADE_SESSION', plan);
+    return res.json({ success: true, url });
+  } catch (e) { next(e); }
+};
+
+// Darse de baja: cancela la suscripción al final del periodo (el usuario mantiene acceso hasta esa fecha)
+const cancelSubscription = async (req, res, next) => {
+  try {
+    const clinicDoc = await db.collection('clinicas').doc(req.clinicId).get();
+    if (!clinicDoc.exists) return res.status(404).json({ success: false, error: 'Clínica no encontrada' });
+    const clinic = clinicDoc.data() || {};
+    const subId = String(clinic.stripe_subscription_id || '').trim();
+    if (!subId) return res.status(400).json({ success: false, error: 'No tienes suscripción activa para cancelar' });
+
+    const { canceled, cancel_at } = await paymentService.cancelSubscriptionAtPeriodEnd(subId);
+    if (!canceled) return res.status(400).json({ success: false, error: 'No se pudo programar la cancelación' });
+
+    await db.collection('clinicas').doc(req.clinicId).set({
+      subscription_cancel_at_period_end: true,
+      subscription_cancel_at: cancel_at || null,
+      updated_at: Timestamp.now(),
+    }, { merge: true });
+    await createAuditLog(req.clinicId, req.userId || req.clinicId, 'STRIPE_CANCEL_AT_PERIOD_END', subId);
+
+    return res.json({ success: true, cancel_at: cancel_at || null });
+  } catch (e) { next(e); }
+};
+
+// Cobro de cita o bono: genera enlace Checkout (pago único) con transferencia a la cuenta Connect de la clínica
+const createCitaBonoCheckout = async (req, res, next) => {
+  try {
+    const clinicDoc = await db.collection('clinicas').doc(req.clinicId).get();
+    if (!clinicDoc.exists) return res.status(404).json({ success: false, error: 'Clínica no encontrada' });
+    const clinic = clinicDoc.data() || {};
+    const accountId = String(clinic.stripe_account_id || '').trim();
+    if (!accountId) return res.status(400).json({ success: false, error: 'Vincula primero tu cuenta bancaria en Pagos' });
+
+    const amountEuros = Number(req.body?.amount) || 0;
+    const amountCents = Math.round(amountEuros * 100);
+    if (amountCents < 100) return res.status(400).json({ success: false, error: 'Importe mínimo 1€ (envía amount en euros, ej: 50 para 50€)' });
+    const concepto = String(req.body?.concepto || req.body?.concept || 'Sesión FisioTool').trim().slice(0, 200);
+
+    const { url, error } = await paymentService.createOneTimePaymentSession(amountCents, accountId, concepto, req);
+    if (error) return res.status(400).json({ success: false, error });
     return res.json({ success: true, url });
   } catch (e) { next(e); }
 };
@@ -805,17 +994,46 @@ const handleStripeWebhook = async (req, res, next) => {
       }
     }
 
-    // Si se cancela la suscripción (o se marca como incompleta), reflejarlo
+    // Referidos: al pagar una factura de suscripción, si el metadata tiene referente_id_stripe, aplicar cupón al referente
+    if (event.type === 'invoice.paid') {
+      const factura = event.data.object;
+      if (factura.subscription && factura.amount_paid > 0) {
+        try {
+          const { initEnv: initEnvRef } = require('../config/env');
+          const subs = await stripe.subscriptions.retrieve(factura.subscription);
+          const refCustomerId = subs.metadata?.referente_id_stripe;
+          if (refCustomerId) {
+            const env = await initEnvRef();
+            const coupon = String(env.STRIPE_REFERRAL_COUPON || 'REFERRAL50').trim();
+            const list = await stripe.subscriptions.list({ customer: refCustomerId, status: 'active', limit: 1 });
+            if (list.data.length > 0) {
+              await stripe.subscriptions.update(list.data[0].id, { coupon });
+              await createAuditLog('system', 'stripe_webhook', 'REFERRAL_COUPON_APPLIED', refCustomerId);
+            }
+          }
+        } catch (refErr) {
+          console.warn('⚠️ [WEBHOOK] Referral coupon apply:', refErr?.message || refErr);
+        }
+      }
+    }
+
+    // Si se cancela la suscripción (o se actualiza, p. ej. upgrade con prorrateo o cancel_at_period_end), reflejarlo
     if (event.type === 'customer.subscription.deleted' || event.type === 'customer.subscription.updated') {
       const sub = event.data.object;
       const clinicId = String(sub?.metadata?.clinic_id || '').trim();
       if (clinicId) {
         const status = String(sub?.status || '').trim().toLowerCase();
         const active = status === 'active' || status === 'trialing';
+        const plan = String(sub?.metadata?.plan || '').trim() || null;
+        const cancelAtPeriodEnd = !!sub?.cancel_at_period_end;
+        const cancelAt = sub?.cancel_at || (cancelAtPeriodEnd ? sub?.current_period_end : null) || null;
         await db.collection('clinicas').doc(clinicId).set({
           subscription_active: active,
           stripe_subscription_status: status,
           stripe_subscription_id: sub?.id || null,
+          subscription_cancel_at_period_end: cancelAtPeriodEnd,
+          subscription_cancel_at: cancelAt || null,
+          ...(plan ? { plan } : {}),
           updated_at: Timestamp.now()
         }, { merge: true });
         await createAuditLog(clinicId, clinicId, 'STRIPE_SUBSCRIPTION_STATUS', `${sub?.id || ''}:${status}`);
@@ -844,6 +1062,7 @@ module.exports = {
   saveSpecialist,
   importPatients,
   activateBonos,
+  deactivateBonos,
   createBono,
   launchCampaign,
   runRecaptacionNow,
@@ -852,6 +1071,8 @@ module.exports = {
   startStripeConnect,
   finalizeStripeConnect,
   createUpgradeSession,
+  cancelSubscription,
+  createCitaBonoCheckout,
   verifyPayment,
   handleStripeWebhook
 };

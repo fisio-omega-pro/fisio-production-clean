@@ -1,6 +1,7 @@
 /**
- * 💳 PAYMENT SERVICE - DIAGNÓSTICO FORENSE
- * Si falla, lista los productos reales de la cuenta para detectar el error.
+ * 💳 PAYMENT SERVICE – FisioTool Pro (LLC USA)
+ * Suscripciones (IVA automático, trial 30d, cupón referidos), Connect (vincular banco), cobro cita/bono.
+ * Configuración: backend/STRIPE_SETUP.md y Secret Manager (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, price IDs, STRIPE_REFERRAL_COUPON).
  */
 const Stripe = require('stripe');
 const { initEnv } = require('../config/env');
@@ -35,19 +36,24 @@ const getStripe = async () => {
   return stripeInstance;
 };
 
+// Price IDs: deben venir de Secret Manager (STRIPE_PRICE_SOLO / STRIPE_PRICE_BASE, STRIPE_PRICE_TEAM, STRIPE_PRICE_CORPORATE).
+// Fallbacks solo para entornos sin secretos (local/dev); en producción usar siempre Secret Manager.
+const FALLBACK_PRICE_IDS = {
+  solo: 'price_1T2U1u4vUWb0SJ7OVu9z00oM',
+  team: 'price_1T2U4b4vUWb0SJ7OVbGEmZND',
+  corporate: 'price_1T2U5y4vUWb0SJ7OKMTpIn2t',
+};
+
 const getPriceIdForPlan = async (plan) => {
   const env = await initEnv();
   const p = normalizePlan(plan);
-  // Preferir env (configurable). Si no existe, fallback a un price temporal conocido (evita romper).
+  const priceSolo = String(env.STRIPE_PRICE_SOLO || env.STRIPE_PRICE_BASE || '').trim() || FALLBACK_PRICE_IDS.solo;
   const map = {
-    solo: String(env.STRIPE_PRICE_SOLO || '').trim(),
-    team: String(env.STRIPE_PRICE_TEAM || '').trim(),
-    corporate: String(env.STRIPE_PRICE_CORPORATE || '').trim(),
+    solo: priceSolo,
+    team: String(env.STRIPE_PRICE_TEAM || '').trim() || FALLBACK_PRICE_IDS.team,
+    corporate: String(env.STRIPE_PRICE_CORPORATE || '').trim() || FALLBACK_PRICE_IDS.corporate,
   };
-  const configured = map[p];
-  if (configured) return configured;
-  // Fallback legacy (temporal)
-  return 'price_1SdAs2EarlGG7cm4RRmu49VM';
+  return map[p] || map.solo;
 };
 
 const getFrontendBase = async (req) => {
@@ -65,9 +71,10 @@ const getHost = (req) => {
   return `${protocol}://${host}`;
 };
 
-const createSubscriptionSession = async (clinicId, email, plan = 'solo', req) => {
+const createSubscriptionSession = async (clinicId, email, plan = 'solo', req, options = {}) => {
   const stripe = await getStripe();
   const frontendBase = await getFrontendBase(req);
+  const env = await initEnv();
 
   if (!stripe) {
     console.warn("⚠️ [PAYMENT] Stripe offline (Sin clave).");
@@ -76,50 +83,172 @@ const createSubscriptionSession = async (clinicId, email, plan = 'solo', req) =>
 
   const normalized = normalizePlan(plan);
   const priceId = await getPriceIdForPlan(normalized);
+  const referralCoupon = String(env.STRIPE_REFERRAL_COUPON || 'REFERRAL50').trim();
+  const allowTrial = options.allowTrial !== false;
+
+  const subscriptionData = {
+    metadata: { clinic_id: clinicId, plan: normalized },
+  };
+  if (allowTrial) subscriptionData.trial_period_days = 30;
+  if (normalized === 'solo' && options.referrerStripeCustomerId) {
+    subscriptionData.discounts = [{ coupon: referralCoupon }];
+    subscriptionData.metadata.referente_id_stripe = options.referrerStripeCustomerId;
+  }
+
+  const baseSessionParams = {
+    payment_method_types: ['card'],
+    customer_email: email,
+    line_items: [{ price: priceId, quantity: 1 }],
+    mode: 'subscription',
+    billing_address_collection: 'required',
+    client_reference_id: clinicId,
+    metadata: { clinic_id: clinicId, plan: normalized },
+    subscription_data: subscriptionData,
+    success_url: `${frontendBase}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${frontendBase}/setup?error=payment_cancelled`,
+  };
+
+  const logPriceDiagnostics = async (err) => {
+    console.error(`🔥 [STRIPE ERROR] Fallo con priceId="${priceId}", plan="${normalized}", email="${email}"`);
+    console.error(`🔥 [STRIPE ERROR] type=${err?.type || 'unknown'}, code=${err?.code || 'none'}, message=${err?.message || err}`);
+    try {
+      const prices = await stripe.prices.list({ limit: 5 });
+      if (prices.data.length === 0) console.error("❌ LA CUENTA ESTÁ VACÍA. No hay precios creados.");
+      else {
+        console.log('📋 [STRIPE] Precios disponibles en la cuenta:');
+        prices.data.forEach(p => console.log(`   - ID: ${p.id} | ${(p.unit_amount || 0) / 100} ${p.currency} | active=${p.active} | tax_behavior=${p.tax_behavior || 'NOT SET'}`));
+      }
+    } catch (e) { /* ignore */ }
+  };
 
   try {
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      customer_email: email,
-      line_items: [{ price: priceId, quantity: 1 }],
-      mode: 'subscription',
-      client_reference_id: clinicId,
-      metadata: { clinic_id: clinicId, plan: normalized },
-      subscription_data: {
-        trial_period_days: 30,
-        metadata: { clinic_id: clinicId, plan: normalized }
-      },
-      success_url: `${frontendBase}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${frontendBase}/setup?error=payment_cancelled`,
+      ...baseSessionParams,
+      tax_id_collection: { enabled: true },
+      automatic_tax: { enabled: true },
     });
-
     return { url: session.url };
-
-  } catch (error) {
-    console.error(`🔥 [STRIPE ERROR] Fallo con ID: ${priceId}`);
-    console.error(`ERROR REAL: ${error.message}`);
-
-    // --- AUTOPSIA: LISTAR PRECIOS DISPONIBLES ---
-    try {
-      console.log("🔍 BUSCANDO PRECIOS REALES EN ESTA CUENTA...");
-      const prices = await stripe.prices.list({ limit: 5 });
-      if (prices.data.length === 0) {
-        console.log("❌ LA CUENTA ESTÁ VACÍA. No hay precios creados en este modo.");
-      } else {
-        console.log("✅ PRECIOS ENCONTRADOS (Copia uno de estos):");
-        prices.data.forEach(p => {
-          console.log(`   - ID: ${p.id} | Monto: ${p.unit_amount/100} ${p.currency} | Producto: ${p.product}`);
-        });
+  } catch (taxError) {
+    const msg = String(taxError?.message || '').toLowerCase();
+    if (msg.includes('tax') || msg.includes('automatic_tax') || msg.includes('not enabled')) {
+      try {
+        const session = await stripe.checkout.sessions.create(baseSessionParams);
+        console.log('💳 [STRIPE] Sesión creada sin IVA automático (Stripe Tax no habilitado en la cuenta).');
+        return { url: session.url };
+      } catch (fallbackError) {
+        await logPriceDiagnostics(fallbackError);
+        throw fallbackError;
       }
-    } catch (e) { console.log("Error listando precios:", e.message); }
-    
-    // Lanzamos el error para que el frontend sepa que falló
-    throw error; 
+    }
+    await logPriceDiagnostics(taxError);
+    throw taxError;
   }
 };
 
-// ... Resto igual ...
+// Cobro de cita o bono: pago único con transferencia a la cuenta Connect del profesional (comisión 0)
+const createOneTimePaymentSession = async (amountCents, stripeAccountIdPro, concepto, req) => {
+  const stripe = await getStripe();
+  const frontendBase = await getFrontendBase(req);
+  if (!stripe) return { url: null, error: 'Stripe no configurado' };
+  if (!stripeAccountIdPro || amountCents < 100) return { url: null, error: 'Destino o importe inválido' };
+
+  try {
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      line_items: [{
+        price_data: {
+          currency: 'eur',
+          product_data: { name: concepto || 'Sesión FisioTool' },
+          unit_amount: amountCents,
+        },
+        quantity: 1,
+      }],
+      payment_intent_data: {
+        transfer_data: { destination: stripeAccountIdPro },
+        application_fee_amount: 0,
+      },
+      success_url: `${frontendBase}/dashboard?pago=ok`,
+      cancel_url: `${frontendBase}/dashboard?pago=cancelado`,
+    });
+    return { url: session.url };
+  } catch (e) {
+    console.warn('⚠️ [PAYMENT] createOneTimePaymentSession:', e?.message || e);
+    return { url: null, error: e?.message || 'Error al crear sesión de pago' };
+  }
+};
+
+/**
+ * Upgrade de suscripción existente con prorrateo (ej: 100€ → 300€ a mitad de mes).
+ * Stripe calcula el crédito por los días no usados del plan actual y cobra la parte proporcional del plan nuevo.
+ * Devuelve la URL de la factura para que el usuario pague el ajuste, o la URL del dashboard si no hay nada que pagar ya.
+ */
+const upgradeExistingSubscription = async (subscriptionId, newPlan, req) => {
+  const stripe = await getStripe();
+  const frontendBase = await getFrontendBase(req);
+  if (!stripe || !subscriptionId) return { url: `${frontendBase}/dashboard`, upgraded: false };
+
+  const normalized = normalizePlan(newPlan);
+  const newPriceId = await getPriceIdForPlan(normalized);
+
+  try {
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    const itemId = subscription.items?.data?.[0]?.id;
+    if (!itemId) {
+      console.warn('⚠️ [STRIPE] No subscription item found for', subscriptionId);
+      return { url: `${frontendBase}/dashboard`, upgraded: false };
+    }
+
+    // Cambiar al nuevo precio con prorrateo: Stripe cobra solo la diferencia proporcional
+    await stripe.subscriptions.update(subscriptionId, {
+      items: [{ id: itemId, price: newPriceId }],
+      proration_behavior: 'create_prorations',
+      metadata: { ...(subscription.metadata || {}), plan: normalized },
+    });
+
+    // Crear/finalizar factura para cobrar el prorrateo ahora
+    let invoices = await stripe.invoices.list({ subscription: subscriptionId, status: 'open', limit: 1 });
+    let invoice = invoices.data[0];
+    if (!invoice) {
+      invoices = await stripe.invoices.list({ subscription: subscriptionId, status: 'draft', limit: 1 });
+      invoice = invoices.data[0];
+    }
+    if (!invoice) {
+      invoice = await stripe.invoices.create({ subscription: subscriptionId, auto_advance: true });
+    }
+    if (invoice.status === 'draft') {
+      invoice = await stripe.invoices.finalizeInvoice(invoice.id);
+    }
+    if (invoice.amount_due > 0 && invoice.hosted_invoice_url) {
+      return { url: invoice.hosted_invoice_url, upgraded: true };
+    }
+    return { url: `${frontendBase}/dashboard?upgraded=1`, upgraded: true };
+  } catch (e) {
+    console.warn('⚠️ [STRIPE] upgradeExistingSubscription:', e?.message || e);
+    throw e;
+  }
+};
+
+/**
+ * Cancela la suscripción al final del periodo de facturación (el usuario sigue teniendo acceso hasta esa fecha).
+ * @param {string} subscriptionId - ID de la suscripción en Stripe (sub_xxx)
+ * @returns {{ canceled: boolean, cancel_at: number|null }} cancel_at = timestamp Unix del final del periodo
+ */
+const cancelSubscriptionAtPeriodEnd = async (subscriptionId) => {
+  const stripe = await getStripe();
+  if (!stripe || !subscriptionId) return { canceled: false, cancel_at: null };
+  try {
+    const sub = await stripe.subscriptions.update(String(subscriptionId).trim(), {
+      cancel_at_period_end: true,
+    });
+    const cancelAt = sub.cancel_at ? sub.cancel_at : (sub.current_period_end || null);
+    return { canceled: true, cancel_at: cancelAt };
+  } catch (e) {
+    console.warn('⚠️ [STRIPE] cancelSubscriptionAtPeriodEnd:', e?.message || e);
+    throw e;
+  }
+};
+
 const createDepositLink = async () => null;
 const createConnectAccount = async () => null;
 
-module.exports = { createSubscriptionSession, createDepositLink, createConnectAccount };
+module.exports = { createSubscriptionSession, createOneTimePaymentSession, upgradeExistingSubscription, cancelSubscriptionAtPeriodEnd, createDepositLink, createConnectAccount };

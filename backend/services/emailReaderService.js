@@ -145,8 +145,19 @@ const readEmails = async () => {
                 return;
               }
 
-              // 🧠 Ana procesa el email con IA
-              const analysis = await anaService.processIncomingEmail(from, subject, body);
+              // 🎯 Buscar si el remitente es un lead de CAZA (para contexto y actualización)
+              let leadDoc = null;
+              try {
+                const leadSnap = await db.collection('leads').where('email', '==', String(from).trim().toLowerCase()).limit(1).get();
+                if (!leadSnap.empty) leadDoc = { id: leadSnap.docs[0].id, ...leadSnap.docs[0].data() };
+              } catch (_) {}
+
+              const leadContext = leadDoc
+                ? { id: leadDoc.id, nombre: leadDoc.nombre || leadDoc.name, clinica: leadDoc.clinica || leadDoc.company }
+                : null;
+
+              // 🧠 Ana procesa el email con IA (con contexto CAZA si es un lead)
+              const analysis = await anaService.processIncomingEmail(from, subject, body, leadContext);
 
               // 💾 Guardar email procesado en Firestore
               try {
@@ -176,7 +187,7 @@ const readEmails = async () => {
                   return;
                 }
                 
-                // Marcar como respondido
+                // Marcar como respondido en ana_inbox
                 try {
                   const docs = await db.collection('ana_inbox').where('from', '==', from).orderBy('fecha', 'desc').limit(1).get();
                   if (!docs.empty) {
@@ -184,6 +195,24 @@ const readEmails = async () => {
                   }
                 } catch (updateErr) {
                   console.error('🔥 Error actualizando estado:', updateErr);
+                }
+              }
+
+              // 🎯 Actualizar lead en CAZA cuando el remitente es un lead que respondió
+              if (leadDoc && leadDoc.id) {
+                try {
+                  const resumenCorto = (analysis.resumen || '').slice(0, 200);
+                  const estadoNuevo = analysis.tipo === 'LEAD_PROSPECTO' ? 'interesado' : 'respondido';
+                  await db.collection('leads').doc(leadDoc.id).set({
+                    last_reply_at: Timestamp.now(),
+                    ultima_accion: `Lead respondió: ${resumenCorto || subject}`,
+                    estado: estadoNuevo,
+                    status: estadoNuevo,
+                    updated_at: Timestamp.now(),
+                  }, { merge: true });
+                  console.log(`✅ [CAZA] Lead ${leadDoc.id} actualizado (${estadoNuevo})`);
+                } catch (leadErr) {
+                  console.error('🔥 Error actualizando lead:', leadErr?.message || leadErr);
                 }
               }
 

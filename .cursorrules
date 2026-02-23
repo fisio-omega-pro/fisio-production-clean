@@ -21,7 +21,7 @@ FisioTool Pro es un SaaS para clínicas (fisioterapia y centros mixtos) con:
 
 ### Frontend
 
-- **Next.js App Router** con `output: 'export'` (sitio estático).
+- **Next.js App Router** (SSR en Vercel, sin `output: 'export'`).
 - Ubicación: `public-next/`
 - API base centralizada:
   - `public-next/src/lib/apiBase.ts` → `API_BASE_URL` (usa `NEXT_PUBLIC_API_BASE_URL` o fallback a Cloud Run).
@@ -193,22 +193,24 @@ Se cerraron gaps reales encontrados:
 
 ### Bloqueantes / de alto impacto
 
-1) **Stripe** (pendiente de cuenta/keys reales):
-   - Configurar `STRIPE_SECRET_KEY` (debe empezar por `sk_`) y webhook.
-   - Validar flujo completo: upgrade → checkout → webhook → `subscription_active=true`.
+1) **Stripe** (cuenta certificada, keys en Secret Manager):
+   - ✅ Configurado: `STRIPE_SECRET_KEY`, webhook, price IDs.
+   - Pendiente: validar flujo e2e upgrade → checkout → webhook → `subscription_active=true`.
    - Connect Express: onboarding → verify → `stripe_status=active`.
+   - El registro ahora muestra Step 4 (retry) si Stripe falla, en vez de ir silenciosamente al dashboard.
 
-2) **Foundry funcionalidades core**:
-   - **MODO DIOS**: métricas reales, filtros por mes/tipo, paginación consistente.
-   - **MODO CAZA**: cadencias reales, segmentación (videntes/invidentes), estados, canales (WhatsApp/email).
-   - **MODO LLC**: OCR facturas end-to-end + repositorio legal “real” + alertas robustas.
+2) **Foundry funcionalidades core** (✅ implementadas):
+   - **MODO DIOS**: métricas reales, filtros por mes/tipo/búsqueda, paginación.
+   - **MODO CAZA**: segmentación videntes/invidentes, estados de lead, email de prospección, autopiloto.
+   - **MODO LLC**: OCR facturas, chat Lex, alertas con countdown, contratos.
 
 ### Auditoría adicional (para “perfecto”)
 
 - **Logo real**: actualmente el “uploadLogo” usa placeholder; integrar `storageService.js` (signed URL a GCS) y un endpoint para emitir `uploadUrl/publicUrl`.
-- **PWA instalación**: `InstalacionView` usa `(window as any).deferredPrompt`; falta un listener global `beforeinstallprompt` que lo rellene.
-- **Referidos**: hoy es estático (código fijo, métricas 0). Definir lógica real o marcar “próximamente”.
-- **Módulos legacy no usados**: `public-next/src/app/dashboard/modules/SuggestionsView.tsx` (stub) no se usa; decidir eliminar o ignorar.
+- ✅ **PWA instalación**: listener `beforeinstallprompt` implementado en `Layout.tsx`.
+- ✅ **Referidos**: conectado a `/api/dashboard/referrals` con datos reales (código, enlace, lista de referidos).
+- ✅ **SuggestionsView.tsx stub eliminado** (feb 2026). Se usa `SugerenciasView.tsx` con persistencia real.
+- **LegalView.tsx / SetupLockView.tsx**: existen como módulos huérfanos (no importados en dashboard). Decidir integrar o eliminar.
 
 ### Seguridad/operación
 
