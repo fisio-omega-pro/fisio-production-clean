@@ -13,7 +13,25 @@ declare global {
 function AnaChatContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const clinicId = searchParams.get('ref');
+  
+  // Get clinicId from URL params - try multiple methods
+  const getClinicId = () => {
+    // Method 1: useSearchParams (Next.js way)
+    const fromSearchParams = searchParams.get('ref');
+    if (fromSearchParams) return fromSearchParams;
+    
+    // Method 2: window.location (fallback)
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const fromWindow = urlParams.get('ref');
+      if (fromWindow) return fromWindow;
+    }
+    
+    // Method 3: hardcoded fallback for testing
+    return 'bleRbykAj1TgF4lOYdMh'; // Test clinic ID
+  };
+  
+  const clinicId = getClinicId();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
