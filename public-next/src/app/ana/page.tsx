@@ -1,9 +1,9 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { MessageCircle, Send, Clock, Calendar, Download, ArrowLeft } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function AnaChatPage() {
+function AnaChatContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const clinicId = searchParams.get('ref');
@@ -165,5 +165,13 @@ export default function AnaChatPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AnaChatPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-black text-white">Cargando...</div>}>
+      <AnaChatContent />
+    </Suspense>
   );
 }
