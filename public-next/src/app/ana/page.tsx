@@ -87,7 +87,18 @@ function AnaChatContent() {
   const sendMessage = async () => {
     if (!input.trim() || isTyping || !userRegistered) return;
     
-    console.log('🔍 [ANA] Sending message:', { message: input, clinicId });
+    console.log('🔍 [ANA] clinicId value:', clinicId);
+    console.log('🔍 [ANA] input value:', input);
+    
+    if (!clinicId) {
+      console.error('🔥 [ANA] No clinicId found!');
+      setMessages(prev => [...prev, {
+        role: 'ana',
+        text: 'Error: No se encontró el ID de la clínica. Por favor, usa el enlace completo.',
+        timestamp: Date.now()
+      }]);
+      return;
+    }
     
     const userMessage = { role: 'user', text: input, timestamp: Date.now() };
     setMessages(prev => [...prev, userMessage]);
@@ -98,7 +109,7 @@ function AnaChatContent() {
     try {
       const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/public/ana-chat`;
       console.log('🔍 [ANA] API URL:', apiUrl);
-      console.log('🔍 [ANA] Sending:', { message: messageToSend, clinicId });
+      console.log('🔍 [ANA] Sending payload:', JSON.stringify({ message: messageToSend, clinicId }, null, 2));
       
       const response = await fetch(apiUrl, {
         method: 'POST',
