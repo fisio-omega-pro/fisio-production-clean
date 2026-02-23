@@ -24,6 +24,14 @@ function AnaChatContent() {
   const [showForm, setShowForm] = useState(true);
 
   useEffect(() => {
+    // PWA install prompt listener
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      window.deferredPrompt = e;
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
     if (clinicId) {
       // Obtener nombre de la clínica
       fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/public/clinic-info?ref=${clinicId}`)
@@ -40,6 +48,10 @@ function AnaChatContent() {
         })
         .catch(() => {});
     }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
   }, [clinicId]);
 
   const handleUserRegistration = () => {
