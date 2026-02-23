@@ -27,6 +27,17 @@ function isOriginAllowed(origin) {
   return false;
 }
 
+// 🏥 Health check SÍNCRONO: responde ANTES de que initialize() cargue secretos/rutas.
+// Cloud Run envía health checks nada más arrancar el contenedor; si no responde, marca 502.
+let serverReady = false;
+app.get('/diagnostics/health', (req, res) => {
+  res.status(200).json({
+    status: serverReady ? 'ready' : 'starting',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // 🔒 CORS: cabeceras en TODAS las respuestas (sin depender de initEnv ni async).
 // Esto garantiza que incluso si initialize() no ha terminado o ha fallado,
 // las respuestas POST/GET tendrán CORS headers y el navegador no las bloqueará.
@@ -241,6 +252,7 @@ if (require.main === module) {
     console.log(`🚀 MOTOR OMEGA ESCUCHANDO | PUERTO: ${PORT} (CORS listo para todas las respuestas)`);
     initialize({ listen: false })
       .then(() => {
+        serverReady = true;
         console.log(`📋 Rutas y middleware cargados`);
       })
       .catch(e => {
@@ -248,7 +260,7 @@ if (require.main === module) {
         console.error("🔄 Reintentando en 5s... (el servidor sigue escuchando para CORS y health)");
         setTimeout(() => {
           initialize({ listen: false })
-            .then(() => console.log('📋 Rutas cargadas en segundo intento'))
+            .then(() => { serverReady = true; console.log('📋 Rutas cargadas en segundo intento'); })
             .catch(e2 => console.error('🔥 Segundo intento fallido:', e2.message));
         }, 5000);
       });
