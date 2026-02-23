@@ -1,28 +1,35 @@
 'use client'
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, Mail, Lock, ArrowRight } from 'lucide-react';
+import { Sparkles, Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/apiBase';
 
 export default function LoginFerrari() {
   const [email, setEmail] = useState('');
   const [pass, setPass] = useState('');
+  const [showPass, setShowPass] = useState(false);
 
   const acceder = async () => {
     try {
+      console.log('Login attempt:', { email, passwordLength: pass.length });
       const res = await fetch(`${API_BASE_URL}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password: pass })
       });
       const data = await res.json();
+      console.log('Login response:', { status: res.status, data });
       if (data.success) {
         if (data.token) localStorage.setItem('fisio_token', data.token);
         window.location.href = `/dashboard`;
       } else {
-        alert("Credenciales incorrectas.");
+        console.error('Login failed:', data);
+        alert(`Error: ${data.error || 'Credenciales incorrectas'}`);
       }
-    } catch (e) { alert("Error de conexión."); }
+    } catch (e) { 
+      console.error('Login error:', e);
+      alert(`Error de conexión: ${e.message}`); 
+    }
   };
 
   return (
@@ -42,7 +49,31 @@ export default function LoginFerrari() {
           </div>
           <div style={inputGroup}>
             <label style={labelStyle}>CONTRASEÑA</label>
-            <div style={inputWrapper}><Lock size={18} style={iconStyle}/><input style={inputField} type="password" placeholder="••••••••" onChange={e => setPass(e.target.value)} /></div>
+            <div style={inputWrapper}>
+              <Lock size={18} style={iconStyle}/>
+              <input 
+                style={inputField} 
+                type={showPass ? "text" : "password"} 
+                placeholder="••••••••" 
+                value={pass}
+                onChange={e => setPass(e.target.value)} 
+              />
+              <button 
+                type="button"
+                onClick={() => setShowPass(!showPass)}
+                style={{
+                  position: 'absolute',
+                  right: '18px',
+                  background: 'none',
+                  border: 'none',
+                  color: 'rgba(255,255,255,0.3)',
+                  cursor: 'pointer',
+                  padding: '4px'
+                }}
+              >
+                {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
           <div style={{textAlign:'right', marginTop:'-10px'}}>
             <a href="/recuperar-contraseña" style={{fontSize:'12px', color:'#0066ff', textDecoration:'none', fontWeight:700}}>
