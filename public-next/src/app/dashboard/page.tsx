@@ -157,31 +157,32 @@ export default function DashboardOmega() {
 
   return (
     <DashboardLayout activeTab={state.activeTab} onTabChange={state.setActiveTab} navItems={navItemsFiltered}>
+      {/* PASOS OBLIGATORIOS INICIALES */}
       {needsSetup && (
-        <div className="mb-6 rounded-3xl border border-amber-500/20 bg-amber-500/5 p-5">
+        <div className="mb-6 rounded-3xl border border-blue-500/20 bg-blue-500/5 p-5">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <div className="text-[10px] font-black uppercase tracking-widest text-amber-400">Modo limitado</div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-blue-400">Configuración inicial obligatoria</div>
               <div className="text-sm font-bold text-white mt-1">
-                Cobros y/o licencia pendientes. Puedes usar Agenda, Pacientes y Equipo sin problema.
+                Completa estos pasos para empezar a operar
               </div>
-              <div className="text-[11px] text-amber-200/70 mt-1">
-                {needsSubscription ? 'Licencia: pendiente. ' : ''}{needsStripe ? 'Stripe: pendiente o no disponible. ' : ''}Completa Pagos cuando esté listo.
+              <div className="text-[11px] text-blue-200/70 mt-1">
+                {(!state.clinicData?.logo) && '• Sube el logo de tu clínica. '}
+                {(!state.clinicData?.logo) && '• Importa tu base de datos de pacientes.'}
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
               <button
-                onClick={() => state.setActiveTab('cobros')}
+                onClick={() => state.setModalType('editar_perfil')}
                 className="px-4 py-3 rounded-2xl bg-white text-black text-[11px] font-black hover:bg-gray-200 transition"
               >
-                Ir a Pagos
+                Subir Logo
               </button>
               <button
-                onClick={() => state.setModalType('upgrade')}
-                className="px-4 py-3 rounded-2xl bg-[#d4af37] text-black text-[11px] font-black hover:bg-yellow-500 transition"
-                title={needsStripe ? 'Stripe no está listo aún: se abrirá en modo offline.' : undefined}
+                onClick={() => state.setModalType('importar')}
+                className="px-4 py-3 rounded-2xl bg-blue-500 text-white text-[11px] font-black hover:bg-blue-600 transition"
               >
-                Gestionar licencia
+                Importar Pacientes
               </button>
             </div>
           </div>

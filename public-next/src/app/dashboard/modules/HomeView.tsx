@@ -18,6 +18,8 @@ export const HomeView: React.FC<HomeProps> = ({ clinicId, configStatus, clinicDa
   const [copied, setCopied] = useState(false);
   const [origin, setOrigin] = useState('');
   const [isMobile, setIsMobile] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [canInstall, setCanInstall] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -25,11 +27,37 @@ export const HomeView: React.FC<HomeProps> = ({ clinicId, configStatus, clinicDa
       setIsMobile(window.innerWidth < 768);
       const handleResize = () => setIsMobile(window.innerWidth < 768);
       window.addEventListener('resize', handleResize);
-      return () => window.removeEventListener('resize', handleResize);
+      
+      // PWA install prompt
+      const handleBeforeInstallPrompt = (e: any) => {
+        e.preventDefault();
+        setDeferredPrompt(e);
+        setCanInstall(true);
+      };
+      
+      window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      
+      return () => {
+        window.removeEventListener('resize', handleResize);
+        window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      };
     }
   }, []);
 
-  const publicLink = `${origin}/setup?ref=${clinicId}`;
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    
+    if (outcome === 'accepted') {
+      setCanInstall(false);
+    }
+    
+    setDeferredPrompt(null);
+  };
+
+  const publicLink = `${origin}/ana?ref=${clinicId}`;
   
   // OPCIÓN A (Humanizada):
   const whatsappScript = `Hola 👋 Soy Ana, del equipo de recepción de ${clinicData.nombre || 'la clínica'}. Para ver los huecos libres ahora mismo y reservar sin esperas, entra en mi agenda personal: 👉 ${publicLink}`;
@@ -148,13 +176,27 @@ export const HomeView: React.FC<HomeProps> = ({ clinicId, configStatus, clinicDa
                 <Monitor size={18} className="text-blue-400" />
                 <h4 className="text-sm font-bold text-white">FisioTool Pro en el ordenador</h4>
               </div>
-              <p className="text-xs text-gray-400 mb-3">Abre el panel en el PC o instálalo como aplicación: en Chrome o Edge, menú ⋮ → «Instalar FisioTool Pro» o «Añadir a aplicaciones».</p>
-              <button 
-                onClick={() => window.open(`${origin}/dashboard`, '_blank')} 
-                className="w-full py-3 px-4 rounded-xl font-bold text-sm bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 transition-all flex items-center justify-center gap-2"
-              >
-                <Monitor size={18} /> Abrir FisioTool Pro en PC
-              </button>
+              <p className="text-xs text-gray-400 mb-3">
+                {canInstall 
+                  ? 'Instala FisioTool Pro como aplicación en tu ordenador.'
+                  : 'Abre el panel en el PC o instálalo manualmente: en Chrome o Edge, menú ⋮ → «Instalar FisioTool Pro».'
+                }
+              </p>
+              {canInstall ? (
+                <button 
+                  onClick={handleInstallClick}
+                  className="w-full py-3 px-4 rounded-xl font-bold text-sm bg-green-500 text-white hover:bg-green-600 transition-all flex items-center justify-center gap-2"
+                >
+                  <Monitor size={18} /> Añadir FisioTool Pro al ordenador
+                </button>
+              ) : (
+                <button 
+                  onClick={() => window.open(`${origin}/dashboard`, '_blank')} 
+                  className="w-full py-3 px-4 rounded-xl font-bold text-sm bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 transition-all flex items-center justify-center gap-2"
+                >
+                  <Monitor size={18} /> Abrir FisioTool Pro en PC
+                </button>
+              )}
             </div>
           </div>
 

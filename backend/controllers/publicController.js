@@ -193,9 +193,63 @@ const submitCorporateLead = async (req, res) => {
   }
 };
 
+// --- 🤖 ANA CHAT PÚBLICO (para pacientes) ---
+const getClinicInfo = async (req, res) => {
+  try {
+    const ref = String(req.query.ref || '').trim();
+    if (!ref) return res.status(400).json({ success: false, error: 'ref requerido' });
+
+    const doc = await db.collection('clinicas').doc(ref).get();
+    if (!doc.exists) return res.status(404).json({ success: false, error: 'Clínica no encontrada' });
+
+    const data = doc.data() || {};
+    return res.json({
+      success: true,
+      nombre: data.nombre_clinica || data.nombre || '',
+      logo: data.logo_url || null
+    });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: e.message });
+  }
+};
+
+const anaChat = async (req, res) => {
+  try {
+    const { message, clinicId } = req.body || {};
+    if (!message || !clinicId) {
+      return res.status(400).json({ success: false, error: 'Mensaje y clinicId requeridos' });
+    }
+
+    // Verificar que la clínica existe y está activa
+    const clinicDoc = await db.collection('clinicas').doc(clinicId).get();
+    if (!clinicDoc.exists) {
+      return res.status(404).json({ success: false, error: 'Clínica no encontrada' });
+    }
+
+    const clinicData = clinicDoc.data() || {};
+    if (!clinicData.subscription_active) {
+      return res.status(403).json({ success: false, error: 'Clínica no activa' });
+    }
+
+    // Generar respuesta con Ana
+    const response = await anaService.generatePatientResponse({
+      message: String(message).trim(),
+      clinicName: clinicData.nombre_clinica || clinicData.nombre || 'la clínica',
+      clinicId
+    });
+
+    return res.json({ success: true, response });
+  } catch (e) {
+    console.error('🔥 [ANA CHAT] Error:', e.message);
+    return res.status(500).json({ 
+      success: false, 
+      response: 'Lo siento, estoy teniendo problemas técnicos. Por favor, llama a la clínica.' 
+    });
+  }
+};
+
 module.exports = {
   submitCorporateLead,
-  // Logo público (no sensible) para apps/portal/pdfs
   getClinicLogo: async (req, res) => {
     try {
       const clinicId = String(req.params.clinicId || '').trim();
