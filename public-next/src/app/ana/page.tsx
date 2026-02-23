@@ -3,6 +3,13 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { MessageCircle, Send, Clock, Calendar, Download, ArrowLeft, Phone, Video, MoreVertical } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
+// TypeScript declaration for PWA install prompt
+declare global {
+  interface Window {
+    deferredPrompt?: any;
+  }
+}
+
 function AnaChatContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -76,7 +83,11 @@ function AnaChatContent() {
     setIsTyping(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/public/ana-chat`, {
+      const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/public/ana-chat`;
+      console.log('🔍 [ANA] API URL:', apiUrl);
+      console.log('🔍 [ANA] Sending:', { message: input, clinicId });
+      
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: input, clinicId })
@@ -99,7 +110,7 @@ function AnaChatContent() {
       console.error('🔥 [ANA] Error:', e);
       setMessages(prev => [...prev, {
         role: 'ana',
-        text: 'Lo siento, estoy teniendo problemas técnicos. Por favor, llama a la clínica.',
+        text: `Error técnico: ${e.message}. Por favor, llama a la clínica.`,
         timestamp: Date.now()
       }]);
     }
@@ -117,12 +128,8 @@ function AnaChatContent() {
           >
             <ArrowLeft size={20} />
           </button>
-          <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/30 shadow-lg">
-            <img 
-              src="https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face&auto=format" 
-              alt="Ana" 
-              className="w-full h-full object-cover"
-            />
+          <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/30 shadow-lg bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
+            <span className="text-white font-bold text-lg">A</span>
           </div>
           <div>
             <h1 className="text-white font-semibold">Ana</h1>
@@ -278,13 +285,28 @@ function AnaChatContent() {
             </button>
             <button 
               onClick={() => {
-                // Instalar PWA local
-                if ('serviceWorker' in navigator && 'PushManager' in window) {
-                  // Mostrar instrucciones para instalar PWA
-                  alert('📱 Para instalar la app:\n\n1. En Chrome/Safari: Busca "Añadir a pantalla de inicio" o "Compartir > Añadir a pantalla de inicio"\n2. En Android: Toca el menú (⋮) > "Instalar app" o "Añadir a pantalla de inicio"\n3. En desktop: Haz clic en el botón "Descargar" que aparece en la barra de direcciones\n\nAsí tendrás FisioTool siempre a mano como una app nativa.');
+                // Intentar instalar PWA directamente
+                if (window.deferredPrompt) {
+                  // Si hay un prompt de instalación guardado, usarlo
+                  window.deferredPrompt.prompt();
+                  window.deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                      console.log('Usuario aceptó instalar PWA');
+                    }
+                    window.deferredPrompt = null;
+                  });
                 } else {
-                  // Abrir la web directamente
-                  window.open(`https://fisiotool.com/ana?ref=${clinicId}`, '_blank');
+                  // Si no, mostrar instrucciones específicas para el dispositivo
+                  const isAndroid = /Android/.test(navigator.userAgent);
+                  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+                  
+                  if (isAndroid) {
+                    alert('📱 Para instalar en Android:\n\n1. Toca el menú (⋮) arriba a la derecha\n2. Selecciona "Instalar app" o "Añadir a pantalla de inicio"\n3. Confirma la instalación\n\n¡Así tendrás FisioTool como app nativa!');
+                  } else if (isIOS) {
+                    alert('📱 Para instalar en iPhone/iPad:\n\n1. Toca el botón "Compartir" (📤)\n2. Selecciona "Añadir a pantalla de inicio"\n3. Confirma "Añadir"\n\n¡Así tendrás FisioTool como app nativa!');
+                  } else {
+                    alert('💻 Para instalar en desktop:\n\n1. Busca el botón "Descargar" o "Instalar" en la barra de direcciones\n2. Haz clic en él\n3. Confirma la instalación\n\n¡Así tendrás FisioTool como app de escritorio!');
+                  }
                 }
               }}
               className="px-3 py-1 bg-white border border-gray-300 rounded-full text-xs text-gray-700 whitespace-nowrap hover:bg-gray-50 transition flex items-center gap-1"
