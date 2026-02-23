@@ -124,8 +124,8 @@ REGLAS:
       return `¡Hola! Soy Ana de ${clinicName}. 👋\n\nPara ver las horas disponibles y reservar tu cita sin esperas, entra aquí:\n👉 https://fisiotool.com/ana?ref=${clinicId}\n\n¿Qué día te viene bien?`;
     }
     
-    if (lowerMessage.includes('app') || lowerMessage.includes('descargar') || lowerMessage.includes('móvil')) {
-      return `¡Hola! Soy Ana de ${clinicName}. 📱\n\nPara descargar nuestra app y tener tu agenda siempre a mano:\n👉 Busca "FisioTool" en tu App Store / Play Store\n\nO accede directamente: https://fisiotool.com/ana?ref=${clinicId}`;
+    if (lowerMessage.includes('app') || lowerMessage.includes('descargar') || lowerMessage.includes('móvil') || lowerMessage.includes('instalar')) {
+      return `¡Hola! Soy Ana de ${clinicName}. 📱\n\nPara instalar nuestra app local (PWA):\n👉 Entra en https://fisiotool.com/ana?ref=${clinicId}\n\nLuego:\n• En móvil: "Añadir a pantalla de inicio"\n• En desktop: Botón "Instalar" en la barra\n\nAsí tendrás FisioTool como app nativa sin usar tiendas.`;
     }
     
     if (lowerMessage.includes('pago') || lowerMessage.includes('precio') || lowerMessage.includes('tarifa')) {
@@ -133,7 +133,7 @@ REGLAS:
     }
     
     if (lowerMessage.includes('hola') || lowerMessage.includes('buenos') || lowerMessage.includes('saludo')) {
-      return `¡Hola! Soy Ana, asistente de ${clinicName}. 😊\n\n¿En qué puedo ayudarte hoy?\n• 📅 Ver agenda y reservar cita\n• 📱 Descargar nuestra app\n• 💳 Consultar precios y pagos\n• ❓ Otra pregunta`;
+      return `¡Hola! Soy Ana, asistente de ${clinicName}. 😊\n\n¿En qué puedo ayudarte hoy?\n• 📅 Ver agenda y reservar cita\n• 📱 Instalar nuestra app local\n• 💳 Consultar precios y pagos\n• ❓ Otra pregunta`;
     }
     
     if (lowerMessage.includes('gracias') || lowerMessage.includes('agradec')) {

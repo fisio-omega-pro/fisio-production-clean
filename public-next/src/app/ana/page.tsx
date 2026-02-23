@@ -26,7 +26,7 @@ function AnaChatContent() {
             setClinicName(data.nombre);
             setMessages([{
               role: 'ana',
-              text: `¡Hola! 👋 Soy Ana, asistente de ${data.nombre}.\n\n📱 **Descarga nuestra app** para tener tu agenda siempre a mano:\n\nBusca "FisioTool" en tu App Store / Play Store\n\nO accede directamente: https://fisiotool.com/ana?ref=${clinicId}\n\n¿Cómo te llamas y cuál es tu email para poder ayudarte mejor?`,
+              text: `¡Hola! 👋 Soy Ana, asistente de ${data.nombre}.\n\n📱 **Instala nuestra app local** para tener tu agenda siempre a mano:\n\nEs una PWA (Progressive Web App) que se instala directamente en tu dispositivo:\n• En móvil: "Añadir a pantalla de inicio"\n• En desktop: Botón "Instalar" en la barra de direcciones\n\nAsí podrás acceder sin navegador, como una app nativa.\n\n¿Cómo te llamas y cuál es tu email para poder ayudarte mejor?`,
               timestamp: Date.now()
             }]);
           }
@@ -278,23 +278,19 @@ function AnaChatContent() {
             </button>
             <button 
               onClick={() => {
-                // Detectar si es iOS o Android y abrir la store correspondiente
-                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-                const isAndroid = /Android/.test(navigator.userAgent);
-                
-                if (isIOS) {
-                  window.open('https://apps.apple.com/app/fisiotool', '_blank');
-                } else if (isAndroid) {
-                  window.open('https://play.google.com/store/apps/details?id=com.fisiotool.app', '_blank');
+                // Instalar PWA local
+                if ('serviceWorker' in navigator && 'PushManager' in window) {
+                  // Mostrar instrucciones para instalar PWA
+                  alert('📱 Para instalar la app:\n\n1. En Chrome/Safari: Busca "Añadir a pantalla de inicio" o "Compartir > Añadir a pantalla de inicio"\n2. En Android: Toca el menú (⋮) > "Instalar app" o "Añadir a pantalla de inicio"\n3. En desktop: Haz clic en el botón "Descargar" que aparece en la barra de direcciones\n\nAsí tendrás FisioTool siempre a mano como una app nativa.');
                 } else {
-                  // Para desktop, abrir página web de descarga
-                  window.open('https://fisiotool.com/descargar', '_blank');
+                  // Abrir la web directamente
+                  window.open(`https://fisiotool.com/ana?ref=${clinicId}`, '_blank');
                 }
               }}
               className="px-3 py-1 bg-white border border-gray-300 rounded-full text-xs text-gray-700 whitespace-nowrap hover:bg-gray-50 transition flex items-center gap-1"
             >
               <Download size={12} />
-              Descargar app
+              Instalar app
             </button>
           </div>
         </div>
