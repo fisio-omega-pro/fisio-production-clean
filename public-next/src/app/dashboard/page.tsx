@@ -120,7 +120,8 @@ export default function DashboardOmega() {
 
   const needsSubscription = !state.configStatus?.hasSubscription;
   const needsStripe = !state.configStatus?.hasStripe;
-  const needsSetup = !state.isLoading && (needsSubscription || needsStripe);
+  const needsLogo = !state.clinicData?.logo_url;
+  const needsSetup = !state.isLoading && (needsLogo || needsStripe);
 
   const renderContent = () => {
     if (state.isLoading) return <div className="p-20 text-center text-blue-500 animate-pulse font-black text-xs uppercase tracking-widest">Sincronizando...</div>;
