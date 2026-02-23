@@ -6,7 +6,7 @@ import {
   Building2, ArrowRight, ArrowLeft, Eye, EyeOff, Mail, Lock,
   Clock, PauseCircle, AlertTriangle, Stethoscope, Baby, Car, ShieldAlert, Activity,
   Ticket, Euro, Check, CreditCard, Banknote, Smartphone, FileText, Loader2,
-  Landmark, MapPin, X
+  Landmark, MapPin, X, Phone
 } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/apiBase';
 
@@ -14,6 +14,7 @@ interface ClinicData {
   nombre: string; email: string; password: string;
   referral_code?: string;
   timezone?: string;
+  telefono: string; prefijo_telefono: string;
   calle: string; numero: string; ciudad: string; cp: string; provincia: string;
   apertura: string; cierre: string;
   hace_descanso: boolean; descanso_inicio: string; descanso_fin: string;
@@ -22,6 +23,21 @@ interface ClinicData {
   aceptacion_legal: boolean; plan: string;
   is_blind: boolean;
 }
+
+const COUNTRY_CODES = [
+  { code: '+34', country: 'ES', flag: '🇪🇸', label: 'España' },
+  { code: '+1', country: 'US', flag: '🇺🇸', label: 'USA' },
+  { code: '+44', country: 'GB', flag: '🇬🇧', label: 'UK' },
+  { code: '+33', country: 'FR', flag: '🇫🇷', label: 'Francia' },
+  { code: '+49', country: 'DE', flag: '🇩🇪', label: 'Alemania' },
+  { code: '+39', country: 'IT', flag: '🇮🇹', label: 'Italia' },
+  { code: '+351', country: 'PT', flag: '🇵🇹', label: 'Portugal' },
+  { code: '+52', country: 'MX', flag: '🇲🇽', label: 'México' },
+  { code: '+55', country: 'BR', flag: '🇧🇷', label: 'Brasil' },
+  { code: '+54', country: 'AR', flag: '🇦🇷', label: 'Argentina' },
+  { code: '+57', country: 'CO', flag: '🇨🇴', label: 'Colombia' },
+  { code: '+56', country: 'CL', flag: '🇨🇱', label: 'Chile' },
+];
 
 const PROVINCIAS = ["Álava", "Albacete", "Alicante", "Almería", "Asturias", "Ávila", "Badajoz", "Barcelona", "Burgos", "Cáceres", "Cádiz", "Cantabria", "Castellón", "Ciudad Real", "Córdoba", "Cuenca", "Girona", "Granada", "Guadalajara", "Guipúzcoa", "Huelva", "Huesca", "Jaén", "La Rioja", "Las Palmas", "León", "Lleida", "Lugo", "Madrid", "Málaga", "Murcia", "Navarra", "Ourense", "Palencia", "Pontevedra", "Salamanca", "Santa Cruz de Tenerife", "Segovia", "Sevilla", "Soria", "Tarragona", "Teruel", "Toledo", "Valencia", "Valladolid", "Vizcaya", "Zamora", "Zaragoza", "Ceuta", "Melilla"];
 
@@ -43,7 +59,7 @@ export default function OnboardingEpic() {
   const hasAnnouncedStep = useRef<number | null>(null);
 
   const [formData, setFormData] = useState<ClinicData>({
-    nombre: '', email: '', password: '', referral_code: '', timezone: '', calle: '', numero: '', ciudad: '', cp: '', provincia: '',
+    nombre: '', email: '', password: '', referral_code: '', timezone: '', telefono: '', prefijo_telefono: '+34', calle: '', numero: '', ciudad: '', cp: '', provincia: '',
     apertura: '09:00', cierre: '20:00', hace_descanso: false, descanso_inicio: '14:00', descanso_fin: '16:00',
     flags: [], acepta_bonos: false, precio_bono_5: 225, precio_sesion: 50, fianza: 15, metodos_pago: ['Stripe'],
     aceptacion_legal: false, plan: 'solo',
@@ -295,7 +311,25 @@ export default function OnboardingEpic() {
                     </div>
                   </div>
                   <div className="h-px bg-white/5 w-full my-6" />
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <Label>Teléfono de Contacto</Label>
+                    <div className="flex gap-2">
+                      <div className="relative shrink-0" style={{ width: '110px' }}>
+                        <select
+                          className="w-full bg-[#0a0b10] border border-white/10 rounded-xl text-sm text-white px-3 py-3 appearance-none focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          value={formData.prefijo_telefono}
+                          onChange={e => update('prefijo_telefono', e.target.value)}
+                        >
+                          {COUNTRY_CODES.map(c => <option key={c.code} value={c.code}>{c.flag} {c.code}</option>)}
+                        </select>
+                        <div className="absolute right-2 top-3.5 pointer-events-none text-gray-500"><ArrowRight size={12} className="rotate-90" /></div>
+                      </div>
+                      <div className="flex-1">
+                        <Input type="tel" icon={<Phone size={16} />} placeholder="612 345 678" value={formData.telefono} onChange={(v: string) => update('telefono', v)} error={errors.telefono} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                     <div>
                       <Label>Email Administrador</Label>
                       <Input type="email" icon={<Mail size={16} />} value={formData.email} onChange={(v: string) => update('email', v)} error={errors.email} />

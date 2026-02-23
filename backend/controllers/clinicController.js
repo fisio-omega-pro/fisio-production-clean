@@ -62,6 +62,9 @@ const register = async (req, res, next) => {
       }
     }
 
+    const telefono = String(d.telefono || '').trim();
+    const prefijo_telefono = String(d.prefijo_telefono || '+34').trim();
+
     const ref = await db.collection('clinicas').add({
       nombre_clinica: d.nombre,
       email: d.email.toLowerCase().trim(),
@@ -71,6 +74,8 @@ const register = async (req, res, next) => {
       subscription_active: false,
       is_blind: d.is_blind || false,
       timezone,
+      telefono: telefono ? `${prefijo_telefono}${telefono}` : '',
+      prefijo_telefono,
       referral_code,
       referred_by_clinic_id,
       referred_by_code,
