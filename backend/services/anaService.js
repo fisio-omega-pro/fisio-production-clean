@@ -117,6 +117,29 @@ REGLAS:
 
   // --- 🤖 ANA CHAT PÚBLICO (para pacientes) ---
   generatePatientResponse: async ({ message, clinicName, clinicId }) => {
+    const lowerMessage = String(message || '').toLowerCase();
+    
+    // Respuestas inteligentes basadas en palabras clave
+    if (lowerMessage.includes('cita') || lowerMessage.includes('hora') || lowerMessage.includes('disponibilidad')) {
+      return `¡Hola! Soy Ana de ${clinicName}. 👋\n\nPara ver las horas disponibles y reservar tu cita sin esperas, entra aquí:\n👉 https://fisiotool.com/ana?ref=${clinicId}\n\n¿Qué día te viene bien?`;
+    }
+    
+    if (lowerMessage.includes('app') || lowerMessage.includes('descargar') || lowerMessage.includes('móvil')) {
+      return `¡Hola! Soy Ana de ${clinicName}. 📱\n\nPara descargar nuestra app y tener tu agenda siempre a mano:\n👉 Busca "FisioTool" en tu App Store / Play Store\n\nO accede directamente: https://fisiotool.com/ana?ref=${clinicId}`;
+    }
+    
+    if (lowerMessage.includes('pago') || lowerMessage.includes('precio') || lowerMessage.includes('tarifa')) {
+      return `¡Hola! Soy Ana de ${clinicName}. 💳\n\nPara ver nuestras tarifas y opciones de pago:\n👉 Entra en https://fisiotool.com/ana?ref=${clinicId}\n\nAceptamos Bizum, tarjeta y transferencia. ¿Qué tratamiento te interesa?`;
+    }
+    
+    if (lowerMessage.includes('hola') || lowerMessage.includes('buenos') || lowerMessage.includes('saludo')) {
+      return `¡Hola! Soy Ana, asistente de ${clinicName}. 😊\n\n¿En qué puedo ayudarte hoy?\n• 📅 Ver agenda y reservar cita\n• 📱 Descargar nuestra app\n• 💳 Consultar precios y pagos\n• ❓ Otra pregunta`;
+    }
+    
+    if (lowerMessage.includes('gracias') || lowerMessage.includes('agradec')) {
+      return `¡De nada! 😊\n\nEstoy aquí para ayudarte con lo que necesites. No dudes en preguntarme por citas, precios o cualquier duda.\n\nAna - ${clinicName}`;
+    }
+
     const prompt = `
 Eres Ana, asistente de recepción de "${clinicName}". Responde de forma amable, profesional y concisa a pacientes.
 
@@ -126,6 +149,7 @@ REGLAS:
 - Si preguntan por servicios, menciona fisioterapia general, rehabilitación, y que pueden ver disponibilidad online
 - Máximo 2-3 frases
 - Firma siempre como "Ana"
+- Incluye siempre el enlace: https://fisiotool.com/ana?ref=${clinicId}
 
 Paciente pregunta: "${message}"
 
@@ -137,7 +161,7 @@ Responde como Ana:
       return response.trim();
     } catch (e) {
       console.error("🔥 Error en chat de Ana:", e);
-      return `Hola, soy Ana de ${clinicName}. Para ver disponibilidad y reservar, puedes consultar nuestra agenda online. ¿Necesitas algo más?`;
+      return `Hola, soy Ana de ${clinicName}. Para ver disponibilidad y reservar, entra en https://fisiotool.com/ana?ref=${clinicId}. ¿Necesitas algo más?`;
     }
   }
 };

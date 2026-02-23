@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect, Suspense } from 'react';
-import { MessageCircle, Send, Clock, Calendar, Download, ArrowLeft } from 'lucide-react';
+import { MessageCircle, Send, Clock, Calendar, Download, ArrowLeft, Phone, Video, MoreVertical } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 function AnaChatContent() {
@@ -69,53 +69,59 @@ function AnaChatContent() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0a0b10] to-black flex flex-col">
       {/* Header */}
-      <div className="bg-[#111113] border-b border-white/10 p-4">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => router.back()}
-              className="p-2 rounded-lg hover:bg-white/5 transition"
-            >
-              <ArrowLeft size={20} className="text-gray-400" />
-            </button>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
-                <MessageCircle size={20} className="text-blue-500" />
-              </div>
-              <div>
-                <h1 className="text-white font-bold">Ana</h1>
-                <p className="text-xs text-gray-400">Asistente de {clinicName || 'la clínica'}</p>
-              </div>
-            </div>
+      <div className="bg-[#075e54] px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => router.back()}
+            className="text-white hover:bg-white/10 p-2 rounded-full transition-colors"
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+            <MessageCircle size={20} className="text-white" />
           </div>
-          <div className="flex items-center gap-2 text-xs text-green-400">
-            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-            En línea
+          <div>
+            <h1 className="text-white font-semibold">Ana</h1>
+            <p className="text-xs text-green-300">Asistente de {clinicName || 'la clínica'}</p>
           </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button className="text-white hover:bg-white/10 p-2 rounded-full transition-colors">
+            <Video size={20} />
+          </button>
+          <button className="text-white hover:bg-white/10 p-2 rounded-full transition-colors">
+            <Phone size={20} />
+          </button>
+          <button className="text-white hover:bg-white/10 p-2 rounded-full transition-colors">
+            <MoreVertical size={20} />
+          </button>
         </div>
       </div>
 
-      {/* Chat Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      {/* Chat Messages - WhatsApp Style */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#e5ddd5] bg-opacity-10" style={{
+        backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\\"100\\" height=\\"100\\" xmlns=\\"http://www.w3.org/2000/svg\\"%3E%3Cdefs%3E%3Cpattern id=\\"grid\\" width=\\"100\\" height=\\"100\\" patternUnits=\\"userSpaceOnUse\\"%3E%3Cpath d=\\"M 100 0 L 0 0 0 100\\" fill=\\"none\\" stroke=\\"rgba(255,255,255,0.03)\\" stroke-width=\\"1\\"/%3E%3C/pattern%3E%3C/defs%3E%3Crect width=\\"100%\\" height=\\"100%\\" fill=\\"url(%23grid)\\" /%3E%3C/svg%3E")'
+      }}>
         {messages.map((msg, idx) => (
           <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+            <div className={`max-w-[80%] rounded-2xl px-4 py-2 ${
               msg.role === 'user' 
-                ? 'bg-blue-500 text-white' 
-                : 'bg-[#1a1a1c] border border-white/10 text-gray-200'
+                ? 'bg-[#dcf8c6] text-gray-800 rounded-br-sm' 
+                : 'bg-white text-gray-800 rounded-bl-sm shadow-sm'
             }`}>
               <p className="text-sm">{msg.text}</p>
-              <p className={`text-xs mt-1 ${
-                msg.role === 'user' ? 'text-blue-100' : 'text-gray-500'
+              <p className={`text-xs mt-1 flex items-center gap-1 ${
+                msg.role === 'user' ? 'text-gray-500 justify-end' : 'text-gray-400'
               }`}>
                 {new Date(msg.timestamp).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                {msg.role === 'user' && <span className="text-blue-500">✓✓</span>}
               </p>
             </div>
           </div>
         ))}
         {isTyping && (
           <div className="flex justify-start">
-            <div className="bg-[#1a1a1c] border border-white/10 rounded-2xl px-4 py-3">
+            <div className="bg-white rounded-2xl rounded-bl-sm px-4 py-2 shadow-sm">
               <div className="flex gap-1">
                 <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
                 <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
@@ -126,42 +132,65 @@ function AnaChatContent() {
         )}
       </div>
 
-      {/* Quick Actions */}
-      <div className="bg-[#111113] border-t border-white/10 p-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex gap-2 mb-3 overflow-x-auto">
-            <button className="px-3 py-1.5 bg-blue-500/20 text-blue-400 rounded-lg text-xs whitespace-nowrap hover:bg-blue-500/30 transition">
-              <Calendar size={14} className="inline mr-1" />
-              Ver agenda
-            </button>
-            <button className="px-3 py-1.5 bg-green-500/20 text-green-400 rounded-lg text-xs whitespace-nowrap hover:bg-green-500/30 transition">
-              <Clock size={14} className="inline mr-1" />
-              Pedir cita
-            </button>
-            <button className="px-3 py-1.5 bg-purple-500/20 text-purple-400 rounded-lg text-xs whitespace-nowrap hover:bg-purple-500/30 transition">
-              <Download size={14} className="inline mr-1" />
-              Descargar app
-            </button>
-          </div>
+      {/* Input Area - WhatsApp Style */}
+      <div className="bg-[#f0f2f5] px-4 py-2 border-t border-gray-200">
+        <div className="flex items-center gap-2">
+          <button className="text-gray-500 hover:text-gray-700 p-2">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19.07 4.93c-3.9-3.91-10.24-3.91-14.14 0-3.91 3.9-3.91 10.24 0 14.14 3.9 3.91 10.24 3.91 14.14 0 3.91-3.9 3.91-10.24 0-14.14zm-1.41 12.73c-3.12 3.12-8.19 3.12-11.31 0-3.12-3.12-3.12-8.19 0-11.31 3.12-3.12 8.19-3.12 11.31 0 3.12 3.12 3.12 8.19 0 11.31z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
           
-          {/* Input */}
-          <div className="flex gap-2">
+          <div className="flex-1 relative">
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-              placeholder="Escribe tu mensaje..."
-              className="flex-1 bg-[#0a0b10] border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500/50"
+              placeholder="Escribe un mensaje..."
+              className="w-full bg-white border border-gray-300 rounded-full px-4 py-2 pr-10 text-gray-800 placeholder-gray-500 focus:outline-none focus:border-gray-400"
             />
-            <button
-              onClick={sendMessage}
-              disabled={!input.trim() || isTyping}
-              className="p-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 disabled:bg-gray-600 disabled:cursor-not-allowed transition"
-            >
-              <Send size={18} />
+            <button className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+              </svg>
             </button>
           </div>
+          
+          <button className="text-gray-500 hover:text-gray-700 p-2">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M2 17h20v2H2zm1.15-4.05L4 11.47l.85 1.48 1.3-.75-.85-1.48H7v-1.5H5.3l.85-1.48L4.85 7 4 8.47 3.15 7l-1.3.75.85 1.48H1v1.5h1.7l-.85 1.48 1.3.75zm6.7-.75l1.48.85 1.48-.85-.85-1.48H14v-1.5h-2.05l.85-1.48L11 7l-1.48 1.48L8.05 7l-1.3.75.85 1.48H5v1.5h2.05l-.85 1.48zm8 0l1.48.85 1.48-.85-.85-1.48H22v-1.5h-2.05l.85-1.48L19 7l-1.48 1.48L16.05 7l-1.3.75.85 1.48H13v1.5h2.05l-.85 1.48z"/>
+            </svg>
+          </button>
+          
+          <button
+            onClick={sendMessage}
+            disabled={!input.trim() || isTyping}
+            className={`p-2 rounded-full transition ${
+              input.trim() && !isTyping 
+                ? 'bg-[#0086ea] text-white hover:bg-[#007ab5]' 
+                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            <Send size={20} />
+          </button>
+        </div>
+        
+        {/* Quick Actions */}
+        <div className="flex gap-2 mt-2 overflow-x-auto pb-2">
+          <button className="px-3 py-1 bg-white border border-gray-300 rounded-full text-xs text-gray-700 whitespace-nowrap hover:bg-gray-50 transition flex items-center gap-1">
+            <Calendar size={12} />
+            Ver agenda
+          </button>
+          <button className="px-3 py-1 bg-white border border-gray-300 rounded-full text-xs text-gray-700 whitespace-nowrap hover:bg-gray-50 transition flex items-center gap-1">
+            <Clock size={12} />
+            Pedir cita
+          </button>
+          <button className="px-3 py-1 bg-white border border-gray-300 rounded-full text-xs text-gray-700 whitespace-nowrap hover:bg-gray-50 transition flex items-center gap-1">
+            <Download size={12} />
+            Descargar app
+          </button>
         </div>
       </div>
     </div>
