@@ -91,18 +91,19 @@ function AnaChatContent() {
     
     const userMessage = { role: 'user', text: input, timestamp: Date.now() };
     setMessages(prev => [...prev, userMessage]);
+    const messageToSend = input;
     setInput('');
     setIsTyping(true);
 
     try {
       const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/public/ana-chat`;
       console.log('🔍 [ANA] API URL:', apiUrl);
-      console.log('🔍 [ANA] Sending:', { message: input, clinicId });
+      console.log('🔍 [ANA] Sending:', { message: messageToSend, clinicId });
       
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: input, clinicId })
+        body: JSON.stringify({ message: messageToSend, clinicId })
       });
       
       console.log('🔍 [ANA] Response status:', response.status);
@@ -140,8 +141,16 @@ function AnaChatContent() {
           >
             <ArrowLeft size={20} />
           </button>
-          <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/30 shadow-lg bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
-            <span className="text-white font-bold text-lg">A</span>
+          <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/30 shadow-lg">
+            <img 
+              src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face&auto=format" 
+              alt="Ana" 
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                e.currentTarget.parentElement.innerHTML = '<div class="w-full h-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center"><span class="text-white font-bold text-lg">A</span></div>';
+              }}
+            />
           </div>
           <div>
             <h1 className="text-white font-semibold">Ana</h1>
