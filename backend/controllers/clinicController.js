@@ -174,23 +174,30 @@ const register = async (req, res, next) => {
 const login = async (req, res, next) => {
   try {
     const { email, password } = req.body || {};
+    console.log(`🔐 [LOGIN] Intento: email=${email}, passwordLength=${password?.length || 0}`);
     if (!email || !password) return res.status(400).json({ success: false, error: 'Email y contraseña requeridos' });
 
     const { initEnv } = require('../config/env');
     const env = await initEnv();
     const normalizedEmail = String(email).toLowerCase().trim();
+    console.log(`🔐 [LOGIN] Email normalizado: ${normalizedEmail}`);
 
     const snap = await db.collection('clinicas')
       .where('email', '==', normalizedEmail)
       .limit(1)
       .get();
 
+    console.log(`🔐 [LOGIN] Clinicas encontradas: ${snap.size}`);
     if (!snap.empty) {
       const doc = snap.docs[0];
       const data = doc.data() || {};
+      console.log(`🔐 [LOGIN] Clinica ID: ${doc.id}`);
+      console.log(`🔐 [LOGIN] Password hash exists: ${!!data.password}`);
       const ok = await bcrypt.compare(String(password), String(data.password || ''));
+      console.log(`🔐 [LOGIN] Password match: ${ok}`);
       if (!ok) return res.status(401).json({ success: false, error: 'Credenciales incorrectas' });
       const token = jwt.sign({ clinicId: doc.id }, env.JWT_SECRET, { expiresIn: '30d' });
+      console.log(`🔐 [LOGIN] Login exitoso para ${doc.id}`);
       return res.json({ success: true, token, clinicId: doc.id });
     }
 
