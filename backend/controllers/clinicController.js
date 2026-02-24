@@ -1170,12 +1170,9 @@ const vincularBancoProfesional = async (req, res, next) => {
       created_at: Timestamp.now()
     };
 
-    // Solo añadir account_link_id si existe
-    if (accountLink.id) {
-      connectData.account_link_id = accountLink.id;
-    } else if (accountLink.url) {
-      connectData.account_link_url = accountLink.url;
-    }
+    // Guardar el account_link_id (siempre existe en la respuesta de Stripe)
+    connectData.account_link_id = accountLink.id;
+    connectData.account_link_url = accountLink.url;
 
     await db.collection('stripe_connect_profesionales').doc(account.id).set(connectData);
 
