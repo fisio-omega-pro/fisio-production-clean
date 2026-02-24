@@ -1249,6 +1249,19 @@ const vincularBancoProfesional = async (req, res, next) => {
   }
 };
 
+// --- 🕐 PAYMENT REMINDERS ---
+const processPaymentReminders = async (req, res) => {
+  try {
+    const { processPaymentReminders } = require('../services/paymentReminderService');
+    const result = await processPaymentReminders();
+    
+    res.json({ success: true, ...result });
+  } catch (e) {
+    console.error('🔥 Error processing payment reminders:', e);
+    res.status(500).json({ success: false, error: 'Error processing reminders' });
+  }
+};
+
 // 🚨 EXPORTACIÓN DE FUNCIONES CONSOLIDADAS
 module.exports = { 
   register,
@@ -1281,5 +1294,6 @@ module.exports = {
   handleStripeWebhook,
   uploadLogo,
   vincularBancoProfesional,
-  handleStripeConnectWebhook
+  handleStripeConnectWebhook,
+  processPaymentReminders
 };

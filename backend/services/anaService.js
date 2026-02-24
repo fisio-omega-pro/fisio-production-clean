@@ -1,6 +1,7 @@
 const { initEnv } = require('../config/env');
 const { createOneTimePaymentSession } = require('./paymentService');
 const { db, Timestamp } = require('../config/firebase');
+const { schedulePaymentReminder } = require('./paymentReminderService');
 
 const callAnaEngine = async (prompt, options = {}) => {
   const env = await initEnv();
@@ -279,8 +280,8 @@ const getAvailableTimeSlots = async (clinicId, requestedDate) => {
   }
 };
 
-// --- �💳 PAYMENT LINK GENERATOR ---
-const generatePaymentLink = async (clinicId, amount, concepto, patientEmail) => {
+// --- 💳 PAYMENT LINK GENERATOR ---
+const generatePaymentLink = async (clinicId, amount, concepto, patientEmail, appointmentDateTime) => {
   try {
     const clinicConfig = await getClinicConfiguration(clinicId);
     if (!clinicConfig) return null;
@@ -310,7 +311,7 @@ const generatePaymentLink = async (clinicId, amount, concepto, patientEmail) => 
     }
     
     // Store payment link in database for tracking
-    await db.collection('payment_links').add({
+    const paymentDoc = await db.collection('payment_links').add({
       clinic_id: clinicId,
       patient_email: patientEmail,
       amount: amount,
@@ -318,10 +319,30 @@ const generatePaymentLink = async (clinicId, amount, concepto, patientEmail) => 
       payment_url: paymentResult.url,
       status: 'enviado',
       created_at: Timestamp.now(),
-      expires_at: Timestamp.fromDate(new Date(Date.now() + 12 * 60 * 60 * 1000)) // 12 hours
+      expires_at: Timestamp.fromDate(new Date(Date.now() + 12 * 60 * 60 * 1000)), // 12 hours
+      appointment_datetime: Timestamp.fromDate(appointmentDateTime)
     });
     
-    return { url: paymentResult.url, paymentId: paymentResult.url.split('/').pop() };
+    // Schedule 1-hour reminder (8-21h window)
+    if (appointmentDateTime) {
+      const reminderResult = await schedulePaymentReminder(
+        paymentDoc.id,
+        clinicId,
+        patientEmail,
+        appointmentDateTime,
+        amount
+      );
+      
+      if (reminderResult.success) {
+        console.log(`🕐 [ANA] Payment reminder scheduled for ${reminderResult.reminderTime.toISOString()}`);
+      }
+    }
+    
+    return { 
+      url: paymentResult.url, 
+      paymentId: paymentResult.url.split('/').pop(),
+      reminderScheduled: appointmentDateTime ? true : false
+    };
   } catch (e) {
     console.error('🔥 [ANA] Error generating payment link:', e);
     return { error: 'Failed to generate payment link' };
@@ -445,11 +466,17 @@ Ana - ${clinicName}`;
         
         if (availability.available) {
           // Generar enlace de pago para fianza
+          // Parse the date to create appointment datetime
+          const [day, month] = requestedDate.split('/').map(Number);
+          const currentYear = new Date().getFullYear();
+          const appointmentDateTime = new Date(currentYear, month - 1, day, parseInt(requestedTime.split(':')[0]), parseInt(requestedTime.split(':')[1]));
+          
           const paymentLink = await generatePaymentLink(
             clinicId, 
             clinicConfig?.fianza_cita || 20, 
             `Fianza cita ${requestedDate} ${requestedTime}`,
-            'patient@example.com' // Would extract from conversation
+            'patient@example.com', // Would extract from conversation
+            appointmentDateTime
           );
           
           if (paymentLink.url) {
