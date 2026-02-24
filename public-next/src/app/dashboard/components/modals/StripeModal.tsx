@@ -18,7 +18,7 @@ export const StripeModal = ({ isOpen, onClose, clinicId, configStatus }: StripeM
     setIsConnecting(true);
     try {
       // Llamar a API para crear cuenta Stripe
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/stripe/connect`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/dashboard/stripe-connect`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clinicId })
