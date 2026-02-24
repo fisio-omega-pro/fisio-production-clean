@@ -5,8 +5,8 @@ import GoogleAnalytics from '@/components/GoogleAnalytics';
 export const metadata = {
   title: 'FisioTool Pro - Gestión Clínica con IA',
   description: 'El gestor de fisioterapia más avanzado del mercado. Inteligencia Artificial para administración, marketing y finanzas.',
-  // 🚨 ETIQUETAS PWA
-  manifest: '/manifest.json', 
+  // 🚨 ETIQUETAS PWA - Manifest dinámico para logo de clínica
+  manifest: '/api/manifest', 
   themeColor: '#d4af37',
   viewport: 'width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover',
   icons: {

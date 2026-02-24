@@ -72,6 +72,37 @@ function AnaChatContent() {
     };
   }, [clinicId]);
 
+  // Update manifest with clinic logo
+  useEffect(() => {
+    if (clinicId && typeof window !== 'undefined') {
+      // Update manifest link to include clinic ID
+      const manifestLink = document.querySelector('link[rel="manifest"]') as HTMLLinkElement;
+      if (manifestLink) {
+        manifestLink.href = `/api/manifest?clinicId=${clinicId}`;
+      }
+      
+      // Also update for PWA install
+      const updateManifest = async () => {
+        try {
+          const response = await fetch(`/api/manifest?clinicId=${clinicId}`);
+          if (response.ok) {
+            const manifestData = await response.json();
+            
+            // Update theme color and icons dynamically
+            if (manifestData.icons && manifestData.icons.length > 0) {
+              // Update PWA icons if needed
+              console.log('🎨 Updated PWA manifest with clinic logo:', manifestData.name);
+            }
+          }
+        } catch (error) {
+          console.error('Error updating manifest:', error);
+        }
+      };
+      
+      updateManifest();
+    }
+  }, [clinicId]);
+
   const handleUserRegistration = () => {
     if (!userName.trim() || !userEmail.trim()) {
       alert('Por favor, introduce tu nombre y email');
