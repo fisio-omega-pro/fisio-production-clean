@@ -1163,16 +1163,24 @@ const vincularBancoProfesional = async (req, res, next) => {
 
     console.log(`🏦 [STRIPE_CONNECT] Cuenta creada: ${account.id} para fisio: ${fisioIdEnTuApp}`);
 
-    // 2. Creamos el enlace usando las URLs correctas
+    // 2. Determinar el país para el formulario
+    let targetCountry = 'US'; // Default
+    if (emailPro.includes('test') || emailPro.includes('prueba') || emailPro.includes('clinica') || 
+        emailPro.includes('.es') || emailPro.includes('spain') || emailPro.includes('espana') || 
+        emailPro.includes('outlook.com') || fisioIdEnTuApp.includes('TEST') || fisioIdEnTuApp.includes('CLINICA')) {
+      targetCountry = 'ES';  // Forzar España para pruebas
+      console.log(`🇪🇸 [STRIPE_CONNECT] Forzando formulario ES para email: ${emailPro}`);
+    }
+
+    // 2. Creamos el enlace usando las URLs correctas y forzando país
     const accountLink = await stripe.accountLinks.create({
       account: account.id,
       refresh_url: `${frontendUrl}/dashboard?stripe=refresh`,
       return_url: `${frontendUrl}/dashboard?stripe=return`,
       type: 'account_onboarding',
-      // *** CLAVE: collection_options permite que Stripe pregunte el país ***
+      // *** CLAVE: Forzar país en el formulario de onboarding ***
+      country: targetCountry,  // Esto fuerza el formulario del país específico
       collection_options: {
-        // Esto fuerza a Stripe a mostrar el formulario completo incluyendo país
-        // Permitirá que usuarios de España seleccionen su país
         fields: 'eventually_due'
       }
     });
