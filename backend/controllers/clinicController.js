@@ -1068,6 +1068,55 @@ const handleStripeWebhook = async (req, res, next) => {
 };
 
 
+// 🪝 WEBHOOK PARA STRIPE CONNECT COMPLETADO
+const handleStripeConnectWebhook = async (req, res, next) => {
+  try {
+    const sig = req.headers['stripe-signature'];
+    const { initEnv } = require('../config/env');
+    const env = await initEnv();
+    const webhookSecret = String(env.STRIPE_WEBHOOK_SECRET || '').trim();
+    
+    if (!webhookSecret) {
+      console.error('🔥 [WEBHOOK] STRIPE_WEBHOOK_SECRET no configurado');
+      return res.status(500).json({ error: 'Webhook secret no configurado' });
+    }
+
+    const stripe = Stripe(env.STRIPE_SK);
+    const event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+
+    // Manejar eventos de Stripe Connect
+    if (event.type === 'account.updated') {
+      const account = event.data.object;
+      console.log(`🏦 [WEBHOOK] Cuenta actualizada: ${account.id}, status: ${account.charges_enabled ? 'enabled' : 'disabled'}`);
+      
+      // Actualizar el estado en Firestore
+      if (account.metadata?.fisio_interno_id) {
+        await db.collection('clinics').doc(account.metadata.fisio_interno_id).update({
+          stripe_status: account.charges_enabled ? 'active' : 'pending',
+          stripe_charges_enabled: account.charges_enabled,
+          stripe_payouts_enabled: account.payouts_enabled,
+          updated_at: Timestamp.now()
+        });
+
+        // Actualizar también en la colección de seguimiento
+        await db.collection('stripe_connect_profesionales').doc(account.id).update({
+          status: account.charges_enabled ? 'active' : 'pending',
+          charges_enabled: account.charges_enabled,
+          payouts_enabled: account.payouts_enabled,
+          updated_at: Timestamp.now()
+        });
+
+        console.log(`✅ [WEBHOOK] Estado actualizado para fisio: ${account.metadata.fisio_interno_id}`);
+      }
+    }
+
+    res.json({ received: true });
+  } catch (error) {
+    console.error('🔥 [WEBHOOK] Error en Stripe Connect webhook:', error);
+    res.status(400).json({ error: 'Webhook error' });
+  }
+};
+
 // 🏦 NUEVO ENDPOINT PARA STRIPE CONNECT PROFESIONAL
 const vincularBancoProfesional = async (req, res, next) => {
   try {
@@ -1120,7 +1169,17 @@ const vincularBancoProfesional = async (req, res, next) => {
       account_link_id: accountLink.id
     });
 
-    // 4. Devolvemos la URL y el ID de la cuenta
+    // 4. Actualizar el documento del fisioterapeuta con su stripeAccountId
+    await db.collection('clinics').doc(fisioIdEnTuApp).update({
+      stripe_account_id: account.id,
+      stripe_status: 'pending',
+      stripe_email: emailPro,
+      updated_at: Timestamp.now()
+    });
+
+    console.log(`🏦 [STRIPE_CONNECT] Cuenta ${account.id} guardada para fisio: ${fisioIdEnTuApp}`);
+
+    // 5. Devolvemos la URL y el ID de la cuenta
     return res.json({ 
       success: true,
       url: accountLink.url, 
@@ -1167,5 +1226,6 @@ module.exports = {
   verifyPayment,
   handleStripeWebhook,
   uploadLogo,
-  vincularBancoProfesional
+  vincularBancoProfesional,
+  handleStripeConnectWebhook
 };

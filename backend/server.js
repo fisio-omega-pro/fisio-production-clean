@@ -170,6 +170,17 @@ async function initialize(options = {}) {
     }
   });
 
+  // 🪝 Webhook para Stripe Connect (eventos de cuentas conectadas)
+  app.post('/webhook/stripe-connect', express.raw({ type: 'application/json' }), async (req, res) => {
+    try {
+      const clinicController = require('./controllers/clinicController');
+      await clinicController.handleStripeConnectWebhook(req, res, () => {});
+    } catch (error) {
+      console.error('🔥 [WEBHOOK] Error en endpoint /webhook/stripe-connect:', error);
+      res.status(500).json({ error: 'Error interno del servidor' });
+    }
+  });
+
   app.use('/api', apiRoutes);
 
   app.get('/', (req, res) => res.status(200).send('FISIOTOOL PRO ONLINE'));
