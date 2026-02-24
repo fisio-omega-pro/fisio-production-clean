@@ -211,11 +211,20 @@ Responde como Ana, usando tu autoridad cognitiva para conectar humanamente:
 `;
 
     try {
-      const response = await callAnaEngine(prompt, { maxOutputTokens: 150 });
-      return response.trim();
+      const response = await callAnaEngine(prompt, { maxOutputTokens: 300 });
+      const trimmed = response.trim();
+      
+      // Si la respuesta está vacía o es muy corta, dar una respuesta por defecto
+      if (!trimmed || trimmed.length < 10) {
+        return `Hola, soy Ana de ${clinicName}. Entiendo tu pregunta. Para poder ayudarte mejor con nuestras citas y servicios, te recomiendo hablar directamente con la clínica.
+
+Ana - ${clinicName}`;
+      }
+      
+      return trimmed;
     } catch (e) {
       console.error("🔥 Error en chat de Ana:", e);
-      return `Hola, soy Ana de ${clinicName}. Para ayudarte mejor, entra en https://fisiotool.com/ana?ref=${clinicId}. ¿Necesitas algo más?
+      return `Hola, soy Ana de ${clinicName}. He tenido un problema técnico. Por favor, llama directamente a la clínica para poder ayudarte.
 
 Ana - ${clinicName}`;
     }

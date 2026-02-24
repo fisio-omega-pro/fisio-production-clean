@@ -238,9 +238,10 @@ Una vez instalada, podremos comunicarnos directamente y yo podré ayudarte mejor
         </div>
       </div>
 
-      {/* Chat Messages - WhatsApp Style */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#e5ddd5] bg-opacity-10" style={{
-        backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\\"100\\" height=\\"100\\" xmlns=\\"http://www.w3.org/2000/svg\\"%3E%3Cdefs%3E%3Cpattern id=\\"grid\\" width=\\"100\\" height=\\"100\\" patternUnits=\\"userSpaceOnUse\\"%3E%3Cpath d=\\"M 100 0 L 0 0 0 100\\" fill=\\"none\\" stroke=\\"rgba(255,255,255,0.03)\\" stroke-width=\\"1\\"/%3E%3C/pattern%3E%3C/defs%3E%3Crect width=\\"100%\\" height=\\"100%\\" fill=\\"url(%23grid)\\" /%3E%3C/svg%3E")'
+      {/* Chat Messages - Real WhatsApp Background */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{
+        backgroundColor: '#E5DDD5',
+        backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\\"100\\" height=\\"100\\" xmlns=\\"http://www.w3.org/2000/svg\\"%3E%3Cdefs%3E%3Cpattern id=\\"wa-bg\\" width=\\"100\\" height=\\"100\\" patternUnits=\\"userSpaceOnUse\\"%3E%3Cpath d=\\"M 100 0 L 0 0 0 100\\" fill=\\"none\\" stroke=\\"rgba(255,255,255,0.1)\\" stroke-width=\\"0.5\\"/%3E%3C/pattern%3E%3C/defs%3E%3Crect width=\\"100%\\" height=\\"100%\\" fill=\\"url(%23wa-bg)\\" /%3E%3C/svg%3E")'
       }}>
         {messages.map((msg, idx) => (
           <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -346,61 +347,7 @@ Una vez instalada, podremos comunicarnos directamente y yo podré ayudarte mejor
             </button>
           </div>
           
-          {/* Functional Quick Actions */}
-          <div className="flex gap-2 mt-2 overflow-x-auto pb-2">
-            <button 
-              onClick={() => {
-                setInput('quiero pedir cita');
-                setTimeout(() => sendMessage(), 100);
-              }}
-              className="px-3 py-1 bg-white border border-gray-300 rounded-full text-xs text-gray-700 whitespace-nowrap hover:bg-gray-50 transition flex items-center gap-1"
-            >
-              <Calendar size={12} />
-              Pedir cita
-            </button>
-            <button 
-              onClick={() => {
-                setInput('¿cuánto cuesta?');
-                setTimeout(() => sendMessage(), 100);
-              }}
-              className="px-3 py-1 bg-white border border-gray-300 rounded-full text-xs text-gray-700 whitespace-nowrap hover:bg-gray-50 transition flex items-center gap-1"
-            >
-              <Clock size={12} />
-              Precios
-            </button>
-            <button 
-              onClick={() => {
-                // Intentar instalar PWA directamente
-                if (window.deferredPrompt) {
-                  // Si hay un prompt de instalación guardado, usarlo
-                  window.deferredPrompt.prompt();
-                  window.deferredPrompt.userChoice.then((choiceResult) => {
-                    if (choiceResult.outcome === 'accepted') {
-                      console.log('Usuario aceptó instalar PWA');
-                    }
-                    window.deferredPrompt = null;
-                  });
-                } else {
-                  // Si no, mostrar instrucciones específicas para el dispositivo
-                  const isAndroid = /Android/.test(navigator.userAgent);
-                  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-                  
-                  if (isAndroid) {
-                    alert('📱 Para instalar en Android:\n\n1. Toca el menú (⋮) arriba a la derecha\n2. Selecciona "Instalar app" o "Añadir a pantalla de inicio"\n3. Confirma la instalación\n\n¡Así tendrás FisioTool como app nativa!');
-                  } else if (isIOS) {
-                    alert('📱 Para instalar en iPhone/iPad:\n\n1. Toca el botón "Compartir" (📤)\n2. Selecciona "Añadir a pantalla de inicio"\n3. Confirma "Añadir"\n\n¡Así tendrás FisioTool como app nativa!');
-                  } else {
-                    alert('💻 Para instalar en desktop:\n\n1. Busca el botón "Descargar" o "Instalar" en la barra de direcciones\n2. Haz clic en él\n3. Confirma la instalación\n\n¡Así tendrás FisioTool como app de escritorio!');
-                  }
-                }
-              }}
-              className="px-3 py-1 bg-green-500 text-white rounded-full text-xs whitespace-nowrap hover:bg-green-600 transition flex items-center gap-1 shadow-md"
-            >
-              <Download size={12} />
-              Instalar app
-            </button>
-          </div>
-        </div>
+                  </div>
       )}
     </div>
   );
