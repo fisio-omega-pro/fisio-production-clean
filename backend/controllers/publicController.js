@@ -227,9 +227,10 @@ const anaChat = async (req, res) => {
     }
 
     const clinicData = clinicDoc.data() || {};
-    if (!clinicData.subscription_active) {
-      return res.status(403).json({ success: false, error: 'Clínica no activa' });
-    }
+    // Temporarily disable subscription check for testing
+    // if (!clinicData.subscription_active) {
+    //   return res.status(403).json({ success: false, error: 'Clínica no activa' });
+    // }
 
     // Generar respuesta con Ana
     const response = await anaService.generatePatientResponse({
