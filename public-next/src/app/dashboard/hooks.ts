@@ -41,6 +41,7 @@ export const useDashboardState = () => {
         setBalance(data.balance || { real: 0, potencial: 0, roi: 0, tendenciaMensual: 0 });
         setConfigStatus(data.configStatus);
         setClinicData(data.clinicData);
+        setClinicId(data.clinicData?.id || ''); // 🚨 CRÍTICO: Establecer clinicId
         setEquipo(data.equipo || []);
         setCurrentUser(data.currentUser || { specialistId: null, isOwner: true });
 
