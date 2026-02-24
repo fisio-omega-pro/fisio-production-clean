@@ -121,7 +121,8 @@ export default function DashboardOmega() {
   const needsSubscription = !state.configStatus?.hasSubscription;
   const needsStripe = !state.configStatus?.hasStripe;
   const needsLogo = !state.clinicData?.logo_url;
-  const needsSetup = !state.isLoading && (needsLogo || needsStripe);
+  const needsSetup = !state.isLoading && (needsStripe || needsLogo);
+  const isBlocked = needsSetup; // Bloqueo real del dashboard
 
   const renderContent = () => {
     if (state.isLoading) return <div className="p-20 text-center text-blue-500 animate-pulse font-black text-xs uppercase tracking-widest">Sincronizando...</div>;
@@ -158,38 +159,108 @@ export default function DashboardOmega() {
 
   return (
     <DashboardLayout activeTab={state.activeTab} onTabChange={state.setActiveTab} navItems={navItemsFiltered}>
-      {/* PASOS OBLIGATORIOS INICIALES */}
-      {needsSetup && (
-        <div className="mb-6 rounded-3xl border border-blue-500/20 bg-blue-500/5 p-5">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <div className="text-[10px] font-black uppercase tracking-widest text-blue-400">Configuración inicial obligatoria</div>
-              <div className="text-sm font-bold text-white mt-1">
-                Completa estos pasos para empezar a operar
+      {/* BLOQUEO COMPLETO DEL DASHBOARD - PASOS OBLIGATORIOS */}
+      {isBlocked ? (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+          <div className="bg-gradient-to-br from-[#0a0b10] to-black rounded-3xl border border-red-500/30 p-8 max-w-2xl w-full">
+            <div className="text-center mb-8">
+              <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Crown size={40} className="text-red-400" />
               </div>
-              <div className="text-[11px] text-blue-200/70 mt-1">
-                {(!state.clinicData?.logo) && '• Sube el logo de tu clínica. '}
-                {(!state.clinicData?.logo) && '• Importa tu base de datos de pacientes.'}
+              <h1 className="text-2xl font-bold text-white mb-2">Configuración Obligatoria</h1>
+              <p className="text-gray-400">Completa estos pasos IMPRESCINDIBLES para operar</p>
+            </div>
+
+            {/* PASO 1: STRIPE - IMPRESCINDIBLE */}
+            <div className={`mb-6 p-4 rounded-2xl border ${needsStripe ? 'border-red-500/30 bg-red-500/5' : 'border-green-500/30 bg-green-500/5'}`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${needsStripe ? 'bg-red-500' : 'bg-green-500'}`}>
+                    <span className="text-white font-bold">1</span>
+                  </div>
+                  <div>
+                    <h3 className="text-white font-semibold">Conectar Stripe</h3>
+                    <p className="text-gray-400 text-sm">Para generar pagos y bonos a clientes</p>
+                  </div>
+                </div>
+                {needsStripe ? (
+                  <button
+                    onClick={() => state.setModalType('editar_perfil')}
+                    className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-black hover:bg-red-600 transition"
+                  >
+                    Conectar Ahora
+                  </button>
+                ) : (
+                  <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                    <span className="text-white">✓</span>
+                  </div>
+                )}
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <button
-                onClick={() => state.setModalType('editar_perfil')}
-                className="px-4 py-3 rounded-2xl bg-white text-black text-[11px] font-black hover:bg-gray-200 transition"
-              >
-                Subir Logo
-              </button>
-              <button
-                onClick={() => state.setModalType('importar')}
-                className="px-4 py-3 rounded-2xl bg-blue-500 text-white text-[11px] font-black hover:bg-blue-600 transition"
-              >
-                Importar Pacientes
-              </button>
+
+            {/* PASO 2: LOGO - IMPRESCINDIBLE */}
+            <div className={`mb-6 p-4 rounded-2xl border ${needsLogo ? 'border-red-500/30 bg-red-500/5' : 'border-green-500/30 bg-green-500/5'}`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${needsLogo ? 'bg-red-500' : 'bg-green-500'}`}>
+                    <span className="text-white font-bold">2</span>
+                  </div>
+                  <div>
+                    <h3 className="text-white font-semibold">Subir Logo de Clínica</h3>
+                    <p className="text-gray-400 text-sm">Para branding y app personalizada</p>
+                  </div>
+                </div>
+                {needsLogo ? (
+                  <button
+                    onClick={() => state.setModalType('editar_perfil')}
+                    className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-black hover:bg-red-600 transition"
+                  >
+                    Subir Logo
+                  </button>
+                ) : (
+                  <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                    <span className="text-white">✓</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* PASO 3: PACIENTES - RECOMENDADO */}
+            <div className="p-4 rounded-2xl border border-blue-500/30 bg-blue-500/5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center">
+                    <span className="text-white font-bold">3</span>
+                  </div>
+                  <div>
+                    <h3 className="text-white font-semibold">Importar Pacientes</h3>
+                    <p className="text-gray-400 text-sm">Para que Ana pueda prospectar</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => state.setModalType('importar')}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-xl text-sm font-black hover:bg-blue-600 transition"
+                >
+                  Importar
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-8 text-center">
+              <p className="text-red-400 text-sm font-semibold mb-2">
+                {needsStripe && needsLogo ? "⚠️ Debes completar los pasos 1 y 2 para continuar" :
+                 needsStripe ? "⚠️ Debes conectar Stripe para continuar" :
+                 "⚠️ Debes subir tu logo para continuar"}
+              </p>
+              <p className="text-gray-500 text-xs">
+                Estos pasos son obligatorios para garantizar el funcionamiento correcto de Ana y los pagos
+              </p>
             </div>
           </div>
         </div>
+      ) : (
+        renderContent()
       )}
-      {renderContent()}
 
       {/* --- REGISTRO INTEGRAL DE MODALES --- */}
       <AppointmentModal isOpen={state.modalType === 'cita'} onClose={() => state.setModalType(null)} data={apptData} setData={setApptData} onSubmit={handleCreateAppt} />
