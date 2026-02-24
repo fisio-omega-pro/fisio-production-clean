@@ -54,7 +54,12 @@ export const StripeModal = ({ isOpen, onClose, clinicId, configStatus, userEmail
         // Redirigir a Stripe Connect
         window.location.href = data.url;
       } else {
-        alert(`Error: ${data.error || 'Error al conectar con Stripe'}`);
+        // Error específico de Connect no configurado
+        if (data.error?.includes('signed up for Connect')) {
+          alert('⚠️ CONFIGURACIÓN STRIPE CONNECT\n\nTu cuenta Stripe necesita activar "Connect" para procesar pagos.\n\nPasos:\n1. Ve a dashboard.stripe.com\n2. Busca "Connect" en menú lateral\n3. Activa Stripe Connect\n4. Vuelve a intentar\n\nSoporte: ayuda@fisiotool.com');
+        } else {
+          alert(`Error: ${data.error || 'Error al conectar con Stripe'}`);
+        }
       }
     } catch (error) {
       console.error('Error connecting Stripe:', error);
