@@ -1152,12 +1152,23 @@ const vincularBancoProfesional = async (req, res, next) => {
 
     console.log(`🏦 [STRIPE_CONNECT] Cuenta creada: ${account.id} para fisio: ${fisioIdEnTuApp}`);
 
-    // 2. Creamos el enlace usando las URLs correctas
+    // 2. Creamos el enlace usando las URLs correctas y soporte global
     const accountLink = await stripe.accountLinks.create({
       account: account.id,
       refresh_url: `${frontendUrl}/dashboard?stripe=refresh`,
       return_url: `${frontendUrl}/dashboard?stripe=return`,
       type: 'account_onboarding',
+      
+      // *** PARÁMETROS CRÍTICOS PARA SOPORTE GLOBAL ***
+      parameters: {
+        // Permite que Stripe use la configuración del país del usuario (Fisio)
+        // Esto es clave para mostrar formularios europeos/españoles
+        account_onboarding: {
+          type: 'express',
+          // Forzamos EUR como moneda por defecto para usuarios globales
+          default_currency: 'eur',
+        }
+      }
     });
 
     console.log(`🔍 [DEBUG] accountLink:`, JSON.stringify(accountLink, null, 2));
