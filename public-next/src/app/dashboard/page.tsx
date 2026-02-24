@@ -235,7 +235,10 @@ export default function DashboardOmega() {
                 </div>
                 {needsPatients ? (
                   <button
-                    onClick={() => state.setActiveTab('pacientes')}
+                    onClick={() => {
+                      state.setActiveTab('pacientes');
+                      setTimeout(() => state.setModalType('importar'), 100);
+                    }}
                     className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-black hover:bg-red-600 transition"
                   >
                     Importar Pacientes
