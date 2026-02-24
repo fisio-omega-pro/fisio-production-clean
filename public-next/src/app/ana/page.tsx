@@ -40,6 +40,14 @@ function AnaChatContent() {
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [showForm, setShowForm] = useState(true);
+  
+  // 🤖 Ana Profile State
+  const [anaProfile, setAnaProfile] = useState({
+    name: 'Ana',
+    photo_url: null,
+    use_clinic_logo: false,
+    custom_color: '#075E54'
+  });
 
   useEffect(() => {
     // PWA install prompt listener
@@ -50,23 +58,7 @@ function AnaChatContent() {
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
-    if (clinicId) {
-      // Obtener nombre de la clínica
-      fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/public/clinic-info?ref=${clinicId}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            setClinicName(data.nombre);
-            setMessages([{
-              role: 'ana',
-              text: `Hola, gracias por comunicarte con ${data.nombre}. Por favor, déjanos tu nombre y tu email.`,
-              timestamp: Date.now()
-            }]);
-          }
-        })
-        .catch(() => {});
-    }
-
+    
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
@@ -205,18 +197,7 @@ Una vez instalada, podremos comunicarnos directamente y yo podré ayudarte mejor
           >
             <ArrowLeft size={20} />
           </button>
-          <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/30 shadow-lg">
-            <img 
-              src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face&auto=format" 
-              alt="Ana" 
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-                e.currentTarget.parentElement.innerHTML = '<div class="w-full h-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center"><span class="text-white font-bold text-lg">A</span></div>';
-              }}
-            />
-          </div>
-          <div>
+                    <div>
             <h1 className="text-white font-semibold">Ana</h1>
             <p className="text-xs text-green-300">Asistente de {clinicName || 'la clínica'}</p>
             <p className="text-xs text-green-200 flex items-center gap-1">
@@ -235,6 +216,19 @@ Una vez instalada, podremos comunicarnos directamente y yo podré ayudarte mejor
           <button className="text-white hover:bg-white/10 p-2 rounded-full transition-colors">
             <MoreVertical size={20} />
           </button>
+        </div>
+        
+        {/* Ana Profile Photo */}
+        <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/30 shadow-lg">
+          <img 
+            src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face&auto=format" 
+            alt="Ana" 
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+              e.currentTarget.parentElement.innerHTML = '<div class="w-full h-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center"><span class="text-white font-bold text-lg">A</span></div>';
+            }}
+          />
         </div>
       </div>
 

@@ -114,6 +114,15 @@ const getClinicConfiguration = async (clinicId) => {
       acepta_bonos: clinicData.config_ia?.acepta_bonos || false,
       modo_caza_activo: clinicData.config_ia?.modo_caza_activo || false,
       
+      // 🤖 CONFIGURACIÓN DE ANA
+      ana_profile: {
+        name: clinicData.ana_name || 'Ana',
+        photo_url: clinicData.ana_photo || null,
+        use_clinic_logo: clinicData.ana_use_clinic_logo || false,
+        custom_color: clinicData.ana_color || '#075E54',
+        custom_welcome: clinicData.ana_welcome || null
+      },
+      
       // Información básica
       nombre_clinica: clinicData.nombre_clinica || clinicData.nombre || 'la clínica',
       email: clinicData.email || '',
@@ -474,18 +483,22 @@ REGLAS:
         lowerMessage.includes('email') || lowerMessage.includes('correo') ||
         (lowerMessage.includes('fermin') && lowerMessage.includes('gmail'))) {
       
+      const anaName = clinicConfig?.ana_profile?.name || 'Ana';
+      
       return `Gracias por aportarme tus datos. Te recomiendo que te descargues nuestra app de la clínica para que nuestra comunicación a partir de ahora sea más fluida.
 
 Puedes instalarla entrando en: https://fisiotool.com/ana?ref=${clinicId}
 
 Una vez instalada, podré gestionar tus citas, pagos y seguimientos automáticamente.
 
-Ana - ${clinicName}`;
+${anaName} - ${clinicName}`;
     }
     
     // Si ya tiene la app o pregunta después de dar datos
     if (lowerMessage.includes('gracias') || lowerMessage.includes('app descargada') || 
         lowerMessage.includes('ya tengo la app') || lowerMessage.includes('desde la app')) {
+      
+      const anaName = clinicConfig?.ana_profile?.name || 'Ana';
       
       return `Perfecto! Ahora puedo ayudarte de forma completa. 
 
@@ -496,7 +509,7 @@ Puedo gestionar:
 
 ¿En qué te puedo ayudar?
 
-Ana - ${clinicName}`;
+${anaName} - ${clinicName}`;
     }
     
     // Respuestas inteligentes para citas
@@ -530,6 +543,7 @@ Ana - ${clinicName}`;
           );
           
           if (paymentLink.url) {
+            const anaName = clinicConfig?.ana_profile?.name || 'Ana';
             return `Perfecto! Tengo disponibilidad el ${requestedDate} a las ${requestedTime}.
 
 Para confirmar, paga la fianza de ${clinicConfig?.fianza_cita || 20}€ aquí:
@@ -537,11 +551,12 @@ ${paymentLink.url}
 
 Una vez pagado, tu cita quedará confirmada automáticamente.
 
-Ana - ${clinicName}`;
+${anaName} - ${clinicName}`;
           } else {
+            const anaName = clinicConfig?.ana_profile?.name || 'Ana';
             return `Tengo disponibilidad el ${requestedDate} a las ${requestedTime}, pero ha habido un problema con el pago. Por favor, intenta de nuevo o llama a la clínica.
 
-Ana - ${clinicName}`;
+${anaName} - ${clinicName}`;
           }
         } else {
           // Get available slots for the day
@@ -551,6 +566,7 @@ Ana - ${clinicName}`;
             const slotsList = availableSlots.slice(0, 5).map(slot => slot.hora).join(', ');
             const moreText = availableSlots.length > 5 ? ` y ${availableSlots.length - 5} más` : '';
             
+            const anaName = clinicConfig?.ana_profile?.name || 'Ana';
             return `Lo siento, no tengo disponibilidad el ${requestedDate} a las ${requestedTime}.
 
 Motivo: ${availability.reason}
@@ -560,54 +576,59 @@ ${slotsList}${moreText}
 
 ¿Cuál prefieres?
 
-Ana - ${clinicName}`;
+${anaName} - ${clinicName}`;
           } else {
+            const anaName = clinicConfig?.ana_profile?.name || 'Ana';
             return `Lo siento, no tengo disponibilidad el ${requestedDate} a las ${requestedTime}.
 
 Motivo: ${availability.reason}
 
 No hay más horarios disponibles ese día. ¿Te gustaría consultar otro día?
 
-Ana - ${clinicName}`;
+${anaName} - ${clinicName}`;
           }
         }
       }
       
       // Respuesta general sobre disponibilidad
+      const anaName = clinicConfig?.ana_profile?.name || 'Ana';
       return `Puedo revisar nuestra disponibilidad en tiempo real. 
 
 Nuestro horario es de ${clinicConfig?.horario?.apertura || '09:00'} a ${clinicConfig?.horario?.cierre || '20:00'}.
 
 ¿Para qué día y hora te gustaría la cita?
 
-Ana - ${clinicName}`;
+${anaName} - ${clinicName}`;
     }
     
     if (lowerMessage.includes('app') || lowerMessage.includes('descargar') || lowerMessage.includes('móvil') || lowerMessage.includes('instalar')) {
+      const anaName = clinicConfig?.ana_profile?.name || 'Ana';
       return `Para tener nuestra app en tu móvil, entra en:
 
 https://fisiotool.com/ana?ref=${clinicId}
 
 Luego toca "Añadir a pantalla de inicio". Así podrás hablar conmigo directamente desde tu móvil.
 
-Ana - ${clinicName}`;
+${anaName} - ${clinicName}`;
     }
     
     if (lowerMessage.includes('pago') || lowerMessage.includes('precio') || lowerMessage.includes('tarifa') || lowerMessage.includes('cuánto cuesta')) {
-      return `Hola, soy Ana de ${clinicName}. En nuestra app verás todos nuestros precios y servicios: https://fisiotool.com/ana?ref=${clinicId}
+      const anaName = clinicConfig?.ana_profile?.name || 'Ana';
+      return `Hola, soy ${anaName} de ${clinicName}. En nuestra app verás todos nuestros precios y servicios: https://fisiotool.com/ana?ref=${clinicId}
 
 Tenemos diferentes opciones según tus necesidades. Allí podrás ver los detalles y elegir la mejor para ti.
 
-Ana - ${clinicName}`;
+${anaName} - ${clinicName}`;
     }
     
     // Saludo inicial - simple y directo
     if (lowerMessage.includes('hola') || lowerMessage.includes('buenos') || lowerMessage.includes('saludo')) {
-      return `Hola, soy Ana de ${clinicName}. 
+      const anaName = clinicConfig?.ana_profile?.name || 'Ana';
+      return `Hola, soy ${anaName} de ${clinicName}. 
 
 Por favor, déjame tu nombre y tu email para poder ayudarte mejor.
 
-Ana - ${clinicName}`;
+${anaName} - ${clinicName}`;
     }
     
     // Respuesta por defecto - con autoridad cognitiva pero sin saturar
@@ -634,17 +655,19 @@ Responde como Ana, usando tu autoridad cognitiva para conectar humanamente:
       
       // Si la respuesta está vacía o es muy corta, dar una respuesta por defecto
       if (!trimmed || trimmed.length < 10) {
-        return `Hola, soy Ana de ${clinicName}. Entiendo tu pregunta. Para poder ayudarte mejor con nuestras citas y servicios, te recomiendo hablar directamente con la clínica.
+        const anaName = clinicConfig?.ana_profile?.name || 'Ana';
+        return `Hola, soy ${anaName} de ${clinicName}. Entiendo tu pregunta. Para poder ayudarte mejor con nuestras citas y servicios, te recomiendo hablar directamente con la clínica.
 
-Ana - ${clinicName}`;
+${anaName} - ${clinicName}`;
       }
       
       return trimmed;
     } catch (e) {
       console.error("🔥 Error en chat de Ana:", e);
-      return `Hola, soy Ana de ${clinicName}. He tenido un problema técnico. Por favor, llama directamente a la clínica para poder ayudarte.
+      const anaName = clinicConfig?.ana_profile?.name || 'Ana';
+      return `Hola, soy ${anaName} de ${clinicName}. He tenido un problema técnico. Por favor, llama directamente a la clínica para poder ayudarte.
 
-Ana - ${clinicName}`;
+${anaName} - ${clinicName}`;
     }
   }
 };
