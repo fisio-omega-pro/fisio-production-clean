@@ -143,7 +143,8 @@ export default function DashboardOmega() {
   const needsSubscription = !state.configStatus?.hasSubscription;
   const needsStripe = !state.configStatus?.hasStripe;
   const needsLogo = !state.clinicData?.logo_url;
-  const needsSetup = !state.isLoading && (needsStripe || needsLogo);
+  const needsPatients = state.pacientes.length === 0;
+  const needsSetup = !state.isLoading && (needsStripe || needsLogo || needsPatients);
   const isBlocked = needsSetup; // Bloqueo real del dashboard
 
   const renderContent = () => {
@@ -247,32 +248,42 @@ export default function DashboardOmega() {
               </div>
             </div>
 
-            {/* PASO 3: PACIENTES - RECOMENDADO */}
-            <div className="p-4 rounded-2xl border border-blue-500/30 bg-blue-500/5">
+            {/* PASO 3: PACIENTES - IMPRESCINDIBLE */}
+            <div className={`mb-6 p-4 rounded-2xl border ${needsPatients ? 'border-red-500/30 bg-red-500/5' : 'border-green-500/30 bg-green-500/5'}`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${needsPatients ? 'bg-red-500' : 'bg-green-500'}`}>
                     <span className="text-white font-bold">3</span>
                   </div>
                   <div>
                     <h3 className="text-white font-semibold">Importar Pacientes</h3>
-                    <p className="text-gray-400 text-sm">Para que Ana pueda prospectar</p>
+                    <p className="text-gray-400 text-sm">Para comenzar a usar la agenda y facturación</p>
                   </div>
                 </div>
-                <button
-                  onClick={() => state.setModalType('importar')}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-xl text-sm font-black hover:bg-blue-600 transition"
-                >
-                  Importar
-                </button>
+                {needsPatients ? (
+                  <button
+                    onClick={() => state.setActiveTab('pacientes')}
+                    className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-black hover:bg-red-600 transition"
+                  >
+                    Importar Pacientes
+                  </button>
+                ) : (
+                  <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                    <span className="text-white">✓</span>
+                  </div>
+                )}
               </div>
             </div>
 
             <div className="mt-8 text-center">
               <p className="text-red-400 text-sm font-semibold mb-2">
-                {needsStripe && needsLogo ? "⚠️ Debes completar los pasos 1 y 2 para continuar" :
+                {needsStripe && needsLogo && needsPatients ? "⚠️ Debes completar los pasos 1, 2 y 3 para continuar" :
+                 needsStripe && needsLogo ? "⚠️ Debes completar los pasos 1 y 2 para continuar" :
+                 needsStripe && needsPatients ? "⚠️ Debes completar los pasos 1 y 3 para continuar" :
+                 needsLogo && needsPatients ? "⚠️ Debes completar los pasos 2 y 3 para continuar" :
                  needsStripe ? "⚠️ Debes conectar Stripe para continuar" :
-                 "⚠️ Debes subir tu logo para continuar"}
+                 needsLogo ? "⚠️ Debes subir tu logo para continuar" :
+                 "⚠️ Debes importar pacientes para continuar"}
               </p>
               <p className="text-gray-500 text-xs">
                 Estos pasos son obligatorios para garantizar el funcionamiento correcto de Ana y los pagos
