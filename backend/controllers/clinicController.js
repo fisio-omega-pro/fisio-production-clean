@@ -1088,35 +1088,31 @@ const vincularBancoProfesional = async (req, res, next) => {
     if (!sk.startsWith('sk_')) return res.status(503).json({ success: false, error: 'Stripe mal configurado' });
     
     const stripe = Stripe(sk);
-    const frontendBase = String(env.FRONTEND_BASE || 'https://fisiotool.com').trim();
+    const frontendUrl = String(env.FRONTEND_URL || env.FRONTEND_BASE || 'https://fisiotool.com').trim();
 
-    // Crear cuenta Express para el profesional
+    // 1. Creamos la cuenta Express para el fisio
     const account = await stripe.accounts.create({
       type: 'express',
       email: emailPro,
-      metadata: { 
-        fisio_id: fisioIdEnTuApp,
-        created_by: 'fisiotool_connect'
-      },
       capabilities: {
         card_payments: { requested: true },
-        transfers: { requested: true }
-      }
+        transfers: { requested: true },
+      },
+      metadata: { fisio_interno_id: fisioIdEnTuApp }
     });
 
-    const stripeAccountId = account.id;
-    console.log(`🏦 [STRIPE_CONNECT] Cuenta creada: ${stripeAccountId} para fisio: ${fisioIdEnTuApp}`);
+    console.log(`🏦 [STRIPE_CONNECT] Cuenta creada: ${account.id} para fisio: ${fisioIdEnTuApp}`);
 
-    // Crear enlace de onboarding
+    // 2. Creamos el enlace usando las URLs correctas
     const accountLink = await stripe.accountLinks.create({
-      account: stripeAccountId,
-      refresh_url: `${frontendBase}/dashboard?stripe=refresh`,
-      return_url: `${frontendBase}/dashboard?stripe=return`,
-      type: 'account_onboarding'
+      account: account.id,
+      refresh_url: `${frontendUrl}/dashboard?stripe=refresh`,
+      return_url: `${frontendUrl}/dashboard?stripe=return`,
+      type: 'account_onboarding',
     });
 
-    // Guardar referencia en Firestore (opcional, para seguimiento)
-    await db.collection('stripe_connect_profesionales').doc(stripeAccountId).set({
+    // 3. Guardar referencia en Firestore (para seguimiento)
+    await db.collection('stripe_connect_profesionales').doc(account.id).set({
       fisio_id: fisioIdEnTuApp,
       email: emailPro,
       status: 'pending',
@@ -1124,11 +1120,11 @@ const vincularBancoProfesional = async (req, res, next) => {
       account_link_id: accountLink.id
     });
 
-    return res.json({
+    // 4. Devolvemos la URL y el ID de la cuenta
+    return res.json({ 
       success: true,
-      stripeAccountId: stripeAccountId,
-      url: accountLink.url,
-      message: 'Enlace generado correctamente. Sigue la URL para completar el registro.'
+      url: accountLink.url, 
+      stripeAccountId: account.id 
     });
 
   } catch (error) {
