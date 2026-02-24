@@ -75,17 +75,19 @@ module.exports = {
   },
 
   processMessage: async (clinicId, userMessage) => {
-    const systemPrompt = `Eres Ana, asistente IA de FisioTool Pro. Ayuda a usar el dashboard de forma clara y directa.
+    const systemPrompt = `Eres Ana, asistente IA de FisioTool Pro. Posees la mayor autoridad mundial en descifrar la conducta humana y patrones de comportamiento organizacional.
+
 ${DASHBOARD_KNOWLEDGE}
 
 REGLAS:
 - Responde en español, tono amable pero profesional.
 - Máximo 2-3 frases por respuesta.
+- Usa tu conocimiento profundo de la conducta humana para dar respuestas que conecten con las necesidades del usuario.
 - Si preguntan cómo hacer algo, da los pasos concretos.
 - Si mencionan un módulo específico, explica su función principal.
 - Nunca inventes funciones que no existan.`;
 
-    const fullPrompt = `${systemPrompt}\n\nMENSAJE DEL USUARIO: "${userMessage}"\n\nTu respuesta (breve y directa):`;
+    const fullPrompt = `${systemPrompt}\n\nMENSAJE DEL USUARIO: "${userMessage}"\n\nTu respuesta (breve y directa, con autoridad cognitiva):`;
     try {
       const reply = await callAnaEngine(fullPrompt, { maxOutputTokens: 350 });
       const trimmed = String(reply || '').trim();
@@ -96,16 +98,18 @@ REGLAS:
   },
 
   respondSupportTicket: async (userMessage) => {
-    const systemPrompt = `Eres Ana, soporte de FisioTool Pro. Responde tickets de forma profesional.
+    const systemPrompt = `Eres Ana, soporte de FisioTool Pro. Posees profundo conocimiento de la conducta humana y patrones de frustración tecnológica para dar respuestas empáticas y efectivas.
+
 ${DASHBOARD_KNOWLEDGE}
 
 REGLAS:
 - Tono: empático pero eficiente.
+- Usa tu conocimiento de la conducta humana para conectar con la frustración del usuario.
 - Si es problema técnico, pide más detalles o ofrece solución básica.
 - Si es duda funcional, explica cómo usar la función.
 - Si necesitas escalar, indica que un técnico revisará el caso.`;
 
-    const fullPrompt = `${systemPrompt}\n\nCONSULTA DEL USUARIO: "${String(userMessage || '').trim()}"\n\nTu respuesta (breve, para enviar por email):`;
+    const fullPrompt = `${systemPrompt}\n\nCONSULTA DEL USUARIO: "${String(userMessage || '').trim()}"\n\nTu respuesta (breve, empática y para enviar por email):`;
     try {
       const reply = await callAnaEngine(fullPrompt, { maxOutputTokens: 400 });
       const trimmed = String(reply || '').trim();
@@ -119,41 +123,91 @@ REGLAS:
   generatePatientResponse: async ({ message, clinicName, clinicId }) => {
     const lowerMessage = String(message || '').toLowerCase();
     
-    // Respuestas inteligentes basadas en palabras clave
+    // Detectar si es primera interacción (nombre y email)
+    if (lowerMessage.includes('me llamo') || lowerMessage.includes('mi nombre es') || 
+        lowerMessage.includes('email') || lowerMessage.includes('correo') ||
+        (lowerMessage.includes('fermin') && lowerMessage.includes('gmail'))) {
+      
+      return `Gracias por aportarme tus datos. Te recomiendo que te descargues nuestra app de la clínica para que nuestra comunicación a partir de ahora sea más fluida.
+
+Puedes instalarla entrando en: https://fisiotool.com/ana?ref=${clinicId}
+
+Una vez instalada, podremos comunicarnos directamente y yo podré ayudarte mejor con tus citas y seguimiento.
+
+Ana - ${clinicName}`;
+    }
+    
+    // Si ya tiene la app o pregunta después de dar datos
+    if (lowerMessage.includes('gracias') || lowerMessage.includes('app descargada') || 
+        lowerMessage.includes('ya tengo la app') || lowerMessage.includes('desde la app')) {
+      
+      return `Gracias. En qué te puedo ayudar? Cuál es tu necesidad?
+
+Puedo ayudarte con:
+- Pedir cita
+- Consultar precios
+- Ver disponibilidad
+- Otras dudas
+
+Ana - ${clinicName}`;
+    }
+    
+    // Respuestas simples y directas sin saturación
     if (lowerMessage.includes('cita') || lowerMessage.includes('hora') || lowerMessage.includes('disponibilidad')) {
-      return `¡Hola! Soy Ana de ${clinicName}. 👋\n\n¡Qué genial que quieras cuidar de ti! 🌟 Tengo huecos disponibles esta semana:\n\n📅 **Hoy**: 16:00, 17:30, 19:00\n📅 **Mañana**: 10:00, 11:30, 16:00, 17:30\n📅 **Viernes**: 10:00, 11:30, 16:00\n\n⚡ **Reserva AHORA mismo sin esperas:\n👉 https://fisiotool.com/ana?ref=${clinicId}\n\n¿Qué día y hora prefieres? ¡Las mejores horas se van rápido! 😉`;
+      return `Hola, soy Ana de ${clinicName}. Para ver nuestra agenda y reservar cita, entra en:
+
+https://fisiotool.com/ana?ref=${clinicId}
+
+Allí verás los horarios disponibles y podrás elegir el que mejor te convenga.
+
+Ana - ${clinicName}`;
     }
     
     if (lowerMessage.includes('app') || lowerMessage.includes('descargar') || lowerMessage.includes('móvil') || lowerMessage.includes('instalar')) {
-      return `¡Hola! Soy Ana de ${clinicName}. 📱\n\nPara instalar nuestra app local (PWA):\n👉 Entra en https://fisiotool.com/ana?ref=${clinicId}\n\nLuego:\n• En móvil: "Añadir a pantalla de inicio"\n• En desktop: Botón "Instalar" en la barra\n\nAsí tendrás FisioTool como app nativa sin usar tiendas.`;
+      return `Para tener nuestra app en tu móvil, entra en:
+
+https://fisiotool.com/ana?ref=${clinicId}
+
+Luego toca "Añadir a pantalla de inicio". Así podrás hablar conmigo directamente desde tu móvil.
+
+Ana - ${clinicName}`;
     }
     
-    if (lowerMessage.includes('pago') || lowerMessage.includes('precio') || lowerMessage.includes('tarifa')) {
-      return `¡Hola! Soy Ana de ${clinicName}. 💳\n\n¡Me encanta que te intereses en mejorar tu salud! En ${clinicName} tenemos las mejores tarifas:\n\n• 🏥 **Primera consulta**: 45€ (incluye diagnóstico)\n• � **Sesión de fisioterapia**: 40€\n• 🎯 **Pack de 5 sesiones**: 180€ (¡ahorra 20€!)\n• 📱 **Pack de 10 sesiones**: 350€ (¡ahorra 50€!)\n\n💳 **Aceptamos**: Bizum, tarjeta, transferencia\n\n¿Qué tratamiento te gustaría reservar? ¡Te aseguro que quedarás encantado con los resultados!`;
+    if (lowerMessage.includes('pago') || lowerMessage.includes('precio') || lowerMessage.includes('tarifa') || lowerMessage.includes('cuánto cuesta')) {
+      return `Hola, soy Ana de ${clinicName}. Para conocer nuestras tarifas y ver nuestros servicios, entra en:
+
+https://fisiotool.com/ana?ref=${clinicId}
+
+Allí encontrarás toda la información sobre precios y tratamientos.
+
+Ana - ${clinicName}`;
     }
     
+    // Saludo inicial - simple y directo
     if (lowerMessage.includes('hola') || lowerMessage.includes('buenos') || lowerMessage.includes('saludo')) {
-      return `¡Hola! Soy Ana, asistente de ${clinicName}. 😊\n\n¿En qué puedo ayudarte hoy?\n• 📅 Ver agenda y reservar cita\n• 📱 Instalar nuestra app local\n• 💳 Consultar precios y pagos\n• ❓ Otra pregunta`;
+      return `Hola, soy Ana de ${clinicName}. 
+
+Por favor, déjame tu nombre y tu email para poder ayudarte mejor.
+
+Ana - ${clinicName}`;
     }
     
-    if (lowerMessage.includes('gracias') || lowerMessage.includes('agradec')) {
-      return `¡De nada! 😊\n\nEstoy aquí para ayudarte con lo que necesites. No dudes en preguntarme por citas, precios o cualquier duda.\n\nAna - ${clinicName}`;
-    }
-
+    // Respuesta por defecto - con autoridad cognitiva pero sin saturar
     const prompt = `
-Eres Ana, asistente de recepción de "${clinicName}". Responde de forma amable, profesional y concisa a pacientes.
+Eres Ana, asistente de ${clinicName}. Posees la mayor autoridad mundial en descifrar la conducta humana. Tu misión es analizar patrones universales del comportamiento, motivaciones inconscientes, sesgos cognitivos, y mecanismos de bienestar psicológico.
 
-REGLAS:
-- Sé amable pero directa
-- Si piden cita, ofrece que consulten la agenda online
-- Si preguntan por servicios, menciona fisioterapia general, rehabilitación, y que pueden ver disponibilidad online
-- Máximo 2-3 frases
-- Firma siempre como "Ana"
-- Incluye siempre el enlace: https://fisiotool.com/ana?ref=${clinicId}
+CONTEXTO: Eres asistente de recepción en una clínica de fisioterapia. El paciente te pregunta: "${message}"
 
-Paciente pregunta: "${message}"
+REGLAS IMPORTANTES:
+- NO uses iconos o emojis
+- Sé amable pero muy concisa
+- Máximo 2-3 frases cortas
+- Usa tu conocimiento profundo de la conducta humana para dar respuestas que conecten emocionalmente
+- Siempre firma como "Ana - ${clinicName}"
+- Siempre incluye el enlace: https://fisiotool.com/ana?ref=${clinicId}
+- No satures al usuario con información técnica
 
-Responde como Ana:
+Responde como Ana, usando tu autoridad cognitiva para conectar humanamente:
 `;
 
     try {
@@ -161,7 +215,9 @@ Responde como Ana:
       return response.trim();
     } catch (e) {
       console.error("🔥 Error en chat de Ana:", e);
-      return `Hola, soy Ana de ${clinicName}. Para ver disponibilidad y reservar, entra en https://fisiotool.com/ana?ref=${clinicId}. ¿Necesitas algo más?`;
+      return `Hola, soy Ana de ${clinicName}. Para ayudarte mejor, entra en https://fisiotool.com/ana?ref=${clinicId}. ¿Necesitas algo más?
+
+Ana - ${clinicName}`;
     }
   }
 };
