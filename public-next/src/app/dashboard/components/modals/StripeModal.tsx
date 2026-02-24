@@ -17,19 +17,30 @@ export const StripeModal = ({ isOpen, onClose, clinicId, configStatus }: StripeM
   const handleConnectStripe = async () => {
     setIsConnecting(true);
     try {
+      const token = localStorage.getItem('fisio_token');
+      console.log('🔍 [STRIPE] Token:', token ? 'exists' : 'missing');
+      console.log('🔍 [STRIPE] ClinicId:', clinicId);
+      console.log('🔍 [STRIPE] API URL:', `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/dashboard/stripe-connect`);
+      
       // Llamar a API para crear cuenta Stripe
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/dashboard/stripe-connect`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
         body: JSON.stringify({ clinicId })
       });
       
+      console.log('🔍 [STRIPE] Response status:', response.status);
       const data = await response.json();
+      console.log('🔍 [STRIPE] Response data:', data);
+      
       if (data.success && data.url) {
         // Redirigir a Stripe Connect
         window.location.href = data.url;
       } else {
-        alert('Error al conectar con Stripe. Inténtalo de nuevo.');
+        alert(`Error: ${data.error || 'Error al conectar con Stripe'}`);
       }
     } catch (error) {
       console.error('Error connecting Stripe:', error);
