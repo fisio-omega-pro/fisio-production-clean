@@ -172,18 +172,24 @@ Ana - ${clinicName}`;
     if (lowerMessage.includes('cita') || lowerMessage.includes('hora') || lowerMessage.includes('disponibilidad')) {
       // Detectar si es urgente o para otra persona
       if (lowerMessage.includes('hoy') || lowerMessage.includes('urgente') || lowerMessage.includes('ya')) {
-        return `Entiendo que necesitas una cita urgente para hoy. Llama directamente a la clínica al teléfono que encontrarás en nuestra web, así podrán atenderte de inmediato.
+        return `Entiendo que necesitas una cita urgente para hoy. Ve a nuestra agenda en: https://fisiotool.com/ana?ref=${clinicId}
+
+Allí verás los horarios disponibles de hoy y podrás reservar al instante.
 
 Ana - ${clinicName}`;
       }
       
       if (lowerMessage.includes('para') && (lowerMessage.includes('juan') || lowerMessage.includes('otra persona') || lowerMessage.includes('alguien'))) {
-        return `Entiendo que necesitas una cita para otra persona. Lo mejor es que llames directamente a la clínica, ellos podrán coordinar la disponibilidad según las necesidades específicas.
+        return `Entiendo que necesitas una cita para otra persona. En nuestra agenda puedes reservar fácilmente: https://fisiotool.com/ana?ref=${clinicId}
+
+Allí podrás seleccionar el paciente y el horario que mejor convenga.
 
 Ana - ${clinicName}`;
       }
       
-      return `Para agendar una cita, te recomiendo llamar directamente a la clínica. Así podrán atenderte de forma más personalizada y encontrar el mejor horario para ti.
+      return `Para agendar tu cita, entra en nuestra agenda: https://fisiotool.com/ana?ref=${clinicId}
+
+Allí verás todos los horarios disponibles y podrás reservar en segundos.
 
 Ana - ${clinicName}`;
     }
@@ -199,11 +205,9 @@ Ana - ${clinicName}`;
     }
     
     if (lowerMessage.includes('pago') || lowerMessage.includes('precio') || lowerMessage.includes('tarifa') || lowerMessage.includes('cuánto cuesta')) {
-      return `Hola, soy Ana de ${clinicName}. Para conocer nuestras tarifas y ver nuestros servicios, entra en:
+      return `Hola, soy Ana de ${clinicName}. En nuestra app verás todos nuestros precios y servicios: https://fisiotool.com/ana?ref=${clinicId}
 
-https://fisiotool.com/ana?ref=${clinicId}
-
-Allí encontrarás toda la información sobre precios y tratamientos.
+Tenemos diferentes opciones según tus necesidades. Allí podrás ver los detalles y elegir la mejor para ti.
 
 Ana - ${clinicName}`;
     }
