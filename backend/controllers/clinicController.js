@@ -1186,13 +1186,27 @@ const vincularBancoProfesional = async (req, res, next) => {
 
     await db.collection('stripe_connect_profesionales').doc(account.id).set(connectData);
 
-    // 4. Actualizar el documento del fisioterapeuta con su stripeAccountId
-    await db.collection('clinics').doc(fisioIdEnTuApp).update({
-      stripe_account_id: account.id,
-      stripe_status: 'pending',
-      stripe_email: emailPro,
-      updated_at: Timestamp.now()
-    });
+    // 4. Actualizar/crear el documento del fisioterapeuta con su stripeAccountId
+    const clinicRef = db.collection('clinics').doc(fisioIdEnTuApp);
+    const clinicDoc = await clinicRef.get();
+    
+    if (clinicDoc.exists) {
+      await clinicRef.update({
+        stripe_account_id: account.id,
+        stripe_status: 'pending',
+        stripe_email: emailPro,
+        updated_at: Timestamp.now()
+      });
+    } else {
+      // Crear documento si no existe
+      await clinicRef.set({
+        stripe_account_id: account.id,
+        stripe_status: 'pending',
+        stripe_email: emailPro,
+        created_at: Timestamp.now(),
+        updated_at: Timestamp.now()
+      });
+    }
 
     console.log(`🏦 [STRIPE_CONNECT] Cuenta ${account.id} guardada para fisio: ${fisioIdEnTuApp}`);
 
