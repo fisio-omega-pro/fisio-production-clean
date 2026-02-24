@@ -59,7 +59,7 @@ function AnaChatContent() {
             setClinicName(data.nombre);
             setMessages([{
               role: 'ana',
-              text: `¡Hola! 👋 Soy Ana, asistente de ${data.nombre}.\n\n🎉 **¡INSTALA NUESTRA APP GRATIS AHORA!** 🎉\n\n📱 **En tu móvil**: Toca el botón "Instalar app" de aquí abajo\n📱 **O manualmente**: Menú (⋮) → "Añadir a pantalla de inicio"\n\n✅ **Ventajas inmediatas**:\n• 📅 Citas al instante\n• 💳 Pagos seguros\n• 🔔 Recordatorios automáticos\n• 🏥 Seguimiento personal\n\n⚡ **Instala en 10 segundos y empieza a cuidar de ti ya!**\n\n¿Cómo te llamas y cuál es tu email? Así te doy acceso VIP 👇`,
+              text: `Hola, gracias por comunicarte con ${data.nombre}. Por favor, déjanos tu nombre y tu email.`,
               timestamp: Date.now()
             }]);
           }
@@ -125,7 +125,11 @@ function AnaChatContent() {
     // Add Ana response
     setMessages(prev => [...prev, {
       role: 'ana',
-      text: `¡Encantada de conocerte, ${userName}! 😊\n\nYa tengo tus datos para poder enviarte:\n• 📅 Recordatorios de citas\n• 💳 Enlaces de pago\n• 📋 Seguimiento de tratamientos\n• 🏥 Información de la clínica\n\n¿En qué puedo ayudarte hoy?\n• 📅 Pedir cita\n• 💳 Consultar precios\n• 📱 Descargar app\n• ❓ Otra pregunta`,
+      text: `Gracias. Te recomiendo que te descargues la app de nuestra clínica para estar mejor comunicados.
+
+Puedes instalarla entrando en: https://fisiotool.com/ana?ref=${clinicId}
+
+Una vez instalada, podremos comunicarnos directamente y yo podré ayudarte mejor con tus citas y seguimiento.`,
       timestamp: Date.now()
     }]);
     
