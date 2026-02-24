@@ -1,4 +1,6 @@
 const { initEnv } = require('../config/env');
+const { createOneTimePaymentSession } = require('./paymentService');
+const { db, Timestamp } = require('../config/firebase');
 
 const callAnaEngine = async (prompt, options = {}) => {
   const env = await initEnv();
@@ -76,8 +78,130 @@ MISIÓN: Responder dudas fiscales con prudencia; recordar fechas clave (Abril IR
 TONO: Serio, preciso, jurídico pero entendible. Responde en 2-5 frases cuando baste; si piden más detalle, amplía.
 `;
 
+// --- 🏥 CLINIC CONFIGURATION READER ---
+const getClinicConfiguration = async (clinicId) => {
+  try {
+    const clinicDoc = await db.collection('clinicas').doc(clinicId).get();
+    if (!clinicDoc.exists) return null;
+    
+    const clinicData = clinicDoc.data();
+    
+    return {
+      horario: clinicData.horario || { apertura: '09:00', cierre: '20:00' },
+      diasBloqueados: clinicData.dias_bloqueados || [],
+      precio_sesion: clinicData.precio_sesion || 50,
+      precio_bono_5: clinicData.precio_bono_5 || 225,
+      fianza_cita: clinicData.fianza_cita || 20,
+      metodos_pago: clinicData.metodos_pago || ['tarjeta', 'bizum', 'transferencia'],
+      banderas_rojas: clinicData.banderas_rojas || [],
+      timezone: clinicData.timezone || 'Europe/Madrid',
+      acepta_bonos: clinicData.config_ia?.acepta_bonos || false,
+      nombre_clinica: clinicData.nombre_clinica || clinicData.nombre || 'la clínica'
+    };
+  } catch (e) {
+    console.error('🔥 [ANA] Error reading clinic config:', e);
+    return null;
+  }
+};
+
+// --- 📅 AVAILABILITY CHECKER ---
+const checkAvailability = async (clinicId, requestedDate, requestedTime) => {
+  try {
+    // Check if date is blocked
+    const clinicConfig = await getClinicConfiguration(clinicId);
+    if (!clinicConfig) return { available: false, reason: 'Clinic not found' };
+    
+    // Check blocked days
+    const requestedDay = new Date(requestedDate).getDay();
+    if (clinicConfig.diasBloqueados.includes(requestedDay)) {
+      return { available: false, reason: 'Day blocked' };
+    }
+    
+    // Check if within working hours
+    const [hours, minutes] = requestedTime.split(':').map(Number);
+    const [openHour, openMin] = clinicConfig.horario.apertura.split(':').map(Number);
+    const [closeHour, closeMin] = clinicConfig.horario.cierre.split(':').map(Number);
+    
+    const requestedMinutes = hours * 60 + minutes;
+    const openMinutes = openHour * 60 + openMin;
+    const closeMinutes = closeHour * 60 + closeMin;
+    
+    if (requestedMinutes < openMinutes || requestedMinutes >= closeMinutes) {
+      return { available: false, reason: 'Outside working hours' };
+    }
+    
+    // Check existing appointments (simplified - in real implementation would check agenda collection)
+    const existingAppointments = await db.collection('agenda')
+      .where('clinic_id', '==', clinicId)
+      .where('fecha', '==', requestedDate)
+      .where('hora', '==', requestedTime)
+      .get();
+    
+    if (!existingAppointments.empty) {
+      return { available: false, reason: 'Time already booked' };
+    }
+    
+    return { available: true };
+  } catch (e) {
+    console.error('🔥 [ANA] Error checking availability:', e);
+    return { available: false, reason: 'System error' };
+  }
+};
+
+// --- 💳 PAYMENT LINK GENERATOR ---
+const generatePaymentLink = async (clinicId, amount, concepto, patientEmail) => {
+  try {
+    const clinicConfig = await getClinicConfiguration(clinicId);
+    if (!clinicConfig) return null;
+    
+    // Get Stripe account ID for this clinic
+    const stripeConnectDoc = await db.collection('stripe_connect_profesionales')
+      .where('clinic_id', '==', clinicId)
+      .limit(1)
+      .get();
+    
+    if (stripeConnectDoc.empty) {
+      return { error: 'Clinic not connected to Stripe' };
+    }
+    
+    const stripeAccountId = stripeConnectDoc.docs[0].data().stripe_account_id;
+    
+    // Create payment session
+    const paymentResult = await createOneTimePaymentSession(
+      amount * 100, // Convert to cents
+      stripeAccountId,
+      concepto,
+      { headers: { 'x-forwarded-for': 'ana-service' } }
+    );
+    
+    if (paymentResult.error) {
+      return { error: paymentResult.error };
+    }
+    
+    // Store payment link in database for tracking
+    await db.collection('payment_links').add({
+      clinic_id: clinicId,
+      patient_email: patientEmail,
+      amount: amount,
+      concepto: concepto,
+      payment_url: paymentResult.url,
+      status: 'enviado',
+      created_at: Timestamp.now(),
+      expires_at: Timestamp.fromDate(new Date(Date.now() + 12 * 60 * 60 * 1000)) // 12 hours
+    });
+    
+    return { url: paymentResult.url, paymentId: paymentResult.url.split('/').pop() };
+  } catch (e) {
+    console.error('🔥 [ANA] Error generating payment link:', e);
+    return { error: 'Failed to generate payment link' };
+  }
+};
+
 module.exports = {
   callAnaEngine,
+  getClinicConfiguration,
+  checkAvailability,
+  generatePaymentLink,
 
   consultLex: async (userMessage) => {
     const fullPrompt = `${LEX_SYSTEM_PROMPT}\n\nCONSULTA DEL USUARIO: "${String(userMessage || '').trim()}"\n\nTu respuesta (pauta técnica, sin consejo vinculante):`;
@@ -139,6 +263,9 @@ REGLAS:
   generatePatientResponse: async ({ message, clinicName, clinicId }) => {
     const lowerMessage = String(message || '').toLowerCase();
     
+    // Get clinic configuration for intelligent responses
+    const clinicConfig = await getClinicConfiguration(clinicId);
+    
     // Detectar si es primera interacción (nombre y email)
     if (lowerMessage.includes('me llamo') || lowerMessage.includes('mi nombre es') || 
         lowerMessage.includes('email') || lowerMessage.includes('correo') ||
@@ -148,7 +275,7 @@ REGLAS:
 
 Puedes instalarla entrando en: https://fisiotool.com/ana?ref=${clinicId}
 
-Una vez instalada, podremos comunicarnos directamente y yo podré ayudarte mejor con tus citas y seguimiento.
+Una vez instalada, podré gestionar tus citas, pagos y seguimientos automáticamente.
 
 Ana - ${clinicName}`;
     }
@@ -157,39 +284,73 @@ Ana - ${clinicName}`;
     if (lowerMessage.includes('gracias') || lowerMessage.includes('app descargada') || 
         lowerMessage.includes('ya tengo la app') || lowerMessage.includes('desde la app')) {
       
-      return `Gracias. En qué te puedo ayudar? Cuál es tu necesidad?
+      return `Perfecto! Ahora puedo ayudarte de forma completa. 
 
-Puedo ayudarte con:
-- Pedir cita
-- Consultar precios
-- Ver disponibilidad
-- Otras dudas
+Puedo gestionar:
+- Citas según horarios de ${clinicConfig?.horario?.apertura || '09:00'} a ${clinicConfig?.horario?.cierre || '20:00'}
+- Pagos automáticos con fianza de ${clinicConfig?.fianza_cita || 20}€
+- Seguimientos post-tratamiento
+
+¿En qué te puedo ayudar?
 
 Ana - ${clinicName}`;
     }
     
-    // Respuestas simples y directas sin saturación
+    // Respuestas inteligentes para citas
     if (lowerMessage.includes('cita') || lowerMessage.includes('hora') || lowerMessage.includes('disponibilidad')) {
-      // Detectar si es urgente o para otra persona
-      if (lowerMessage.includes('hoy') || lowerMessage.includes('urgente') || lowerMessage.includes('ya')) {
-        return `Entiendo que necesitas una cita urgente para hoy. Ve a nuestra agenda en: https://fisiotool.com/ana?ref=${clinicId}
+      
+      // Extraer información de la solicitud
+      const dateMatch = message.match(/(\d{1,2})[\/\-](\d{1,2})|hoy|mañana|lunes|martes|miércoles|jueves|viernes|sábado|domingo/i);
+      const timeMatch = message.match(/(\d{1,2}):(\d{2})|(\d{1,2})\s*hs?/i);
+      
+      if (dateMatch && timeMatch) {
+        // Solicitud específica de fecha y hora
+        const requestedDate = dateMatch[0];
+        const requestedTime = timeMatch[0];
+        
+        // Verificar disponibilidad real
+        const availability = await checkAvailability(clinicId, requestedDate, requestedTime);
+        
+        if (availability.available) {
+          // Generar enlace de pago para fianza
+          const paymentLink = await generatePaymentLink(
+            clinicId, 
+            clinicConfig?.fianza_cita || 20, 
+            `Fianza cita ${requestedDate} ${requestedTime}`,
+            'patient@example.com' // Would extract from conversation
+          );
+          
+          if (paymentLink.url) {
+            return `Perfecto! Tengo disponibilidad el ${requestedDate} a las ${requestedTime}.
 
-Allí verás los horarios disponibles de hoy y podrás reservar al instante.
+Para confirmar, paga la fianza de ${clinicConfig?.fianza_cita || 20}€ aquí:
+${paymentLink.url}
+
+Una vez pagado, tu cita quedará confirmada automáticamente.
 
 Ana - ${clinicName}`;
-      }
-      
-      if (lowerMessage.includes('para') && (lowerMessage.includes('juan') || lowerMessage.includes('otra persona') || lowerMessage.includes('alguien'))) {
-        return `Entiendo que necesitas una cita para otra persona. En nuestra agenda puedes reservar fácilmente: https://fisiotool.com/ana?ref=${clinicId}
-
-Allí podrás seleccionar el paciente y el horario que mejor convenga.
+          } else {
+            return `Tengo disponibilidad el ${requestedDate} a las ${requestedTime}, pero ha habido un problema con el pago. Por favor, intenta de nuevo o llama a la clínica.
 
 Ana - ${clinicName}`;
+          }
+        } else {
+          return `Lo siento, no tengo disponibilidad el ${requestedDate} a las ${requestedTime}. 
+
+Motivo: ${availability.reason}
+
+¿Te gustaría ver otros horarios disponibles?
+
+Ana - ${clinicName}`;
+        }
       }
       
-      return `Para agendar tu cita, entra en nuestra agenda: https://fisiotool.com/ana?ref=${clinicId}
+      // Respuesta general sobre disponibilidad
+      return `Puedo revisar nuestra disponibilidad en tiempo real. 
 
-Allí verás todos los horarios disponibles y podrás reservar en segundos.
+Nuestro horario es de ${clinicConfig?.horario?.apertura || '09:00'} a ${clinicConfig?.horario?.cierre || '20:00'}.
+
+¿Para qué día y hora te gustaría la cita?
 
 Ana - ${clinicName}`;
     }
