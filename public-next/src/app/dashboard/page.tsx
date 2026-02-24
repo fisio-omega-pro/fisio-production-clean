@@ -322,6 +322,7 @@ export default function DashboardOmega() {
         onClose={() => state.setModalType(null)}
         clinicId={state.clinicId}
         configStatus={state.configStatus}
+        userEmail={state.currentUser?.email}
       />
       <VoiceModal
         isOpen={state.modalType === 'voz'}

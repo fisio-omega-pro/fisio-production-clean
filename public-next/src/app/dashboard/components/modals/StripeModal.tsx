@@ -9,9 +9,10 @@ interface StripeModalProps {
   onClose: () => void;
   clinicId: string;
   configStatus: any;
+  userEmail?: string;
 }
 
-export const StripeModal = ({ isOpen, onClose, clinicId, configStatus }: StripeModalProps) => {
+export const StripeModal = ({ isOpen, onClose, clinicId, configStatus, userEmail }: StripeModalProps) => {
   const [isConnecting, setIsConnecting] = useState(false);
 
   const handleConnectStripe = async () => {
@@ -21,7 +22,7 @@ export const StripeModal = ({ isOpen, onClose, clinicId, configStatus }: StripeM
       console.log('🔍 [STRIPE] Token:', token ? 'exists' : 'missing');
       console.log('🔍 [STRIPE] ClinicId:', clinicId);
       console.log('🔍 [STRIPE] ClinicId type:', typeof clinicId);
-      console.log('🔍 [STRIPE] API URL:', `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/dashboard/stripe-connect`);
+      console.log('🔍 [STRIPE] API URL:', `${process.env.NEXT_PUBLIC_API_BASE_URL}/vincular-banco-profesional`);
       
       // Validar clinicId
       if (!clinicId || clinicId.trim() === '') {
@@ -30,15 +31,20 @@ export const StripeModal = ({ isOpen, onClose, clinicId, configStatus }: StripeM
         setIsConnecting(false);
         return;
       }
+
+      // Obtener email del usuario actual
+      const userEmailFinal = userEmail || 'fisio@app.fisiotool.com';
       
-      // Llamar a API para crear cuenta Stripe
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/dashboard/stripe-connect`, {
+      // Llamar a API profesional de Stripe Connect
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/vincular-banco-profesional`, {
         method: 'POST',
         headers: { 
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` })
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ clinicId: clinicId.trim() })
+        body: JSON.stringify({ 
+          emailPro: userEmailFinal,
+          fisioIdEnTuApp: clinicId.trim()
+        })
       });
       
       console.log('🔍 [STRIPE] Response status:', response.status);
@@ -49,12 +55,7 @@ export const StripeModal = ({ isOpen, onClose, clinicId, configStatus }: StripeM
         // Redirigir a Stripe Connect
         window.location.href = data.url;
       } else {
-        // Si el error es de Connect no configurado, mostrar solución temporal
-        if (data.error?.includes('signed up for Connect')) {
-          alert('⚠️ Stripe Connect está siendo configurado.\n\nPor ahora, puedes:\n1. Crear cuenta directamente en stripe.com/register\n2. Enviar tu account_id a soporte\n\nTe avisaremos cuando esté listo.');
-        } else {
-          alert(`Error: ${data.error || 'Error al conectar con Stripe'}`);
-        }
+        alert(`Error: ${data.error || 'Error al conectar con Stripe'}`);
       }
     } catch (error) {
       console.error('Error connecting Stripe:', error);

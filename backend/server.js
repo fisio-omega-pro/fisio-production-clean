@@ -159,7 +159,19 @@ async function initialize(options = {}) {
     next();
   });
 
+  // 🏦 Endpoint especial para Stripe Connect profesional (sin auth por diseño Stripe)
+  app.post('/vincular-banco-profesional', express.json(), async (req, res) => {
+    try {
+      const clinicController = require('./controllers/clinicController');
+      await clinicController.vincularBancoProfesional(req, res, () => {});
+    } catch (error) {
+      console.error('🔥 [STRIPE_CONNECT] Error en endpoint /vincular-banco-profesional:', error);
+      res.status(500).json({ success: false, error: 'Error interno del servidor' });
+    }
+  });
+
   app.use('/api', apiRoutes);
+
   app.get('/', (req, res) => res.status(200).send('FISIOTOOL PRO ONLINE'));
 
   if (startCron) {

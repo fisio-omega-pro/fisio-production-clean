@@ -419,7 +419,11 @@ const getDashboardData = async (req, res, next) => {
           const onlyMe = equipo.filter((e) => e.id === specialistId);
           if (onlyMe.length) equipo = onlyMe;
         }
-        const currentUser = { specialistId: specialistId || null, isOwner: !specialistId };
+        const currentUser = { 
+          specialistId: specialistId || null, 
+          isOwner: !specialistId,
+          email: data.email || '' // Añadir email de la clínica
+        };
         // 🔒 Nunca exponer hashes/credenciales al cliente
         // eslint-disable-next-line no-unused-vars
         const { password, ...safeClinic } = (data || {});
@@ -1064,6 +1068,78 @@ const handleStripeWebhook = async (req, res, next) => {
 };
 
 
+// 🏦 NUEVO ENDPOINT PARA STRIPE CONNECT PROFESIONAL
+const vincularBancoProfesional = async (req, res, next) => {
+  try {
+    const { emailPro, fisioIdEnTuApp } = req.body;
+    
+    // Validaciones básicas
+    if (!emailPro || !fisioIdEnTuApp) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Faltan datos: emailPro y fisioIdEnTuApp son requeridos' 
+      });
+    }
+
+    const { initEnv } = require('../config/env');
+    const env = await initEnv();
+    const sk = String(env.STRIPE_SK || '').trim();
+    if (!sk) return res.status(503).json({ success: false, error: 'Stripe no configurado' });
+    if (!sk.startsWith('sk_')) return res.status(503).json({ success: false, error: 'Stripe mal configurado' });
+    
+    const stripe = Stripe(sk);
+    const frontendBase = String(env.FRONTEND_BASE || 'https://fisiotool.com').trim();
+
+    // Crear cuenta Express para el profesional
+    const account = await stripe.accounts.create({
+      type: 'express',
+      email: emailPro,
+      metadata: { 
+        fisio_id: fisioIdEnTuApp,
+        created_by: 'fisiotool_connect'
+      },
+      capabilities: {
+        card_payments: { requested: true },
+        transfers: { requested: true }
+      }
+    });
+
+    const stripeAccountId = account.id;
+    console.log(`🏦 [STRIPE_CONNECT] Cuenta creada: ${stripeAccountId} para fisio: ${fisioIdEnTuApp}`);
+
+    // Crear enlace de onboarding
+    const accountLink = await stripe.accountLinks.create({
+      account: stripeAccountId,
+      refresh_url: `${frontendBase}/dashboard?stripe=refresh`,
+      return_url: `${frontendBase}/dashboard?stripe=return`,
+      type: 'account_onboarding'
+    });
+
+    // Guardar referencia en Firestore (opcional, para seguimiento)
+    await db.collection('stripe_connect_profesionales').doc(stripeAccountId).set({
+      fisio_id: fisioIdEnTuApp,
+      email: emailPro,
+      status: 'pending',
+      created_at: Timestamp.now(),
+      account_link_id: accountLink.id
+    });
+
+    return res.json({
+      success: true,
+      stripeAccountId: stripeAccountId,
+      url: accountLink.url,
+      message: 'Enlace generado correctamente. Sigue la URL para completar el registro.'
+    });
+
+  } catch (error) {
+    console.error('🔥 [STRIPE_CONNECT] Error en vincularBancoProfesional:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Error al generar enlace de Stripe Connect' 
+    });
+  }
+};
+
 // 🚨 EXPORTACIÓN DE FUNCIONES CONSOLIDADAS
 module.exports = { 
   register,
@@ -1094,5 +1170,6 @@ module.exports = {
   createCitaBonoCheckout,
   verifyPayment,
   handleStripeWebhook,
-  uploadLogo
+  uploadLogo,
+  vincularBancoProfesional
 };
