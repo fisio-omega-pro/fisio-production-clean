@@ -59,7 +59,7 @@ function AnaChatContent() {
             setClinicName(data.nombre);
             setMessages([{
               role: 'ana',
-              text: `¡Hola! 👋 Soy Ana, asistente de ${data.nombre}.\n\n📱 **Instala nuestra app local** para tener tu agenda siempre a mano:\n\nEs una PWA (Progressive Web App) que se instala directamente en tu dispositivo:\n• En móvil: "Añadir a pantalla de inicio"\n• En desktop: Botón "Instalar" en la barra de direcciones\n\nAsí podrás acceder sin navegador, como una app nativa.\n\n¿Cómo te llamas y cuál es tu email para poder ayudarte mejor?`,
+              text: `¡Hola! 👋 Soy Ana, asistente de ${data.nombre}.\n\n🎉 **¡INSTALA NUESTRA APP GRATIS AHORA!** 🎉\n\n📱 **En tu móvil**: Toca el botón "Instalar app" de aquí abajo\n📱 **O manualmente**: Menú (⋮) → "Añadir a pantalla de inicio"\n\n✅ **Ventajas inmediatas**:\n• 📅 Citas al instante\n• 💳 Pagos seguros\n• 🔔 Recordatorios automáticos\n• 🏥 Seguimiento personal\n\n⚡ **Instala en 10 segundos y empieza a cuidar de ti ya!**\n\n¿Cómo te llamas y cuál es tu email? Así te doy acceso VIP 👇`,
               timestamp: Date.now()
             }]);
           }

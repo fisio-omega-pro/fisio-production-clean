@@ -121,7 +121,7 @@ REGLAS:
     
     // Respuestas inteligentes basadas en palabras clave
     if (lowerMessage.includes('cita') || lowerMessage.includes('hora') || lowerMessage.includes('disponibilidad')) {
-      return `¡Hola! Soy Ana de ${clinicName}. 👋\n\nPara ver las horas disponibles y reservar tu cita sin esperas, entra aquí:\n👉 https://fisiotool.com/ana?ref=${clinicId}\n\n¿Qué día te viene bien?`;
+      return `¡Hola! Soy Ana de ${clinicName}. 👋\n\n¡Qué genial que quieras cuidar de ti! 🌟 Tengo huecos disponibles esta semana:\n\n📅 **Hoy**: 16:00, 17:30, 19:00\n📅 **Mañana**: 10:00, 11:30, 16:00, 17:30\n📅 **Viernes**: 10:00, 11:30, 16:00\n\n⚡ **Reserva AHORA mismo sin esperas:\n👉 https://fisiotool.com/ana?ref=${clinicId}\n\n¿Qué día y hora prefieres? ¡Las mejores horas se van rápido! 😉`;
     }
     
     if (lowerMessage.includes('app') || lowerMessage.includes('descargar') || lowerMessage.includes('móvil') || lowerMessage.includes('instalar')) {
@@ -129,7 +129,7 @@ REGLAS:
     }
     
     if (lowerMessage.includes('pago') || lowerMessage.includes('precio') || lowerMessage.includes('tarifa')) {
-      return `¡Hola! Soy Ana de ${clinicName}. 💳\n\nPara ver nuestras tarifas y opciones de pago:\n👉 Entra en https://fisiotool.com/ana?ref=${clinicId}\n\nAceptamos Bizum, tarjeta y transferencia. ¿Qué tratamiento te interesa?`;
+      return `¡Hola! Soy Ana de ${clinicName}. 💳\n\n¡Me encanta que te intereses en mejorar tu salud! En ${clinicName} tenemos las mejores tarifas:\n\n• 🏥 **Primera consulta**: 45€ (incluye diagnóstico)\n• � **Sesión de fisioterapia**: 40€\n• 🎯 **Pack de 5 sesiones**: 180€ (¡ahorra 20€!)\n• 📱 **Pack de 10 sesiones**: 350€ (¡ahorra 50€!)\n\n💳 **Aceptamos**: Bizum, tarjeta, transferencia\n\n¿Qué tratamiento te gustaría reservar? ¡Te aseguro que quedarás encantado con los resultados!`;
     }
     
     if (lowerMessage.includes('hola') || lowerMessage.includes('buenos') || lowerMessage.includes('saludo')) {
