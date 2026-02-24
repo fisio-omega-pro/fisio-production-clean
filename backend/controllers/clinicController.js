@@ -1160,14 +1160,24 @@ const vincularBancoProfesional = async (req, res, next) => {
       type: 'account_onboarding',
     });
 
+    console.log(`🔍 [DEBUG] accountLink:`, JSON.stringify(accountLink, null, 2));
+
     // 3. Guardar referencia en Firestore (para seguimiento)
-    await db.collection('stripe_connect_profesionales').doc(account.id).set({
+    const connectData = {
       fisio_id: fisioIdEnTuApp,
       email: emailPro,
       status: 'pending',
-      created_at: Timestamp.now(),
-      account_link_id: accountLink.id
-    });
+      created_at: Timestamp.now()
+    };
+
+    // Solo añadir account_link_id si existe
+    if (accountLink.id) {
+      connectData.account_link_id = accountLink.id;
+    } else if (accountLink.url) {
+      connectData.account_link_url = accountLink.url;
+    }
+
+    await db.collection('stripe_connect_profesionales').doc(account.id).set(connectData);
 
     // 4. Actualizar el documento del fisioterapeuta con su stripeAccountId
     await db.collection('clinics').doc(fisioIdEnTuApp).update({
