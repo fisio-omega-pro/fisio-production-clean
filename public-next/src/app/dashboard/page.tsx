@@ -141,7 +141,7 @@ export default function DashboardOmega() {
   };
 
   const needsSubscription = !state.configStatus?.hasSubscription;
-  const needsStripe = !state.configStatus?.hasStripe;
+  const needsStripe = false; // Temporarily disabled for testing - !state.configStatus?.hasStripe;
   const needsLogo = !state.clinicData?.logo_url;
   const needsPatients = state.pacientes.length === 0;
   const needsSetup = !state.isLoading && (needsStripe || needsLogo || needsPatients);
@@ -194,39 +194,12 @@ export default function DashboardOmega() {
               <p className="text-gray-400">Completa estos pasos IMPRESCINDIBLES para operar</p>
             </div>
 
-            {/* PASO 1: STRIPE - IMPRESCINDIBLE */}
-            <div className={`mb-6 p-4 rounded-2xl border ${needsStripe ? 'border-red-500/30 bg-red-500/5' : 'border-green-500/30 bg-green-500/5'}`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${needsStripe ? 'bg-red-500' : 'bg-green-500'}`}>
-                    <span className="text-white font-bold">1</span>
-                  </div>
-                  <div>
-                    <h3 className="text-white font-semibold">Conectar Stripe</h3>
-                    <p className="text-gray-400 text-sm">Para generar pagos y bonos a clientes</p>
-                  </div>
-                </div>
-                {needsStripe ? (
-                  <button
-                    onClick={() => state.setModalType('stripe_connect')}
-                    className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-black hover:bg-red-600 transition"
-                  >
-                    Conectar Ahora
-                  </button>
-                ) : (
-                  <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
-                    <span className="text-white">✓</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* PASO 2: LOGO - IMPRESCINDIBLE */}
+            {/* PASO 1: LOGO - IMPRESCINDIBLE */}
             <div className={`mb-6 p-4 rounded-2xl border ${needsLogo ? 'border-red-500/30 bg-red-500/5' : 'border-green-500/30 bg-green-500/5'}`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${needsLogo ? 'bg-red-500' : 'bg-green-500'}`}>
-                    <span className="text-white font-bold">2</span>
+                    <span className="text-white font-bold">1</span>
                   </div>
                   <div>
                     <h3 className="text-white font-semibold">Subir Logo de Clínica</h3>
@@ -248,12 +221,12 @@ export default function DashboardOmega() {
               </div>
             </div>
 
-            {/* PASO 3: PACIENTES - IMPRESCINDIBLE */}
+            {/* PASO 2: PACIENTES - IMPRESCINDIBLE */}
             <div className={`mb-6 p-4 rounded-2xl border ${needsPatients ? 'border-red-500/30 bg-red-500/5' : 'border-green-500/30 bg-green-500/5'}`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${needsPatients ? 'bg-red-500' : 'bg-green-500'}`}>
-                    <span className="text-white font-bold">3</span>
+                    <span className="text-white font-bold">2</span>
                   </div>
                   <div>
                     <h3 className="text-white font-semibold">Importar Pacientes</h3>
@@ -277,16 +250,12 @@ export default function DashboardOmega() {
 
             <div className="mt-8 text-center">
               <p className="text-red-400 text-sm font-semibold mb-2">
-                {needsStripe && needsLogo && needsPatients ? "⚠️ Debes completar los pasos 1, 2 y 3 para continuar" :
-                 needsStripe && needsLogo ? "⚠️ Debes completar los pasos 1 y 2 para continuar" :
-                 needsStripe && needsPatients ? "⚠️ Debes completar los pasos 1 y 3 para continuar" :
-                 needsLogo && needsPatients ? "⚠️ Debes completar los pasos 2 y 3 para continuar" :
-                 needsStripe ? "⚠️ Debes conectar Stripe para continuar" :
+                {needsLogo && needsPatients ? "⚠️ Debes completar los pasos 1 y 2 para continuar" :
                  needsLogo ? "⚠️ Debes subir tu logo para continuar" :
                  "⚠️ Debes importar pacientes para continuar"}
               </p>
               <p className="text-gray-500 text-xs">
-                Estos pasos son obligatorios para garantizar el funcionamiento correcto de Ana y los pagos
+                Estos pasos son obligatorios para garantizar el funcionamiento correcto del dashboard
               </p>
             </div>
           </div>
