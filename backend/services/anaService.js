@@ -87,16 +87,35 @@ const getClinicConfiguration = async (clinicId) => {
     const clinicData = clinicDoc.data();
     
     return {
+      // Horarios y disponibilidad
       horario: clinicData.horario || { apertura: '09:00', cierre: '20:00' },
       diasBloqueados: clinicData.dias_bloqueados || [],
-      precio_sesion: clinicData.precio_sesion || 50,
-      precio_bono_5: clinicData.precio_bono_5 || 225,
-      fianza_cita: clinicData.fianza_cita || 20,
-      metodos_pago: clinicData.metodos_pago || ['tarjeta', 'bizum', 'transferencia'],
-      banderas_rojas: clinicData.banderas_rojas || [],
       timezone: clinicData.timezone || 'Europe/Madrid',
+      
+      // Precios y pagos (del setup original)
+      precio_sesion: clinicData.config_ia?.precio || clinicData.precio_sesion || 50,
+      fianza_cita: clinicData.config_ia?.fianza || clinicData.fianza_cita || 20,
+      precio_bono_5: clinicData.config_ia?.precio_bono_5 || clinicData.precio_bono_5 || 225,
+      metodos_pago: clinicData.metodos_pago || ['tarjeta', 'bizum', 'transferencia'],
+      
+      // Configuración de tratamientos
+      duracion_cita: clinicData.duracion_cita || 45, // minutos por defecto
+      tiempo_entre_citas: clinicData.tiempo_entre_citas || 15, // descanso entre citas
+      limite_citas_dia: clinicData.limite_citas_dia || 12, // máximo citas por día
+      tipos_tratamiento: clinicData.tipos_tratamiento || ['fisioterapia_general'],
+      
+      // Restricciones y banderas rojas
+      banderas_rojas: clinicData.banderas_rojas || [],
+      condiciones_especiales: clinicData.condiciones_especiales || {},
+      
+      // Configuración de bonos y servicios
       acepta_bonos: clinicData.config_ia?.acepta_bonos || false,
-      nombre_clinica: clinicData.nombre_clinica || clinicData.nombre || 'la clínica'
+      modo_caza_activo: clinicData.config_ia?.modo_caza_activo || false,
+      
+      // Información básica
+      nombre_clinica: clinicData.nombre_clinica || clinicData.nombre || 'la clínica',
+      email: clinicData.email || '',
+      telefono: clinicData.telefono || ''
     };
   } catch (e) {
     console.error('🔥 [ANA] Error reading clinic config:', e);
@@ -107,17 +126,16 @@ const getClinicConfiguration = async (clinicId) => {
 // --- 📅 AVAILABILITY CHECKER ---
 const checkAvailability = async (clinicId, requestedDate, requestedTime) => {
   try {
-    // Check if date is blocked
     const clinicConfig = await getClinicConfiguration(clinicId);
     if (!clinicConfig) return { available: false, reason: 'Clinic not found' };
     
-    // Check blocked days
+    // 1️⃣ Check blocked days
     const requestedDay = new Date(requestedDate).getDay();
     if (clinicConfig.diasBloqueados.includes(requestedDay)) {
-      return { available: false, reason: 'Day blocked' };
+      return { available: false, reason: `Día bloqueado. La clínica no trabaja este día.` };
     }
     
-    // Check if within working hours
+    // 2️⃣ Check if within working hours
     const [hours, minutes] = requestedTime.split(':').map(Number);
     const [openHour, openMin] = clinicConfig.horario.apertura.split(':').map(Number);
     const [closeHour, closeMin] = clinicConfig.horario.cierre.split(':').map(Number);
@@ -126,25 +144,71 @@ const checkAvailability = async (clinicId, requestedDate, requestedTime) => {
     const openMinutes = openHour * 60 + openMin;
     const closeMinutes = closeHour * 60 + closeMin;
     
-    if (requestedMinutes < openMinutes || requestedMinutes >= closeMinutes) {
-      return { available: false, reason: 'Outside working hours' };
+    if (requestedMinutes < openMinutes) {
+      return { available: false, reason: `Fuera de horario. La clínica abre a las ${clinicConfig.horario.apertura}.` };
     }
     
-    // Check existing appointments (simplified - in real implementation would check agenda collection)
+    // Check if appointment would end after closing time
+    const appointmentEndMinutes = requestedMinutes + clinicConfig.duracion_cita + clinicConfig.tiempo_entre_citas;
+    if (appointmentEndMinutes > closeMinutes) {
+      return { available: false, reason: `La cita terminaría después del horario de cierre (${clinicConfig.horario.cierre}).` };
+    }
+    
+    // 3️⃣ Check daily limit
     const existingAppointments = await db.collection('agenda')
       .where('clinic_id', '==', clinicId)
       .where('fecha', '==', requestedDate)
-      .where('hora', '==', requestedTime)
       .get();
     
-    if (!existingAppointments.empty) {
-      return { available: false, reason: 'Time already booked' };
+    if (existingAppointments.size >= clinicConfig.limite_citas_dia) {
+      return { available: false, reason: `Límite de citas diarias alcanzado (${clinicConfig.limite_citas_dia} citas).` };
     }
     
-    return { available: true };
+    // 4️⃣ Check if time slot is already booked
+    const timeSlotBooked = existingAppointments.docs.some(doc => {
+      const appointmentTime = doc.data().hora;
+      const [apptHours, apptMinutes] = appointmentTime.split(':').map(Number);
+      const apptStartMinutes = apptHours * 60 + apptMinutes;
+      const apptEndMinutes = apptStartMinutes + clinicConfig.duracion_cita;
+      
+      // Check if requested time conflicts with existing appointment
+      return (requestedMinutes < apptEndMinutes && appointmentEndMinutes > apptStartMinutes);
+    });
+    
+    if (timeSlotBooked) {
+      return { available: false, reason: 'Horario ya ocupado. Selecciona otra hora.' };
+    }
+    
+    // 5️⃣ Check red flags for time slot
+    const timeSlotRedFlags = clinicConfig.banderas_rojas.filter(flag => {
+      if (flag.hora_restringida && flag.hora_restringida === requestedTime) {
+        return true;
+      }
+      if (flag.franja_horaria) {
+        const [startH, startM] = flag.franja_horaria.inicio.split(':').map(Number);
+        const [endH, endM] = flag.franja_horaria.fin.split(':').map(Number);
+        const startMinutes = startH * 60 + startM;
+        const endMinutes = endH * 60 + endM;
+        return requestedMinutes >= startMinutes && requestedMinutes < endMinutes;
+      }
+      return false;
+    });
+    
+    if (timeSlotRedFlags.length > 0) {
+      return { available: false, reason: `Horario con restricciones: ${timeSlotRedFlags.map(f => f.descripcion).join(', ')}` };
+    }
+    
+    return { 
+      available: true,
+      clinicConfig: {
+        duracion_cita: clinicConfig.duracion_cita,
+        precio_sesion: clinicConfig.precio_sesion,
+        fianza_cita: clinicConfig.fianza_cita
+      }
+    };
   } catch (e) {
     console.error('🔥 [ANA] Error checking availability:', e);
-    return { available: false, reason: 'System error' };
+    return { available: false, reason: 'Error del sistema. Intenta de nuevo.' };
   }
 };
 
