@@ -1140,17 +1140,23 @@ const vincularBancoProfesional = async (req, res, next) => {
     const frontendUrl = String(env.FRONTEND_URL || env.FRONTEND_BASE || 'https://fisiotool.com').trim();
 
     // 1. Creamos la cuenta Express para el fisio con soporte global
-    const account = await stripe.accounts.create({
+    const accountData = {
       type: 'express',
       email: emailPro,
       capabilities: {
         card_payments: { requested: true },
         transfers: { requested: true },
       },
-      metadata: { fisio_interno_id: fisioIdEnTuApp },
-      // *** CLAVE: No especificamos país aquí para que Stripe lo detecte ***
-      // Si forzamos ES, podría limitar a solo España
-    });
+      metadata: { fisio_interno_id: fisioIdEnTuApp }
+    };
+
+    // *** FORZAR PAÍS ESPAÑA PARA EMAILS ESPAÑOLES ***
+    if (emailPro.includes('.es') || emailPro.includes('spain') || emailPro.includes('espana') || emailPro.includes('outlook.com')) {
+      accountData.country = 'ES';  // Forzar España para usuarios españoles
+      console.log(`🇪🇸 [STRIPE_CONNECT] Forzando país ES para email: ${emailPro}`);
+    }
+
+    const account = await stripe.accounts.create(accountData);
 
     console.log(`🏦 [STRIPE_CONNECT] Cuenta creada: ${account.id} para fisio: ${fisioIdEnTuApp}`);
 
