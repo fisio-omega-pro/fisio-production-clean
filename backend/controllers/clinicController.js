@@ -1172,14 +1172,13 @@ const vincularBancoProfesional = async (req, res, next) => {
       console.log(`🇪🇸 [STRIPE_CONNECT] Forzando formulario ES para email: ${emailPro}`);
     }
 
-    // 2. Creamos el enlace usando las URLs correctas y forzando país
+    // 2. Creamos el enlace usando las URLs correctas
     const accountLink = await stripe.accountLinks.create({
       account: account.id,
       refresh_url: `${frontendUrl}/dashboard?stripe=refresh`,
       return_url: `${frontendUrl}/dashboard?stripe=return`,
       type: 'account_onboarding',
-      // *** CLAVE: Forzar país en el formulario de onboarding ***
-      country: targetCountry,  // Esto fuerza el formulario del país específico
+      // *** CLAVE: Forzar formulario completo para permitir selección de país ***
       collection_options: {
         fields: 'eventually_due'
       }
