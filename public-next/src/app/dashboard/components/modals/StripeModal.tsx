@@ -35,31 +35,16 @@ export const StripeModal = ({ isOpen, onClose, clinicId, configStatus, userEmail
       // Obtener email del usuario actual
       const userEmailFinal = userEmail || 'fisio@app.fisiotool.com';
       
-      // Intentar primero la nueva ruta profesional
-      let response;
-      try {
-        response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/vincular-banco-profesional`, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ 
-            emailPro: userEmailFinal,
-            fisioIdEnTuApp: clinicId.trim()
-          })
-        });
-      } catch (error) {
-        console.log('🔄 [STRIPE] Nueva ruta no disponible, usando fallback...');
-        // Fallback a ruta existente
-        response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/dashboard/stripe-connect`, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            ...(token && { 'Authorization': `Bearer ${token}` })
-          },
-          body: JSON.stringify({ clinicId: clinicId.trim() })
-        });
-      }
+      // Forzar uso de ruta existente mientras se resuelve Connect
+      console.log('🔄 [STRIPE] Usando ruta existente mientras se configura Connect...');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/dashboard/stripe-connect`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
+        body: JSON.stringify({ clinicId: clinicId.trim() })
+      });
       
       console.log('🔍 [STRIPE] Response status:', response.status);
       const data = await response.json();
