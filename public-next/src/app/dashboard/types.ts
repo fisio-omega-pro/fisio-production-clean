@@ -1,6 +1,6 @@
 import { LucideIcon } from 'lucide-react';
 export type TabId = 'home' | 'agenda' | 'pacientes' | 'finanzas' | 'bonos' | 'equipo' | 'asistente' | 'sugerencias' | 'sedes' | 'cobros' | 'referidos' | 'ajustes';
-export type ModalType = 'voz' | 'bloqueo' | 'equipo' | 'sede' | 'welcome' | 'cita' | 'importar' | 'reactivacion' | 'editar_perfil' | 'upgrade' | 'nuevo_bono' | null;
+export type ModalType = 'voz' | 'bloqueo' | 'equipo' | 'sede' | 'welcome' | 'cita' | 'importar' | 'reactivacion' | 'editar_perfil' | 'upgrade' | 'nuevo_bono' | 'logo_upload' | 'stripe_connect' | null;
 export interface NavItemConfig { id: TabId; label: string; icon: LucideIcon; accent?: boolean; }
 export interface Bono { id: string; paciente_nombre: string; sesiones_totales: number; sesiones_restantes: number; fecha_vencimiento: string; status: 'activo' | 'agotado'; }
 export interface Especialista { id: string; nombre: string; especialidad: string; activo?: boolean; avatarUrl?: string; login_email?: string; }

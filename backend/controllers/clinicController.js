@@ -1063,6 +1063,7 @@ const handleStripeWebhook = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
+
 // 🚨 EXPORTACIÓN DE FUNCIONES CONSOLIDADAS
 module.exports = { 
   register,
@@ -1092,5 +1093,6 @@ module.exports = {
   cancelSubscription,
   createCitaBonoCheckout,
   verifyPayment,
-  handleStripeWebhook
+  handleStripeWebhook,
+  uploadLogo
 };

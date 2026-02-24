@@ -27,6 +27,8 @@ import { BlockModal } from './components/modals/BlockModal';
 import { ImportModal } from './components/modals/ImportModal';
 import { EditProfileModal } from './components/modals/EditProfileModal';
 import { HistoryModal } from './components/HistoryModal';
+import { LogoModal } from './components/modals/LogoModal';
+import { StripeModal } from './components/modals/StripeModal';
 import { Crown, Loader2, Zap, Ticket, User, Building2, MapPin, Info } from 'lucide-react';
 
 // Planes que incluyen multi-sede (300€): al subir de nivel se activa automáticamente en el dashboard
@@ -48,6 +50,12 @@ export default function DashboardOmega() {
   const [sedeData, setSedeData] = useState({ nombre: '', calle: '', numero: '', cp: '', ciudad: '', provincia: '' });
   const [bonoData, setBonoData] = useState({ paciente_nombre: '', sesiones_totales: 10, fecha_vencimiento: '' });
   const [upgradePlan, setUpgradePlan] = useState<'team' | 'corporate'>('team');
+  
+  // Refs para modales
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const stripeInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isUploadingStripe, setIsUploadingStripe] = useState(false);
 
   useEffect(() => { if (transcript) state.setNoteContent(transcript); }, [transcript]);
   
@@ -118,6 +126,20 @@ export default function DashboardOmega() {
     } catch (e) { alert("Error al emitir bono."); }
   };
 
+  const handleLogoUpload = async (file: File) => {
+    setIsUploadingLogo(true);
+    try {
+      await dashboardAPI.uploadLogo(file);
+      alert("✅ Logo subido correctamente.");
+      state.setModalType(null);
+      state.refreshData();
+    } catch (e) {
+      alert("Error al subir logo.");
+    } finally {
+      setIsUploadingLogo(false);
+    }
+  };
+
   const needsSubscription = !state.configStatus?.hasSubscription;
   const needsStripe = !state.configStatus?.hasStripe;
   const needsLogo = !state.clinicData?.logo_url;
@@ -185,7 +207,7 @@ export default function DashboardOmega() {
                 </div>
                 {needsStripe ? (
                   <button
-                    onClick={() => state.setModalType('editar_perfil')}
+                    onClick={() => state.setModalType('stripe_connect')}
                     className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-black hover:bg-red-600 transition"
                   >
                     Conectar Ahora
@@ -212,7 +234,7 @@ export default function DashboardOmega() {
                 </div>
                 {needsLogo ? (
                   <button
-                    onClick={() => state.setModalType('editar_perfil')}
+                    onClick={() => state.setModalType('logo_upload')}
                     className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-black hover:bg-red-600 transition"
                   >
                     Subir Logo
@@ -285,6 +307,22 @@ export default function DashboardOmega() {
         uploading={state.loading}
       />
       <ImportModal isOpen={state.modalType === 'importar'} onClose={() => state.setModalType(null)} fileInputRef={fileInputRef} onFileSelect={(e) => e.target.files && state.handleImportFile(e.target.files[0])} isImporting={state.importing} />
+      <LogoModal
+        isOpen={state.modalType === 'logo_upload'}
+        onClose={() => state.setModalType(null)}
+        fileInputRef={logoInputRef}
+        onFileSelect={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleLogoUpload(file);
+        }}
+        isUploading={isUploadingLogo}
+      />
+      <StripeModal
+        isOpen={state.modalType === 'stripe_connect'}
+        onClose={() => state.setModalType(null)}
+        clinicId={state.clinicId}
+        configStatus={state.configStatus}
+      />
       <VoiceModal
         isOpen={state.modalType === 'voz'}
         onClose={() => { state.setModalType(null); setTranscript(""); }}

@@ -135,6 +135,16 @@ class DashboardService {
   public async updateSettings(nombre: string, email: string): Promise<void> {
     await this.request('/api/dashboard/update-settings', { method: 'POST', body: JSON.stringify({ nombre, email }) });
   }
+
+  public async uploadLogo(file: File): Promise<void> {
+    const formData = new FormData();
+    formData.append('logo', file);
+    await this.request('/api/dashboard/upload-logo', { 
+      method: 'POST', 
+      body: formData,
+      headers: {} // Remove Content-Type to let browser set it for FormData
+    });
+  }
 }
 
 export const dashboardAPI = DashboardService.getInstance();
