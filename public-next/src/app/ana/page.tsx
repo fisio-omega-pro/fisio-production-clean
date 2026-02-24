@@ -125,9 +125,9 @@ function AnaChatContent() {
     // Add Ana response
     setMessages(prev => [...prev, {
       role: 'ana',
-      text: `Gracias. Te recomiendo que te descargues la app de nuestra clínica para estar mejor comunicados.
+      text: `Gracias. Te recomiendo que te descargues nuestra app para estar mejor comunicados.
 
-Puedes instalarla entrando en: https://fisiotool.com/ana?ref=${clinicId}
+Toca el botón "Instalar app" que verás aquí abajo y se instalará automáticamente.
 
 Una vez instalada, podremos comunicarnos directamente y yo podré ayudarte mejor con tus citas y seguimiento.`,
       timestamp: Date.now()
@@ -394,7 +394,7 @@ Una vez instalada, podremos comunicarnos directamente y yo podré ayudarte mejor
                   }
                 }
               }}
-              className="px-3 py-1 bg-white border border-gray-300 rounded-full text-xs text-gray-700 whitespace-nowrap hover:bg-gray-50 transition flex items-center gap-1"
+              className="px-3 py-1 bg-green-500 text-white rounded-full text-xs whitespace-nowrap hover:bg-green-600 transition flex items-center gap-1 shadow-md"
             >
               <Download size={12} />
               Instalar app
