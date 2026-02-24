@@ -22,22 +22,38 @@ const callAnaEngine = async (prompt, options = {}) => {
   };
 
   try {
+    console.log("🤖 [ANA] Enviando prompt a Google AI...");
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
 
-    const data = await response.json();
+    const responseText = await response.text();
+    console.log("🤖 [ANA] Respuesta cruda:", responseText.substring(0, 200));
+
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error("🔥 [ANA] Error parseando JSON:", parseError);
+      return "Lo siento, he tenido un problema técnico. Por favor, llama a la clínica.";
+    }
 
     if (!response.ok) {
-      console.error("🔥 Error de Google API (Cuota de nuevo):", data);
+      console.error("🔥 Error de Google API:", data);
+      if (data.error?.message?.includes('quota') || data.error?.message?.includes('limit')) {
+        return "Lo siento, he alcanzado mi límite de consultas. Por favor, llama directamente a la clínica.";
+      }
       throw new Error(`Fallo de conexión: ${data.error?.message}`);
     }
 
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || "Sin respuesta.";
+    const result = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sin respuesta.";
+    console.log("🤖 [ANA] Resultado final:", result.substring(0, 100));
+    return result;
   } catch (error) {
-    throw error;
+    console.error("🔥 [ANA] Error completo:", error);
+    return "Lo siento, he tenido un problema técnico. Por favor, llama directamente a la clínica.";
   }
 };
 
@@ -154,11 +170,20 @@ Ana - ${clinicName}`;
     
     // Respuestas simples y directas sin saturación
     if (lowerMessage.includes('cita') || lowerMessage.includes('hora') || lowerMessage.includes('disponibilidad')) {
-      return `Hola, soy Ana de ${clinicName}. Para ver nuestra agenda y reservar cita, entra en:
+      // Detectar si es urgente o para otra persona
+      if (lowerMessage.includes('hoy') || lowerMessage.includes('urgente') || lowerMessage.includes('ya')) {
+        return `Entiendo que necesitas una cita urgente para hoy. Llama directamente a la clínica al teléfono que encontrarás en nuestra web, así podrán atenderte de inmediato.
 
-https://fisiotool.com/ana?ref=${clinicId}
+Ana - ${clinicName}`;
+      }
+      
+      if (lowerMessage.includes('para') && (lowerMessage.includes('juan') || lowerMessage.includes('otra persona') || lowerMessage.includes('alguien'))) {
+        return `Entiendo que necesitas una cita para otra persona. Lo mejor es que llames directamente a la clínica, ellos podrán coordinar la disponibilidad según las necesidades específicas.
 
-Allí verás los horarios disponibles y podrás elegir el que mejor te convenga.
+Ana - ${clinicName}`;
+      }
+      
+      return `Para agendar una cita, te recomiendo llamar directamente a la clínica. Así podrán atenderte de forma más personalizada y encontrar el mejor horario para ti.
 
 Ana - ${clinicName}`;
     }
