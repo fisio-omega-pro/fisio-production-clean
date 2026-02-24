@@ -154,29 +154,50 @@ const checkAvailability = async (clinicId, requestedDate, requestedTime) => {
       return { available: false, reason: `La cita terminaría después del horario de cierre (${clinicConfig.horario.cierre}).` };
     }
     
-    // 3️⃣ Check daily limit
+    // 3️⃣ Check REAL agenda from fisio manual bookings
     const existingAppointments = await db.collection('agenda')
       .where('clinic_id', '==', clinicId)
       .where('fecha', '==', requestedDate)
       .get();
     
+    console.log(`🔍 [ANA] Checking ${existingAppointments.size} existing appointments for ${requestedDate}`);
+    
     if (existingAppointments.size >= clinicConfig.limite_citas_dia) {
       return { available: false, reason: `Límite de citas diarias alcanzado (${clinicConfig.limite_citas_dia} citas).` };
     }
     
-    // 4️⃣ Check if time slot is already booked
-    const timeSlotBooked = existingAppointments.docs.some(doc => {
-      const appointmentTime = doc.data().hora;
+    // 4️⃣ Check ALL possible conflicts with fisio's manual bookings
+    let conflictDetails = [];
+    
+    for (const doc of existingAppointments.docs) {
+      const appointment = doc.data();
+      const appointmentTime = appointment.hora;
       const [apptHours, apptMinutes] = appointmentTime.split(':').map(Number);
       const apptStartMinutes = apptHours * 60 + apptMinutes;
-      const apptEndMinutes = apptStartMinutes + clinicConfig.duracion_cita;
+      const apptEndMinutes = apptStartMinutes + (appointment.duracion || clinicConfig.duracion_cita);
       
       // Check if requested time conflicts with existing appointment
-      return (requestedMinutes < apptEndMinutes && appointmentEndMinutes > apptStartMinutes);
-    });
+      if (requestedMinutes < apptEndMinutes && (requestedMinutes + clinicConfig.duracion_cita + clinicConfig.tiempo_entre_citas) > apptStartMinutes) {
+        conflictDetails.push({
+          paciente: appointment.paciente_nombre || 'Paciente',
+          hora: appointmentTime,
+          duracion: appointment.duracion || clinicConfig.duracion_cita,
+          motivo: appointment.motivo || 'Cita programada'
+        });
+      }
+    }
     
-    if (timeSlotBooked) {
-      return { available: false, reason: 'Horario ya ocupado. Selecciona otra hora.' };
+    if (conflictDetails.length > 0) {
+      const conflict = conflictDetails[0]; // Show first conflict
+      return { 
+        available: false, 
+        reason: `Horario ocupado por cita manual del fisio:
+• Paciente: ${conflict.paciente}
+• Hora: ${conflict.hora} (${conflict.duracion}min)
+• Motivo: ${conflict.motivo}
+
+Selecciona otra hora por favor.` 
+      };
     }
     
     // 5️⃣ Check red flags for time slot
@@ -212,7 +233,66 @@ const checkAvailability = async (clinicId, requestedDate, requestedTime) => {
   }
 };
 
-// --- 💳 PAYMENT LINK GENERATOR ---
+// --- � GET REAL AVAILABLE SLOTS ---
+const getAvailableTimeSlots = async (clinicId, requestedDate) => {
+  try {
+    const clinicConfig = await getClinicConfiguration(clinicId);
+    if (!clinicConfig) return [];
+    
+    // Get existing appointments for the day
+    const existingAppointments = await db.collection('agenda')
+      .where('clinic_id', '==', clinicId)
+      .where('fecha', '==', requestedDate)
+      .get();
+    
+    // Generate all possible time slots
+    const [openHour, openMin] = clinicConfig.horario.apertura.split(':').map(Number);
+    const [closeHour, closeMin] = clinicConfig.horario.cierre.split(':').map(Number);
+    
+    const openMinutes = openHour * 60 + openMin;
+    const closeMinutes = closeHour * 60 + closeMin;
+    
+    const availableSlots = [];
+    let currentTime = openMinutes;
+    
+    while (currentTime + clinicConfig.duracion_cita <= closeMinutes) {
+      const timeString = `${Math.floor(currentTime / 60).toString().padStart(2, '0')}:${(currentTime % 60).toString().padStart(2, '0')}`;
+      
+      // Check if this slot conflicts with existing appointments
+      let isAvailable = true;
+      
+      for (const doc of existingAppointments.docs) {
+        const appointment = doc.data();
+        const appointmentTime = appointment.hora;
+        const [apptHours, apptMinutes] = appointmentTime.split(':').map(Number);
+        const apptStartMinutes = apptHours * 60 + apptMinutes;
+        const apptEndMinutes = apptStartMinutes + (appointment.duracion || clinicConfig.duracion_cita);
+        
+        if (currentTime < apptEndMinutes && (currentTime + clinicConfig.duracion_cita + clinicConfig.tiempo_entre_citas) > apptStartMinutes) {
+          isAvailable = false;
+          break;
+        }
+      }
+      
+      if (isAvailable) {
+        availableSlots.push({
+          hora: timeString,
+          disponible: true
+        });
+      }
+      
+      // Move to next slot
+      currentTime += clinicConfig.duracion_cita + clinicConfig.tiempo_entre_citas;
+    }
+    
+    return availableSlots;
+  } catch (e) {
+    console.error('🔥 [ANA] Error getting available slots:', e);
+    return [];
+  }
+};
+
+// --- �💳 PAYMENT LINK GENERATOR ---
 const generatePaymentLink = async (clinicId, amount, concepto, patientEmail) => {
   try {
     const clinicConfig = await getClinicConfiguration(clinicId);
@@ -265,6 +345,7 @@ module.exports = {
   callAnaEngine,
   getClinicConfiguration,
   checkAvailability,
+  getAvailableTimeSlots,
   generatePaymentLink,
 
   consultLex: async (userMessage) => {
@@ -399,13 +480,32 @@ Ana - ${clinicName}`;
 Ana - ${clinicName}`;
           }
         } else {
-          return `Lo siento, no tengo disponibilidad el ${requestedDate} a las ${requestedTime}. 
+          // Get available slots for the day
+          const availableSlots = await getAvailableTimeSlots(clinicId, requestedDate);
+          
+          if (availableSlots.length > 0) {
+            const slotsList = availableSlots.slice(0, 5).map(slot => slot.hora).join(', ');
+            const moreText = availableSlots.length > 5 ? ` y ${availableSlots.length - 5} más` : '';
+            
+            return `Lo siento, no tengo disponibilidad el ${requestedDate} a las ${requestedTime}.
 
 Motivo: ${availability.reason}
 
-¿Te gustaría ver otros horarios disponibles?
+Horarios disponibles el ${requestedDate}:
+${slotsList}${moreText}
+
+¿Cuál prefieres?
 
 Ana - ${clinicName}`;
+          } else {
+            return `Lo siento, no tengo disponibilidad el ${requestedDate} a las ${requestedTime}.
+
+Motivo: ${availability.reason}
+
+No hay más horarios disponibles ese día. ¿Te gustaría consultar otro día?
+
+Ana - ${clinicName}`;
+          }
         }
       }
       
