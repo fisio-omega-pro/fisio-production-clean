@@ -1150,9 +1150,12 @@ const vincularBancoProfesional = async (req, res, next) => {
       metadata: { fisio_interno_id: fisioIdEnTuApp }
     };
 
-    // *** FORZAR PAÍS ESPAÑA PARA EMAILS ESPAÑOLES ***
-    if (emailPro.includes('.es') || emailPro.includes('spain') || emailPro.includes('espana') || emailPro.includes('outlook.com')) {
-      accountData.country = 'ES';  // Forzar España para usuarios españoles
+    // *** FORZAR PAÍS ESPAÑA PARA TODAS LAS CUENTAS DE PRUEBA ***
+    // Forzar ES para todas las cuentas de prueba para evitar cache de Stripe
+    if (emailPro.includes('test') || emailPro.includes('prueba') || emailPro.includes('clinica') || 
+        emailPro.includes('.es') || emailPro.includes('spain') || emailPro.includes('espana') || 
+        emailPro.includes('outlook.com') || fisioIdEnTuApp.includes('TEST') || fisioIdEnTuApp.includes('CLINICA')) {
+      accountData.country = 'ES';  // Forzar España para pruebas
       console.log(`🇪🇸 [STRIPE_CONNECT] Forzando país ES para email: ${emailPro}`);
     }
 
