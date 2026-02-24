@@ -1262,6 +1262,19 @@ const processPaymentReminders = async (req, res) => {
   }
 };
 
+// --- 📅 APPOINTMENT REMINDERS ---
+const processAppointmentReminders = async (req, res) => {
+  try {
+    const { processPendingReminders } = require('../services/appointmentReminderService');
+    const result = await processPendingReminders();
+    
+    res.json({ success: true, ...result });
+  } catch (e) {
+    console.error('🔥 Error processing appointment reminders:', e);
+    res.status(500).json({ success: false, error: 'Error processing reminders' });
+  }
+};
+
 // 🚨 EXPORTACIÓN DE FUNCIONES CONSOLIDADAS
 module.exports = { 
   register,
@@ -1295,5 +1308,6 @@ module.exports = {
   uploadLogo,
   vincularBancoProfesional,
   handleStripeConnectWebhook,
-  processPaymentReminders
+  processPaymentReminders,
+  processAppointmentReminders
 };

@@ -2,6 +2,7 @@ const { initEnv } = require('../config/env');
 const { createOneTimePaymentSession } = require('./paymentService');
 const { db, Timestamp } = require('../config/firebase');
 const { schedulePaymentReminder } = require('./paymentReminderService');
+const { scheduleAppointmentReminders } = require('./appointmentReminderService');
 
 const callAnaEngine = async (prompt, options = {}) => {
   const env = await initEnv();
@@ -349,12 +350,61 @@ const generatePaymentLink = async (clinicId, amount, concepto, patientEmail, app
   }
 };
 
+// --- 📅 CREATE APPOINTMENT WITH REMINDERS ---
+const createAppointmentWithReminders = async (clinicId, patientData, appointmentData) => {
+  try {
+    // Create appointment in agenda
+    const appointmentDoc = await db.collection('agenda').add({
+      clinic_id: clinicId,
+      paciente_nombre: patientData.name,
+      paciente_email: patientData.email,
+      fecha: appointmentData.date,
+      hora: appointmentData.time,
+      estado: 'confirmada',
+      especialista: appointmentData.specialist || 'Disponible',
+      duracion: appointmentData.duration || 45,
+      motivo: appointmentData.motivo || 'Cita programada por Ana',
+      created_at: Timestamp.now()
+    });
+    
+    // Schedule reminders
+    const appointmentDateTime = new Date();
+    const [day, month] = appointmentData.date.split('/').map(Number);
+    const [hours, minutes] = appointmentData.time.split(':').map(Number);
+    appointmentDateTime.setFullYear(new Date().getFullYear());
+    appointmentDateTime.setMonth(month - 1);
+    appointmentDateTime.setDate(day);
+    appointmentDateTime.setHours(hours, minutes);
+    
+    const reminderResult = await scheduleAppointmentReminders(
+      appointmentDoc.id,
+      clinicId,
+      patientData.email,
+      patientData.name,
+      appointmentDateTime,
+      patientData.clinicName || 'la clínica'
+    );
+    
+    console.log(`📅 [ANA] Created appointment and scheduled ${reminderResult.scheduled || 0} reminders`);
+    
+    return {
+      success: true,
+      appointmentId: appointmentDoc.id,
+      remindersScheduled: reminderResult.success ? reminderResult.scheduled : 0
+    };
+  } catch (e) {
+    console.error('🔥 [ANA] Error creating appointment:', e);
+    return { success: false, error: e.message };
+  }
+};
+
 module.exports = {
   callAnaEngine,
   getClinicConfiguration,
   checkAvailability,
   getAvailableTimeSlots,
   generatePaymentLink,
+  createAppointmentWithReminders,
 
   consultLex: async (userMessage) => {
     const fullPrompt = `${LEX_SYSTEM_PROMPT}\n\nCONSULTA DEL USUARIO: "${String(userMessage || '').trim()}"\n\nTu respuesta (pauta técnica, sin consejo vinculante):`;
