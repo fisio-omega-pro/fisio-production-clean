@@ -49,7 +49,12 @@ export const StripeModal = ({ isOpen, onClose, clinicId, configStatus }: StripeM
         // Redirigir a Stripe Connect
         window.location.href = data.url;
       } else {
-        alert(`Error: ${data.error || 'Error al conectar con Stripe'}`);
+        // Si el error es de Connect no configurado, mostrar solución temporal
+        if (data.error?.includes('signed up for Connect')) {
+          alert('⚠️ Stripe Connect está siendo configurado.\n\nPor ahora, puedes:\n1. Crear cuenta directamente en stripe.com/register\n2. Enviar tu account_id a soporte\n\nTe avisaremos cuando esté listo.');
+        } else {
+          alert(`Error: ${data.error || 'Error al conectar con Stripe'}`);
+        }
       }
     } catch (error) {
       console.error('Error connecting Stripe:', error);
