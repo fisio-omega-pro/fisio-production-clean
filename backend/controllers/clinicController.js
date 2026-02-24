@@ -1139,7 +1139,7 @@ const vincularBancoProfesional = async (req, res, next) => {
     const stripe = Stripe(sk);
     const frontendUrl = String(env.FRONTEND_URL || env.FRONTEND_BASE || 'https://fisiotool.com').trim();
 
-    // 1. Creamos la cuenta Express para el fisio
+    // 1. Creamos la cuenta Express para el fisio con soporte global
     const account = await stripe.accounts.create({
       type: 'express',
       email: emailPro,
@@ -1147,27 +1147,24 @@ const vincularBancoProfesional = async (req, res, next) => {
         card_payments: { requested: true },
         transfers: { requested: true },
       },
-      metadata: { fisio_interno_id: fisioIdEnTuApp }
+      metadata: { fisio_interno_id: fisioIdEnTuApp },
+      // *** CLAVE: No especificamos país aquí para que Stripe lo detecte ***
+      // Si forzamos ES, podría limitar a solo España
     });
 
     console.log(`🏦 [STRIPE_CONNECT] Cuenta creada: ${account.id} para fisio: ${fisioIdEnTuApp}`);
 
-    // 2. Creamos el enlace usando las URLs correctas y soporte global
+    // 2. Creamos el enlace usando las URLs correctas
     const accountLink = await stripe.accountLinks.create({
       account: account.id,
       refresh_url: `${frontendUrl}/dashboard?stripe=refresh`,
       return_url: `${frontendUrl}/dashboard?stripe=return`,
       type: 'account_onboarding',
-      
-      // *** PARÁMETROS CRÍTICOS PARA SOPORTE GLOBAL ***
-      parameters: {
-        // Permite que Stripe use la configuración del país del usuario (Fisio)
-        // Esto es clave para mostrar formularios europeos/españoles
-        account_onboarding: {
-          type: 'express',
-          // Forzamos EUR como moneda por defecto para usuarios globales
-          default_currency: 'eur',
-        }
+      // *** CLAVE: collection_options permite que Stripe pregunte el país ***
+      collection_options: {
+        // Esto fuerza a Stripe a mostrar el formulario completo incluyendo país
+        // Permitirá que usuarios de España seleccionen su país
+        fields: 'eventually_due'
       }
     });
 
