@@ -20,7 +20,16 @@ export const StripeModal = ({ isOpen, onClose, clinicId, configStatus }: StripeM
       const token = localStorage.getItem('fisio_token');
       console.log('🔍 [STRIPE] Token:', token ? 'exists' : 'missing');
       console.log('🔍 [STRIPE] ClinicId:', clinicId);
+      console.log('🔍 [STRIPE] ClinicId type:', typeof clinicId);
       console.log('🔍 [STRIPE] API URL:', `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/dashboard/stripe-connect`);
+      
+      // Validar clinicId
+      if (!clinicId || clinicId.trim() === '') {
+        console.error('🔥 [STRIPE] ClinicId is empty!');
+        alert('Error: No se encontró el ID de la clínica. Recarga la página e inténtalo de nuevo.');
+        setIsConnecting(false);
+        return;
+      }
       
       // Llamar a API para crear cuenta Stripe
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/dashboard/stripe-connect`, {
@@ -29,7 +38,7 @@ export const StripeModal = ({ isOpen, onClose, clinicId, configStatus }: StripeM
           'Content-Type': 'application/json',
           ...(token && { 'Authorization': `Bearer ${token}` })
         },
-        body: JSON.stringify({ clinicId })
+        body: JSON.stringify({ clinicId: clinicId.trim() })
       });
       
       console.log('🔍 [STRIPE] Response status:', response.status);
