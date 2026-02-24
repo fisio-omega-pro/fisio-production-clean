@@ -123,171 +123,102 @@ const getClinicConfiguration = async (clinicId) => {
   }
 };
 
-// --- 📅 AVAILABILITY CHECKER ---
+// --- 📅 REAL AGENDA AVAILABILITY CHECKER ---
 const checkAvailability = async (clinicId, requestedDate, requestedTime) => {
   try {
-    const clinicConfig = await getClinicConfiguration(clinicId);
-    if (!clinicConfig) return { available: false, reason: 'Clinic not found' };
+    // CRITICAL: Only check if this EXACT slot exists in the fisio's agenda
+    // NEVER assume availability based on opening hours
     
-    // 1️⃣ Check blocked days
-    const requestedDay = new Date(requestedDate).getDay();
-    if (clinicConfig.diasBloqueados.includes(requestedDay)) {
-      return { available: false, reason: `Día bloqueado. La clínica no trabaja este día.` };
-    }
-    
-    // 2️⃣ Check if within working hours
-    const [hours, minutes] = requestedTime.split(':').map(Number);
-    const [openHour, openMin] = clinicConfig.horario.apertura.split(':').map(Number);
-    const [closeHour, closeMin] = clinicConfig.horario.cierre.split(':').map(Number);
-    
-    const requestedMinutes = hours * 60 + minutes;
-    const openMinutes = openHour * 60 + openMin;
-    const closeMinutes = closeHour * 60 + closeMin;
-    
-    if (requestedMinutes < openMinutes) {
-      return { available: false, reason: `Fuera de horario. La clínica abre a las ${clinicConfig.horario.apertura}.` };
-    }
-    
-    // Check if appointment would end after closing time
-    const appointmentEndMinutes = requestedMinutes + clinicConfig.duracion_cita + clinicConfig.tiempo_entre_citas;
-    if (appointmentEndMinutes > closeMinutes) {
-      return { available: false, reason: `La cita terminaría después del horario de cierre (${clinicConfig.horario.cierre}).` };
-    }
-    
-    // 3️⃣ Check REAL agenda from fisio manual bookings
-    const existingAppointments = await db.collection('agenda')
+    const agendaSnapshot = await db.collection('agenda')
       .where('clinic_id', '==', clinicId)
       .where('fecha', '==', requestedDate)
+      .where('hora', '==', requestedTime)
       .get();
     
-    console.log(`🔍 [ANA] Checking ${existingAppointments.size} existing appointments for ${requestedDate}`);
+    console.log(`🔍 [ANA] Checking REAL agenda for ${requestedDate} at ${requestedTime}. Found ${agendaSnapshot.size} matches.`);
     
-    if (existingAppointments.size >= clinicConfig.limite_citas_dia) {
-      return { available: false, reason: `Límite de citas diarias alcanzado (${clinicConfig.limite_citas_dia} citas).` };
-    }
-    
-    // 4️⃣ Check ALL possible conflicts with fisio's manual bookings
-    let conflictDetails = [];
-    
-    for (const doc of existingAppointments.docs) {
-      const appointment = doc.data();
-      const appointmentTime = appointment.hora;
-      const [apptHours, apptMinutes] = appointmentTime.split(':').map(Number);
-      const apptStartMinutes = apptHours * 60 + apptMinutes;
-      const apptEndMinutes = apptStartMinutes + (appointment.duracion || clinicConfig.duracion_cita);
-      
-      // Check if requested time conflicts with existing appointment
-      if (requestedMinutes < apptEndMinutes && (requestedMinutes + clinicConfig.duracion_cita + clinicConfig.tiempo_entre_citas) > apptStartMinutes) {
-        conflictDetails.push({
-          paciente: appointment.paciente_nombre || 'Paciente',
-          hora: appointmentTime,
-          duracion: appointment.duracion || clinicConfig.duracion_cita,
-          motivo: appointment.motivo || 'Cita programada'
-        });
-      }
-    }
-    
-    if (conflictDetails.length > 0) {
-      const conflict = conflictDetails[0]; // Show first conflict
+    if (agendaSnapshot.empty) {
       return { 
         available: false, 
-        reason: `Horario ocupado por cita manual del fisio:
-• Paciente: ${conflict.paciente}
-• Hora: ${conflict.hora} (${conflict.duracion}min)
-• Motivo: ${conflict.motivo}
-
-Selecciona otra hora por favor.` 
+        reason: `Este horario no existe en la agenda de la clínica. Por favor, consulta los horarios disponibles directamente con el fisio.` 
       };
     }
     
-    // 5️⃣ Check red flags for time slot
-    const timeSlotRedFlags = clinicConfig.banderas_rojas.filter(flag => {
-      if (flag.hora_restringida && flag.hora_restringida === requestedTime) {
-        return true;
-      }
-      if (flag.franja_horaria) {
-        const [startH, startM] = flag.franja_horaria.inicio.split(':').map(Number);
-        const [endH, endM] = flag.franja_horaria.fin.split(':').map(Number);
-        const startMinutes = startH * 60 + startM;
-        const endMinutes = endH * 60 + endM;
-        return requestedMinutes >= startMinutes && requestedMinutes < endMinutes;
-      }
-      return false;
-    });
+    // Check if the slot is actually available (not booked)
+    const slotDoc = agendaSnapshot.docs[0];
+    const slotData = slotDoc.data();
     
-    if (timeSlotRedFlags.length > 0) {
-      return { available: false, reason: `Horario con restricciones: ${timeSlotRedFlags.map(f => f.descripcion).join(', ')}` };
+    if (slotData.estado === 'ocupado' || slotData.paciente_nombre) {
+      return { 
+        available: false, 
+        reason: `Horario ya ocupado:
+• Paciente: ${slotData.paciente_nombre || 'Paciente asignado'}
+• Hora: ${slotData.hora}
+• Motivo: ${slotData.motivo || 'Cita programada'}
+
+Selecciona otro horario disponible.` 
+      };
     }
+    
+    if (slotData.estado !== 'disponible' && slotData.tipo !== 'disponible') {
+      return { 
+        available: false, 
+        reason: `Este horario no está disponible para reserva. Estado actual: ${slotData.estado || slotData.tipo}.` 
+      };
+    }
+    
+    // Slot exists and is available
+    const clinicConfig = await getClinicConfiguration(clinicId);
     
     return { 
       available: true,
       clinicConfig: {
-        duracion_cita: clinicConfig.duracion_cita,
-        precio_sesion: clinicConfig.precio_sesion,
-        fianza_cita: clinicConfig.fianza_cita
+        duracion_cita: slotData.duracion || clinicConfig?.duracion_cita || 45,
+        precio_sesion: clinicConfig?.precio_sesion || 50,
+        fianza_cita: clinicConfig?.fianza_cita || 20,
+        especialista: slotData.especialista || 'Disponible'
       }
     };
   } catch (e) {
-    console.error('🔥 [ANA] Error checking availability:', e);
+    console.error('🔥 [ANA] Error checking REAL agenda availability:', e);
     return { available: false, reason: 'Error del sistema. Intenta de nuevo.' };
   }
 };
 
-// --- � GET REAL AVAILABLE SLOTS ---
+// --- 🕐 GET REAL AGENDA SLOTS (NEVER GENERATE) ---
 const getAvailableTimeSlots = async (clinicId, requestedDate) => {
   try {
-    const clinicConfig = await getClinicConfiguration(clinicId);
-    if (!clinicConfig) return [];
-    
-    // Get existing appointments for the day
+    // CRITICAL: Only return slots that EXIST in the fisio's agenda
+    // NEVER generate theoretical slots based on opening hours
     const existingAppointments = await db.collection('agenda')
       .where('clinic_id', '==', clinicId)
       .where('fecha', '==', requestedDate)
       .get();
     
-    // Generate all possible time slots
-    const [openHour, openMin] = clinicConfig.horario.apertura.split(':').map(Number);
-    const [closeHour, closeMin] = clinicConfig.horario.cierre.split(':').map(Number);
+    console.log(`🔍 [ANA] Checking REAL agenda for ${requestedDate}. Found ${existingAppointments.size} appointments.`);
     
-    const openMinutes = openHour * 60 + openMin;
-    const closeMinutes = closeHour * 60 + closeMin;
+    // Return ONLY the actual slots from the agenda
+    const agendaSlots = [];
     
-    const availableSlots = [];
-    let currentTime = openMinutes;
-    
-    while (currentTime + clinicConfig.duracion_cita <= closeMinutes) {
-      const timeString = `${Math.floor(currentTime / 60).toString().padStart(2, '0')}:${(currentTime % 60).toString().padStart(2, '0')}`;
+    for (const doc of existingAppointments.docs) {
+      const appointment = doc.data();
       
-      // Check if this slot conflicts with existing appointments
-      let isAvailable = true;
-      
-      for (const doc of existingAppointments.docs) {
-        const appointment = doc.data();
-        const appointmentTime = appointment.hora;
-        const [apptHours, apptMinutes] = appointmentTime.split(':').map(Number);
-        const apptStartMinutes = apptHours * 60 + apptMinutes;
-        const apptEndMinutes = apptStartMinutes + (appointment.duracion || clinicConfig.duracion_cita);
-        
-        if (currentTime < apptEndMinutes && (currentTime + clinicConfig.duracion_cita + clinicConfig.tiempo_entre_citas) > apptStartMinutes) {
-          isAvailable = false;
-          break;
-        }
-      }
-      
-      if (isAvailable) {
-        availableSlots.push({
-          hora: timeString,
-          disponible: true
+      // Only include slots that are marked as available in the agenda
+      if (appointment.estado === 'disponible' || appointment.tipo === 'disponible') {
+        agendaSlots.push({
+          hora: appointment.hora,
+          disponible: true,
+          duracion: appointment.duracion || 45,
+          especialista: appointment.especialista || 'Disponible'
         });
       }
-      
-      // Move to next slot
-      currentTime += clinicConfig.duracion_cita + clinicConfig.tiempo_entre_citas;
     }
     
-    return availableSlots;
+    console.log(`🗓️ [ANA] Found ${agendaSlots.length} REAL available slots in fisio's agenda`);
+    
+    return agendaSlots;
   } catch (e) {
-    console.error('🔥 [ANA] Error getting available slots:', e);
+    console.error('🔥 [ANA] Error reading REAL agenda:', e);
     return [];
   }
 };
