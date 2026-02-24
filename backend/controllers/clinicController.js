@@ -1150,12 +1150,22 @@ const vincularBancoProfesional = async (req, res, next) => {
       metadata: { fisio_interno_id: fisioIdEnTuApp }
     };
 
-    // *** FORZAR PAÍS ESPAÑA PARA TODAS LAS CUENTAS DE PRUEBA ***
-    // Forzar ES para todas las cuentas de prueba para evitar cache de Stripe
-    if (emailPro.includes('test') || emailPro.includes('prueba') || emailPro.includes('clinica') || 
-        emailPro.includes('.es') || emailPro.includes('spain') || emailPro.includes('espana') || 
-        emailPro.includes('outlook.com') || fisioIdEnTuApp.includes('TEST') || fisioIdEnTuApp.includes('CLINICA')) {
-      accountData.country = 'ES';  // Forzar España para pruebas
+    // *** FORZAR PAÍS ESPAÑA PARA USUARIOS ESPAÑOLES ***
+    // Detectar usuarios españoles por múltiples criterios
+    const isSpanishUser = emailPro.includes('.es') || 
+                         emailPro.includes('spain') || 
+                         emailPro.includes('espana') || 
+                         emailPro.includes('outlook.com') ||
+                         emailPro.includes('gmail.com') && emailPro.includes('clinica') ||
+                         fisioIdEnTuApp.includes('TEST') || 
+                         fisioIdEnTuApp.includes('CLINICA') ||
+                         emailPro.includes('barcelona') ||
+                         emailPro.includes('madrid') ||
+                         emailPro.includes('valencia');
+    
+    if (isSpanishUser) {
+      accountData.country = 'ES';  // Forzar España
+      accountData.default_currency = 'eur';  // Forzar EUR
       console.log(`🇪🇸 [STRIPE_CONNECT] Forzando país ES para email: ${emailPro}`);
     }
 
