@@ -138,10 +138,52 @@ const checkAvailability = async (clinicId, requestedDate, requestedTime) => {
     console.log(`🔍 [ANA] Checking REAL agenda for ${requestedDate} at ${requestedTime}. Found ${agendaSnapshot.size} matches.`);
     
     if (agendaSnapshot.empty) {
-      return { 
-        available: false, 
-        reason: `Este horario no existe en la agenda de la clínica. Por favor, consulta los horarios disponibles directamente con el fisio.` 
-      };
+      // Get ALL available slots for the day to offer alternatives
+      const allDaySlots = await db.collection('agenda')
+        .where('clinic_id', '==', clinicId)
+        .where('fecha', '==', requestedDate)
+        .where('estado', '==', 'disponible')
+        .limit(5)
+        .get();
+      
+      if (!allDaySlots.empty) {
+        const alternatives = allDaySlots.docs.map(doc => doc.data().hora).join(', ');
+        return { 
+          available: false, 
+          reason: `El horario ${requestedTime} no está disponible, pero tengo estos horarios libres hoy:
+${alternatives}
+
+¿Te gustaría alguno de estos horarios?` 
+        };
+      } else {
+        // Check next day
+        const tomorrow = new Date(requestedDate);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrowStr = tomorrow.toISOString().split('T')[0];
+        
+        const tomorrowSlots = await db.collection('agenda')
+          .where('clinic_id', '==', clinicId)
+          .where('fecha', '==', tomorrowStr)
+          .where('estado', '==', 'disponible')
+          .limit(3)
+          .get();
+        
+        if (!tomorrowSlots.empty) {
+          const tomorrowAlternatives = tomorrowSlots.docs.map(doc => doc.data().hora).join(', ');
+          return { 
+            available: false, 
+            reason: `El horario ${requestedTime} no está disponible hoy. Para mañana (${tomorrowStr}) tengo:
+${tomorrowAlternatives}
+
+¿Te gustaría alguno de estos horarios?` 
+          };
+        } else {
+          return { 
+            available: false, 
+            reason: `No tengo horarios disponibles para hoy ni mañana. ¿Te gustaría que consulte disponibilidad para otros días de esta semana?` 
+          };
+        }
+      }
     }
     
     // Check if the slot is actually available (not booked)
@@ -149,15 +191,29 @@ const checkAvailability = async (clinicId, requestedDate, requestedTime) => {
     const slotData = slotDoc.data();
     
     if (slotData.estado === 'ocupado' || slotData.paciente_nombre) {
-      return { 
-        available: false, 
-        reason: `Horario ya ocupado:
-• Paciente: ${slotData.paciente_nombre || 'Paciente asignado'}
-• Hora: ${slotData.hora}
-• Motivo: ${slotData.motivo || 'Cita programada'}
+      // Get alternatives for the same day
+      const allDaySlots = await db.collection('agenda')
+        .where('clinic_id', '==', clinicId)
+        .where('fecha', '==', requestedDate)
+        .where('estado', '==', 'disponible')
+        .limit(5)
+        .get();
+      
+      if (!allDaySlots.empty) {
+        const alternatives = allDaySlots.docs.map(doc => doc.data().hora).join(', ');
+        return { 
+          available: false, 
+          reason: `El horario ${requestedTime} está ocupado por ${slotData.paciente_nombre || 'otro paciente'}, pero tengo estos horarios libres hoy:
+${alternatives}
 
-Selecciona otro horario disponible.` 
-      };
+¿Te gustaría alguno de estos horarios?` 
+        };
+      } else {
+        return { 
+          available: false, 
+          reason: `El horario ${requestedTime} está ocupado. No hay más horarios disponibles hoy. ¿Te gustaría que consulte mañana?` 
+        };
+      }
     }
     
     if (slotData.estado !== 'disponible' && slotData.tipo !== 'disponible') {
