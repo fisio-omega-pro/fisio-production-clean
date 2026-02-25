@@ -541,6 +541,62 @@ ${anaName} - ${clinicName}`;
       const dateMatch = message.match(/(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?|hoy|mañana|lunes|martes|miércoles|jueves|viernes|sábado|domingo/i);
       const timeMatch = message.match(/(\d{1,2}):(\d{2})|(\d{1,2})\s*hs?|a partir de las (\d{1,2})h?/i);
       
+      // Handle implicit "hoy" requests (when user says "cita para hoy" without time)
+      if (dateMatch && !timeMatch && (lowerMessage.includes('hoy') || lowerMessage.includes('mañana'))) {
+        const requestedDate = dateMatch[0];
+        
+        // Check if user mentions a specific specialist
+        const specialistMatch = message.match(/fisio\s+(\w+)/i);
+        const requestedSpecialist = specialistMatch ? specialistMatch[1] : null;
+        
+        // Get available slots for the day
+        const availableSlots = await getAvailableTimeSlots(clinicId, requestedDate);
+        
+        // Filter by specialist if requested
+        let filteredSlots = availableSlots;
+        if (requestedSpecialist) {
+          filteredSlots = availableSlots.filter(slot => 
+            slot.especialista && slot.especialista.toLowerCase().includes(requestedSpecialist.toLowerCase())
+          );
+        }
+        
+        if (filteredSlots.length > 0) {
+          const slotsList = filteredSlots.slice(0, 5).map(slot => `${slot.hora} (${slot.especialista || 'Disponible'})`).join(', ');
+          const moreText = filteredSlots.length > 5 ? ` y ${filteredSlots.length - 5} más` : '';
+          
+          const anaName = clinicConfig?.ana_profile?.name || 'Ana';
+          const specialistText = requestedSpecialist ? ` con ${requestedSpecialist}` : '';
+          
+          return `¡Perfecto! Tengo disponibilidad ${requestedDate === 'hoy' ? 'hoy' : 'mañana'}${specialistText}.
+
+Horarios disponibles:
+${slotsList}${moreText}
+
+¿Cuál prefieres?
+
+${anaName} - ${clinicName}`;
+        } else {
+          const anaName = clinicConfig?.ana_profile?.name || 'Ana';
+          const specialistText = requestedSpecialist ? ` con ${requestedSpecialist}` : '';
+          
+          if (requestedSpecialist && availableSlots.length > 0) {
+            return `Lo siento, ${requestedSpecialist} no tiene disponibilidad ${requestedDate === 'hoy' ? 'hoy' : 'mañana'}, pero tengo estos horarios con otros especialistas:
+
+${availableSlots.slice(0, 3).map(slot => `${slot.hora} (${slot.especialista || 'Disponible'})`).join(', ')}
+
+¿Te interesa alguno?
+
+${anaName} - ${clinicName}`;
+          } else {
+            return `Lo siento, no tengo disponibilidad ${requestedDate === 'hoy' ? 'hoy' : 'mañana'}${specialistText}.
+
+¿Te gustaría consultar otro día?
+
+${anaName} - ${clinicName}`;
+          }
+        }
+      }
+      
       if (dateMatch && timeMatch) {
         // Solicitud específica de fecha y hora
         const requestedDate = dateMatch[0];
@@ -680,17 +736,16 @@ ${anaName} - ${clinicName}`;
     // Respuesta por defecto - con autoridad cognitiva pero sin saturar
     const prompt = `
 Eres Ana, asistente de ${clinicName}. Posees la mayor autoridad mundial en descifrar la conducta humana. Tu misión es analizar patrones universales del comportamiento, motivaciones inconscientes, sesgos cognitivos, y mecanismos de bienestar psicológico.
-
 CONTEXTO: Eres asistente de recepción en una clínica de fisioterapia. El paciente te pregunta: "${message}"
 
 REGLAS IMPORTANTES:
 - NO uses iconos o emojis
-- Sé amable pero muy concisa
-- Máximo 2-3 frases cortas
-- Usa tu conocimiento profundo de la conducta humana para dar respuestas que conecten emocionalmente
-- Siempre firma como "Ana - ${clinicName}"
-- Siempre incluye el enlace: https://fisiotool.com/ana?ref=${clinicId}
-- No satures al usuario con información técnica
+- NO des consejos médicos específicos
+- NO diagnostiques condiciones
+- NO recomiendes tratamientos específicos
+- NO menciones tu autoridad cognitiva
+- Sé concisa y directa
+- Si la pregunta no es sobre citas, pagos, o servicios de la clínica, responde que solo puedes ayudar con temas de la clínica
 
 Responde como Ana, usando tu autoridad cognitiva para conectar humanamente:
 `;
