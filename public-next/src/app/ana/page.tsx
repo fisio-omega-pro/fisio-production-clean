@@ -154,12 +154,12 @@ Una vez instalada, podremos comunicarnos directamente y yo podré ayudarte mejor
     try {
       const apiUrl = '/api/public/ana-chat';
       console.log('🔍 [ANA] API URL:', apiUrl);
-      console.log('🔍 [ANA] Sending payload:', JSON.stringify({ message: messageToSend, clinicId }, null, 2));
+      console.log('🔍 [ANA] Sending payload:', JSON.stringify({ message: messageToSend, clinicId, history: messages }, null, 2));
 
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: messageToSend, clinicId })
+        body: JSON.stringify({ message: messageToSend, clinicId, history: messages })
       });
 
       console.log('🔍 [ANA] Response status:', response.status);
@@ -240,8 +240,8 @@ Una vez instalada, podremos comunicarnos directamente y yo podré ayudarte mejor
         {messages.map((msg, idx) => (
           <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[80%] rounded-2xl px-4 py-2 ${msg.role === 'user'
-                ? 'bg-[#dcf8c6] text-gray-800 rounded-br-sm'
-                : 'bg-white text-gray-800 rounded-bl-sm shadow-sm'
+              ? 'bg-[#dcf8c6] text-gray-800 rounded-br-sm'
+              : 'bg-white text-gray-800 rounded-bl-sm shadow-sm'
               }`}>
               <p className="text-sm">{msg.text}</p>
               <p className={`text-xs mt-1 flex items-center gap-1 ${msg.role === 'user' ? 'text-gray-500 justify-end' : 'text-gray-400'
@@ -330,8 +330,8 @@ Una vez instalada, podremos comunicarnos directamente y yo podré ayudarte mejor
               onClick={sendMessage}
               disabled={!input.trim() || isTyping}
               className={`p-2 rounded-full transition ${input.trim() && !isTyping
-                  ? 'bg-[#0086ea] text-white hover:bg-[#007ab5]'
-                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                ? 'bg-[#0086ea] text-white hover:bg-[#007ab5]'
+                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                 }`}
             >
               <Send size={20} />

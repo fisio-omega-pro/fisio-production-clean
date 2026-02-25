@@ -469,7 +469,7 @@ REGLAS:
   },
 
   // --- 🤖 ANA CHAT PÚBLICO (para pacientes) ---
-  generatePatientResponse: async ({ message, clinicName, clinicId }) => {
+  generatePatientResponse: async ({ message, clinicName, clinicId, history = [] }) => {
     const lowerMessage = String(message || '').toLowerCase();
 
     // 🚀 PRIMERO: Sistema híbrido inteligente
@@ -478,8 +478,12 @@ REGLAS:
         clinicId,
         clinicName,
         userName: 'Paciente', // Esto debería extraerse de la conversación
-        currentTime: new Date()
+        history
       });
+
+      if (hybridResult && (hybridResult.response || hybridResult.text)) {
+        return hybridResult.response || hybridResult.text;
+      }
 
       console.log(`🤖 [HYBRID] Response from: ${hybridResult.source}`);
       console.log('🔥 [ANA SERVICE] Hybrid result completo:', hybridResult);

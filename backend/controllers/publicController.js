@@ -239,10 +239,12 @@ const anaChat = async (req, res) => {
     // }
 
     // Generar respuesta con Ana
+    const { history = [] } = req.body;
     const response = await anaService.generatePatientResponse({
       message: String(message).trim(),
       clinicName: clinicData.nombre_clinica || clinicData.nombre || 'la clínica',
-      clinicId
+      clinicId,
+      history
     });
 
     console.log('🚀 DEBUG: Ana result successfully generated');
