@@ -1,28 +1,21 @@
 const Anthropic = require('@anthropic-ai/sdk');
 const { SecretManagerServiceClient } = require('@google-cloud/secret-manager');
+const geminiService = require('./geminiService');
 
 class ClaudeService {
+  // ... (getApiKey remains the same)
   async getApiKey() {
-    // PRIORIDAD 1: Environment variable (producción y desarrollo)
     const envKey = process.env.ANTHROPIC_API_KEY;
-    if (envKey && envKey.trim()) {
-      console.log('✅ Using ANTHROPIC_API_KEY from environment');
-      return envKey.trim();
-    }
+    if (envKey && envKey.trim() && !envKey.includes('REEMPLAZA')) return envKey.trim();
 
-    // PRIORIDAD 2: Secret Manager (solo si no hay env var)
     try {
       const secretClient = new SecretManagerServiceClient();
-      const projectId = process.env.GOOGLE_CLOUD_PROJECT || 'fisio-production';
+      const projectId = process.env.PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT || 'fisiotool-pro-2026';
       const name = `projects/${projectId}/secrets/ANTHROPIC_API_KEY/versions/latest`;
-
       const [version] = await secretClient.accessSecretVersion({ name });
       const payload = version.payload.data.toString();
-
-      console.log('✅ Using ANTHROPIC_API_KEY from Secret Manager');
       return payload.trim();
     } catch (error) {
-      console.error('🔥 Error getting Claude API key from Secret Manager:', error.message);
       return '';
     }
   }
@@ -31,31 +24,29 @@ class ClaudeService {
     try {
       const apiKey = await this.getApiKey();
 
-      const isInvalidKey = !apiKey || apiKey.trim().length < 5 || apiKey.includes('test-key') || apiKey.includes('sk-ant-api03-REEMPLAZA');
-      if (isInvalidKey) {
-        console.log('🧪 Claude en modo desarrollo (simulado) - Key inválida o de ejemplo');
-        return this._simulateClaudeResponse(prompt);
+      if (!apiKey || apiKey.length < 10) {
+        console.log('🧪 No Claude Key. Using Gemini fallback.');
+        return await geminiService.generateResponse(prompt);
       }
 
-      console.log('🚀 Usando Claude API real con key:', apiKey.substring(0, 20) + '...');
+      console.log('🚀 Trying Claude API...');
       const client = new Anthropic({ apiKey });
 
       const message = await client.messages.create({
-        model: "claude-3-5-sonnet-20240620",
+        model: "claude-3-haiku-20240307",
         max_tokens: options.maxTokens || 1000,
-        messages: [
-          {
-            role: "user",
-            content: prompt
-          }
-        ]
+        messages: [{ role: "user", content: prompt }]
       });
 
-      // Éxito real
       return message.content[0].text;
     } catch (error) {
-      console.error('🔥 Claude API Error:', error.message);
-      return this._simulateClaudeResponse(prompt);
+      console.log('⚠️ Claude Failed. Using Gemini fallback. Error:', error.message);
+      try {
+        return await geminiService.generateResponse(prompt);
+      } catch (geminiError) {
+        console.error('🔥 All AI Engines failed:', geminiError.message);
+        return this._simulateClaudeResponse(prompt);
+      }
     }
   }
 
