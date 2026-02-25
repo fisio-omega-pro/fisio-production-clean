@@ -32,7 +32,7 @@ class ClaudeService {
       const apiKey = await this.getApiKey();
       
       // MODO DESARROLLO: Si no hay API key real, simular respuesta
-      if (!apiKey || apiKey.includes('test-key')) {
+      if (!apiKey || apiKey.includes('test-key') || apiKey === '') {
         console.log('🧪 Claude en modo desarrollo (simulado)');
         return this._simulateClaudeResponse(prompt);
       }
