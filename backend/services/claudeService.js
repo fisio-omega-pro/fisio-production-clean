@@ -62,8 +62,18 @@ class ClaudeService {
   _simulateClaudeResponse(prompt) {
     const lowerPrompt = prompt.toLowerCase();
     
-    // Simulación inteligente basada en el prompt
-    if (lowerPrompt.includes('cita') || lowerPrompt.includes('necesito')) {
+    // Extraer mensaje del usuario del prompt
+    const userMessageMatch = prompt.match(/MENSAJE DEL USUARIO: "([^"]+)"/);
+    const userMessage = userMessageMatch ? userMessageMatch[1] : prompt;
+    const lowerUserMessage = userMessage.toLowerCase();
+    
+    // Extraer hora actual del prompt
+    const timeMatch = prompt.match(/Hora actual: (\d{1,2}):(\d{2})/);
+    const currentHour = timeMatch ? parseInt(timeMatch[1]) : new Date().getHours();
+    const currentMinute = timeMatch ? parseInt(timeMatch[2]) : new Date().getMinutes();
+    
+    // Simulación inteligente basada en el mensaje del usuario
+    if (lowerUserMessage.includes('cita') || lowerUserMessage.includes('necesito')) {
       return `¡Hola! Soy Ana de Fisiotool. Entiendo que necesitas una cita.
 
 📅 **Disponibilidad:**
@@ -75,7 +85,7 @@ class ClaudeService {
 Ana - Clínica Barcelona Prueba`;
     }
     
-    if (lowerPrompt.includes('hola') || lowerPrompt.includes('buenos')) {
+    if (lowerUserMessage.includes('hola') || lowerUserMessage.includes('buenos')) {
       return `¡Hola! Soy Ana, tu asistente de Fisiotool. 
 
 Estoy aquí para ayudarte con todo lo que necesites:
@@ -89,7 +99,7 @@ Estoy aquí para ayudarte con todo lo que necesites:
 Ana - Clínica Barcelona Prueba`;
     }
     
-    if (lowerPrompt.includes('gracias') || lowerPrompt.includes('adiós')) {
+    if (lowerUserMessage.includes('gracias') || lowerUserMessage.includes('adiós')) {
       return `¡De nada! Estoy aquí para lo que necesites.
 
 Si necesitas cualquier otra cosa, no dudes en preguntarme. ¡Tu bienestar es mi prioridad!
@@ -97,7 +107,57 @@ Si necesitas cualquier otra cosa, no dudes en preguntarme. ¡Tu bienestar es mi 
 Ana - Clínica Barcelona Prueba`;
     }
     
-    // Respuesta por defecto inteligente
+    // Detectar si menciona hora específica en el mensaje del usuario
+    const userTimeMatch = lowerUserMessage.match(/(\d{1,2}):(\d{2})/);
+    if (userTimeMatch) {
+      const hour = parseInt(userTimeMatch[1]);
+      const minute = parseInt(userTimeMatch[2]);
+      
+      // Si es hora pasada
+      if (hour < currentHour || (hour === currentHour && minute < currentMinute)) {
+        return `¡Tienes toda la razón! Son las ${currentHour}:${currentMinute.toString().padStart(2, '0')} y la hora ${userTimeMatch[0]} ya pasó.
+
+📅 **Horarios disponibles AHORA:**
+- 15:00 (Disponible)
+- 17:30 (Disponible)
+
+¿Cuál de estos horarios te viene bien? Te ofrezco un 10% de descuento en la fianza por la molestia.
+
+Ana - Clínica Barcelona Prueba`;
+      }
+      
+      // Si es hora futura
+      if (hour > currentHour || (hour === currentHour && minute > currentMinute)) {
+        return `¡Perfecto! Tengo disponibilidad hoy a las ${userTimeMatch[0]}.
+
+Para confirmar tu cita, necesito que pagues la fianza de 15€:
+
+📱 **Bizum:** Envía 15€ al +34600123456
+💳 **Tarjeta:** Te enviaré un enlace seguro para pagar
+
+📸 **IMPORTANTE:** Después de pagar, envíame:
+- Captura del Bizum ✅
+- O email de confirmación de pago ✅
+
+Una vez verificado el pago, tu cita quedará confirmada.
+
+Ana - Clínica Barcelona Prueba`;
+      }
+    }
+    
+    // Si no es hora específica, respuesta contextual
+    if (lowerUserMessage.includes('cita') || lowerUserMessage.includes('necesito')) {
+      return `¡Hola! Soy Ana de Fisiotool. Entiendo que necesitas una cita.
+
+📅 **Disponibilidad:**
+- **Hoy:** 11:00, 15:00, 17:30
+- **Mañana:** 10:00, 12:00, 16:00
+
+¿Qué día y hora te gustaría reservar? Puedo ayudarte a encontrar el momento perfecto para ti.
+
+Ana - Clínica Barcelona Prueba`;
+    }
+    
     return `Entiendo tu mensaje. Soy Ana, tu asistente de Fisiotool.
 
 Puedo ayudarte con:
