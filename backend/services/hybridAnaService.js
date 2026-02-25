@@ -145,12 +145,14 @@ MENSAJE ACTUAL DEL USUARIO: "${message}"
 INSTRUCCIONES DE IDENTIDAD Y FLUJO:
 1. IDENTIDAD: Soy Ana de ${clinicInfo.nombre}. Mi tono es cálido, profesional y directo.
 2. NO REPETIR SALUDOS: Si en el historial ya has saludado, NO vuelvas a decir "Hola", "Soy Ana" o presentarte. Ve directamente al grano.
-3. CONTEXTO: Si el usuario confirma algo (ej: "si", "está bien"), mira el historial para saber qué estás confirmando (ej: una cita a las 17h) y procede con los siguientes pasos (pedir fianza, etc.).
+3. CONTEXTO Y CONFIRMACIÓN: Si el usuario confirma algo (ej: "si", "está bien", "por favor"), mira el historial. 
+   - SI ESTÁS HABLANDO DE UNA CITA Y EL USUARIO ACEPTA: Debes dar los pasos de pago (Bizum al +34600123456 o Link de tarjeta).
+   - SI EL USUARIO PIDE EL ENLACE: Confirma que se lo envías y dale los datos de pago.
 4. REGLAS DE NEGOCIO:
    - Citas: Fianza de 15€.
    - Horarios: Solo ofrecer horas futuras.
 
-Responde de forma natural y humana, evitando sonar como un bot repetitivo.`;
+Responde de forma natural y humana, evitando sonar como un bot repetitivo. Nunca respondas con un simple "¿En qué puedo ayudarte?" si ya hay una conversación en marcha.`;
 
     try {
       const response = await claudeService.generateResponse(prompt, { maxTokens: 1000 });
@@ -209,6 +211,27 @@ Responde de forma natural y humana, evitando sonar como un bot repetitivo.`;
   // ⚙️ Procesar con reglas (rápido y sin coste)
   async processWithRules(message, context) {
     const lowerMessage = message.toLowerCase();
+
+    // 💰 REGLA ORO: Confirmación de pago/enlace (Si el usuario acepta)
+    if ((lowerMessage.includes('si') || lowerMessage.includes('claro') || lowerMessage.includes('vale') || lowerMessage.includes('por favor')) &&
+      !lowerMessage.includes('no')) {
+
+      const historyText = JSON.stringify(context.history || []).toLowerCase();
+      if (historyText.includes('enlace') || historyText.includes('fianza') || historyText.includes('pago')) {
+        return {
+          source: 'rules',
+          response: `¡Perfecto! Aquí tienes las opciones para formalizar la reserva de 15€:
+
+📱 **Bizum:** Envía 15€ al +34600123456
+💳 **Tarjeta:** Te envío el link de pago seguro en 1 minuto
+
+📸 **IMPORTANTE:** Una vez pagado, envíame la captura por aquí para confirmar tu cita definitivamente.
+
+Ana - Clínica Barcelona Prueba`,
+          confidence: 'high'
+        };
+      }
+    }
 
     // Detectar selección de hora específica (15:00) - MÁXIMA PRIORIDAD
     if ((lowerMessage.includes('15') || lowerMessage.includes('quince')) &&
