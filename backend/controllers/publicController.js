@@ -241,7 +241,18 @@ const anaChat = async (req, res) => {
 
     return res.json({ success: true, response });
   } catch (e) {
-    console.error('🔥 [ANA CHAT] Error:', e.message);
+    console.error('🔥 [ANA CHAT] Full Error:', e);
+    console.error('🔥 [ANA CHAT] Message:', e.message);
+    console.error('🔥 [ANA CHAT] Stack:', e.stack);
+    
+    // Si es error de JSON, dar respuesta útil
+    if (e.message.includes('JSON.parse')) {
+      return res.status(500).json({ 
+        success: false, 
+        response: 'Error técnico en el procesamiento. Por favor, intenta de nuevo con un mensaje más simple.' 
+      });
+    }
+    
     return res.status(500).json({ 
       success: false, 
       response: 'Lo siento, estoy teniendo problemas técnicos. Por favor, llama a la clínica.' 

@@ -386,7 +386,7 @@ Para tu cita de hoy, tengo estos horarios disponibles:
     // Detectar quejas sobre hora pasada (incluyendo "a las 11? si son las 11:27")
     if ((lowerMessage.includes('ya son las') || lowerMessage.includes('hora pasada') || 
          lowerMessage.includes('como diantres') || lowerMessage.includes('mal configurada') ||
-         lowerMessage.includes('si son las')) &&
+         lowerMessage.includes('si son las') || lowerMessage.includes('son ya las')) &&
         lowerMessage.includes('11')) {
       return {
         source: 'rules',
