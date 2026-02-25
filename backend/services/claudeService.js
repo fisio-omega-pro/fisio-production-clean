@@ -163,19 +163,28 @@ Ana - Clínica Barcelona Prueba`;
     }
     
         
-    // Detectar si menciona hora específica como CITA (no como información contextual)
-    const userTimeMatch = lowerUserMessage.match(/(\d{1,2}):(\d{2})/);
+    // Detectar si menciona hora específica (más simple y efectivo)
+    const userTimeMatch = lowerUserMessage.match(/(\d{1,2}):(\d{2})/) || 
+                        lowerUserMessage.match(/(\d{1,2})h/) ||
+                        lowerUserMessage.match(/a las\s+(\d{1,2})/);
+    
+    console.log('🧠 [CLAUDE SIM] Time match:', userTimeMatch);
+    console.log('🧠 [CLAUDE SIM] Exclusiones:', {
+      sonLas: lowerUserMessage.includes('son las'),
+      husoHorario: lowerUserMessage.includes('huso horario'),
+      zonaHoraria: lowerUserMessage.includes('zona horaria')
+    });
+    
     if (userTimeMatch && 
-        (lowerUserMessage.includes('cita') || 
-         lowerUserMessage.includes('horario') || 
-         lowerUserMessage.includes('disponible') ||
-         lowerUserMessage.includes('quiero') ||
-         lowerUserMessage.includes('necesito') ||
-         lowerUserMessage.includes('reservar') ||
-         lowerUserMessage.includes('a las') && !lowerUserMessage.includes('son las'))) {
+        !lowerUserMessage.includes('son las') && 
+        !lowerUserMessage.includes('huso horario') &&
+        !lowerUserMessage.includes('zona horaria')) {
       
       const hour = parseInt(userTimeMatch[1]);
-      const minute = parseInt(userTimeMatch[2]);
+      const minute = userTimeMatch[2] ? parseInt(userTimeMatch[2]) : 0;
+      
+      console.log('🧠 [CLAUDE SIM] Hora detectada:', hour, minute);
+      console.log('🧠 [CLAUDE SIM] Hora actual:', currentHour, currentMinute);
       
       // Si es hora pasada
       if (hour < currentHour || (hour === currentHour && minute < currentMinute)) {
