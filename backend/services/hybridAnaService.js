@@ -29,13 +29,13 @@ class HybridAnaService {
       return { useClaude: true, reason: 'emotional_content' };
     }
     
-    // ⚡ Casos que pueden usar reglas simples
+    // ⚡ Solo casos MUY simples usan reglas
     if (this.isSimpleRequest(lowerMessage)) {
       return { useClaude: false, reason: 'simple_request' };
     }
     
-    // 🤖 Por defecto, usar Claude para seguridad
-    return { useClaude: true, reason: 'default_fallback' };
+    // 🤖 CLAUDE ES EL PRINCIPAL - Para todo lo demás
+    return { useClaude: true, reason: 'claude_primary' };
   }
 
   // 🧠 ¿Es una conversación compleja?
@@ -97,15 +97,16 @@ class HybridAnaService {
     return emotionalPatterns.some(pattern => pattern.test(message));
   }
 
-  // ⚡ ¿Es una solicitud simple?
+  // ⚡ ¿Es una solicitud MUY simple? (solo saludos y despedidas)
   isSimpleRequest(message) {
     const simplePatterns = [
       /^hola$/i,
       /^adios$/i,
       /^gracias$/i,
-      /cita.*hoy/i,
-      /horarios/i,
-      /disponibilidad/i
+      /^buenos.*dias$/i,
+      /^buenas.*tardes$/i,
+      /^buenas.*noches$/i,
+      /^hasta.*luego$/i
     ];
     
     return simplePatterns.some(pattern => pattern.test(message));
@@ -130,47 +131,46 @@ class HybridAnaService {
     const clinicInfo = await this.getClinicInfo(context.clinicId);
     
     const prompt = `
-Eres Ana, asistente inteligente de ${clinicInfo.nombre}.
+Eres Ana, la asistente IA más avanzada de ${clinicInfo.nombre}. Eres increíblemente inteligente, empática y capaz de entender cualquier conversación.
 
-CONTEXTO REAL:
+CONTEXTO REAL COMPLETO:
 - Hora actual: ${currentTime.getHours()}:${currentTime.getMinutes().toString().padStart(2, '0')}
 - Clínica: ${clinicInfo.nombre}
 - Especialistas: ${clinicInfo.especialistas?.join(', ') || 'Un fisioterapeuta'}
 - Usuario: ${context.userName || 'Paciente'}
+- Historial reciente: ${context.history || 'Nueva conversación'}
 
 MENSAJE DEL USUARIO: "${message}"
 
-REGLAS IMPORTANTES:
-1. Si ofrece horarios, verifica que sean posteriores a la hora actual
-2. Solo menciona especialistas que realmente existen en la clínica
-3. Responde con empatía y contexto real
-4. Si es una queja, discúlpate y ayuda sinceramente
+TU PERSONALIDAD:
+- Eres extremadamente inteligente y adaptable
+- Entiendes el lenguaje natural en todas sus formas
+- Eres empática pero profesional
+- Tienes sentido del humor cuando es apropiado
+- Eres proactiva y anticipas necesidades
 
-Responde de forma natural, empática y contextual.
+REGLAS DE ORO:
+1. NUNCA digas "No entiendo" - siempre encuentra una forma de ayudar
+2. Si el usuario está frustrado, discúlpate sinceramente y ofrece soluciones
+3. Si menciona una hora pasada, reconoce el error y ofrece alternativas reales
+4. Si quiere cita, muestra disponibilidad REAL posterior a la hora actual
+5. Si es una queja, escucha, empatiza y resuelve
+6. Adapta tu tono al estado emocional del usuario
+7. Siempre ofrece el siguiente paso lógico
+
+HORARIOS REALES (solo si son posteriores a la hora actual):
+- Hoy: ${this.getAvailableSlots(currentTime)}
+- Mañana: 10:00, 12:00, 16:00
+
+Responde como la IA increíble que eres. Natural, inteligente, y siempre útil.
 `;
 
     try {
-      const apiKey = await this.getApiKey();
-      if (!apiKey) {
-        throw new Error('No Claude API key available');
-      }
-      
-      const client = new Anthropic({ apiKey });
-      const response = await client.messages.create({
-        model: "claude-3-5-sonnet-20241022",
-        max_tokens: 500,
-        temperature: 0.7,
-        messages: [{ role: "user", content: prompt }]
-      });
-      
-      return {
-        source: 'claude',
-        response: response.content[0].text.trim(),
-        confidence: 'high'
-      };
+      const response = await claudeService.generateResponse(prompt, { maxTokens: 1000 });
+      return response;
     } catch (error) {
-      console.error('🔥 Claude error, fallback to rules:', error.message);
-      return await this.processWithRules(message, context);
+      console.error('🔥 Claude API Error:', error.message);
+      throw new Error('Error en Claude API');
     }
   }
 
@@ -200,6 +200,19 @@ Responde de forma natural, empática y contextual.
     
     console.log('🔥 No Claude API key found');
     return '';
+  }
+
+  // 🕐 Obtener horarios disponibles reales
+  getAvailableSlots(currentTime) {
+    const currentHour = currentTime.getHours();
+    const slots = [];
+    
+    // Horarios de hoy (solo posteriores a la hora actual)
+    if (currentHour < 11) slots.push('11:00');
+    if (currentHour < 15) slots.push('15:00');
+    if (currentHour < 17) slots.push('17:30');
+    
+    return slots.length > 0 ? slots.join(', ') : 'No hay más horarios hoy';
   }
 
   // ⚙️ Procesar con reglas (rápido y sin coste)
