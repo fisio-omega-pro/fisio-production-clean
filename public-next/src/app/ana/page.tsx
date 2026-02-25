@@ -13,24 +13,24 @@ declare global {
 function AnaChatContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  
+
   // Get clinicId from URL params - try multiple methods
   const getClinicId = () => {
     // Method 1: useSearchParams (Next.js way)
     const fromSearchParams = searchParams.get('ref');
     if (fromSearchParams) return fromSearchParams;
-    
+
     // Method 2: window.location (fallback)
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       const fromWindow = urlParams.get('ref');
       if (fromWindow) return fromWindow;
     }
-    
+
     // Method 3: hardcoded fallback for testing
     return 'bleRbykAj1TgF4lOYdMh'; // Test clinic ID
   };
-  
+
   const clinicId = getClinicId();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -40,7 +40,7 @@ function AnaChatContent() {
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [showForm, setShowForm] = useState(true);
-  
+
   // 🤖 Ana Profile State
   const [anaProfile, setAnaProfile] = useState({
     name: 'Ana',
@@ -58,7 +58,7 @@ function AnaChatContent() {
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
-    
+
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
@@ -72,14 +72,14 @@ function AnaChatContent() {
       if (manifestLink) {
         manifestLink.href = `/api/manifest?clinicId=${clinicId}`;
       }
-      
+
       // Also update for PWA install
       const updateManifest = async () => {
         try {
           const response = await fetch(`/api/manifest?clinicId=${clinicId}`);
           if (response.ok) {
             const manifestData = await response.json();
-            
+
             // Update theme color and icons dynamically
             if (manifestData.icons && manifestData.icons.length > 0) {
               // Update PWA icons if needed
@@ -90,7 +90,7 @@ function AnaChatContent() {
           console.error('Error updating manifest:', error);
         }
       };
-      
+
       updateManifest();
     }
   }, [clinicId]);
@@ -100,20 +100,20 @@ function AnaChatContent() {
       alert('Por favor, introduce tu nombre y email');
       return;
     }
-    
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(userEmail)) {
       alert('Por favor, introduce un email válido');
       return;
     }
-    
+
     // Add user message
     setMessages(prev => [...prev, {
       role: 'user',
       text: `Me llamo ${userName} y mi email es ${userEmail}`,
       timestamp: Date.now()
     }]);
-    
+
     // Add Ana response
     setMessages(prev => [...prev, {
       role: 'ana',
@@ -124,17 +124,17 @@ Toca el botón "Instalar app" que verás aquí abajo y se instalará automática
 Una vez instalada, podremos comunicarnos directamente y yo podré ayudarte mejor con tus citas y seguimiento.`,
       timestamp: Date.now()
     }]);
-    
+
     setUserRegistered(true);
     setShowForm(false);
   };
 
   const sendMessage = async () => {
     if (!input.trim() || isTyping || !userRegistered) return;
-    
+
     console.log('🔍 [ANA] clinicId value:', clinicId);
     console.log('🔍 [ANA] input value:', input);
-    
+
     if (!clinicId) {
       console.error('🔥 [ANA] No clinicId found!');
       setMessages(prev => [...prev, {
@@ -144,7 +144,7 @@ Una vez instalada, podremos comunicarnos directamente y yo podré ayudarte mejor
       }]);
       return;
     }
-    
+
     const userMessage = { role: 'user', text: input, timestamp: Date.now() };
     setMessages(prev => [...prev, userMessage]);
     const messageToSend = input;
@@ -152,20 +152,20 @@ Una vez instalada, podremos comunicarnos directamente y yo podré ayudarte mejor
     setIsTyping(true);
 
     try {
-      const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/public/ana-chat`;
+      const apiUrl = '/api/public/ana-chat';
       console.log('🔍 [ANA] API URL:', apiUrl);
       console.log('🔍 [ANA] Sending payload:', JSON.stringify({ message: messageToSend, clinicId }, null, 2));
-      
+
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: messageToSend, clinicId })
       });
-      
+
       console.log('🔍 [ANA] Response status:', response.status);
       const data = await response.json();
       console.log('🔍 [ANA] Response data:', data);
-      
+
       if (data.success) {
         setMessages(prev => [...prev, {
           role: 'ana',
@@ -191,13 +191,13 @@ Una vez instalada, podremos comunicarnos directamente y yo podré ayudarte mejor
       {/* Header - WhatsApp Style with Ana's Photo */}
       <div className="bg-[#075e54] px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={() => router.back()}
             className="text-white hover:bg-white/10 p-2 rounded-full transition-colors"
           >
             <ArrowLeft size={20} />
           </button>
-                    <div>
+          <div>
             <h1 className="text-white font-semibold">Ana</h1>
             <p className="text-xs text-green-300">Asistente de {clinicName || 'la clínica'}</p>
             <p className="text-xs text-green-200 flex items-center gap-1">
@@ -217,12 +217,12 @@ Una vez instalada, podremos comunicarnos directamente y yo podré ayudarte mejor
             <MoreVertical size={20} />
           </button>
         </div>
-        
+
         {/* Ana Profile Photo */}
         <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/30 shadow-lg">
-          <img 
-            src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face&auto=format" 
-            alt="Ana" 
+          <img
+            src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face&auto=format"
+            alt="Ana"
             className="w-full h-full object-cover"
             onError={(e) => {
               e.currentTarget.style.display = 'none';
@@ -239,15 +239,13 @@ Una vez instalada, podremos comunicarnos directamente y yo podré ayudarte mejor
       }}>
         {messages.map((msg, idx) => (
           <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[80%] rounded-2xl px-4 py-2 ${
-              msg.role === 'user' 
-                ? 'bg-[#dcf8c6] text-gray-800 rounded-br-sm' 
+            <div className={`max-w-[80%] rounded-2xl px-4 py-2 ${msg.role === 'user'
+                ? 'bg-[#dcf8c6] text-gray-800 rounded-br-sm'
                 : 'bg-white text-gray-800 rounded-bl-sm shadow-sm'
-            }`}>
-              <p className="text-sm">{msg.text}</p>
-              <p className={`text-xs mt-1 flex items-center gap-1 ${
-                msg.role === 'user' ? 'text-gray-500 justify-end' : 'text-gray-400'
               }`}>
+              <p className="text-sm">{msg.text}</p>
+              <p className={`text-xs mt-1 flex items-center gap-1 ${msg.role === 'user' ? 'text-gray-500 justify-end' : 'text-gray-400'
+                }`}>
                 {new Date(msg.timestamp).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
                 {msg.role === 'user' && <span className="text-blue-500">✓✓</span>}
               </p>
@@ -301,11 +299,11 @@ Una vez instalada, podremos comunicarnos directamente y yo podré ayudarte mejor
           <div className="flex items-center gap-2">
             <button className="text-gray-500 hover:text-gray-700 p-2">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M19.07 4.93c-3.9-3.91-10.24-3.91-14.14 0-3.91 3.9-3.91 10.24 0 14.14 3.9 3.91 10.24 3.91 14.14 0 3.91-3.9 3.91-10.24 0-14.14zm-1.41 12.73c-3.12 3.12-8.19 3.12-11.31 0-3.12-3.12-3.12-8.19 0-11.31 3.12-3.12 8.19-3.12 11.31 0 3.12 3.12 3.12 8.19 0 11.31z"/>
-                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.07 4.93c-3.9-3.91-10.24-3.91-14.14 0-3.91 3.9-3.91 10.24 0 14.14 3.9 3.91 10.24 3.91 14.14 0 3.91-3.9 3.91-10.24 0-14.14zm-1.41 12.73c-3.12 3.12-8.19 3.12-11.31 0-3.12-3.12-3.12-8.19 0-11.31 3.12-3.12 8.19-3.12 11.31 0 3.12 3.12 3.12 8.19 0 11.31z" />
+                <circle cx="12" cy="12" r="3" />
               </svg>
             </button>
-            
+
             <div className="flex-1 relative">
               <input
                 type="text"
@@ -317,31 +315,30 @@ Una vez instalada, podremos comunicarnos directamente y yo podré ayudarte mejor
               />
               <button className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                 </svg>
               </button>
             </div>
-            
+
             <button className="text-gray-500 hover:text-gray-700 p-2">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M2 17h20v2H2zm1.15-4.05L4 11.47l.85 1.48 1.3-.75-.85-1.48H7v-1.5H5.3l.85-1.48L4.85 7 4 8.47 3.15 7l-1.3.75.85 1.48H1v1.5h1.7l-.85 1.48 1.3.75zm6.7-.75l1.48.85 1.48-.85-.85-1.48H14v-1.5h-2.05l.85-1.48L11 7l-1.48 1.48L8.05 7l-1.3.75.85 1.48H5v1.5h2.05l-.85 1.48zm8 0l1.48.85 1.48-.85-.85-1.48H22v-1.5h-2.05l.85-1.48L19 7l-1.48 1.48L16.05 7l-1.3.75.85 1.48H13v1.5h2.05l-.85 1.48z"/>
+                <path d="M2 17h20v2H2zm1.15-4.05L4 11.47l.85 1.48 1.3-.75-.85-1.48H7v-1.5H5.3l.85-1.48L4.85 7 4 8.47 3.15 7l-1.3.75.85 1.48H1v1.5h1.7l-.85 1.48 1.3.75zm6.7-.75l1.48.85 1.48-.85-.85-1.48H14v-1.5h-2.05l.85-1.48L11 7l-1.48 1.48L8.05 7l-1.3.75.85 1.48H5v1.5h2.05l-.85 1.48zm8 0l1.48.85 1.48-.85-.85-1.48H22v-1.5h-2.05l.85-1.48L19 7l-1.48 1.48L16.05 7l-1.3.75.85 1.48H13v1.5h2.05l-.85 1.48z" />
               </svg>
             </button>
-            
+
             <button
               onClick={sendMessage}
               disabled={!input.trim() || isTyping}
-              className={`p-2 rounded-full transition ${
-                input.trim() && !isTyping 
-                  ? 'bg-[#0086ea] text-white hover:bg-[#007ab5]' 
+              className={`p-2 rounded-full transition ${input.trim() && !isTyping
+                  ? 'bg-[#0086ea] text-white hover:bg-[#007ab5]'
                   : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-              }`}
+                }`}
             >
               <Send size={20} />
             </button>
           </div>
-          
-                  </div>
+
+        </div>
       )}
     </div>
   );

@@ -23,7 +23,7 @@ export const StripeModal = ({ isOpen, onClose, clinicId, configStatus, userEmail
       console.log('🔍 [STRIPE] ClinicId:', clinicId);
       console.log('🔍 [STRIPE] ClinicId type:', typeof clinicId);
       console.log('🔍 [STRIPE] API URL:', `${process.env.NEXT_PUBLIC_API_BASE_URL}/vincular-banco-profesional`);
-      
+
       // Validar clinicId
       if (!clinicId || clinicId.trim() === '') {
         console.error('🔥 [STRIPE] ClinicId is empty!');
@@ -34,22 +34,22 @@ export const StripeModal = ({ isOpen, onClose, clinicId, configStatus, userEmail
 
       // Obtener email del usuario actual
       const userEmailFinal = userEmail || 'fisio@app.fisiotool.com';
-      
+
       // Forzar uso de ruta existente mientras se resuelve Connect
       console.log('🔄 [STRIPE] Usando ruta existente mientras se configura Connect...');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/dashboard/stripe-connect`, {
+      const response = await fetch('/api/dashboard/stripe-connect', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           ...(token && { 'Authorization': `Bearer ${token}` })
         },
         body: JSON.stringify({ clinicId: clinicId.trim() })
       });
-      
+
       console.log('🔍 [STRIPE] Response status:', response.status);
       const data = await response.json();
       console.log('🔍 [STRIPE] Response data:', data);
-      
+
       if (data.success && data.url) {
         // Redirigir a Stripe Connect
         window.location.href = data.url;
@@ -72,14 +72,14 @@ export const StripeModal = ({ isOpen, onClose, clinicId, configStatus, userEmail
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Conectar Cuenta Bancaria">
       <div className="flex flex-col gap-6 py-4 font-sans">
-        
+
         <div className="bg-green-600/5 p-4 rounded-2xl border border-green-500/20 flex gap-4 items-center">
-           <Shield size={24} className="text-green-500 flex-shrink-0" />
-           <p className="text-[11px] text-gray-400 leading-relaxed">
-             <strong>Stripe</strong> es la plataforma de pagos más segura del mundo.<br/>
-             Permite a tus clientes pagar con tarjeta, Bizum y transferencia.<br/>
-             Tú recibes el dinero directamente en tu cuenta bancaria.
-           </p>
+          <Shield size={24} className="text-green-500 flex-shrink-0" />
+          <p className="text-[11px] text-gray-400 leading-relaxed">
+            <strong>Stripe</strong> es la plataforma de pagos más segura del mundo.<br />
+            Permite a tus clientes pagar con tarjeta, Bizum y transferencia.<br />
+            Tú recibes el dinero directamente en tu cuenta bancaria.
+          </p>
         </div>
 
         {configStatus?.hasStripe ? (
@@ -89,7 +89,7 @@ export const StripeModal = ({ isOpen, onClose, clinicId, configStatus, userEmail
             <p className="text-green-300 text-sm mb-4">
               Tu cuenta Stripe está activa y lista para procesar pagos.
             </p>
-            <ActionButton 
+            <ActionButton
               onClick={onClose}
               style={{ background: '#10b981', color: '#fff' }}
             >
@@ -126,15 +126,15 @@ export const StripeModal = ({ isOpen, onClose, clinicId, configStatus, userEmail
             <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-4 flex gap-3 items-start">
               <AlertCircle size={16} className="text-yellow-500 flex-shrink-0 mt-0.5" />
               <p className="text-[10px] text-yellow-300 leading-relaxed">
-                <strong>Proceso de conexión:</strong><br/>
-                1. Serás redirigido a Stripe (seguro)<br/>
-                2. Crea tu cuenta o inicia sesión<br/>
-                3. Vincula tu cuenta bancaria<br/>
+                <strong>Proceso de conexión:</strong><br />
+                1. Serás redirigido a Stripe (seguro)<br />
+                2. Crea tu cuenta o inicia sesión<br />
+                3. Vincula tu cuenta bancaria<br />
                 4. Vuelve automáticamente aquí
               </p>
             </div>
 
-            <ActionButton 
+            <ActionButton
               onClick={handleConnectStripe}
               disabled={isConnecting}
               style={{ background: '#6366f1', color: '#fff' }}
