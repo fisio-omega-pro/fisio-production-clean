@@ -76,6 +76,37 @@ class ClaudeService {
     const currentMinute = timeMatch ? parseInt(timeMatch[2]) : new Date().getMinutes();
     console.log('🧠 [CLAUDE SIM] Hora actual:', `${currentHour}:${currentMinute}`);
     
+    // Detectar preguntas sobre huso horario (MÁXIMA PRIORIDAD)
+    if (lowerUserMessage.includes('huso horario') || 
+        lowerUserMessage.includes('zona horaria') ||
+        lowerUserMessage.includes('que hora es') ||
+        lowerUserMessage.includes('son las') && lowerUserMessage.includes('españa')) {
+      return `Trabajo con la hora local de España (Europa/Madrid). 
+
+Actualmente son las ${currentHour}:${currentMinute.toString().padStart(2, '0')} hora española.
+
+Mi sistema está configurado para usar siempre la hora de tu clínica en España para evitar confusiones con las citas.
+
+¿Necesitas ayuda con algo específico?
+
+Ana - Clínica Barcelona Prueba`;
+    }
+    
+    // Detectar preguntas directas (ALTA PRIORIDAD)
+    if (lowerUserMessage.includes('pregunta categorica') ||
+        lowerUserMessage.includes('responde') ||
+        lowerUserMessage.includes('pregunta directa') ||
+        lowerUserMessage.includes('contesta') ||
+        lowerUserMessage.includes('dime') && lowerUserMessage.includes('claro')) {
+      return `Entiendo que necesito responder directamente a tu pregunta.
+
+Soy Ana, asistente de Fisiotool, y estoy aquí para ayudarte con tus citas y necesidades de fisioterapia.
+
+¿Cuál es tu pregunta específica? Te responderé de forma clara y directa.
+
+Ana - Clínica Barcelona Prueba`;
+    }
+    
     // Detectar frustración o quejas (MÁXIMA PRIORIDAD)
     if (lowerUserMessage.includes('no me has respondido') || 
         lowerUserMessage.includes('respondido bien') ||
@@ -132,9 +163,17 @@ Ana - Clínica Barcelona Prueba`;
     }
     
         
-    // Detectar si menciona hora específica en el mensaje del usuario
+    // Detectar si menciona hora específica como CITA (no como información contextual)
     const userTimeMatch = lowerUserMessage.match(/(\d{1,2}):(\d{2})/);
-    if (userTimeMatch) {
+    if (userTimeMatch && 
+        (lowerUserMessage.includes('cita') || 
+         lowerUserMessage.includes('horario') || 
+         lowerUserMessage.includes('disponible') ||
+         lowerUserMessage.includes('quiero') ||
+         lowerUserMessage.includes('necesito') ||
+         lowerUserMessage.includes('reservar') ||
+         lowerUserMessage.includes('a las') && !lowerUserMessage.includes('son las'))) {
+      
       const hour = parseInt(userTimeMatch[1]);
       const minute = parseInt(userTimeMatch[2]);
       
