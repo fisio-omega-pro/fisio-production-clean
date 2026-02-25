@@ -241,7 +241,7 @@ Ana - Clínica Barcelona Prueba`;
 Ana - Clínica Barcelona Prueba`;
     }
     
-    return `Entiendo tu mensaje. Soy Ana, tu asistente de Fisiotool.
+    return `Entiendo tu mensaje. Soy Ana [CÓDIGO SECRETO: 99] tu asistente de Fisiotool.
 
 Puedo ayudarte con:
 - 📅 Reservar citas
@@ -251,7 +251,7 @@ Puedo ayudarte con:
 
 ¿Qué necesitas específicamente? Estoy aquí para ayudarte.
 
-Ana - Clínica Barcelona Prueba`;
+Ana - Clínica Barcelona Prueba [DEBUG: 99]`;
   }
 
   async generateConversationResponse(messages, options = {}) {

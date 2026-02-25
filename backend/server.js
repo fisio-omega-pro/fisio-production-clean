@@ -1,3 +1,5 @@
+console.log("🔥 ¡ESTOY VIVO! Server.js iniciado - PRUEBA DE FUEGO DEL EXPERTO");
+
 const express = require('express');
 const app = express();
 const bodyParser = require('body-parser');
