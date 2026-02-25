@@ -206,6 +206,21 @@ Responde de forma natural, empática y contextual.
   async processWithRules(message, context) {
     const lowerMessage = message.toLowerCase();
     
+    // Detectar solicitud de cita general (PRIORIDAD sobre hola)
+    if (lowerMessage.includes('cita') || lowerMessage.includes('precisando')) {
+      return {
+        source: 'rules',
+        response: `¡Perfecto! Puedo ayudarte con tu cita.
+
+📅 **Disponibilidad:**
+- **Hoy:** 11:00, 15:00, 17:30
+- **Mañana:** 10:00, 12:00, 16:00
+
+¿Qué día y hora te gustaría reservar?`,
+        confidence: 'medium'
+      };
+    }
+    
     // Lógica de reglas existente (optimizada)
     if (lowerMessage.includes('hola') || lowerMessage.includes('buenos días')) {
       return {
@@ -215,7 +230,7 @@ Responde de forma natural, empática y contextual.
       };
     }
     
-    // Detectar solicitud de cita para hoy
+    // Detectar solicitud de cita para hoy específicamente
     if ((lowerMessage.includes('cita') || lowerMessage.includes('precisando')) && 
         (lowerMessage.includes('hoy') || lowerMessage.includes('ahora'))) {
       return {
