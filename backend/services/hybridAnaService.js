@@ -117,10 +117,6 @@ class HybridAnaService {
     
     console.log(`🤖 [HYBRID] Decision: ${decision.useClaude ? 'Claude' : 'Rules'} (${decision.reason})`);
     
-    // TEMPORAL: Forzar reglas hasta que Claude API esté configurada
-    console.log('🤖 [HYBRID] Claude API not configured, using rules only');
-    return await this.processWithRules(message, context);
-    
     if (decision.useClaude) {
       return await this.processWithClaude(message, context);
     } else {
@@ -155,15 +151,21 @@ Responde de forma natural, empática y contextual.
 
     try {
       const apiKey = await this.getApiKey();
-      const response = await claudeService.generateResponse(prompt, {
-        maxTokens: 500,
+      if (!apiKey) {
+        throw new Error('No Claude API key available');
+      }
+      
+      const client = new Anthropic({ apiKey });
+      const response = await client.messages.create({
+        model: "claude-3-5-sonnet-20241022",
+        max_tokens: 500,
         temperature: 0.7,
-        apiKey: apiKey
+        messages: [{ role: "user", content: prompt }]
       });
       
       return {
         source: 'claude',
-        response: response.trim(),
+        response: response.content[0].text.trim(),
         confidence: 'high'
       };
     } catch (error) {
@@ -173,24 +175,31 @@ Responde de forma natural, empática y contextual.
   }
 
   async getApiKey() {
-    try {
-      const secretClient = new SecretManagerServiceClient();
-      const projectId = process.env.GOOGLE_CLOUD_PROJECT || 'fisio-production';
-      const name = `projects/${projectId}/secrets/ANTHROPIC_API_KEY/versions/latest`;
-      
-      const [version] = await secretClient.accessSecretVersion({ name });
-      const payload = version.payload.data.toString();
-      
-      return payload.trim();
-    } catch (error) {
-      console.error('🔥 Error getting Claude API key from Secret Manager:', error.message);
-      // Fallback to environment variable for local development
-      const envKey = process.env.ANTHROPIC_API_KEY;
-      if (envKey && envKey !== 'sk-ant-api03-REEMPLAZA-CON-TU-CLAVE-REAL') {
-        return envKey.trim();
-      }
-      return '';
+    // First try environment variable (Cloud Run)
+    const envKey = process.env.ANTHROPIC_API_KEY;
+    if (envKey && envKey !== 'sk-ant-api03-REEMPLAZA-CON-TU-CLAVE-REAL') {
+      console.log('� Using Claude API key from environment');
+      return envKey.trim();
     }
+    
+    // Then try Secret Manager
+    if (SecretManagerServiceClient) {
+      try {
+        const projectId = process.env.GOOGLE_CLOUD_PROJECT || 'fisio-production';
+        const name = `projects/${projectId}/secrets/ANTHROPIC_API_KEY/versions/latest`;
+        
+        const [version] = await new SecretManagerServiceClient().accessSecretVersion({ name });
+        const payload = version.payload.data.toString();
+        
+        console.log('🔑 Using Claude API key from Secret Manager');
+        return payload.trim();
+      } catch (error) {
+        console.error('🔥 Error getting Claude API key from Secret Manager:', error.message);
+      }
+    }
+    
+    console.log('🔥 No Claude API key found');
+    return '';
   }
 
   // ⚙️ Procesar con reglas (rápido y sin coste)
