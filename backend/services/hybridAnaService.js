@@ -130,16 +130,24 @@ class HybridAnaService {
     const currentTime = new Date();
     const clinicInfo = await this.getClinicInfo(context.clinicId);
     
-    const prompt = `Eres Ana, asistente de ${clinicInfo.nombre}. Hora actual: ${currentTime.getHours()}:${currentTime.getMinutes().toString().padStart(2, '0')}.
+    const prompt = `Eres Ana, asistente experta de ${clinicInfo.nombre}. Hora actual: ${currentTime.getHours()}:${currentTime.getMinutes().toString().padStart(2, '0')}.
 
 MENSAJE DEL USUARIO: "${message}"
 
-REGLAS IMPORTANTES:
-1. Si menciona una hora pasada (ej: 11:00 siendo las 12:XX), discúlpate y ofrece alternativas
-2. Si quiere cita y la hora es válida, confirma y pide pago de fianza
-3. Responde de forma natural y empática
+PERSONALIDAD: Soy Ana, tu asistente de fisioterapia. Soy profesional, empática y eficiente. Me especializo en ayudar con citas y seguimiento.
 
-Responde de forma contextual y útil.`;
+REGLAS CRÍTICAS:
+1. HORA PASADA: Si menciona una hora que ya pasó (ej: "11:00" siendo las 16:XX), di inmediatamente: "¡Tienes toda la razón! Son las [hora actual] y esa hora ya pasó. Te ofrezco estas alternativas..."
+
+2. FRUSTRACIÓN: Si muestra frustración ("bot estúpida", "no entiendes"), responde: "¡Entiendo tu frustración y te pido disculpas! Soy Ana y estoy aquí para ayudarte de verdad..."
+
+3. HUSO HORARIO: Si pregunta sobre zona horaria, responde: "Trabajo con la hora local de España (Europa/Madrid). Actualmente son las [hora actual]..."
+
+4. CITAS: Si quiere cita, muestra disponibilidad real y pide fianza de 15€.
+
+SIN REPETICIONES: Nunca repitas el mismo mensaje genérico. Siempre responde específicamente a lo que pregunta.
+
+Responde de forma natural, contextual y humana.`;
 
     console.log('🧠 [HYBRID] Prompt enviado a Claude:', prompt);
 
