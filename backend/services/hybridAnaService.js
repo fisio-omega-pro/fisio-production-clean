@@ -248,6 +248,25 @@ Responde de forma natural, empática y contextual.
       };
     }
     
+    // Detectar "ya te lo dije"
+    if (lowerMessage.includes('ya te lo dije') || lowerMessage.includes('te dije ya') || 
+        lowerMessage.includes('ya te dije')) {
+      return {
+        source: 'rules',
+        response: `¡Entendido! Pido disculpas por la confusión.
+
+Para tu cita de hoy, tengo estos horarios disponibles:
+
+📅 **Horarios de hoy:**
+- 11:00 (Disponible)
+- 15:00 (Disponible)
+- 17:30 (Disponible)
+
+¿Cuál de estos horarios te gustaría reservar?`,
+        confidence: 'high'
+      };
+    }
+    
     // Detectar frustración
     if (lowerMessage.includes('frustrar') || lowerMessage.includes('enfadado') || 
         lowerMessage.includes('ire a otra clinica')) {

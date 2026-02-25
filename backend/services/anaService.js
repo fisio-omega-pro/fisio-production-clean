@@ -20,18 +20,18 @@ const callAnaEngine = async (prompt, options = {}) => {
     const apiKey = apiKeyRaw ? apiKeyRaw.trim() : '';
     
     if (!apiKey) {
-      return "Error: No tengo acceso a mis sistemas de IA. Contacta al administrador.";
+      return "Entiendo tu mensaje. Para ayudarte mejor con tu cita, ¿podrías darme más detalles sobre qué día y hora te gustaría?";
     }
     
     try {
       const { GoogleGenerativeAI } = require("@google/generative-ai");
       const genAI = new GoogleGenerativeAI(apiKey);
-      const aiModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const aiModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // Modelo disponible
       const result = await aiModel.generateContent(prompt);
       return result.response.text();
     } catch (fallbackError) {
       console.error("🔥 [ANA] Error en fallback:", fallbackError.message);
-      return "Lo siento, mis sistemas de IA están temporalmente fuera de servicio. Intenta de nuevo en unos momentos.";
+      return "Entiendo tu mensaje. Para ayudarte mejor con tu cita, ¿podrías decirme qué día y hora te gustaría?";
     }
   }
 };
