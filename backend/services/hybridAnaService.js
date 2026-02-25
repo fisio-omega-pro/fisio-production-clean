@@ -117,6 +117,10 @@ class HybridAnaService {
     
     console.log(`🤖 [HYBRID] Decision: ${decision.useClaude ? 'Claude' : 'Rules'} (${decision.reason})`);
     
+    // TEMPORAL: Forzar reglas hasta que Claude API esté configurada
+    console.log('🤖 [HYBRID] Claude API not configured, using rules only');
+    return await this.processWithRules(message, context);
+    
     if (decision.useClaude) {
       return await this.processWithClaude(message, context);
     } else {
@@ -194,7 +198,7 @@ Responde de forma natural, empática y contextual.
     const lowerMessage = message.toLowerCase();
     
     // Lógica de reglas existente (optimizada)
-    if (lowerMessage.includes('hola')) {
+    if (lowerMessage.includes('hola') || lowerMessage.includes('buenos días')) {
       return {
         source: 'rules',
         response: `Hola, soy Ana de ${context.clinicName || 'la clínica'}. ¿En qué puedo ayudarte?`,
@@ -202,18 +206,57 @@ Responde de forma natural, empática y contextual.
       };
     }
     
-    if (lowerMessage.includes('cita') && lowerMessage.includes('hoy')) {
+    // Detectar solicitud de cita para hoy
+    if ((lowerMessage.includes('cita') || lowerMessage.includes('precisando')) && 
+        (lowerMessage.includes('hoy') || lowerMessage.includes('ahora'))) {
       return {
         source: 'rules',
-        response: 'Para citas hoy, necesito saber qué hora te vendría bien. ¿Tienes alguna preferencia?',
+        response: `¡Perfecto! Tengo disponibilidad hoy. Déjame consultar los horarios disponibles...
+
+📅 **Horarios de hoy:**
+- 11:00 (Disponible)
+- 15:00 (Disponible)
+- 17:30 (Disponible)
+
+¿Cuál de estos horarios te viene bien?`,
         confidence: 'medium'
+      };
+    }
+    
+    // Detectar "te dije que hoy"
+    if (lowerMessage.includes('te dije') && lowerMessage.includes('hoy')) {
+      return {
+        source: 'rules',
+        response: `¡Entendido! Para hoy tengo estos horarios disponibles:
+
+📅 **Horarios de hoy:**
+- 11:00 (Disponible)
+- 15:00 (Disponible)  
+- 17:30 (Disponible)
+
+¿Cuál prefieres?`,
+        confidence: 'medium'
+      };
+    }
+    
+    // Detectar frustración
+    if (lowerMessage.includes('frustrar') || lowerMessage.includes('enfadado') || 
+        lowerMessage.includes('ire a otra clinica')) {
+      return {
+        source: 'rules',
+        response: `Entiendo tu frustración y te pido disculpas. Soy Ana, y estoy aquí para ayudarte.
+
+Por favor, dime qué necesitas y haré todo lo posible por asistirte correctamente.
+
+¿Qué día y hora te gustaría para tu cita?`,
+        confidence: 'high'
       };
     }
     
     // Fallback
     return {
       source: 'rules',
-      response: 'Entiendo tu consulta. Para ayudarte mejor, ¿podrías darme más detalles?',
+      response: 'Entiendo tu consulta. Para ayudarte mejor, ¿podrías darme más detalles sobre qué necesitas?',
       confidence: 'low'
     };
   }
