@@ -1252,6 +1252,10 @@ const vincularBancoProfesional = async (req, res, next) => {
 // --- 🕐 PAYMENT REMINDERS ---
 const processPaymentReminders = async (req, res) => {
   try {
+    console.log('🚀 DEBUG: Request received for clinic:', req.body.clinicId, 'API_KEY_PRESENT:', !!process.env.ANTHROPIC_API_KEY);
+    console.log('🚀 DEBUG: Message:', req.body.message);
+    console.log('🚀 DEBUG: Headers:', JSON.stringify(req.headers, null, 2));
+    
     const { processPaymentReminders } = require('../services/paymentReminderService');
     const result = await processPaymentReminders();
     

@@ -216,6 +216,12 @@ const getClinicInfo = async (req, res) => {
 const anaChat = async (req, res) => {
   try {
     const { message, clinicId } = req.body || {};
+    
+    // 🚀 HARD-LOG DE ENTRADA (Experto recommendation)
+    console.log('🚀 DEBUG: Request received for clinic:', clinicId, 'API_KEY_PRESENT:', !!process.env.ANTHROPIC_API_KEY);
+    console.log('🚀 DEBUG: Message:', message);
+    console.log('🚀 DEBUG: Headers:', JSON.stringify(req.headers, null, 2));
+    
     if (!message || !clinicId) {
       return res.status(400).json({ success: false, error: 'Mensaje y clinicId requeridos' });
     }
@@ -239,6 +245,8 @@ const anaChat = async (req, res) => {
       clinicId
     });
 
+    console.log('🚀 DEBUG: Ana result:', response);
+    
     return res.json({ success: true, response });
   } catch (e) {
     console.error('🔥 [ANA CHAT] Full Error:', e);
