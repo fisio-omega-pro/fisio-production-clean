@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const clinicId = searchParams.get('clinicId');
-  
+
   if (!clinicId) {
     // Return default manifest if no clinic ID
     return new NextResponse(JSON.stringify({
@@ -39,11 +39,11 @@ export async function GET(request: NextRequest) {
 
   try {
     // Get clinic data to fetch logo
-    const clinicResponse = await fetch(`${process.env.API_BASE_URL}/api/public/clinic-info?clinicId=${clinicId}`);
-    
+    const clinicResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/public/clinic-info?clinicId=${clinicId}`);
+
     if (clinicResponse.ok) {
       const clinicData = await clinicResponse.json();
-      
+
       if (clinicData.success && clinicData.data?.logo_url) {
         // Return custom manifest with clinic logo
         return new NextResponse(JSON.stringify({

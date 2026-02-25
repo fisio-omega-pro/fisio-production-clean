@@ -13,8 +13,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Forward to backend
-    const backendUrl = 'https://fisio-backend-omega-740657183492.europe-west1.run.app/api/public/ana-chat';
-    
+    const { API_BASE_URL } = await import('@/lib/apiBase');
+    const backendUrl = `${API_BASE_URL}/api/public/ana-chat`;
+
     const response = await fetch(backendUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
