@@ -493,8 +493,12 @@ REGLAS:
         return hybridResult.response;
       }
       
-      // Si no, continuar con la lógica existente como fallback
-      console.log('🤖 [HYBRID] Fallback to existing logic');
+      // Si Claude dio respuesta, usarla (ESTO ES LO NUEVO)
+      if (hybridResult.source === 'claude') {
+        return hybridResult.response;
+      }
+      
+      console.log('🤖 [HYBRID] No response from hybrid, using fallback');
     } catch (error) {
       console.error('🔥 [HYBRID] Error, fallback to existing logic:', error.message);
     }

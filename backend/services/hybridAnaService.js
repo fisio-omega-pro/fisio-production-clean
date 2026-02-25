@@ -167,7 +167,11 @@ Responde como la IA increíble que eres. Natural, inteligente, y siempre útil.
 
     try {
       const response = await claudeService.generateResponse(prompt, { maxTokens: 1000 });
-      return response;
+      return {
+        source: 'claude',
+        response: response,
+        confidence: 'high'
+      };
     } catch (error) {
       console.error('🔥 Claude API Error:', error.message);
       throw new Error('Error en Claude API');
