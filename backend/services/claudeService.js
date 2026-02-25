@@ -37,6 +37,7 @@ class ClaudeService {
         return this._simulateClaudeResponse(prompt);
       }
       
+      console.log('🚀 Usando Claude API real con key:', apiKey.substring(0, 20) + '...');
       const client = new Anthropic({ apiKey });
       
       const message = await client.messages.create({
@@ -53,6 +54,7 @@ class ClaudeService {
       return message.content[0].text;
     } catch (error) {
       console.error('🔥 Claude API Error:', error.message);
+      console.error('🔥 Error completo:', error);
       // Fallback a simulación si falla la API
       console.log('🧪 Claude fallback a modo simulado');
       return this._simulateClaudeResponse(prompt);
