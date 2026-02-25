@@ -2,7 +2,7 @@
 steps:
   # Build the container image
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/fisiotool-pro-2026/fisio-backend:$COMMIT_SHA', '.']
+    args: ['build', '--no-cache', '-t', 'gcr.io/fisiotool-pro-2026/fisio-backend:$COMMIT_SHA', '.']
   
   # Push the container image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'
