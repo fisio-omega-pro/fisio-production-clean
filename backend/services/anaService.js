@@ -534,10 +534,52 @@ Puedo gestionar:
 ${anaName} - ${clinicName}`;
     }
     
+    // Handle short clarification questions
+    if (lowerMessage === 'como?' || lowerMessage === 'como' || lowerMessage === '¿como?' ||
+        lowerMessage === 'que?' || lowerMessage === 'que' || lowerMessage === '¿que?') {
+      const anaName = clinicConfig?.ana_profile?.name || 'Ana';
+      return `Soy ${anaName}, asistente de ${clinicName}.
+
+Puedo ayudarte con:
+- 📅 Reservar citas
+- 💳 Procesar pagos
+- 📋 Consultar disponibilidad
+- ℹ️ Explicar cómo funciona
+
+¿Qué necesitas saber?
+
+${anaName} - ${clinicName}`;
+    }
+    
+    // Handle payment explanation requests
+    if (lowerMessage.includes('explicar') || lowerMessage.includes('novedoso') || 
+        lowerMessage.includes('cómo actua') || lowerMessage.includes('cómo funciona') ||
+        lowerMessage.includes('entiendo') || lowerMessage.includes('dudas')) {
+      const anaName = clinicConfig?.ana_profile?.name || 'Ana';
+      return `Claro, te explico cómo funciona:
+
+📋 **Proceso de reserva:**
+1. **Confirmas la hora** ✅
+2. **Pagas la fianza** (20€) 💳
+3. **Tu cita queda reservada** 🎯
+
+💳 **Opciones de pago:**
+- **Bizum:** Envía 20€ al +34654654654
+- **Transferencia:** IBAN de la clínica
+- **Tarjeta:** Enlace online (si está disponible)
+
+🎯 **La fianza se descuenta del total de la sesión.**
+
+¿Qué método de pago prefieres usar?
+
+${anaName} - ${clinicName}`;
+    }
+    
     // Handle user complaints and frustration
     if (lowerMessage.includes('flipas') || lowerMessage.includes('porqueria') || 
         lowerMessage.includes('chatbot') || lowerMessage.includes('no terminas') ||
-        lowerMessage.includes('frases') || lowerMessage.includes('incompletas')) {
+        lowerMessage.includes('frases') || lowerMessage.includes('incompletas') ||
+        lowerMessage.includes('bloqueada') || lowerMessage.includes('mal servicio')) {
       const anaName = clinicConfig?.ana_profile?.name || 'Ana';
       return `Entiendo tu frustración y te pido disculpas. Soy ${anaName}, asistente de ${clinicName}.
 
@@ -550,7 +592,9 @@ ${anaName} - ${clinicName}`;
     
     // Handle time confirmation (when user responds with time after seeing options)
     if (lowerMessage.match(/^(\d{1,2})h?$/i) || lowerMessage.match(/^(\d{1,2}):(\d{2})$/i) || 
-        lowerMessage.includes('a las') && lowerMessage.match(/(\d{1,2})h?/i)) {
+        lowerMessage.includes('a las') && lowerMessage.match(/(\d{1,2})h?/i) ||
+        lowerMessage.includes('las') && lowerMessage.match(/(\d{1,2})h?/i) ||
+        lowerMessage.includes('genial') && lowerMessage.match(/(\d{1,2})h?/i)) {
       const timeMatch = lowerMessage.match(/(\d{1,2})h?|(\d{1,2}):(\d{2})/i);
       const hour = timeMatch[1] || timeMatch[2];
       const minute = timeMatch[3] || '00';
