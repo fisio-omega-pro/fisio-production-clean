@@ -275,6 +275,29 @@ Ana - Clínica Barcelona Prueba`,
       };
     }
     
+    // Detectar quejas sobre hora pasada (MÁXIMA PRIORIDAD sobre cita general)
+    if ((lowerMessage.includes('ya son las') || lowerMessage.includes('hora pasada') || 
+         lowerMessage.includes('como diantres') || lowerMessage.includes('mal configurada') ||
+         lowerMessage.includes('si son las') || lowerMessage.includes('son ya las') || 
+         lowerMessage.includes('y esta cita') || lowerMessage.includes('cita si son ya las')) &&
+        lowerMessage.includes('11')) {
+      return {
+        source: 'rules',
+        response: `¡Tienes toda la razón! Pido mil disculpas.
+
+Son las ${new Date().getHours()}:${new Date().getMinutes().toString().padStart(2, '0')} y ofrecerte una cita para las 11:00 no tiene sentido.
+
+📅 **Horarios disponibles AHORA:**
+- 15:00 (Disponible)
+- 17:30 (Disponible)
+
+¿Cuál de estos horarios te viene bien? Te ofrezco un 10% de descuento en la fianza por la molestia.
+
+Ana - Clínica Barcelona Prueba`,
+        confidence: 'high'
+      };
+    }
+    
     // Detectar solicitud de cita general (PRIORIDAD sobre hola)
     if (lowerMessage.includes('cita') || lowerMessage.includes('precisando')) {
       return {
@@ -404,28 +427,7 @@ Para tu cita de hoy, tengo estos horarios disponibles:
       };
     }
     
-    // Detectar quejas sobre hora pasada (incluyendo "a las 11? si son las 11:27")
-    if ((lowerMessage.includes('ya son las') || lowerMessage.includes('hora pasada') || 
-         lowerMessage.includes('como diantres') || lowerMessage.includes('mal configurada') ||
-         lowerMessage.includes('si son las') || lowerMessage.includes('son ya las')) &&
-        lowerMessage.includes('11')) {
-      return {
-        source: 'rules',
-        response: `¡Tienes toda la razón! Pido mil disculpas.
-
-Son las ${new Date().getHours()}:${new Date().getMinutes().toString().padStart(2, '0')} y ofrecerte una cita para las 11:00 no tiene sentido.
-
-📅 **Horarios disponibles AHORA:**
-- 15:00 (Disponible)
-- 17:30 (Disponible)
-
-¿Cuál de estos horarios te viene bien? Te ofrezco un 10% de descuento en la fianza por la molestia.
-
-Ana - Clínica Barcelona Prueba`,
-        confidence: 'high'
-      };
-    }
-    
+        
     // Detectar frustración por repetición
     if (lowerMessage.includes('otra vez') || lowerMessage.includes('de nuevo') || 
         lowerMessage.includes('otra vez') || lowerMessage.includes('repites')) {
