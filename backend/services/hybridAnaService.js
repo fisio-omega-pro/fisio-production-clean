@@ -263,6 +263,33 @@ Responde de forma natural, empática y contextual.
       };
     }
     
+    // Detectar selección de hora específica
+    if (lowerMessage.includes('hoy') && lowerMessage.match(/(\d{1,2}):(\d{2})/)) {
+      const timeMatch = lowerMessage.match(/(\d{1,2}):(\d{2})/);
+      const hour = timeMatch[1];
+      const minute = timeMatch[2];
+      const selectedTime = `${hour}:${minute}`;
+      
+      return {
+        source: 'rules',
+        response: `¡Perfecto! Tengo disponibilidad hoy a las ${selectedTime}.
+
+Para confirmar tu cita, necesito que pagues la fianza de 15€:
+
+📱 **Bizum:** Envía 15€ al +34600123456
+💳 **Tarjeta:** Te enviaré un enlace seguro para pagar
+
+📸 **IMPORTANTE:** Después de pagar, envíame:
+- Captura del Bizum ✅
+- O email de confirmación de pago ✅
+
+Una vez verificado el pago, tu cita quedará confirmada.
+
+Ana - Clínica Barcelona Prueba`,
+        confidence: 'high'
+      };
+    }
+    
     // Detectar "ya te lo dije"
     if (lowerMessage.includes('ya te lo dije') || lowerMessage.includes('te dije ya') || 
         lowerMessage.includes('ya te dije')) {
@@ -278,6 +305,27 @@ Para tu cita de hoy, tengo estos horarios disponibles:
 - 17:30 (Disponible)
 
 ¿Cuál de estos horarios te gustaría reservar?`,
+        confidence: 'high'
+      };
+    }
+    
+    // Detectar quejas sobre hora pasada
+    if ((lowerMessage.includes('ya son las') || lowerMessage.includes('hora pasada') || 
+         lowerMessage.includes('como diantres') || lowerMessage.includes('mal configurada')) &&
+        lowerMessage.includes('11')) {
+      return {
+        source: 'rules',
+        response: `¡Tienes toda la razón! Pido mil disculpas.
+
+Son las ${new Date().getHours()}:${new Date().getMinutes().toString().padStart(2, '0')} y offering una cita para las 11:00 no tiene sentido.
+
+📅 **Horarios disponibles AHORA:**
+- 15:00 (Disponible)
+- 17:30 (Disponible)
+
+¿Cuál de estos horarios te viene bien? Te ofrezco un 10% de descuento en la fianza por la molestia.
+
+Ana - Clínica Barcelona Prueba`,
         confidence: 'high'
       };
     }

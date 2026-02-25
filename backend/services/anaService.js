@@ -488,8 +488,8 @@ REGLAS:
         return hybridResult.response;
       }
       
-      // Si fue de reglas pero es simple, usarla
-      if (hybridResult.source === 'rules' && hybridResult.confidence === 'medium') {
+      // Si fue de reglas, usarla siempre
+      if (hybridResult.source === 'rules') {
         return hybridResult.response;
       }
       
