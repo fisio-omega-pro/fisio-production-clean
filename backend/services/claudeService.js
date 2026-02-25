@@ -72,6 +72,22 @@ class ClaudeService {
     const currentHour = timeMatch ? parseInt(timeMatch[1]) : new Date().getHours();
     const currentMinute = timeMatch ? parseInt(timeMatch[2]) : new Date().getMinutes();
     
+    // Detectar frustración o quejas (MÁXIMA PRIORIDAD)
+    if (lowerUserMessage.includes('no me has respondido') || 
+        lowerUserMessage.includes('respondido bien') ||
+        lowerUserMessage.includes('imbecil') ||
+        lowerUserMessage.includes('frustrado') ||
+        lowerUserMessage.includes('no funciona') ||
+        lowerUserMessage.includes('mal servicio')) {
+      return `¡Entiendo tu frustración y te pido mil disculpas!
+
+Soy Ana, y estoy aquí para ayudarte de verdad. Si no he respondido correctamente, es porque estoy aprendiendo a entender mejor tus necesidades.
+
+¿Qué necesitas específicamente? Te ayudaré de inmediato con tu cita o cualquier otra cosa.
+
+Ana - Clínica Barcelona Prueba`;
+    }
+    
     // Simulación inteligente basada en el mensaje del usuario
     if (lowerUserMessage.includes('cita') || lowerUserMessage.includes('necesito')) {
       return `¡Hola! Soy Ana de Fisiotool. Entiendo que necesitas una cita.
@@ -107,6 +123,7 @@ Si necesitas cualquier otra cosa, no dudes en preguntarme. ¡Tu bienestar es mi 
 Ana - Clínica Barcelona Prueba`;
     }
     
+        
     // Detectar si menciona hora específica en el mensaje del usuario
     const userTimeMatch = lowerUserMessage.match(/(\d{1,2}):(\d{2})/);
     if (userTimeMatch) {
