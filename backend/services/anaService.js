@@ -647,20 +647,37 @@ ${anaName} - ${clinicName}`;
         lowerMessage.includes('a las') && lowerMessage.match(/(\d{1,2})h?/i) ||
         lowerMessage.includes('las') && lowerMessage.match(/(\d{1,2})h?/i) ||
         lowerMessage.includes('genial') && lowerMessage.match(/(\d{1,2})h?/i)) {
-      const timeMatch = lowerMessage.match(/(\d{1,2})h?|(\d{1,2}):(\d{2})/i);
-      const hour = timeMatch[1] || timeMatch[2];
-      const minute = timeMatch[3] || '00';
-      const requestedTime = `${hour}:${minute}`;
+      
+      // Find ALL time mentions in the message
+      const allTimeMatches = lowerMessage.match(/(\d{1,2})h?|(\d{1,2}):(\d{2})/g) || [];
+      
+      // For contextual responses like "me quedo con la 11", find the LAST mentioned time
+      let requestedTime = null;
+      if (allTimeMatches.length > 0) {
+        const lastMatch = allTimeMatches[allTimeMatches.length - 1];
+        const timeParts = lastMatch.match(/(\d{1,2})h?|(\d{1,2}):(\d{2})/);
+        const hour = timeParts[1] || timeParts[2];
+        const minute = timeParts[3] || '00';
+        requestedTime = `${hour}:${minute}`;
+      }
+      
+      if (!requestedTime) {
+        // Fallback to first match if no specific logic
+        const timeMatch = lowerMessage.match(/(\d{1,2})h?|(\d{1,2}):(\d{2})/i);
+        const hour = timeMatch[1] || timeMatch[2];
+        const minute = timeMatch[3] || '00';
+        requestedTime = `${hour}:${minute}`;
+      }
       
       // Assume today for time confirmation
       const today = new Date();
       const todayStr = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
       
       // Check availability
-      const availability = await checkAvailability('bleRbykAj1TgF4lOYdMh', todayStr, requestedTime);
+      const availability = await checkAvailability(clinicId, todayStr, requestedTime);
       
       if (availability.available) {
-        const clinicConfig = await getClinicConfiguration('bleRbykAj1TgF4lOYdMh');
+        const clinicConfig = await getClinicConfiguration(clinicId);
         const anaName = clinicConfig?.ana_profile?.name || 'Ana';
         
         let paymentOptions = `¡Perfecto! Tengo disponibilidad hoy a las ${requestedTime}.\n\n`;
