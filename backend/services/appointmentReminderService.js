@@ -89,6 +89,7 @@ const scheduleAppointmentReminders = async (appointmentId, clinicId, patientEmai
         type: '4h',
         time: new Date(appointmentDateTime.getTime() - 4 * 60 * 60 * 1000),
         message: `Tu cita de fisioterapia es en 4 horas a las ${appointmentDateTime.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}.`,
+        subject: null,
         sendEmail: false,
         sendPush: true
       },
@@ -96,6 +97,7 @@ const scheduleAppointmentReminders = async (appointmentId, clinicId, patientEmai
         type: '1h',
         time: new Date(appointmentDateTime.getTime() - 1 * 60 * 60 * 1000),
         message: `Tu cita de fisioterapia es en 1 hora a las ${appointmentDateTime.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}.`,
+        subject: null,
         sendEmail: false,
         sendPush: true
       },
@@ -103,6 +105,7 @@ const scheduleAppointmentReminders = async (appointmentId, clinicId, patientEmai
         type: '15m',
         time: new Date(appointmentDateTime.getTime() - 15 * 60 * 1000),
         message: `¡Tu cita es en 15 minutos! Te esperamos en ${clinicName}.`,
+        subject: null,
         sendEmail: false,
         sendPush: true
       }

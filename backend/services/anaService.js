@@ -170,7 +170,7 @@ ${alternatives}
         // Check next day
         const tomorrow = new Date(requestedDate);
         tomorrow.setDate(tomorrow.getDate() + 1);
-        const tomorrowStr = tomorrow.toISOString().split('T')[0];
+        const tomorrowStr = `${tomorrow.getDate().toString().padStart(2, '0')}/${(tomorrow.getMonth() + 1).toString().padStart(2, '0')}/${tomorrow.getFullYear()}`;
         
         const tomorrowSlots = await db.collection('agenda')
           .where('clinic_id', '==', clinicId)
@@ -516,7 +516,7 @@ ${anaName} - ${clinicName}`;
     if (lowerMessage.includes('cita') || lowerMessage.includes('hora') || lowerMessage.includes('disponibilidad')) {
       
       // Extraer información de la solicitud
-      const dateMatch = message.match(/(\d{1,2})[\/\-](\d{1,2})|hoy|mañana|lunes|martes|miércoles|jueves|viernes|sábado|domingo/i);
+      const dateMatch = message.match(/(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?|hoy|mañana|lunes|martes|miércoles|jueves|viernes|sábado|domingo/i);
       const timeMatch = message.match(/(\d{1,2}):(\d{2})|(\d{1,2})\s*hs?/i);
       
       if (dateMatch && timeMatch) {
@@ -544,14 +544,23 @@ ${anaName} - ${clinicName}`;
           
           if (paymentLink.url) {
             const anaName = clinicConfig?.ana_profile?.name || 'Ana';
-            return `Perfecto! Tengo disponibilidad el ${requestedDate} a las ${requestedTime}.
-
-Para confirmar, paga la fianza de ${clinicConfig?.fianza_cita || 20}€ aquí:
-${paymentLink.url}
-
-Una vez pagado, tu cita quedará confirmada automáticamente.
-
-${anaName} - ${clinicName}`;
+            const paymentMethods = clinicConfig?.metodos_pago || ['tarjeta', 'bizum', 'transferencia'];
+            
+            let paymentOptions = `Para confirmar, paga la fianza de ${clinicConfig?.fianza_cita || 20}€:\n\n`;
+            paymentOptions += `💳 **Tarjeta/Online:** ${paymentLink.url}\n\n`;
+            
+            if (paymentMethods.includes('bizum')) {
+              const clinicPhone = clinicConfig?.telefono || 'el número de teléfono de la clínica';
+              paymentOptions += `📱 **Bizum:** Envía ${clinicConfig?.fianza_cita || 20}€ al ${clinicPhone}\n\n`;
+            }
+            
+            if (paymentMethods.includes('transferencia')) {
+              paymentOptions += `🏦 **Transferencia:** IBAN de la clínica (concepto: "Fianza ${requestedDate} ${requestedTime}")\n\n`;
+            }
+            
+            paymentOptions += `Una vez confirmado el pago, tu cita quedará reservada.\n\n${anaName} - ${clinicName}`;
+            
+            return paymentOptions;
           } else {
             const anaName = clinicConfig?.ana_profile?.name || 'Ana';
             return `Tengo disponibilidad el ${requestedDate} a las ${requestedTime}, pero ha habido un problema con el pago. Por favor, intenta de nuevo o llama a la clínica.
