@@ -561,12 +561,16 @@ ${anaName} - ${clinicName}`;
 📋 **Proceso de reserva:**
 1. **Confirmas la hora** ✅
 2. **Pagas la fianza** (20€) 💳
-3. **Tu cita queda reservada** 🎯
+3. **Envías justificante** 📸
+4. **Tu cita queda confirmada** 🎯
 
 💳 **Opciones de pago:**
 - **Bizum:** Envía 20€ al +34654654654
-- **Transferencia:** IBAN de la clínica
-- **Tarjeta:** Enlace online (si está disponible)
+- **Tarjeta:** Enlace online seguro
+
+📸 **IMPORTANTE:** Después de pagar, envía:
+- Captura del Bizum ✅
+- O email de confirmación de Stripe ✅
 
 🎯 **La fianza se descuenta del total de la sesión.**
 
@@ -614,18 +618,21 @@ ${anaName} - ${clinicName}`;
         let paymentOptions = `¡Perfecto! Tengo disponibilidad hoy a las ${requestedTime}.\n\n`;
         paymentOptions += `Para confirmar, paga la fianza de ${clinicConfig?.fianza_cita || 20}€:\n\n`;
         
-        const paymentMethods = clinicConfig?.metodos_pago || ['tarjeta', 'bizum', 'transferencia'];
+        const paymentMethods = clinicConfig?.metodos_pago || ['tarjeta', 'bizum'];
         
         if (paymentMethods.includes('bizum')) {
           const clinicPhone = clinicConfig?.telefono || 'el número de teléfono de la clínica';
           paymentOptions += `📱 **Bizum:** Envía ${clinicConfig?.fianza_cita || 20}€ al ${clinicPhone}\n\n`;
         }
         
-        if (paymentMethods.includes('transferencia')) {
-          paymentOptions += `🏦 **Transferencia:** IBAN de la clínica (concepto: "Fianza hoy ${requestedTime}")\n\n`;
+        if (paymentMethods.includes('tarjeta')) {
+          paymentOptions += `💳 **Tarjeta:** Te enviaré un enlace seguro para pagar\n\n`;
         }
         
-        paymentOptions += `Una vez confirmado el pago, tu cita quedará reservada.\n\n${anaName} - Prueba`;
+        paymentOptions += `📸 **IMPORTANTE:** Después de pagar, envíame:\n`;
+        paymentOptions += `- Captura del Bizum ✅\n`;
+        paymentOptions += `- O email de confirmación de pago ✅\n\n`;
+        paymentOptions += `Una vez verificado el pago, tu cita quedará confirmada.\n\n${anaName} - ${clinicName}`;
         
         return paymentOptions;
       } else {
@@ -743,7 +750,7 @@ ${anaName} - ${clinicName}`;
           );
           
           const anaName = clinicConfig?.ana_profile?.name || 'Ana';
-          const paymentMethods = clinicConfig?.metodos_pago || ['tarjeta', 'bizum', 'transferencia'];
+          const paymentMethods = clinicConfig?.metodos_pago || ['tarjeta', 'bizum'];
           
           let paymentOptions = `Perfecto! Tengo disponibilidad el ${requestedDate} a las ${requestedTime}.\n\n`;
           paymentOptions += `Para confirmar, paga la fianza de ${clinicConfig?.fianza_cita || 20}€:\n\n`;
@@ -757,11 +764,10 @@ ${anaName} - ${clinicName}`;
             paymentOptions += `📱 **Bizum:** Envía ${clinicConfig?.fianza_cita || 20}€ al ${clinicPhone}\n\n`;
           }
           
-          if (paymentMethods.includes('transferencia')) {
-            paymentOptions += `🏦 **Transferencia:** IBAN de la clínica (concepto: "Fianza ${requestedDate} ${requestedTime}")\n\n`;
-          }
-          
-          paymentOptions += `Una vez confirmado el pago, tu cita quedará reservada.\n\n${anaName} - ${clinicName}`;
+          paymentOptions += `📸 **IMPORTANTE:** Después de pagar, envíame:\n`;
+          paymentOptions += `- Captura del Bizum ✅\n`;
+          paymentOptions += `- O email de confirmación de pago ✅\n\n`;
+          paymentOptions += `Una vez verificado el pago, tu cita quedará confirmada.\n\n${anaName} - ${clinicName}`;
           
           return paymentOptions;
         } else {
