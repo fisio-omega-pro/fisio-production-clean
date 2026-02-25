@@ -383,9 +383,10 @@ Para tu cita de hoy, tengo estos horarios disponibles:
       };
     }
     
-    // Detectar quejas sobre hora pasada
+    // Detectar quejas sobre hora pasada (incluyendo "a las 11? si son las 11:27")
     if ((lowerMessage.includes('ya son las') || lowerMessage.includes('hora pasada') || 
-         lowerMessage.includes('como diantres') || lowerMessage.includes('mal configurada')) &&
+         lowerMessage.includes('como diantres') || lowerMessage.includes('mal configurada') ||
+         lowerMessage.includes('si son las')) &&
         lowerMessage.includes('11')) {
       return {
         source: 'rules',
@@ -398,6 +399,30 @@ Son las ${new Date().getHours()}:${new Date().getMinutes().toString().padStart(2
 - 17:30 (Disponible)
 
 ¿Cuál de estos horarios te viene bien? Te ofrezco un 10% de descuento en la fianza por la molestia.
+
+Ana - Clínica Barcelona Prueba`,
+        confidence: 'high'
+      };
+    }
+    
+    // Detectar frustración por repetición
+    if (lowerMessage.includes('otra vez') || lowerMessage.includes('de nuevo') || 
+        lowerMessage.includes('otra vez') || lowerMessage.includes('repites')) {
+      return {
+        source: 'rules',
+        response: `¡Entiendo tu frustración! Pido disculpas por repetirme.
+
+Te ofrezco directamente los horarios disponibles:
+
+📅 **Horarios de hoy:**
+- 15:00 (Disponible)
+- 17:30 (Disponible)
+
+📅 **Mañana:**
+- 10:00 (Disponible)
+- 12:00 (Disponible)
+
+¿Cuál de estos horarios te gustaría reservar? Te confirmo la cita al momento.
 
 Ana - Clínica Barcelona Prueba`,
         confidence: 'high'
