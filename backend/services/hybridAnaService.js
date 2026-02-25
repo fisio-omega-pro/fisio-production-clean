@@ -255,6 +255,26 @@ Ana - Clínica Barcelona Prueba`,
       };
     }
     
+    // Detectar "cita no procede" o rechazo de hora (MÁXIMA PRIORIDAD)
+    if (lowerMessage.includes('cita no procede') || lowerMessage.includes('no procede') ||
+        lowerMessage.includes('no me sirve') || lowerMessage.includes('no quiero')) {
+      return {
+        source: 'rules',
+        response: `¡Entendido! Si la hora de 11:00 no te viene bien, te ofrezco estas alternativas:
+
+📅 **Horarios disponibles hoy:**
+- 15:00 (Disponible)
+- 17:30 (Disponible)
+
+📅 **Mañana:**
+- 10:00 (Disponible)
+- 12:00 (Disponible)
+
+¿Cuál de estas opciones te gustaría reservar?`,
+        confidence: 'high'
+      };
+    }
+    
     // Detectar solicitud de cita general (PRIORIDAD sobre hola)
     if (lowerMessage.includes('cita') || lowerMessage.includes('precisando')) {
       return {
@@ -364,6 +384,7 @@ Ana - Clínica Barcelona Prueba`,
       };
     }
     
+        
     // Detectar "ya te lo dije"
     if (lowerMessage.includes('ya te lo dije') || lowerMessage.includes('te dije ya') || 
         lowerMessage.includes('ya te dije')) {
