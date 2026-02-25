@@ -4,6 +4,7 @@ const { db, Timestamp } = require('../config/firebase');
 const { schedulePaymentReminder } = require('./paymentReminderService');
 const { scheduleAppointmentReminders } = require('./appointmentReminderService');
 const claudeService = require('./claudeService');
+const hybridAnaService = require('./hybridAnaService');
 
 const callAnaEngine = async (prompt, options = {}) => {
   try {
@@ -470,6 +471,33 @@ REGLAS:
   // --- 🤖 ANA CHAT PÚBLICO (para pacientes) ---
   generatePatientResponse: async ({ message, clinicName, clinicId }) => {
     const lowerMessage = String(message || '').toLowerCase();
+    
+    // 🚀 PRIMERO: Sistema híbrido inteligente
+    try {
+      const hybridResult = await hybridAnaService.processMessage(message, {
+        clinicId,
+        clinicName,
+        userName: 'Paciente', // Esto debería extraerse de la conversación
+        currentTime: new Date()
+      });
+      
+      console.log(`🤖 [HYBRID] Response from: ${hybridResult.source}`);
+      
+      // Si Claude dio una respuesta de alta confianza, usarla
+      if (hybridResult.source === 'claude' && hybridResult.confidence === 'high') {
+        return hybridResult.response;
+      }
+      
+      // Si fue de reglas pero es simple, usarla
+      if (hybridResult.source === 'rules' && hybridResult.confidence === 'medium') {
+        return hybridResult.response;
+      }
+      
+      // Si no, continuar con la lógica existente como fallback
+      console.log('🤖 [HYBRID] Fallback to existing logic');
+    } catch (error) {
+      console.error('🔥 [HYBRID] Error, fallback to existing logic:', error.message);
+    }
     
     // Get clinic configuration for intelligent responses
     const clinicConfig = await getClinicConfiguration(clinicId);
