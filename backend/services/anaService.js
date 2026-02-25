@@ -3,61 +3,35 @@ const { createOneTimePaymentSession } = require('./paymentService');
 const { db, Timestamp } = require('../config/firebase');
 const { schedulePaymentReminder } = require('./paymentReminderService');
 const { scheduleAppointmentReminders } = require('./appointmentReminderService');
+const claudeService = require('./claudeService');
 
 const callAnaEngine = async (prompt, options = {}) => {
-  const env = await initEnv();
-  const apiKeyRaw = env.GOOGLE_AI_KEY;
-  const apiKey = apiKeyRaw ? apiKeyRaw.trim() : '';
-  const model = env.GOOGLE_AI_MODEL;
-
-  if (!apiKey) {
-    return "Error: No tengo acceso a mi llave maestra. Revisa GOOGLE_AI_KEY en el Búnker.";
-  }
-
-  if (!model) {
-    throw new Error('Falta GOOGLE_AI_MODEL en env');
-  }
-
-  const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
-
-  const body = {
-    contents: [{ role: "user", parts: [{ text: prompt }] }],
-    ...(options?.maxOutputTokens != null && { generationConfig: { maxOutputTokens: options.maxOutputTokens } })
-  };
-
   try {
-    console.log("🤖 [ANA] Enviando prompt a Google AI...");
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-
-    const responseText = await response.text();
-    console.log("🤖 [ANA] Respuesta cruda:", responseText.substring(0, 200));
-
-    let data;
-    try {
-      data = JSON.parse(responseText);
-    } catch (parseError) {
-      console.error("🔥 [ANA] Error parseando JSON:", parseError);
-      return "Lo siento, he tenido un problema técnico. Por favor, llama a la clínica.";
-    }
-
-    if (!response.ok) {
-      console.error("🔥 Error de Google API:", data);
-      if (data.error?.message?.includes('quota') || data.error?.message?.includes('limit')) {
-        return "Lo siento, he alcanzado mi límite de consultas. Por favor, llama directamente a la clínica.";
-      }
-      throw new Error(`Fallo de conexión: ${data.error?.message}`);
-    }
-
-    const result = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sin respuesta.";
-    console.log("🤖 [ANA] Resultado final:", result.substring(0, 100));
-    return result;
+    console.log("🤖 [ANA] Enviando prompt a Claude...");
+    const response = await claudeService.generateResponse(prompt, options);
+    console.log("🤖 [ANA] Respuesta de Claude:", response);
+    return response;
   } catch (error) {
-    console.error("🔥 [ANA] Error completo:", error);
-    return "Lo siento, he tenido un problema técnico. Por favor, llama directamente a la clínica.";
+    console.error("🔥 [ANA] Error en Claude:", error.message);
+    // Fallback a Google AI si Claude falla
+    const env = await initEnv();
+    const apiKeyRaw = env.GOOGLE_AI_KEY;
+    const apiKey = apiKeyRaw ? apiKeyRaw.trim() : '';
+    
+    if (!apiKey) {
+      return "Error: No tengo acceso a mis sistemas de IA. Contacta al administrador.";
+    }
+    
+    try {
+      const { GoogleGenerativeAI } = require("@google/generative-ai");
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const aiModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const result = await aiModel.generateContent(prompt);
+      return result.response.text();
+    } catch (fallbackError) {
+      console.error("🔥 [ANA] Error en fallback:", fallbackError.message);
+      return "Lo siento, mis sistemas de IA están temporalmente fuera de servicio. Intenta de nuevo en unos momentos.";
+    }
   }
 };
 
