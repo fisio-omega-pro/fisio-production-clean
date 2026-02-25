@@ -534,6 +534,66 @@ Puedo gestionar:
 ${anaName} - ${clinicName}`;
     }
     
+    // Handle user complaints and frustration
+    if (lowerMessage.includes('flipas') || lowerMessage.includes('porqueria') || 
+        lowerMessage.includes('chatbot') || lowerMessage.includes('no terminas') ||
+        lowerMessage.includes('frases') || lowerMessage.includes('incompletas')) {
+      const anaName = clinicConfig?.ana_profile?.name || 'Ana';
+      return `Entiendo tu frustración y te pido disculpas. Soy ${anaName}, asistente de ${clinicName}.
+
+Estoy aquí para ayudarte con tus citas y pagos. Si algo no funciona correctamente, por favor dime exactamente qué necesitas y te ayudaré de inmediato.
+
+¿En qué puedo ayudarte ahora?
+
+${anaName} - ${clinicName}`;
+    }
+    
+    // Handle time confirmation (when user responds with time after seeing options)
+    if (lowerMessage.match(/^(\d{1,2})h?$/i) || lowerMessage.match(/^(\d{1,2}):(\d{2})$/i) || 
+        lowerMessage.includes('a las') && lowerMessage.match(/(\d{1,2})h?/i)) {
+      const timeMatch = lowerMessage.match(/(\d{1,2})h?|(\d{1,2}):(\d{2})/i);
+      const hour = timeMatch[1] || timeMatch[2];
+      const minute = timeMatch[3] || '00';
+      const requestedTime = `${hour}:${minute}`;
+      
+      // Assume today for time confirmation
+      const today = new Date();
+      const todayStr = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
+      
+      // Check availability
+      const availability = await checkAvailability('bleRbykAj1TgF4lOYdMh', todayStr, requestedTime);
+      
+      if (availability.available) {
+        const clinicConfig = await getClinicConfiguration('bleRbykAj1TgF4lOYdMh');
+        const anaName = clinicConfig?.ana_profile?.name || 'Ana';
+        
+        let paymentOptions = `¡Perfecto! Tengo disponibilidad hoy a las ${requestedTime}.\n\n`;
+        paymentOptions += `Para confirmar, paga la fianza de ${clinicConfig?.fianza_cita || 20}€:\n\n`;
+        
+        const paymentMethods = clinicConfig?.metodos_pago || ['tarjeta', 'bizum', 'transferencia'];
+        
+        if (paymentMethods.includes('bizum')) {
+          const clinicPhone = clinicConfig?.telefono || 'el número de teléfono de la clínica';
+          paymentOptions += `📱 **Bizum:** Envía ${clinicConfig?.fianza_cita || 20}€ al ${clinicPhone}\n\n`;
+        }
+        
+        if (paymentMethods.includes('transferencia')) {
+          paymentOptions += `🏦 **Transferencia:** IBAN de la clínica (concepto: "Fianza hoy ${requestedTime}")\n\n`;
+        }
+        
+        paymentOptions += `Una vez confirmado el pago, tu cita quedará reservada.\n\n${anaName} - Prueba`;
+        
+        return paymentOptions;
+      } else {
+        const anaName = clinicConfig?.ana_profile?.name || 'Ana';
+        return `Lo siento, ya no tengo disponibilidad hoy a las ${requestedTime}.
+
+¿Te gustaría otro horario?
+
+${anaName} - Prueba`;
+      }
+    }
+    
     // Respuestas inteligentes para citas
     if (lowerMessage.includes('cita') || lowerMessage.includes('hora') || lowerMessage.includes('disponibilidad')) {
       
