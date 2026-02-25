@@ -141,8 +141,11 @@ REGLAS IMPORTANTES:
 
 Responde de forma contextual y útil.`;
 
+    console.log('🧠 [HYBRID] Prompt enviado a Claude:', prompt);
+
     try {
       const response = await claudeService.generateResponse(prompt, { maxTokens: 1000 });
+      console.log('🧠 [HYBRID] Respuesta cruda Claude:', response);
       return {
         source: 'claude',
         response: response,

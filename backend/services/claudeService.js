@@ -63,14 +63,18 @@ class ClaudeService {
     const lowerPrompt = prompt.toLowerCase();
     
     // Extraer mensaje del usuario del prompt
+    console.log('🧠 [CLAUDE SIM] Prompt completo:', prompt);
     const userMessageMatch = prompt.match(/MENSAJE DEL USUARIO: "([^"]+)"/);
+    console.log('🧠 [CLAUDE SIM] Match:', userMessageMatch);
     const userMessage = userMessageMatch ? userMessageMatch[1] : prompt;
+    console.log('🧠 [CLAUDE SIM] UserMessage extraído:', userMessage);
     const lowerUserMessage = userMessage.toLowerCase();
     
     // Extraer hora actual del prompt
     const timeMatch = prompt.match(/Hora actual: (\d{1,2}):(\d{2})/);
     const currentHour = timeMatch ? parseInt(timeMatch[1]) : new Date().getHours();
     const currentMinute = timeMatch ? parseInt(timeMatch[2]) : new Date().getMinutes();
+    console.log('🧠 [CLAUDE SIM] Hora actual:', `${currentHour}:${currentMinute}`);
     
     // Detectar frustración o quejas (MÁXIMA PRIORIDAD)
     if (lowerUserMessage.includes('no me has respondido') || 
@@ -78,7 +82,11 @@ class ClaudeService {
         lowerUserMessage.includes('imbecil') ||
         lowerUserMessage.includes('frustrado') ||
         lowerUserMessage.includes('no funciona') ||
-        lowerUserMessage.includes('mal servicio')) {
+        lowerUserMessage.includes('mal servicio') ||
+        lowerUserMessage.includes('bot') ||
+        lowerUserMessage.includes('estupido') ||
+        lowerUserMessage.includes('no entiendes') ||
+        lowerUserMessage.includes('no me entiendes')) {
       return `¡Entiendo tu frustración y te pido mil disculpas!
 
 Soy Ana, y estoy aquí para ayudarte de verdad. Si no he respondido correctamente, es porque estoy aprendiendo a entender mejor tus necesidades.

@@ -482,6 +482,8 @@ REGLAS:
       });
       
       console.log(`🤖 [HYBRID] Response from: ${hybridResult.source}`);
+      console.log('🔥 [ANA SERVICE] Hybrid result completo:', hybridResult);
+      console.log('🔥 [ANA SERVICE] Tipo:', typeof hybridResult);
       
       // Si Claude dio una respuesta de alta confianza, usarla
       if (hybridResult.source === 'claude' && hybridResult.confidence === 'high') {
