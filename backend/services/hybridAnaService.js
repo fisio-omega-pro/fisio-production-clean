@@ -206,6 +206,55 @@ Responde de forma natural, empática y contextual.
   async processWithRules(message, context) {
     const lowerMessage = message.toLowerCase();
     
+    // Detectar selección de hora específica (15:00) - MÁXIMA PRIORIDAD
+    if ((lowerMessage.includes('15') || lowerMessage.includes('quince')) && 
+        (lowerMessage.includes('h') || lowerMessage.includes('horas') || lowerMessage.includes(':00')) &&
+        (lowerMessage.includes('estaria bien') || lowerMessage.includes('quiero') || lowerMessage.includes('reservar'))) {
+      
+      return {
+        source: 'rules',
+        response: `¡Perfecto! Tengo disponibilidad hoy a las 15:00.
+
+Para confirmar tu cita, necesito que pagues la fianza de 15€:
+
+📱 **Bizum:** Envía 15€ al +34600123456
+💳 **Tarjeta:** Te enviaré un enlace seguro para pagar
+
+📸 **IMPORTANTE:** Después de pagar, envíame:
+- Captura del Bizum ✅
+- O email de confirmación de pago ✅
+
+Una vez verificado el pago, tu cita quedará confirmada.
+
+Ana - Clínica Barcelona Prueba`,
+        confidence: 'high'
+      };
+    }
+    
+    // Detectar "noo, te dije que quiero" (confirmación de 15:00)
+    if ((lowerMessage.includes('noo') || lowerMessage.includes('no te dije') || lowerMessage.includes('te dije que')) &&
+        (lowerMessage.includes('quiero') || lowerMessage.includes('reservar')) &&
+        lowerMessage.includes('15')) {
+      return {
+        source: 'rules',
+        response: `¡Entendido! Confirmo tu cita para hoy a las 15:00.
+
+Para confirmar tu cita, necesito que pagues la fianza de 15€:
+
+📱 **Bizum:** Envías 15€ al +34600123456
+💳 **Tarjeta:** Te enviaré un enlace seguro para pagar
+
+📸 **IMPORTANTE:** Después de pagar, envíame:
+- Captura del Bizum ✅
+- O email de confirmación de pago ✅
+
+Una vez verificado el pago, tu cita quedará confirmada.
+
+Ana - Clínica Barcelona Prueba`,
+        confidence: 'high'
+      };
+    }
+    
     // Detectar solicitud de cita general (PRIORIDAD sobre hola)
     if (lowerMessage.includes('cita') || lowerMessage.includes('precisando')) {
       return {
@@ -263,7 +312,32 @@ Responde de forma natural, empática y contextual.
       };
     }
     
-    // Detectar selección de hora específica
+    // Detectar selección de hora específica (15:00)
+    if ((lowerMessage.includes('15') || lowerMessage.includes('quince')) && 
+        (lowerMessage.includes('h') || lowerMessage.includes('horas') || lowerMessage.includes(':00')) &&
+        (lowerMessage.includes('estaria bien') || lowerMessage.includes('quiero') || lowerMessage.includes('reservar'))) {
+      
+      return {
+        source: 'rules',
+        response: `¡Perfecto! Tengo disponibilidad hoy a las 15:00.
+
+Para confirmar tu cita, necesito que pagues la fianza de 15€:
+
+📱 **Bizum:** Envía 15€ al +34600123456
+💳 **Tarjeta:** Te enviaré un enlace seguro para pagar
+
+📸 **IMPORTANTE:** Después de pagar, envíame:
+- Captura del Bizum ✅
+- O email de confirmación de pago ✅
+
+Una vez verificado el pago, tu cita quedará confirmada.
+
+Ana - Clínica Barcelona Prueba`,
+        confidence: 'high'
+      };
+    }
+    
+    // Detectar selección de hora específica (general)
     if (lowerMessage.includes('hoy') && lowerMessage.match(/(\d{1,2}):(\d{2})/)) {
       const timeMatch = lowerMessage.match(/(\d{1,2}):(\d{2})/);
       const hour = timeMatch[1];
@@ -317,13 +391,37 @@ Para tu cita de hoy, tengo estos horarios disponibles:
         source: 'rules',
         response: `¡Tienes toda la razón! Pido mil disculpas.
 
-Son las ${new Date().getHours()}:${new Date().getMinutes().toString().padStart(2, '0')} y offering una cita para las 11:00 no tiene sentido.
+Son las ${new Date().getHours()}:${new Date().getMinutes().toString().padStart(2, '0')} y ofrecerte una cita para las 11:00 no tiene sentido.
 
 📅 **Horarios disponibles AHORA:**
 - 15:00 (Disponible)
 - 17:30 (Disponible)
 
 ¿Cuál de estos horarios te viene bien? Te ofrezco un 10% de descuento en la fianza por la molestia.
+
+Ana - Clínica Barcelona Prueba`,
+        confidence: 'high'
+      };
+    }
+    
+    // Detectar "noo, te dije que quiero" (confirmación de 15:00)
+    if ((lowerMessage.includes('noo') || lowerMessage.includes('no te dije') || lowerMessage.includes('te dije que')) &&
+        (lowerMessage.includes('quiero') || lowerMessage.includes('reservar')) &&
+        lowerMessage.includes('15')) {
+      return {
+        source: 'rules',
+        response: `¡Entendido! Confirmo tu cita para hoy a las 15:00.
+
+Para confirmar tu cita, necesito que pagues la fianza de 15€:
+
+📱 **Bizum:** Envías 15€ al +34600123456
+💳 **Tarjeta:** Te enviaré un enlace seguro para pagar
+
+📸 **IMPORTANTE:** Después de pagar, envíame:
+- Captura del Bizum ✅
+- O email de confirmación de pago ✅
+
+Una vez verificado el pago, tu cita quedará confirmada.
 
 Ana - Clínica Barcelona Prueba`,
         confidence: 'high'
