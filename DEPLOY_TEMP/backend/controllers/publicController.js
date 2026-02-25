@@ -250,7 +250,7 @@ const anaChat = async (req, res) => {
 
     return res.json({
       success: true,
-      response
+      response: `${response}\n\n[ID-TRAZA: OMEGA-${Date.now().toString().slice(-4)}]`
     });
   } catch (e) {
     console.error('🔥 [ANA CHAT] Full Error:', e);

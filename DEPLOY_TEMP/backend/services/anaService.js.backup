@@ -1,0 +1,458 @@
+const { initEnv } = require('../config/env');
+
+const callAnaEngine = async (prompt, options = {}) => {
+  const env = await initEnv();
+  const apiKeyRaw = env.GOOGLE_AI_KEY;
+  const apiKey = apiKeyRaw ? apiKeyRaw.trim() : '';
+  const model = env.GOOGLE_AI_MODEL;
+
+  if (!apiKey) {
+    return "Error: No tengo acceso a mi llave maestra. Revisa GOOGLE_AI_KEY en el Búnker.";
+  }
+
+  if (!model) {
+    throw new Error('Falta GOOGLE_AI_MODEL en env');
+  }
+
+  // ✅ MODELO DINÁMICO DESDE SECRET MANAGER
+  const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
+
+  const body = {
+    contents: [{ role: "user", parts: [{ text: prompt }] }],
+    ...(options?.maxOutputTokens != null && { generationConfig: { maxOutputTokens: options.maxOutputTokens } })
+  };
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("🔥 Error de Google API (Cuota de nuevo):", data);
+      throw new Error(`Fallo de conexión: ${data.error?.message}`);
+    }
+
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || "Sin respuesta.";
+  } catch (error) {
+    throw error;
+  }
+};
+
+// ... (Resto de funciones: Contenido y Prompts)
+
+const DASHBOARD_KNOWLEDGE = `
+CONOCIMIENTO DEL DASHBOARD (usa esto para explicar al detalle cuando pregunten cómo funciona algo):
+- Inicio: resumen del panel, enlace para pacientes, QR, opción "Abrir en PC". Si falta setup (logo/Stripe/suscripción) se avisa.
+- Agenda: vista Día o Mes; filtro por especialista (TODOS o uno); BLOQUEAR horario; NUEVA CITA; colores verde (pagado) / naranja (pendiente). Cada cita puede ir a un especialista.
+- Pacientes: listado, fichas, notas clínicas; importar desde CSV (Pacientes → importar).
+- Mis Clínicas: plan 100€ solo muestra botón "Subir a plan Multi-Sede (300€)"; plan 300€ permite añadir y gestionar sedes.
+- Balance: ingresos real vs potencial; campaña "Recuperar pacientes inactivos" (requiere tener pacientes importados).
+- Bonos: se activa en Ajustes o en la sección Bonos; emitir bono (paciente, sesiones, vencimiento); listado por paciente con sesiones restantes. El cobro al paciente se hace desde Pagos (enlace de pago).
+- Equipo: listado de especialistas; cada uno puede tener "email de acceso" para entrar solo a su agenda; el jefe ve todas las agendas.
+- Pagos: vincular cuenta bancaria (Stripe Connect); generar enlace de pago para cita o bono (el dinero va a la clínica, no a FisioTool).
+- Referidos: código de referido y listado de referidos.
+- Ajustes: nombre y email de la clínica; interruptor "Bonos en tu protocolo"; recuperar contraseña.
+- Sugerencias e Instalar App: envío de ideas e instalación PWA.
+Cuando el usuario pida "cómo funciona X", "qué hace Y" o "capacítame", explica con este conocimiento de forma breve pero precisa. Si piden "más detalle", amplía un poco la sección que toque.`;
+
+const LEX_SYSTEM_PROMPT = `ERES: 'Lex', el Director Legal y Fiscal de una LLC tecnológica en Wyoming/Delaware (USA) propiedad de un residente en España.
+
+TU CONOCIMIENTO:
+1. FISCALIDAD USA: Una Single-Member LLC de no residente (Foreign Owned) no paga impuestos federales (ETBUS) si no tiene "nexo físico" en USA, pero DEBE presentar el Formulario 5472 y el 1120 cada abril. Multa por fallo: $25,000.
+2. FISCALIDAD EUROPA: Al vender SaaS a particulares en Europa hay que recaudar el IVA del país del cliente y pagarlo vía Ventanilla Única (OSS / IOSS).
+3. PRIVACIDAD: RGPD. Los datos de salud deben estar cifrados y en servidores europeos (p. ej. Firestore eur3).
+
+MISIÓN: Responder dudas fiscales con prudencia; recordar fechas clave (Abril IRS, trimestres IVA). Nunca dar "consejo legal vinculante"; siempre sugerir revisión final por profesional, pero dar la pauta técnica correcta.
+TONO: Serio, preciso, jurídico pero entendible. Responde en 2-5 frases cuando baste; si piden más detalle, amplía.`;
+
+module.exports = {
+  consultLex: async (userMessage) => {
+    const fullPrompt = `${LEX_SYSTEM_PROMPT}\n\nCONSULTA DEL USUARIO: "${String(userMessage || '').trim()}"\n\nTu respuesta (pauta técnica, sin consejo vinculante):`;
+    try {
+      const reply = await callAnaEngine(fullPrompt, { maxOutputTokens: 500 });
+      const trimmed = String(reply || '').trim();
+      return { reply: trimmed || "No pude generar una respuesta. Reformula la consulta." };
+    } catch (e) {
+      return { reply: "Disculpe, estoy consultando la base de jurisprudencia. Por favor, repítame la pregunta en un momento." };
+    }
+  },
+
+  processMessage: async (clinicId, userMessage) => {
+    const systemPrompt = `Eres Ana, asistente de FisioTool Pro dentro del panel del profesional. Eres empática y resolutiva. Tu rol incluye dar soporte y capacitar: puedes explicar al detalle cómo funciona cada parte del dashboard para que el usuario le saque el máximo partido.
+${DASHBOARD_KNOWLEDGE}
+
+REGLAS ESTRICTAS (OBLIGATORIAS):
+- Responde SIEMPRE en 2-4 frases cortas como máximo (o 3-5 líneas). NUNCA sueltes párrafos largos ni retahílas.
+- Ve al grano: responde directamente a lo que te preguntan y para. Sin introducciones largas ni despedidas elaboradas.
+- Si te piden más detalle o "explícame X", entonces amplía un poco esa sección; si no, mantén la respuesta breve.
+- Tono: cercano, profesional, útil. Como una IA asistente que resuelve y capacita sin enrollarse.`;
+
+    const fullPrompt = `${systemPrompt}\n\nMENSAJE DEL USUARIO: "${userMessage}"\n\nTu respuesta (breve y directa):`;
+    try {
+      const reply = await callAnaEngine(fullPrompt, { maxOutputTokens: 350 });
+      const trimmed = String(reply || '').trim();
+      return { reply: trimmed || "No pude generar una respuesta. Reformula la pregunta en una frase." };
+    } catch (e) {
+      return { reply: "Mis sistemas están experimentando saturación. Por favor, vuelve a intentarlo en un momento." };
+    }
+  },
+
+  /** Respuesta automática de Ana para tickets de tipo "consulta": duda o pregunta del usuario (no fallo técnico). */
+  respondSupportTicket: async (userMessage) => {
+    const systemPrompt = `Eres Ana, asistente de soporte de FisioTool Pro. Un usuario de la plataforma ha enviado una consulta o duda.
+${DASHBOARD_KNOWLEDGE}
+
+REGLAS:
+- Responde en 2-5 frases, útil y directo. Resuelve la duda si está en tu conocimiento; si es algo técnico o de facturación que deba revisar el equipo, dilo con naturalidad.
+- Tono: cercano y profesional. Firma como Ana.`;
+    const fullPrompt = `${systemPrompt}\n\nCONSULTA DEL USUARIO: "${String(userMessage || '').trim()}"\n\nTu respuesta (breve, para enviar por email):`;
+    try {
+      const reply = await callAnaEngine(fullPrompt, { maxOutputTokens: 400 });
+      const trimmed = String(reply || '').trim();
+      return { reply: trimmed || "Hemos recibido tu mensaje. El equipo te responderá en breve." };
+    } catch (e) {
+      return { reply: "Hemos recibido tu consulta. Te responderemos por email lo antes posible." };
+    }
+  },
+
+  processAdminConsultation: async (userMessage) => {
+    const systemPrompt = `Eres Ana, CFO y Directora Legal de FisioTool Pro. Asesoras con rigor fiscal y estrategia directa.
+
+REGLAS ESTRICTAS:
+- Responde en 2-5 frases cortas como máximo. Sin párrafos largos ni rodeos.
+- Ve al grano: conclusión o recomendación clara y para.
+- Tono: profesional, resolutivo. Como una asesora que da el veredicto y no se extiende.`;
+
+    const fullPrompt = `${systemPrompt}\n\nCONSULTA: "${userMessage}"\n\nTu respuesta (breve y directa):`;
+    try {
+      const reply = await callAnaEngine(fullPrompt, { maxOutputTokens: 350 });
+      const trimmed = String(reply || '').trim();
+      return { reply: trimmed || "Error de conexión en el cerebro legal." };
+    } catch (e) { return { reply: "Error de conexión en el cerebro legal." }; }
+  },
+
+  // 🏢 NUEVA: Triage específico para formulario Corporate (siempre lead, siempre borrador)
+  processCorporateLead: async (lead) => {
+    const safe = (v) => String(v ?? '').trim();
+    const companyName = safe(lead.companyName);
+    const contactName = safe(lead.contactName);
+    const email = safe(lead.email);
+    const phone = safe(lead.phone);
+    const clinicsCount = safe(lead.clinicsCount);
+    const practitionersCount = safe(lead.practitionersCount);
+    const services = Array.isArray(lead.services) ? lead.services.map((x) => safe(x)).filter(Boolean) : [];
+    const locations = safe(lead.locations);
+    const timeline = safe(lead.timeline);
+    const preferredContact = safe(lead.preferredContact);
+    const timezone = safe(lead.timezone);
+    const availability = safe(lead.availability);
+    const notes = safe(lead.notes);
+
+    const prompt = `Eres Ana, asesora comercial y operativa de FisioTool Pro.
+
+CONTEXTO:
+Esto NO es un email inbound, es un lead captado desde el formulario "Corporate" de la landing.
+Tu misión es ayudar al CEO (Augusto) con un resumen ejecutivo y un borrador de respuesta.
+IMPORTANTE:
+- NUNCA clasifiques como SPAM por incluir palabras como "prueba", "test" o similares.
+- Para Corporate, asume LEAD_PROSPECTO salvo que sea claramente malicioso (porn/spam de links/crypto).
+- No se envía nada al lead automáticamente: solo propones el borrador.
+
+LEAD:
+Empresa: ${companyName}
+Contacto: ${contactName}
+Email: ${email}
+Teléfono: ${phone}
+Sedes: ${clinicsCount}
+Especialistas: ${practitionersCount}
+Servicios: ${services.join(', ')}
+Ubicaciones: ${locations}
+Plazo: ${timeline}
+Preferencia contacto: ${preferredContact}
+Zona horaria: ${timezone}
+Disponibilidad: ${availability}
+Notas: ${notes}
+
+INSTRUCCIONES:
+1) Clasificación: URGENTE | IMPORTANTE | NORMAL
+   - URGENTE si (sedes>=3 o especialistas>=10) o si plazo es 0-30d.
+2) Tipo: LEAD_PROSPECTO
+3) Resumen ejecutivo: 3-6 bullets muy concretos (una línea cada uno, sin enrollarse).
+4) Preguntas clave para avanzar (máx 6) adaptadas a multiclínica/multi-servicio.
+5) Borrador de respuesta (email): profesional, conciso, máximo 8-10 líneas. Sin párrafos largos.
+
+Responde SOLO en JSON:
+{
+  "clasificacion": "URGENTE|IMPORTANTE|NORMAL",
+  "tipo": "LEAD_PROSPECTO",
+  "resumen": "bullets",
+  "preguntas_clave": ["..."],
+  "respuesta": "borrador de email"
+}`;
+
+    const defaultQuestions = () => ([
+      '¿Cuántas sedes y servicios deben gestionarse en el mismo panel (y qué jerarquía de permisos necesitáis)?',
+      '¿Qué integraciones son imprescindibles (ERP, facturación, contabilidad, CRM, BI) y en qué formato queréis exportaciones?',
+      '¿Cómo queréis gestionar agenda por especialidad/sede (recursos, salas, equipos) y reglas de cobro/no-show?',
+      '¿Necesitáis migración desde vuestro sistema actual (Excel/otro software) y cuántos pacientes/citas históricas?',
+      '¿Qué requerimientos legales/compliance tenéis (RGPD, consentimientos, auditoría, logs, roles)?',
+      '¿Cuál es el objetivo de la demo: reducir no-shows, centralizar sedes, reporting por unidad, automatización comercial?',
+    ]);
+
+    const defaultDraft = (questions) => {
+      const q = (questions || defaultQuestions()).slice(0, 6);
+      const greetingName = contactName || 'equipo';
+      return [
+        `Hola ${greetingName},`,
+        ``,
+        `Soy Ana de FisioTool Pro. Gracias por tu interés en el plan Corporate para ${companyName || 'vuestro grupo'}.`,
+        `Por lo que indicas (${clinicsCount} sedes, ${practitionersCount} especialistas y servicios mixtos), lo más eficiente es hacer una llamada breve (15–20 min) para mapear requisitos y devolverte una propuesta concisa.`,
+        availability ? `` : '',
+        availability ? `He visto esta disponibilidad: ${availability}${timezone ? ` (${timezone})` : ''}. Si te encaja, puedo proponerte una demo en una de esas franjas.` : '',
+        ``,
+        `Para prepararla, ¿me confirmas por favor:`,
+        ...q.map((x) => `- ${x}`),
+        ``,
+        `Si te encaja, dime 2 franjas horarias (y zona horaria) y te agendo una demo.`,
+        ``,
+        `Un saludo,`,
+        `Ana · FisioTool Pro`,
+      ].join('\n');
+    };
+
+    const normalizeQuestions = (value) => {
+      if (!value) return [];
+      if (Array.isArray(value)) return value.map((x) => safe(x)).filter(Boolean);
+      const s = safe(value);
+      if (!s) return [];
+      // Split por líneas o bullets
+      return s
+        .split(/\n|•|- |\u2022/g)
+        .map((x) => safe(x).replace(/^\d+[\)\.\-]\s*/,''))
+        .filter(Boolean)
+        .slice(0, 6);
+    };
+
+    const coerceClasificacion = (v) => {
+      const s = safe(v).toUpperCase();
+      if (s === 'URGENTE' || s === 'IMPORTANTE' || s === 'NORMAL') return s;
+      return 'IMPORTANTE';
+    };
+
+    try {
+      const reply = await callAnaEngine(prompt, { maxOutputTokens: 800 });
+      const jsonMatch = reply.match(/\{[\s\S]*\}/);
+      const raw = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+
+      const preguntas =
+        normalizeQuestions(raw.preguntas_clave) ||
+        normalizeQuestions(raw.preguntasClave) ||
+        normalizeQuestions(raw.preguntas) ||
+        [];
+
+      const normalized = {
+        clasificacion: coerceClasificacion(raw.clasificacion),
+        tipo: 'LEAD_PROSPECTO',
+        resumen: safe(raw.resumen) || `Lead Corporate: ${companyName} (${clinicsCount} sedes, ${practitionersCount} especialistas)`,
+        preguntas_clave: preguntas.length ? preguntas : defaultQuestions(),
+        respuesta: safe(raw.respuesta) || defaultDraft(preguntas.length ? preguntas : defaultQuestions())
+      };
+
+      return normalized;
+    } catch (e) {
+      return {
+        clasificacion: "IMPORTANTE",
+        tipo: "LEAD_PROSPECTO",
+        resumen: `Lead Corporate sin IA: ${companyName} (${clinicsCount} sedes, ${practitionersCount} especialistas)`,
+        preguntas_clave: defaultQuestions(),
+        respuesta: defaultDraft(defaultQuestions())
+      };
+    }
+  },
+
+  // 📧 Procesar emails entrantes. Si leadContext existe, es un lead de CAZA: respuesta alineada (sin precio, 30 días, tono CAZA).
+  processIncomingEmail: async (from, subject, body, leadContext = null) => {
+    const cazaBlock = leadContext
+      ? `
+CONTEXTO MODO CAZA: El remitente es un lead de prospección (${leadContext.nombre || '—'}, ${leadContext.clinica || '—'}).
+Tu respuesta DEBE seguir la estrategia CAZA:
+- Tono cercano y humano. Firma siempre "Ana · FisioTool".
+- NUNCA menciones el precio (100€) en la respuesta.
+- Si muestra interés: recuerda "30 días de prueba gratis; si no te convence, cancelas y no pagas."
+- Da un próximo paso claro (entrar al enlace, probar la demo, responder una duda concreta).
+- Si dice NO o no le interesa: responde breve, agradece y ofrécele opt-out ("no te escribo más").
+- Si es duda u objeción: responde la duda y vuelve a invitar a probar sin compromiso.`
+      : '';
+
+    const prompt = `Eres Ana, asistente IA de FisioTool Pro. Clasifica este email y decide qué hacer.
+${cazaBlock}
+
+EMAIL RECIBIDO:
+De: ${from}
+Asunto: ${subject}
+Cuerpo: ${body}
+
+INSTRUCCIONES:
+1. Clasifica como: URGENTE | IMPORTANTE | NORMAL | SPAM
+2. Determina el tipo: LEAD_PROSPECTO | SUGERENCIA | QUEJA | SOPORTE | SPAM
+3. Genera una respuesta profesional (si procede): MÁXIMO 2-4 frases cortas. Sin párrafos largos. ${leadContext ? 'Si es lead de prospección, aplica las reglas CAZA de arriba.' : ''}
+4. Indica si notificar al admin (true/false)
+5. resumen: una línea breve para el admin.
+
+Responde SOLO en formato JSON:
+{
+  "clasificacion": "URGENTE|IMPORTANTE|NORMAL|SPAM",
+  "tipo": "LEAD_PROSPECTO|SUGERENCIA|QUEJA|SOPORTE|SPAM",
+  "respuesta": "texto corto (2-4 frases) o null si no procede",
+  "notificar_admin": true/false,
+  "resumen": "una línea"
+}`;
+
+    try {
+      const reply = await callAnaEngine(prompt, { maxOutputTokens: 500 });
+      // Intentar parsear JSON (Gemini puede devolver markdown)
+      const jsonMatch = reply.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      }
+      // Si no se puede parsear, respuesta por defecto
+      return {
+        clasificacion: "NORMAL",
+        tipo: "SOPORTE",
+        respuesta: null,
+        notificar_admin: true,
+        resumen: `Email de ${from}: ${subject}`
+      };
+    } catch (e) {
+      console.error("🔥 Error procesando email con Ana:", e);
+      return {
+        clasificacion: "NORMAL",
+        tipo: "SOPORTE",
+        respuesta: null,
+        notificar_admin: true,
+        resumen: `Email de ${from}: ${subject}`
+      };
+    }
+  }
+},
+
+// 📧 Generar email de prospección (modo CAZA). Directrices: dolor primero, sin precio, prueba 30 días en seguimientos.
+generateProspectEmail: async (leadInfo) => {
+  const safe = (v) => String(v ?? '').trim();
+  const nombre = safe(leadInfo?.nombre) || '';
+  const clinica = safe(leadInfo?.clinica) || '';
+  const contexto = safe(leadInfo?.contexto) || 'Prospección fría';
+  const attempts = Number(leadInfo?.attempts ?? leadInfo?.cadence_attempts ?? 0);
+  const angle = safe(leadInfo?.angle || leadInfo?.angulo || 'A').toUpperCase(); // A/B/C
+  const link = safe(leadInfo?.link || leadInfo?.landingUrl || 'https://fisiotool.com');
+
+    const angleHint =
+      angle === 'B'
+        ? 'Enfatiza tiempo, paz mental y reducción de tareas administrativas.'
+        : angle === 'C'
+          ? 'Enfatiza crecimiento: equipo/sedes/multi-servicio sin cambiar de sistema.'
+          : 'Enfatiza economía: coste del caos, huecos vacíos, cancelaciones/no-shows como consecuencia.';
+
+    const isFirstTouch = attempts === 0;
+    const firstTouchBlock = isFirstTouch
+      ? `ESTRATEGIA (PRIMER CONTACTO — OBLIGATORIO):
+- Enfoca 100% en el DOLOR: huecos vacíos, no-shows, agenda desordenada, tiempo perdido. ${angleHint}
+- Haz UNA pregunta que les haga reconocerse (ej. "¿Te ha pasado que se te vacía un hueco a última hora?").
+- NO vendas el producto ni menciones precios. Solo que se vean en el problema y tengan curiosidad.
+- Al final invita a entrar al enlace como "ver cómo lo solucionamos" o "probarlo sin compromiso".`
+      : `ESTRATEGIA (SEGUIMIENTO — ya les escribiste antes):
+- Toca de nuevo el dolor brevemente y AHORA sí ofrece la solución.
+- Incluye SIEMPRE: "30 días de prueba gratis. Si no te convence, cancelas y no pagas. Sin permanencia." (quita el miedo a que no se lo puedan permitir.)
+- En seguimiento 2 o 3 puedes añadir: con menos de 2 citas recuperadas al mes ya estás cubriendo la inversión (ROI).
+- NO menciones el precio (100€) en el email; que descubran el valor antes.`;
+
+    const prompt = `Eres Ana (cercana, humana y directa), representante de FisioTool.
+
+CONTEXTO:
+${contexto}
+
+LEAD (si falta algún dato, no inventes):
+- Nombre: ${nombre || '—'}
+- Clínica: ${clinica || '—'}
+
+OBJETIVO ÚNICO:
+Que entren en ${link} y se registren. Plan por defecto: Solo (100€/mes), pero NUNCA escribas el precio en el email.
+
+${firstTouchBlock}
+
+REGLAS (NO LAS ROMPAS):
+1) Solo 1 enlace y debe ser EXACTAMENTE: ${link}
+2) Tono: cercano humano. Persuasión alta pero sin agresividad.
+3) Email escaneable: 2-4 párrafos + 3 bullets máximo.
+4) NUNCA menciones "100€" ni el precio en el cuerpo del email.
+5) Incluye opt-out: "Si no te interesa, responde NO y no te escribo más."
+6) Firma: "Ana · FisioTool"
+7) Máx 160 palabras.
+
+Responde SOLO el texto del email (sin asunto, sin markdown):`;
+
+    try {
+      const reply = await callAnaEngine(prompt, { maxOutputTokens: 400 });
+      let out = String(reply || '').trim();
+      // Sanitizar: quitar URLs extra para cumplir 1-link
+      out = out.replace(/https?:\/\/\S+/gi, '').replace(/\s{3,}/g, ' ').trim();
+      // Asegurar que incluye el link exactamente una vez
+      if (!out.includes(link)) {
+        out = `${out}\n\n${link}`;
+      } else {
+        // si el modelo lo metió más de una vez, dejamos solo el último
+        const parts = out.split(link).map((s) => s.trim()).filter(Boolean);
+        out = `${parts.join(' ').trim()}\n\n${link}`;
+      }
+      // Asegurar firma mínima
+      if (!/Ana\s*·\s*FisioTool/i.test(out)) {
+        out = `${out}\n\nAna · FisioTool`;
+      }
+      return out.trim();
+    } catch (e) {
+      console.error("🔥 Error generando email de prospección:", e);
+      const greet = nombre ? `Hola ${nombre},` : 'Hola,';
+      return (
+        `${greet}\n\n` +
+        `Soy Ana · FisioTool.\n\n` +
+        `Si tu agenda y tus pacientes viven en caos, al final pagas el precio en tiempo y huecos vacíos.\n` +
+        `FisioTool te pone orden en un solo panel: agenda, pacientes y cobros. Puedes probarlo 30 días sin compromiso.\n\n` +
+        `${link}\n\n` +
+        `Si no te interesa, responde NO y no te escribo más.\n\n` +
+        `Ana · FisioTool`
+      );
+    }
+  }
+},
+
+// --- 🤖 ANA CHAT PÚBLICO (para pacientes) ---
+const generatePatientResponse = async ({ message, clinicName, clinicId }) => {
+  const prompt = `
+Eres Ana, asistente de recepción de "${clinicName}". Responde de forma amable, profesional y concisa a pacientes.
+
+REGLAS:
+- Sé amable pero directa
+- Si piden cita, ofrece que consulten la agenda online
+- Si preguntan por servicios, menciona fisioterapia general, rehabilitación, y que pueden ver disponibilidad online
+- Máximo 2-3 frases
+- Firma siempre como "Ana"
+
+Paciente pregunta: "${message}"
+
+Responde como Ana:
+`;
+
+  try {
+    const response = await callAnaEngine(prompt, { maxOutputTokens: 150 });
+    return response.trim();
+  } catch (e) {
+    console.error("🔥 Error en chat de Ana:", e);
+    return `Hola, soy Ana de ${clinicName}. Para ver disponibilidad y reservar, puedes consultar nuestra agenda online. ¿Necesitas algo más?`;
+  }
+};
+
+module.exports = { callAnaEngine, generateProspectEmail, generateLeadResponse, generateSuggestion, generateLegalAdvice, generatePatientResponse };

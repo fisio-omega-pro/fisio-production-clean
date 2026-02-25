@@ -41,7 +41,7 @@ class ClaudeService {
       const client = new Anthropic({ apiKey });
 
       const message = await client.messages.create({
-        model: "claude-3-5-sonnet-20240620",
+        model: "claude-3-5-sonnet-20241022",
         max_tokens: options.maxTokens || 1000,
         messages: [
           {
@@ -51,11 +51,12 @@ class ClaudeService {
         ]
       });
 
-      // Éxito real
-      return message.content[0].text;
+      // Añadimos marcador de éxito real
+      return `${message.content[0].text}\n\n[CÓDIGO OMEGA-2026: CLAUDE_ACTIVE]`;
     } catch (error) {
       console.error('🔥 Claude API Error:', error.message);
-      return this._simulateClaudeResponse(prompt);
+      console.log('🧪 Claude fallback a modo simulado [DEBUG: OMEGA-2026]');
+      return `${this._simulateClaudeResponse(prompt)}\n\n[DEBUG: OMEGA-2026] (Fallback por error API)`;
     }
   }
 
@@ -241,7 +242,7 @@ Puedo ayudarte con:
 
 ¿Qué necesitas específicamente? Estoy aquí para ayudarte.
 
-Ana - Clínica Barcelona Prueba`;
+Ana - Clínica Barcelona Prueba [OMEGA-V4]`;
   }
 
   async generateConversationResponse(messages, options = {}) {

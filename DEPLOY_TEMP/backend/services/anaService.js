@@ -521,7 +521,7 @@ Puedes instalarla entrando en: https://fisiotool.com/ana?ref=${clinicId}
 
 Una vez instalada, podré gestionar tus citas, pagos y seguimientos automáticamente.
 
-${anaName} - ${clinicName}`;
+${anaName} - ${clinicName} [DEBUG: OMEGA-2026]`;
     }
 
     // Si ya tiene la app o pregunta después de dar datos
@@ -539,7 +539,7 @@ Puedo gestionar:
 
 ¿En qué te puedo ayudar?
 
-${anaName} - ${clinicName}`;
+${anaName} - ${clinicName} [DEBUG: OMEGA-2026]`;
     }
 
     // Handle short clarification questions
@@ -556,7 +556,7 @@ Puedo ayudarte con:
 
 ¿Qué necesitas saber?
 
-${anaName} - ${clinicName}`;
+${anaName} - ${clinicName} [DEBUG: OMEGA-2026]`;
     }
 
     // Handle payment explanation requests
@@ -584,7 +584,7 @@ ${anaName} - ${clinicName}`;
 
 ¿Qué método de pago prefieres usar?
 
-${anaName} - ${clinicName}`;
+${anaName} - ${clinicName} [DEBUG: OMEGA-2026]`;
     }
 
     // Handle user complaints and frustration
