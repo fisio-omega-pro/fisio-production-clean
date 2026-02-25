@@ -90,7 +90,7 @@ Mi sistema está configurado para usar siempre la hora de tu clínica en España
 
 ¿Necesitas ayuda con algo específico?
 
-Ana - Clínica Barcelona Prueba`;
+Ana - Clínica Barcelona Prueba [OMEGA-V4]`;
     }
 
     // Detectar preguntas directas (ALTA PRIORIDAD)
@@ -105,7 +105,7 @@ Soy Ana, asistente de Fisiotool, y estoy aquí para ayudarte con tus citas y nec
 
 ¿Cuál es tu pregunta específica? Te responderé de forma clara y directa.
 
-Ana - Clínica Barcelona Prueba`;
+Ana - Clínica Barcelona Prueba [OMEGA-V4]`;
     }
 
     // Detectar frustración o quejas (MÁXIMA PRIORIDAD)
@@ -125,7 +125,7 @@ Soy Ana, y estoy aquí para ayudarte de verdad. Si no he respondido correctament
 
 ¿Qué necesitas específicamente? Te ayudaré de inmediato con tu cita o cualquier otra cosa.
 
-Ana - Clínica Barcelona Prueba`;
+Ana - Clínica Barcelona Prueba [OMEGA-V4]`;
     }
 
     // Simulación inteligente basada en el mensaje del usuario
@@ -138,7 +138,7 @@ Ana - Clínica Barcelona Prueba`;
 
 ¿Qué día y hora te gustaría reservar? Puedo ayudarte a encontrar el momento perfecto para ti.
 
-Ana - Clínica Barcelona Prueba`;
+Ana - Clínica Barcelona Prueba [OMEGA-V4]`;
     }
 
     if (lowerUserMessage.includes('hola') || lowerUserMessage.includes('buenos')) {
@@ -148,11 +148,11 @@ Estoy aquí para ayudarte con todo lo que necesites:
 - Reservar citas
 - Consultar disponibilidad
 - Información sobre tratamientos
-- Seguimiento de tu terapia
+- Seguimiento de tu therapy
 
 ¿En qué puedo ayudarte hoy?
 
-Ana - Clínica Barcelona Prueba`;
+Ana - Clínica Barcelona Prueba [OMEGA-V4]`;
     }
 
     if (lowerUserMessage.includes('gracias') || lowerUserMessage.includes('adiós')) {
@@ -160,7 +160,7 @@ Ana - Clínica Barcelona Prueba`;
 
 Si necesitas cualquier otra cosa, no dudes en preguntarme. ¡Tu bienestar es mi prioridad!
 
-Ana - Clínica Barcelona Prueba`;
+Ana - Clínica Barcelona Prueba [OMEGA-V4]`;
     }
 
 
@@ -197,7 +197,7 @@ Ana - Clínica Barcelona Prueba`;
 
 ¿Cuál de estos horarios te viene bien? Te ofrezco un 10% de descuento en la fianza por la molestia.
 
-Ana - Clínica Barcelona Prueba`;
+Ana - Clínica Barcelona Prueba [OMEGA-V4]`;
       }
 
       // Si es hora futura
@@ -215,7 +215,7 @@ Para confirmar tu cita, necesito que pagues la fianza de 15€:
 
 Una vez verificado el pago, tu cita quedará confirmada.
 
-Ana - Clínica Barcelona Prueba`;
+Ana - Clínica Barcelona Prueba [OMEGA-V4]`;
       }
     }
 
@@ -229,10 +229,10 @@ Ana - Clínica Barcelona Prueba`;
 
 ¿Qué día y hora te gustaría reservar? Puedo ayudarte a encontrar el momento perfecto para ti.
 
-Ana - Clínica Barcelona Prueba`;
+Ana - Clínica Barcelona Prueba [OMEGA-V4]`;
     }
 
-    return `Entiendo tu mensaje. Soy Ana [CÓDIGO SECRETO: 99] tu asistente de Fisiotool.
+    return `Entiendo tu mensaje. Soy Ana tu asistente de Fisiotool.
 
 Puedo ayudarte con:
 - 📅 Reservar citas
@@ -242,7 +242,7 @@ Puedo ayudarte con:
 
 ¿Qué necesitas específicamente? Estoy aquí para ayudarte.
 
-Ana - Clínica Barcelona Prueba [DEBUG: OMEGA-2026]`;
+Ana - Clínica Barcelona Prueba [OMEGA-V4]`;
   }
 
   async generateConversationResponse(messages, options = {}) {
