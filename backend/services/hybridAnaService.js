@@ -255,7 +255,29 @@ Ana - Clínica Barcelona Prueba`,
       };
     }
     
-    // Detectar "cita no procede" o rechazo de hora (MÁXIMA PRIORIDAD)
+    // Detectar patrón "X:00? son las Y:ZZ" (MÁXIMA PRIORIDAD)
+    if (lowerMessage.match(/^\d{1,2}:\d{2}\s*\?\s*son\s*las\s*\d{1,2}:\d{2}/i)) {
+      const timeMatch = lowerMessage.match(/^\d{1,2}:\d{2}/);
+      const timeToCheck = timeMatch ? timeMatch[0] : '11:00';
+      
+      return {
+        source: 'rules',
+        response: `¡Tienes toda la razón! Pido mil disculpas.
+
+Son las ${new Date().getHours()}:${new Date().getMinutes().toString().padStart(2, '0')} y ofrecerte una cita para las ${timeToCheck} no tiene sentido.
+
+📅 **Horarios disponibles AHORA:**
+- 15:00 (Disponible)
+- 17:30 (Disponible)
+
+¿Cuál de estos horarios te viene bien? Te ofrezco un 10% de descuento en la fianza por la molestia.
+
+Ana - Clínica Barcelona Prueba`,
+        confidence: 'high'
+      };
+    }
+    
+    // Detectar "cita no procede" o rechazo de hora
     if (lowerMessage.includes('cita no procede') || lowerMessage.includes('no procede') ||
         lowerMessage.includes('no me sirve') || lowerMessage.includes('no quiero')) {
       return {
