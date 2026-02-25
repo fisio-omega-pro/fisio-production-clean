@@ -140,9 +140,20 @@ const checkAvailability = async (clinicId, requestedDate, requestedTime) => {
     // CRITICAL: Only check if this EXACT slot exists in the fisio's agenda
     // NEVER assume availability based on opening hours
     
+    // Convert "hoy" and "mañana" to actual dates
+    let actualDate = requestedDate;
+    if (requestedDate === 'hoy') {
+      const today = new Date();
+      actualDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
+    } else if (requestedDate === 'mañana') {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      actualDate = `${tomorrow.getDate().toString().padStart(2, '0')}/${(tomorrow.getMonth() + 1).toString().padStart(2, '0')}/${tomorrow.getFullYear()}`;
+    }
+    
     const agendaSnapshot = await db.collection('agenda')
       .where('clinic_id', '==', clinicId)
-      .where('fecha', '==', requestedDate)
+      .where('fecha', '==', actualDate)
       .where('hora', '==', requestedTime)
       .get();
     
@@ -255,11 +266,22 @@ ${alternatives}
 // --- 🕐 GET REAL AGENDA SLOTS (NEVER GENERATE) ---
 const getAvailableTimeSlots = async (clinicId, requestedDate) => {
   try {
+    // Convert "hoy" and "mañana" to actual dates
+    let actualDate = requestedDate;
+    if (requestedDate === 'hoy') {
+      const today = new Date();
+      actualDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
+    } else if (requestedDate === 'mañana') {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      actualDate = `${tomorrow.getDate().toString().padStart(2, '0')}/${(tomorrow.getMonth() + 1).toString().padStart(2, '0')}/${tomorrow.getFullYear()}`;
+    }
+    
     // CRITICAL: Only return slots that EXIST in the fisio's agenda
     // NEVER generate theoretical slots based on opening hours
     const existingAppointments = await db.collection('agenda')
       .where('clinic_id', '==', clinicId)
-      .where('fecha', '==', requestedDate)
+      .where('fecha', '==', actualDate)
       .get();
     
     console.log(`🔍 [ANA] Checking REAL agenda for ${requestedDate}. Found ${existingAppointments.size} appointments.`);
@@ -517,12 +539,20 @@ ${anaName} - ${clinicName}`;
       
       // Extraer información de la solicitud
       const dateMatch = message.match(/(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?|hoy|mañana|lunes|martes|miércoles|jueves|viernes|sábado|domingo/i);
-      const timeMatch = message.match(/(\d{1,2}):(\d{2})|(\d{1,2})\s*hs?/i);
+      const timeMatch = message.match(/(\d{1,2}):(\d{2})|(\d{1,2})\s*hs?|a partir de las (\d{1,2})h?/i);
       
       if (dateMatch && timeMatch) {
         // Solicitud específica de fecha y hora
         const requestedDate = dateMatch[0];
-        const requestedTime = timeMatch[0];
+        let requestedTime = timeMatch[0];
+        
+        // Handle "a partir de las Xh" pattern
+        if (requestedTime.includes('a partir de las')) {
+          const hourMatch = requestedTime.match(/(\d{1,2})h?/);
+          if (hourMatch) {
+            requestedTime = `${hourMatch[1]}:00`;
+          }
+        }
         
         // Verificar disponibilidad real
         const availability = await checkAvailability(clinicId, requestedDate, requestedTime);
@@ -530,9 +560,19 @@ ${anaName} - ${clinicName}`;
         if (availability.available) {
           // Generar enlace de pago para fianza
           // Parse the date to create appointment datetime
-          const [day, month] = requestedDate.split('/').map(Number);
-          const currentYear = new Date().getFullYear();
-          const appointmentDateTime = new Date(currentYear, month - 1, day, parseInt(requestedTime.split(':')[0]), parseInt(requestedTime.split(':')[1]));
+          let appointmentDateTime;
+          if (requestedDate === 'hoy') {
+            const today = new Date();
+            appointmentDateTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), parseInt(requestedTime.split(':')[0]), parseInt(requestedTime.split(':')[1]));
+          } else if (requestedDate === 'mañana') {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            appointmentDateTime = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), parseInt(requestedTime.split(':')[0]), parseInt(requestedTime.split(':')[1]));
+          } else {
+            const [day, month] = requestedDate.split('/').map(Number);
+            const currentYear = new Date().getFullYear();
+            appointmentDateTime = new Date(currentYear, month - 1, day, parseInt(requestedTime.split(':')[0]), parseInt(requestedTime.split(':')[1]));
+          }
           
           const paymentLink = await generatePaymentLink(
             clinicId, 
@@ -542,31 +582,28 @@ ${anaName} - ${clinicName}`;
             appointmentDateTime
           );
           
-          if (paymentLink.url) {
-            const anaName = clinicConfig?.ana_profile?.name || 'Ana';
-            const paymentMethods = clinicConfig?.metodos_pago || ['tarjeta', 'bizum', 'transferencia'];
-            
-            let paymentOptions = `Para confirmar, paga la fianza de ${clinicConfig?.fianza_cita || 20}€:\n\n`;
+          const anaName = clinicConfig?.ana_profile?.name || 'Ana';
+          const paymentMethods = clinicConfig?.metodos_pago || ['tarjeta', 'bizum', 'transferencia'];
+          
+          let paymentOptions = `Perfecto! Tengo disponibilidad el ${requestedDate} a las ${requestedTime}.\n\n`;
+          paymentOptions += `Para confirmar, paga la fianza de ${clinicConfig?.fianza_cita || 20}€:\n\n`;
+          
+          if (paymentLink.url && !paymentLink.error) {
             paymentOptions += `💳 **Tarjeta/Online:** ${paymentLink.url}\n\n`;
-            
-            if (paymentMethods.includes('bizum')) {
-              const clinicPhone = clinicConfig?.telefono || 'el número de teléfono de la clínica';
-              paymentOptions += `📱 **Bizum:** Envía ${clinicConfig?.fianza_cita || 20}€ al ${clinicPhone}\n\n`;
-            }
-            
-            if (paymentMethods.includes('transferencia')) {
-              paymentOptions += `🏦 **Transferencia:** IBAN de la clínica (concepto: "Fianza ${requestedDate} ${requestedTime}")\n\n`;
-            }
-            
-            paymentOptions += `Una vez confirmado el pago, tu cita quedará reservada.\n\n${anaName} - ${clinicName}`;
-            
-            return paymentOptions;
-          } else {
-            const anaName = clinicConfig?.ana_profile?.name || 'Ana';
-            return `Tengo disponibilidad el ${requestedDate} a las ${requestedTime}, pero ha habido un problema con el pago. Por favor, intenta de nuevo o llama a la clínica.
-
-${anaName} - ${clinicName}`;
           }
+          
+          if (paymentMethods.includes('bizum')) {
+            const clinicPhone = clinicConfig?.telefono || 'el número de teléfono de la clínica';
+            paymentOptions += `📱 **Bizum:** Envía ${clinicConfig?.fianza_cita || 20}€ al ${clinicPhone}\n\n`;
+          }
+          
+          if (paymentMethods.includes('transferencia')) {
+            paymentOptions += `🏦 **Transferencia:** IBAN de la clínica (concepto: "Fianza ${requestedDate} ${requestedTime}")\n\n`;
+          }
+          
+          paymentOptions += `Una vez confirmado el pago, tu cita quedará reservada.\n\n${anaName} - ${clinicName}`;
+          
+          return paymentOptions;
         } else {
           // Get available slots for the day
           const availableSlots = await getAvailableTimeSlots(clinicId, requestedDate);
