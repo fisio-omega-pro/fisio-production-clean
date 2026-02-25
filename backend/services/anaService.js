@@ -594,6 +594,80 @@ Estoy aquí para ayudarte con tus citas y pagos. Si algo no funciona correctamen
 ${anaName} - ${clinicName}`;
     }
     
+    // Handle next availability requests
+    if (lowerMessage.includes('proxima') || lowerMessage.includes('próxima') || 
+        lowerMessage.includes('cuando') && lowerMessage.includes('disponibilidad') ||
+        lowerMessage.includes('tendrás') && lowerMessage.includes('disponibilidad')) {
+      
+      // Check today first
+      const todaySlots = await getAvailableTimeSlots(clinicId, 'hoy');
+      if (todaySlots.length > 0) {
+        const slotsList = todaySlots.slice(0, 3).map(slot => `${slot.hora} (${slot.especialista || 'Disponible'})`).join(', ');
+        const anaName = clinicConfig?.ana_profile?.name || 'Ana';
+        return `Tengo disponibilidad inmediata hoy:
+
+${slotsList}
+
+¿Cuál prefieres?
+
+${anaName} - ${clinicName}`;
+      }
+      
+      // Check tomorrow
+      const tomorrowSlots = await getAvailableTimeSlots(clinicId, 'mañana');
+      if (tomorrowSlots.length > 0) {
+        const slotsList = tomorrowSlots.slice(0, 3).map(slot => `${slot.hora} (${slot.especialista || 'Disponible'})`).join(', ');
+        const anaName = clinicConfig?.ana_profile?.name || 'Ana';
+        return `No tengo disponibilidad hoy, pero sí mañana:
+
+${slotsList}
+
+¿Cuál prefieres?
+
+${anaName} - ${clinicName}`;
+      }
+      
+      // Check next few days
+      const anaName = clinicConfig?.ana_profile?.name || 'Ana';
+      return `Lo siento, no tengo disponibilidad inmediata. 
+
+Por favor, dime qué día te vendría bien y buscaré opciones para ti.
+
+${anaName} - ${clinicName}`;
+    }
+    
+    // Handle explicit "mañana" requests
+    if (lowerMessage.includes('mañana') && (lowerMessage.includes('hueco') || lowerMessage.includes('disponibilidad') || lowerMessage.includes('cita'))) {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStr = `${tomorrow.getDate().toString().padStart(2, '0')}/${(tomorrow.getMonth() + 1).toString().padStart(2, '0')}/${tomorrow.getFullYear()}`;
+      
+      // Get available slots for tomorrow
+      const availableSlots = await getAvailableTimeSlots(clinicId, 'mañana');
+      
+      if (availableSlots.length > 0) {
+        const slotsList = availableSlots.slice(0, 5).map(slot => `${slot.hora} (${slot.especialista || 'Disponible'})`).join(', ');
+        const moreText = availableSlots.length > 5 ? ` y ${availableSlots.length - 5} más` : '';
+        
+        const anaName = clinicConfig?.ana_profile?.name || 'Ana';
+        return `¡Perfecto! Tengo disponibilidad mañana.
+
+Horarios disponibles:
+${slotsList}${moreText}
+
+¿Cuál prefieres?
+
+${anaName} - ${clinicName}`;
+      } else {
+        const anaName = clinicConfig?.ana_profile?.name || 'Ana';
+        return `Lo siento, no tengo disponibilidad mañana.
+
+¿Te gustaría consultar otro día?
+
+${anaName} - ${clinicName}`;
+      }
+    }
+    
     // Handle time confirmation (when user responds with time after seeing options)
     if (lowerMessage.match(/^(\d{1,2})h?$/i) || lowerMessage.match(/^(\d{1,2}):(\d{2})$/i) || 
         lowerMessage.includes('a las') && lowerMessage.match(/(\d{1,2})h?/i) ||
