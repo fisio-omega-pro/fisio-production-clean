@@ -161,12 +161,12 @@ const submitCorporateLead = async (req, res) => {
         ${preferredContact ? `<p class="p"><strong>Preferencia:</strong> ${escapeHtml(preferredContact)}</p>` : ''}
         ${timezone ? `<p class="p"><strong>Zona horaria:</strong> ${escapeHtml(timezone)}</p>` : ''}
         ${availability ? `<p class="p"><strong>Disponibilidad:</strong> ${escapeHtml(availability)}</p>` : ''}
-        ${notes ? `<p class="p"><strong>Notas:</strong><br/>${escapeHtml(notes).replace(/\n/g,'<br/>')}</p>` : ''}
+        ${notes ? `<p class="p"><strong>Notas:</strong><br/>${escapeHtml(notes).replace(/\n/g, '<br/>')}</p>` : ''}
         <p class="muted">Lead ID: ${escapeHtml(ref.id)} · IP: ${escapeHtml(ip)}</p>
       </div>
-      ${analysis?.resumen ? `<div style="height:14px"></div><div class="box"><p class="p"><strong>Resumen ejecutivo (Ana):</strong><br/>${escapeHtml(analysis.resumen).replace(/\n/g,'<br/>')}</p></div>` : ''}
-      ${Array.isArray(analysis?.preguntas_clave) && analysis.preguntas_clave.length ? `<div style="height:14px"></div><div class="box"><p class="p"><strong>Preguntas clave (Ana):</strong></p><ul class="p" style="margin:0; padding-left:18px">${analysis.preguntas_clave.slice(0,6).map(q=>`<li>${escapeHtml(q)}</li>`).join('')}</ul></div>` : ''}
-      ${analysis?.respuesta ? `<div style="height:14px"></div><div class="box"><p class="p"><strong>Borrador de respuesta (para consensuar):</strong><br/>${escapeHtml(analysis.respuesta).replace(/\n/g,'<br/>')}</p><p class="muted">Nota: no se enviará ninguna respuesta automática sin tu OK.</p></div>` : `<div style="height:14px"></div><p class="muted">Ana no generó borrador (sin IA configurada). Puedes responder manualmente.</p>`}
+      ${analysis?.resumen ? `<div style="height:14px"></div><div class="box"><p class="p"><strong>Resumen ejecutivo (Ana):</strong><br/>${escapeHtml(analysis.resumen).replace(/\n/g, '<br/>')}</p></div>` : ''}
+      ${Array.isArray(analysis?.preguntas_clave) && analysis.preguntas_clave.length ? `<div style="height:14px"></div><div class="box"><p class="p"><strong>Preguntas clave (Ana):</strong></p><ul class="p" style="margin:0; padding-left:18px">${analysis.preguntas_clave.slice(0, 6).map(q => `<li>${escapeHtml(q)}</li>`).join('')}</ul></div>` : ''}
+      ${analysis?.respuesta ? `<div style="height:14px"></div><div class="box"><p class="p"><strong>Borrador de respuesta (para consensuar):</strong><br/>${escapeHtml(analysis.respuesta).replace(/\n/g, '<br/>')}</p><p class="muted">Nota: no se enviará ninguna respuesta automática sin tu OK.</p></div>` : `<div style="height:14px"></div><p class="muted">Ana no generó borrador (sin IA configurada). Puedes responder manualmente.</p>`}
     `;
 
     const html = baseEmailHtml({
@@ -216,12 +216,12 @@ const getClinicInfo = async (req, res) => {
 const anaChat = async (req, res) => {
   try {
     const { message, clinicId } = req.body || {};
-    
+
     // 🚀 HARD-LOG DE ENTRADA (Experto recommendation)
     console.log('🚀 DEBUG: Request received for clinic:', clinicId, 'API_KEY_PRESENT:', !!process.env.ANTHROPIC_API_KEY);
     console.log('🚀 DEBUG: Message:', message);
     console.log('🚀 DEBUG: Headers:', JSON.stringify(req.headers, null, 2));
-    
+
     if (!message || !clinicId) {
       return res.status(400).json({ success: false, error: 'Mensaje y clinicId requeridos' });
     }
@@ -245,25 +245,29 @@ const anaChat = async (req, res) => {
       clinicId
     });
 
-    console.log('🚀 DEBUG: Ana result:', response);
-    
-    return res.json({ success: true, response });
+    console.log('🚀 DEBUG: Ana result successfully generated');
+    console.log('🚀 DEBUG: Response preview:', typeof response === 'string' ? response.substring(0, 100) : 'NO_STRING');
+
+    return res.json({
+      success: true,
+      response: `${response}\n\n[ID-TRAZA: OMEGA-${Date.now().toString().slice(-4)}]`
+    });
   } catch (e) {
     console.error('🔥 [ANA CHAT] Full Error:', e);
     console.error('🔥 [ANA CHAT] Message:', e.message);
     console.error('🔥 [ANA CHAT] Stack:', e.stack);
-    
+
     // Si es error de JSON, dar respuesta útil
     if (e.message.includes('JSON.parse')) {
-      return res.status(500).json({ 
-        success: false, 
-        response: 'Error técnico en el procesamiento. Por favor, intenta de nuevo con un mensaje más simple.' 
+      return res.status(500).json({
+        success: false,
+        response: 'Error técnico en el procesamiento. Por favor, intenta de nuevo con un mensaje más simple.'
       });
     }
-    
-    return res.status(500).json({ 
-      success: false, 
-      response: 'Lo siento, estoy teniendo problemas técnicos. Por favor, llama a la clínica.' 
+
+    return res.status(500).json({
+      success: false,
+      response: 'Lo siento, estoy teniendo problemas técnicos. Por favor, llama a la clínica.'
     });
   }
 };

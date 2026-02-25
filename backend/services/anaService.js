@@ -18,11 +18,11 @@ const callAnaEngine = async (prompt, options = {}) => {
     const env = await initEnv();
     const apiKeyRaw = env.GOOGLE_AI_KEY;
     const apiKey = apiKeyRaw ? apiKeyRaw.trim() : '';
-    
+
     if (!apiKey) {
       return "Entiendo tu mensaje. Para ayudarte mejor con tu cita, ¿podrías darme más detalles sobre qué día y hora te gustaría?";
     }
-    
+
     try {
       const { GoogleGenerativeAI } = require("@google/generative-ai");
       const genAI = new GoogleGenerativeAI(apiKey);
@@ -60,35 +60,35 @@ const getClinicConfiguration = async (clinicId) => {
   try {
     const clinicDoc = await db.collection('clinicas').doc(clinicId).get();
     if (!clinicDoc.exists) return null;
-    
+
     const clinicData = clinicDoc.data();
-    
+
     return {
       // Horarios y disponibilidad
       horario: clinicData.horario || { apertura: '09:00', cierre: '20:00' },
       diasBloqueados: clinicData.dias_bloqueados || [],
       timezone: clinicData.timezone || 'Europe/Madrid',
-      
+
       // Precios y pagos (del setup original)
       precio_sesion: clinicData.config_ia?.precio || clinicData.precio_sesion || 50,
       fianza_cita: clinicData.config_ia?.fianza || clinicData.fianza_cita || 20,
       precio_bono_5: clinicData.config_ia?.precio_bono_5 || clinicData.precio_bono_5 || 225,
       metodos_pago: clinicData.metodos_pago || ['tarjeta', 'bizum', 'transferencia'],
-      
+
       // Configuración de tratamientos
       duracion_cita: clinicData.duracion_cita || 45, // minutos por defecto
       tiempo_entre_citas: clinicData.tiempo_entre_citas || 15, // descanso entre citas
       limite_citas_dia: clinicData.limite_citas_dia || 12, // máximo citas por día
       tipos_tratamiento: clinicData.tipos_tratamiento || ['fisioterapia_general'],
-      
+
       // Restricciones y banderas rojas
       banderas_rojas: clinicData.banderas_rojas || [],
       condiciones_especiales: clinicData.condiciones_especiales || {},
-      
+
       // Configuración de bonos y servicios
       acepta_bonos: clinicData.config_ia?.acepta_bonos || false,
       modo_caza_activo: clinicData.config_ia?.modo_caza_activo || false,
-      
+
       // 🤖 CONFIGURACIÓN DE ANA
       ana_profile: {
         name: clinicData.ana_name || 'Ana',
@@ -97,7 +97,7 @@ const getClinicConfiguration = async (clinicId) => {
         custom_color: clinicData.ana_color || '#075E54',
         custom_welcome: clinicData.ana_welcome || null
       },
-      
+
       // Información básica
       nombre_clinica: clinicData.nombre_clinica || clinicData.nombre || 'la clínica',
       email: clinicData.email || '',
@@ -114,7 +114,7 @@ const checkAvailability = async (clinicId, requestedDate, requestedTime) => {
   try {
     // CRITICAL: Only check if this EXACT slot exists in the fisio's agenda
     // NEVER assume availability based on opening hours
-    
+
     // Convert "hoy" and "mañana" to actual dates
     let actualDate = requestedDate;
     if (requestedDate === 'hoy') {
@@ -125,15 +125,15 @@ const checkAvailability = async (clinicId, requestedDate, requestedTime) => {
       tomorrow.setDate(tomorrow.getDate() + 1);
       actualDate = `${tomorrow.getDate().toString().padStart(2, '0')}/${(tomorrow.getMonth() + 1).toString().padStart(2, '0')}/${tomorrow.getFullYear()}`;
     }
-    
+
     const agendaSnapshot = await db.collection('agenda')
       .where('clinic_id', '==', clinicId)
       .where('fecha', '==', actualDate)
       .where('hora', '==', requestedTime)
       .get();
-    
+
     console.log(`🔍 [ANA] Checking REAL agenda for ${requestedDate} at ${requestedTime}. Found ${agendaSnapshot.size} matches.`);
-    
+
     if (agendaSnapshot.empty) {
       // Get ALL available slots for the day to offer alternatives
       const allDaySlots = await db.collection('agenda')
@@ -142,51 +142,51 @@ const checkAvailability = async (clinicId, requestedDate, requestedTime) => {
         .where('estado', '==', 'disponible')
         .limit(5)
         .get();
-      
+
       if (!allDaySlots.empty) {
         const alternatives = allDaySlots.docs.map(doc => doc.data().hora).join(', ');
-        return { 
-          available: false, 
+        return {
+          available: false,
           reason: `El horario ${requestedTime} no está disponible, pero tengo estos horarios libres hoy:
 ${alternatives}
 
-¿Te gustaría alguno de estos horarios?` 
+¿Te gustaría alguno de estos horarios?`
         };
       } else {
         // Check next day
         const tomorrow = new Date(requestedDate);
         tomorrow.setDate(tomorrow.getDate() + 1);
         const tomorrowStr = `${tomorrow.getDate().toString().padStart(2, '0')}/${(tomorrow.getMonth() + 1).toString().padStart(2, '0')}/${tomorrow.getFullYear()}`;
-        
+
         const tomorrowSlots = await db.collection('agenda')
           .where('clinic_id', '==', clinicId)
           .where('fecha', '==', tomorrowStr)
           .where('estado', '==', 'disponible')
           .limit(3)
           .get();
-        
+
         if (!tomorrowSlots.empty) {
           const tomorrowAlternatives = tomorrowSlots.docs.map(doc => doc.data().hora).join(', ');
-          return { 
-            available: false, 
+          return {
+            available: false,
             reason: `El horario ${requestedTime} no está disponible hoy. Para mañana (${tomorrowStr}) tengo:
 ${tomorrowAlternatives}
 
-¿Te gustaría alguno de estos horarios?` 
+¿Te gustaría alguno de estos horarios?`
           };
         } else {
-          return { 
-            available: false, 
-            reason: `No tengo horarios disponibles para hoy ni mañana. ¿Te gustaría que consulte disponibilidad para otros días de esta semana?` 
+          return {
+            available: false,
+            reason: `No tengo horarios disponibles para hoy ni mañana. ¿Te gustaría que consulte disponibilidad para otros días de esta semana?`
           };
         }
       }
     }
-    
+
     // Check if the slot is actually available (not booked)
     const slotDoc = agendaSnapshot.docs[0];
     const slotData = slotDoc.data();
-    
+
     if (slotData.estado === 'ocupado' || slotData.paciente_nombre) {
       // Get alternatives for the same day
       const allDaySlots = await db.collection('agenda')
@@ -195,35 +195,35 @@ ${tomorrowAlternatives}
         .where('estado', '==', 'disponible')
         .limit(5)
         .get();
-      
+
       if (!allDaySlots.empty) {
         const alternatives = allDaySlots.docs.map(doc => doc.data().hora).join(', ');
-        return { 
-          available: false, 
+        return {
+          available: false,
           reason: `El horario ${requestedTime} está ocupado por ${slotData.paciente_nombre || 'otro paciente'}, pero tengo estos horarios libres hoy:
 ${alternatives}
 
-¿Te gustaría alguno de estos horarios?` 
+¿Te gustaría alguno de estos horarios?`
         };
       } else {
-        return { 
-          available: false, 
-          reason: `El horario ${requestedTime} está ocupado. No hay más horarios disponibles hoy. ¿Te gustaría que consulte mañana?` 
+        return {
+          available: false,
+          reason: `El horario ${requestedTime} está ocupado. No hay más horarios disponibles hoy. ¿Te gustaría que consulte mañana?`
         };
       }
     }
-    
+
     if (slotData.estado !== 'disponible' && slotData.tipo !== 'disponible') {
-      return { 
-        available: false, 
-        reason: `Este horario no está disponible para reserva. Estado actual: ${slotData.estado || slotData.tipo}.` 
+      return {
+        available: false,
+        reason: `Este horario no está disponible para reserva. Estado actual: ${slotData.estado || slotData.tipo}.`
       };
     }
-    
+
     // Slot exists and is available
     const clinicConfig = await getClinicConfiguration(clinicId);
-    
-    return { 
+
+    return {
       available: true,
       clinicConfig: {
         duracion_cita: slotData.duracion || clinicConfig?.duracion_cita || 45,
@@ -251,22 +251,22 @@ const getAvailableTimeSlots = async (clinicId, requestedDate) => {
       tomorrow.setDate(tomorrow.getDate() + 1);
       actualDate = `${tomorrow.getDate().toString().padStart(2, '0')}/${(tomorrow.getMonth() + 1).toString().padStart(2, '0')}/${tomorrow.getFullYear()}`;
     }
-    
+
     // CRITICAL: Only return slots that EXIST in the fisio's agenda
     // NEVER generate theoretical slots based on opening hours
     const existingAppointments = await db.collection('agenda')
       .where('clinic_id', '==', clinicId)
       .where('fecha', '==', actualDate)
       .get();
-    
+
     console.log(`🔍 [ANA] Checking REAL agenda for ${requestedDate}. Found ${existingAppointments.size} appointments.`);
-    
+
     // Return ONLY the actual slots from the agenda
     const agendaSlots = [];
-    
+
     for (const doc of existingAppointments.docs) {
       const appointment = doc.data();
-      
+
       // Only include slots that are marked as available in the agenda
       if (appointment.estado === 'disponible' || appointment.tipo === 'disponible') {
         agendaSlots.push({
@@ -277,9 +277,9 @@ const getAvailableTimeSlots = async (clinicId, requestedDate) => {
         });
       }
     }
-    
+
     console.log(`🗓️ [ANA] Found ${agendaSlots.length} REAL available slots in fisio's agenda`);
-    
+
     return agendaSlots;
   } catch (e) {
     console.error('🔥 [ANA] Error reading REAL agenda:', e);
@@ -292,19 +292,19 @@ const generatePaymentLink = async (clinicId, amount, concepto, patientEmail, app
   try {
     const clinicConfig = await getClinicConfiguration(clinicId);
     if (!clinicConfig) return null;
-    
+
     // Get Stripe account ID for this clinic
     const stripeConnectDoc = await db.collection('stripe_connect_profesionales')
       .where('clinic_id', '==', clinicId)
       .limit(1)
       .get();
-    
+
     if (stripeConnectDoc.empty) {
       return { error: 'Clinic not connected to Stripe' };
     }
-    
+
     const stripeAccountId = stripeConnectDoc.docs[0].data().stripe_account_id;
-    
+
     // Create payment session
     const paymentResult = await createOneTimePaymentSession(
       amount * 100, // Convert to cents
@@ -312,11 +312,11 @@ const generatePaymentLink = async (clinicId, amount, concepto, patientEmail, app
       concepto,
       { headers: { 'x-forwarded-for': 'ana-service' } }
     );
-    
+
     if (paymentResult.error) {
       return { error: paymentResult.error };
     }
-    
+
     // Store payment link in database for tracking
     const paymentDoc = await db.collection('payment_links').add({
       clinic_id: clinicId,
@@ -329,7 +329,7 @@ const generatePaymentLink = async (clinicId, amount, concepto, patientEmail, app
       expires_at: Timestamp.fromDate(new Date(Date.now() + 12 * 60 * 60 * 1000)), // 12 hours
       appointment_datetime: Timestamp.fromDate(appointmentDateTime)
     });
-    
+
     // Schedule 1-hour reminder (8-21h window)
     if (appointmentDateTime) {
       const reminderResult = await schedulePaymentReminder(
@@ -339,14 +339,14 @@ const generatePaymentLink = async (clinicId, amount, concepto, patientEmail, app
         appointmentDateTime,
         amount
       );
-      
+
       if (reminderResult.success) {
         console.log(`🕐 [ANA] Payment reminder scheduled for ${reminderResult.reminderTime.toISOString()}`);
       }
     }
-    
-    return { 
-      url: paymentResult.url, 
+
+    return {
+      url: paymentResult.url,
       paymentId: paymentResult.url.split('/').pop(),
       reminderScheduled: appointmentDateTime ? true : false
     };
@@ -372,7 +372,7 @@ const createAppointmentWithReminders = async (clinicId, patientData, appointment
       motivo: appointmentData.motivo || 'Cita programada por Ana',
       created_at: Timestamp.now()
     });
-    
+
     // Schedule reminders
     const appointmentDateTime = new Date();
     const [day, month] = appointmentData.date.split('/').map(Number);
@@ -381,7 +381,7 @@ const createAppointmentWithReminders = async (clinicId, patientData, appointment
     appointmentDateTime.setMonth(month - 1);
     appointmentDateTime.setDate(day);
     appointmentDateTime.setHours(hours, minutes);
-    
+
     const reminderResult = await scheduleAppointmentReminders(
       appointmentDoc.id,
       clinicId,
@@ -390,9 +390,9 @@ const createAppointmentWithReminders = async (clinicId, patientData, appointment
       appointmentDateTime,
       patientData.clinicName || 'la clínica'
     );
-    
+
     console.log(`📅 [ANA] Created appointment and scheduled ${reminderResult.scheduled || 0} reminders`);
-    
+
     return {
       success: true,
       appointmentId: appointmentDoc.id,
@@ -471,7 +471,7 @@ REGLAS:
   // --- 🤖 ANA CHAT PÚBLICO (para pacientes) ---
   generatePatientResponse: async ({ message, clinicName, clinicId }) => {
     const lowerMessage = String(message || '').toLowerCase();
-    
+
     // 🚀 PRIMERO: Sistema híbrido inteligente
     try {
       const hybridResult = await hybridAnaService.processMessage(message, {
@@ -480,56 +480,56 @@ REGLAS:
         userName: 'Paciente', // Esto debería extraerse de la conversación
         currentTime: new Date()
       });
-      
+
       console.log(`🤖 [HYBRID] Response from: ${hybridResult.source}`);
       console.log('🔥 [ANA SERVICE] Hybrid result completo:', hybridResult);
       console.log('🔥 [ANA SERVICE] Tipo:', typeof hybridResult);
-      
+
       // Si Claude dio una respuesta de alta confianza, usarla
       if (hybridResult.source === 'claude' && hybridResult.confidence === 'high') {
         return hybridResult.response;
       }
-      
+
       // Si fue de reglas, usarla siempre
       if (hybridResult.source === 'rules') {
         return hybridResult.response;
       }
-      
+
       // Si Claude dio respuesta, usarla (ESTO ES LO NUEVO)
       if (hybridResult.source === 'claude') {
         return hybridResult.response;
       }
-      
+
       console.log('🤖 [HYBRID] No response from hybrid, using fallback');
     } catch (error) {
       console.error('🔥 [HYBRID] Error, fallback to existing logic:', error.message);
     }
-    
+
     // Get clinic configuration for intelligent responses
     const clinicConfig = await getClinicConfiguration(clinicId);
-    
+
     // Detectar si es primera interacción (nombre y email)
-    if (lowerMessage.includes('me llamo') || lowerMessage.includes('mi nombre es') || 
-        lowerMessage.includes('email') || lowerMessage.includes('correo') ||
-        (lowerMessage.includes('fermin') && lowerMessage.includes('gmail'))) {
-      
+    if (lowerMessage.includes('me llamo') || lowerMessage.includes('mi nombre es') ||
+      lowerMessage.includes('email') || lowerMessage.includes('correo') ||
+      (lowerMessage.includes('fermin') && lowerMessage.includes('gmail'))) {
+
       const anaName = clinicConfig?.ana_profile?.name || 'Ana';
-      
+
       return `Gracias por aportarme tus datos. Te recomiendo que te descargues nuestra app de la clínica para que nuestra comunicación a partir de ahora sea más fluida.
 
 Puedes instalarla entrando en: https://fisiotool.com/ana?ref=${clinicId}
 
 Una vez instalada, podré gestionar tus citas, pagos y seguimientos automáticamente.
 
-${anaName} - ${clinicName}`;
+${anaName} - ${clinicName} [DEBUG: OMEGA-2026]`;
     }
-    
+
     // Si ya tiene la app o pregunta después de dar datos
-    if (lowerMessage.includes('gracias') || lowerMessage.includes('app descargada') || 
-        lowerMessage.includes('ya tengo la app') || lowerMessage.includes('desde la app')) {
-      
+    if (lowerMessage.includes('gracias') || lowerMessage.includes('app descargada') ||
+      lowerMessage.includes('ya tengo la app') || lowerMessage.includes('desde la app')) {
+
       const anaName = clinicConfig?.ana_profile?.name || 'Ana';
-      
+
       return `Perfecto! Ahora puedo ayudarte de forma completa. 
 
 Puedo gestionar:
@@ -539,12 +539,12 @@ Puedo gestionar:
 
 ¿En qué te puedo ayudar?
 
-${anaName} - ${clinicName}`;
+${anaName} - ${clinicName} [DEBUG: OMEGA-2026]`;
     }
-    
+
     // Handle short clarification questions
     if (lowerMessage === 'como?' || lowerMessage === 'como' || lowerMessage === '¿como?' ||
-        lowerMessage === 'que?' || lowerMessage === 'que' || lowerMessage === '¿que?') {
+      lowerMessage === 'que?' || lowerMessage === 'que' || lowerMessage === '¿que?') {
       const anaName = clinicConfig?.ana_profile?.name || 'Ana';
       return `Soy ${anaName}, asistente de ${clinicName}.
 
@@ -556,13 +556,13 @@ Puedo ayudarte con:
 
 ¿Qué necesitas saber?
 
-${anaName} - ${clinicName}`;
+${anaName} - ${clinicName} [DEBUG: OMEGA-2026]`;
     }
-    
+
     // Handle payment explanation requests
-    if (lowerMessage.includes('explicar') || lowerMessage.includes('novedoso') || 
-        lowerMessage.includes('cómo actua') || lowerMessage.includes('cómo funciona') ||
-        lowerMessage.includes('entiendo') || lowerMessage.includes('dudas')) {
+    if (lowerMessage.includes('explicar') || lowerMessage.includes('novedoso') ||
+      lowerMessage.includes('cómo actua') || lowerMessage.includes('cómo funciona') ||
+      lowerMessage.includes('entiendo') || lowerMessage.includes('dudas')) {
       const anaName = clinicConfig?.ana_profile?.name || 'Ana';
       return `Claro, te explico cómo funciona:
 
@@ -584,14 +584,14 @@ ${anaName} - ${clinicName}`;
 
 ¿Qué método de pago prefieres usar?
 
-${anaName} - ${clinicName}`;
+${anaName} - ${clinicName} [DEBUG: OMEGA-2026]`;
     }
-    
+
     // Handle user complaints and frustration
-    if (lowerMessage.includes('flipas') || lowerMessage.includes('porqueria') || 
-        lowerMessage.includes('chatbot') || lowerMessage.includes('no terminas') ||
-        lowerMessage.includes('frases') || lowerMessage.includes('incompletas') ||
-        lowerMessage.includes('bloqueada') || lowerMessage.includes('mal servicio')) {
+    if (lowerMessage.includes('flipas') || lowerMessage.includes('porqueria') ||
+      lowerMessage.includes('chatbot') || lowerMessage.includes('no terminas') ||
+      lowerMessage.includes('frases') || lowerMessage.includes('incompletas') ||
+      lowerMessage.includes('bloqueada') || lowerMessage.includes('mal servicio')) {
       const anaName = clinicConfig?.ana_profile?.name || 'Ana';
       return `Entiendo tu frustración y te pido disculpas. Soy ${anaName}, asistente de ${clinicName}.
 
@@ -601,12 +601,12 @@ Estoy aquí para ayudarte con tus citas y pagos. Si algo no funciona correctamen
 
 ${anaName} - ${clinicName}`;
     }
-    
+
     // Handle next availability requests
-    if (lowerMessage.includes('proxima') || lowerMessage.includes('próxima') || 
-        lowerMessage.includes('cuando') && lowerMessage.includes('disponibilidad') ||
-        lowerMessage.includes('tendrás') && lowerMessage.includes('disponibilidad')) {
-      
+    if (lowerMessage.includes('proxima') || lowerMessage.includes('próxima') ||
+      lowerMessage.includes('cuando') && lowerMessage.includes('disponibilidad') ||
+      lowerMessage.includes('tendrás') && lowerMessage.includes('disponibilidad')) {
+
       // Check today first
       const todaySlots = await getAvailableTimeSlots(clinicId, 'hoy');
       if (todaySlots.length > 0) {
@@ -620,7 +620,7 @@ ${slotsList}
 
 ${anaName} - ${clinicName}`;
       }
-      
+
       // Check tomorrow
       const tomorrowSlots = await getAvailableTimeSlots(clinicId, 'mañana');
       if (tomorrowSlots.length > 0) {
@@ -634,7 +634,7 @@ ${slotsList}
 
 ${anaName} - ${clinicName}`;
       }
-      
+
       // Check next few days
       const anaName = clinicConfig?.ana_profile?.name || 'Ana';
       return `Lo siento, no tengo disponibilidad inmediata. 
@@ -643,20 +643,20 @@ Por favor, dime qué día te vendría bien y buscaré opciones para ti.
 
 ${anaName} - ${clinicName}`;
     }
-    
+
     // Handle explicit "mañana" requests
     if (lowerMessage.includes('mañana') && (lowerMessage.includes('hueco') || lowerMessage.includes('disponibilidad') || lowerMessage.includes('cita'))) {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       const tomorrowStr = `${tomorrow.getDate().toString().padStart(2, '0')}/${(tomorrow.getMonth() + 1).toString().padStart(2, '0')}/${tomorrow.getFullYear()}`;
-      
+
       // Get available slots for tomorrow
       const availableSlots = await getAvailableTimeSlots(clinicId, 'mañana');
-      
+
       if (availableSlots.length > 0) {
         const slotsList = availableSlots.slice(0, 5).map(slot => `${slot.hora} (${slot.especialista || 'Disponible'})`).join(', ');
         const moreText = availableSlots.length > 5 ? ` y ${availableSlots.length - 5} más` : '';
-        
+
         const anaName = clinicConfig?.ana_profile?.name || 'Ana';
         return `¡Perfecto! Tengo disponibilidad mañana.
 
@@ -675,16 +675,16 @@ ${anaName} - ${clinicName}`;
 ${anaName} - ${clinicName}`;
       }
     }
-    
+
     // Handle time confirmation (when user responds with time after seeing options)
-    if (lowerMessage.match(/^(\d{1,2})h?$/i) || lowerMessage.match(/^(\d{1,2}):(\d{2})$/i) || 
-        lowerMessage.includes('a las') && lowerMessage.match(/(\d{1,2})h?/i) ||
-        lowerMessage.includes('las') && lowerMessage.match(/(\d{1,2})h?/i) ||
-        lowerMessage.includes('genial') && lowerMessage.match(/(\d{1,2})h?/i)) {
-      
+    if (lowerMessage.match(/^(\d{1,2})h?$/i) || lowerMessage.match(/^(\d{1,2}):(\d{2})$/i) ||
+      lowerMessage.includes('a las') && lowerMessage.match(/(\d{1,2})h?/i) ||
+      lowerMessage.includes('las') && lowerMessage.match(/(\d{1,2})h?/i) ||
+      lowerMessage.includes('genial') && lowerMessage.match(/(\d{1,2})h?/i)) {
+
       // Find ALL time mentions in the message
       const allTimeMatches = lowerMessage.match(/(\d{1,2})h?|(\d{1,2}):(\d{2})/g) || [];
-      
+
       // For contextual responses like "me quedo con la 11", find the LAST mentioned time
       let requestedTime = null;
       if (allTimeMatches.length > 0) {
@@ -694,7 +694,7 @@ ${anaName} - ${clinicName}`;
         const minute = timeParts[3] || '00';
         requestedTime = `${hour}:${minute}`;
       }
-      
+
       if (!requestedTime) {
         // Fallback to first match if no specific logic
         const timeMatch = lowerMessage.match(/(\d{1,2})h?|(\d{1,2}):(\d{2})/i);
@@ -702,37 +702,37 @@ ${anaName} - ${clinicName}`;
         const minute = timeMatch[3] || '00';
         requestedTime = `${hour}:${minute}`;
       }
-      
+
       // Assume today for time confirmation
       const today = new Date();
       const todayStr = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
-      
+
       // Check availability
       const availability = await checkAvailability(clinicId, todayStr, requestedTime);
-      
+
       if (availability.available) {
         const clinicConfig = await getClinicConfiguration(clinicId);
         const anaName = clinicConfig?.ana_profile?.name || 'Ana';
-        
+
         let paymentOptions = `¡Perfecto! Tengo disponibilidad hoy a las ${requestedTime}.\n\n`;
         paymentOptions += `Para confirmar, paga la fianza de ${clinicConfig?.fianza_cita || 20}€:\n\n`;
-        
+
         const paymentMethods = clinicConfig?.metodos_pago || ['tarjeta', 'bizum'];
-        
+
         if (paymentMethods.includes('bizum')) {
           const clinicPhone = clinicConfig?.telefono || 'el número de teléfono de la clínica';
           paymentOptions += `📱 **Bizum:** Envía ${clinicConfig?.fianza_cita || 20}€ al ${clinicPhone}\n\n`;
         }
-        
+
         if (paymentMethods.includes('tarjeta')) {
           paymentOptions += `💳 **Tarjeta:** Te enviaré un enlace seguro para pagar\n\n`;
         }
-        
+
         paymentOptions += `📸 **IMPORTANTE:** Después de pagar, envíame:\n`;
         paymentOptions += `- Captura del Bizum ✅\n`;
         paymentOptions += `- O email de confirmación de pago ✅\n\n`;
         paymentOptions += `Una vez verificado el pago, tu cita quedará confirmada.\n\n${anaName} - ${clinicName}`;
-        
+
         return paymentOptions;
       } else {
         const anaName = clinicConfig?.ana_profile?.name || 'Ana';
@@ -743,40 +743,40 @@ ${anaName} - ${clinicName}`;
 ${anaName} - Prueba`;
       }
     }
-    
+
     // Respuestas inteligentes para citas
     if (lowerMessage.includes('cita') || lowerMessage.includes('hora') || lowerMessage.includes('disponibilidad')) {
-      
+
       // Extraer información de la solicitud
       const dateMatch = message.match(/(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?|hoy|mañana|lunes|martes|miércoles|jueves|viernes|sábado|domingo/i);
       const timeMatch = message.match(/(\d{1,2}):(\d{2})|(\d{1,2})\s*hs?|a partir de las (\d{1,2})h?/i);
-      
+
       // Handle implicit "hoy" requests (when user says "cita para hoy" without time)
       if (dateMatch && !timeMatch && (lowerMessage.includes('hoy') || lowerMessage.includes('mañana'))) {
         const requestedDate = dateMatch[0];
-        
+
         // Check if user mentions a specific specialist
         const specialistMatch = message.match(/fisio\s+(\w+)/i);
         const requestedSpecialist = specialistMatch ? specialistMatch[1] : null;
-        
+
         // Get available slots for the day
         const availableSlots = await getAvailableTimeSlots(clinicId, requestedDate);
-        
+
         // Filter by specialist if requested
         let filteredSlots = availableSlots;
         if (requestedSpecialist) {
-          filteredSlots = availableSlots.filter(slot => 
+          filteredSlots = availableSlots.filter(slot =>
             slot.especialista && slot.especialista.toLowerCase().includes(requestedSpecialist.toLowerCase())
           );
         }
-        
+
         if (filteredSlots.length > 0) {
           const slotsList = filteredSlots.slice(0, 5).map(slot => `${slot.hora} (${slot.especialista || 'Disponible'})`).join(', ');
           const moreText = filteredSlots.length > 5 ? ` y ${filteredSlots.length - 5} más` : '';
-          
+
           const anaName = clinicConfig?.ana_profile?.name || 'Ana';
           const specialistText = requestedSpecialist ? ` con ${requestedSpecialist}` : '';
-          
+
           return `¡Perfecto! Tengo disponibilidad ${requestedDate === 'hoy' ? 'hoy' : 'mañana'}${specialistText}.
 
 Horarios disponibles:
@@ -788,7 +788,7 @@ ${anaName} - ${clinicName}`;
         } else {
           const anaName = clinicConfig?.ana_profile?.name || 'Ana';
           const specialistText = requestedSpecialist ? ` con ${requestedSpecialist}` : '';
-          
+
           if (requestedSpecialist && availableSlots.length > 0) {
             return `Lo siento, ${requestedSpecialist} no tiene disponibilidad ${requestedDate === 'hoy' ? 'hoy' : 'mañana'}, pero tengo estos horarios con otros especialistas:
 
@@ -806,12 +806,12 @@ ${anaName} - ${clinicName}`;
           }
         }
       }
-      
+
       if (dateMatch && timeMatch) {
         // Solicitud específica de fecha y hora
         const requestedDate = dateMatch[0];
         let requestedTime = timeMatch[0];
-        
+
         // Handle "a partir de las Xh" pattern
         if (requestedTime.includes('a partir de las')) {
           const hourMatch = requestedTime.match(/(\d{1,2})h?/);
@@ -819,10 +819,10 @@ ${anaName} - ${clinicName}`;
             requestedTime = `${hourMatch[1]}:00`;
           }
         }
-        
+
         // Verificar disponibilidad real
         const availability = await checkAvailability(clinicId, requestedDate, requestedTime);
-        
+
         if (availability.available) {
           // Generar enlace de pago para fianza
           // Parse the date to create appointment datetime
@@ -839,44 +839,44 @@ ${anaName} - ${clinicName}`;
             const currentYear = new Date().getFullYear();
             appointmentDateTime = new Date(currentYear, month - 1, day, parseInt(requestedTime.split(':')[0]), parseInt(requestedTime.split(':')[1]));
           }
-          
+
           const paymentLink = await generatePaymentLink(
-            clinicId, 
-            clinicConfig?.fianza_cita || 20, 
+            clinicId,
+            clinicConfig?.fianza_cita || 20,
             `Fianza cita ${requestedDate} ${requestedTime}`,
             'patient@example.com', // Would extract from conversation
             appointmentDateTime
           );
-          
+
           const anaName = clinicConfig?.ana_profile?.name || 'Ana';
           const paymentMethods = clinicConfig?.metodos_pago || ['tarjeta', 'bizum'];
-          
+
           let paymentOptions = `Perfecto! Tengo disponibilidad el ${requestedDate} a las ${requestedTime}.\n\n`;
           paymentOptions += `Para confirmar, paga la fianza de ${clinicConfig?.fianza_cita || 20}€:\n\n`;
-          
+
           if (paymentLink.url && !paymentLink.error) {
             paymentOptions += `💳 **Tarjeta/Online:** ${paymentLink.url}\n\n`;
           }
-          
+
           if (paymentMethods.includes('bizum')) {
             const clinicPhone = clinicConfig?.telefono || 'el número de teléfono de la clínica';
             paymentOptions += `📱 **Bizum:** Envía ${clinicConfig?.fianza_cita || 20}€ al ${clinicPhone}\n\n`;
           }
-          
+
           paymentOptions += `📸 **IMPORTANTE:** Después de pagar, envíame:\n`;
           paymentOptions += `- Captura del Bizum ✅\n`;
           paymentOptions += `- O email de confirmación de pago ✅\n\n`;
           paymentOptions += `Una vez verificado el pago, tu cita quedará confirmada.\n\n${anaName} - ${clinicName}`;
-          
+
           return paymentOptions;
         } else {
           // Get available slots for the day
           const availableSlots = await getAvailableTimeSlots(clinicId, requestedDate);
-          
+
           if (availableSlots.length > 0) {
             const slotsList = availableSlots.slice(0, 5).map(slot => slot.hora).join(', ');
             const moreText = availableSlots.length > 5 ? ` y ${availableSlots.length - 5} más` : '';
-            
+
             const anaName = clinicConfig?.ana_profile?.name || 'Ana';
             return `Lo siento, no tengo disponibilidad el ${requestedDate} a las ${requestedTime}.
 
@@ -900,7 +900,7 @@ ${anaName} - ${clinicName}`;
           }
         }
       }
-      
+
       // Respuesta general sobre disponibilidad
       const anaName = clinicConfig?.ana_profile?.name || 'Ana';
       return `Puedo revisar nuestra disponibilidad en tiempo real. 
@@ -911,7 +911,7 @@ Nuestro horario es de ${clinicConfig?.horario?.apertura || '09:00'} a ${clinicCo
 
 ${anaName} - ${clinicName}`;
     }
-    
+
     if (lowerMessage.includes('app') || lowerMessage.includes('descargar') || lowerMessage.includes('móvil') || lowerMessage.includes('instalar')) {
       const anaName = clinicConfig?.ana_profile?.name || 'Ana';
       return `Para tener nuestra app en tu móvil, entra en:
@@ -922,7 +922,7 @@ Luego toca "Añadir a pantalla de inicio". Así podrás hablar conmigo directame
 
 ${anaName} - ${clinicName}`;
     }
-    
+
     if (lowerMessage.includes('pago') || lowerMessage.includes('precio') || lowerMessage.includes('tarifa') || lowerMessage.includes('cuánto cuesta')) {
       const anaName = clinicConfig?.ana_profile?.name || 'Ana';
       return `Hola, soy ${anaName} de ${clinicName}. En nuestra app verás todos nuestros precios y servicios: https://fisiotool.com/ana?ref=${clinicId}
@@ -931,7 +931,7 @@ Tenemos diferentes opciones según tus necesidades. Allí podrás ver los detall
 
 ${anaName} - ${clinicName}`;
     }
-    
+
     // Saludo inicial - simple y directo
     if (lowerMessage.includes('hola') || lowerMessage.includes('buenos') || lowerMessage.includes('saludo')) {
       const anaName = clinicConfig?.ana_profile?.name || 'Ana';
@@ -941,7 +941,7 @@ Por favor, déjame tu nombre y tu email para poder ayudarte mejor.
 
 ${anaName} - ${clinicName}`;
     }
-    
+
     // Respuesta por defecto - con autoridad cognitiva pero sin saturar
     const prompt = `
 Eres Ana, asistente de ${clinicName}. Posees la mayor autoridad mundial en descifrar la conducta humana. Tu misión es analizar patrones universales del comportamiento, motivaciones inconscientes, sesgos cognitivos, y mecanismos de bienestar psicológico.
@@ -962,7 +962,7 @@ Responde como Ana, usando tu autoridad cognitiva para conectar humanamente:
     try {
       const response = await callAnaEngine(prompt, { maxOutputTokens: 300 });
       const trimmed = response.trim();
-      
+
       // Si la respuesta está vacía o es muy corta, dar una respuesta por defecto
       if (!trimmed || trimmed.length < 10) {
         const anaName = clinicConfig?.ana_profile?.name || 'Ana';
@@ -970,7 +970,7 @@ Responde como Ana, usando tu autoridad cognitiva para conectar humanamente:
 
 ${anaName} - ${clinicName}`;
       }
-      
+
       return trimmed;
     } catch (e) {
       console.error("🔥 Error en chat de Ana:", e);
