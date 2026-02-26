@@ -114,6 +114,13 @@ class HybridAnaService {
 
   // 🚀 Procesar mensaje con sistema híbrido
   async processMessage(message, context = {}) {
+    // 1. Revisar REGLAS DE ORO primero (BIENVENIDA, PAGOS, etc.)
+    const ruleResult = await this.processWithRules(message, context);
+    if (ruleResult && ruleResult.source === 'rules' && ruleResult.confidence === 'high') {
+      return ruleResult;
+    }
+
+    // 2. Si no hay regla clara, decidir si usar AI
     const decision = await this.shouldUseClaude(message, context);
 
     console.log(`🤖 [HYBRID] Decision: ${decision.useClaude ? 'AI' : 'Rules'} (${decision.reason})`);

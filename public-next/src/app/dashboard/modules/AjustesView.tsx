@@ -37,6 +37,60 @@ export const AjustesView = ({ clinicData, onUpdated }: { clinicData: any; onUpda
   const [anaSaving, setAnaSaving] = useState(false);
   const [anaSaved, setAnaSaved] = useState(false);
 
+  // 🎨 Sugerencias de marca basadas en tipo de clínica
+  const getSuggestions = () => {
+    const clinicType = clinicData?.tipo_clinica || clinicData?.especialidad || '';
+    const suggestions = [];
+
+    if (clinicType.toLowerCase().includes('deportiva')) {
+      suggestions.push({
+        name: 'Coach',
+        color: '#FF5722',
+        welcome: '¡Hola! Soy Coach, tu especialista en recuperación deportiva. Estoy aquí para ayudarte a volver al 100%.',
+        reason: 'Energía y motivación para deportistas'
+      });
+    }
+
+    if (clinicType.toLowerCase().includes('pediatrica')) {
+      suggestions.push({
+        name: 'Luna',
+        color: '#4CAF50',
+        welcome: '¡Hola! Soy Luna, tu asistente amigable para los más pequeños. Estoy aquí para hacer la terapia divertida.',
+        reason: 'Color suave y amigable para niños'
+      });
+    }
+
+    if (clinicType.toLowerCase().includes('geriatrica')) {
+      suggestions.push({
+        name: 'Elena',
+        color: '#2196F3',
+        welcome: '¡Hola! Soy Elena, tu asistente especializada en cuidados para mayores. Estoy aquí para ayudarte con paciencia.',
+        reason: 'Confianza y seriedad para adultos mayores'
+      });
+    }
+
+    if (clinicType.toLowerCase().includes('estética')) {
+      suggestions.push({
+        name: 'Sofía',
+        color: '#9C27B0',
+        welcome: '¡Hola! Soy Sofía, tu asistente de belleza y bienestar. Estoy aquí para ayudarte a sentirte mejor.',
+        reason: 'Elegancia y sofisticación para estética'
+      });
+    }
+
+    // Sugerencia general si no coincide
+    if (suggestions.length === 0) {
+      suggestions.push({
+        name: 'Ana',
+        color: '#075E54',
+        welcome: '¡Hola! Soy Ana, tu asistente de fisioterapia. Estoy aquí para ayudarte con tus citas y seguimiento.',
+        reason: 'Profesional y confiable para fisioterapia general'
+      });
+    }
+
+    return suggestions;
+  };
+
   useEffect(() => {
     // Mantener sincronía si llega clinicData después
     setNombre(initialName);
@@ -392,6 +446,43 @@ export const AjustesView = ({ clinicData, onUpdated }: { clinicData: any; onUpda
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: anaConfig.color }}></div>
                   <span className="text-xs text-gray-600">Color del tema: {anaConfig.color}</span>
                 </div>
+              </div>
+            </div>
+
+            {/* 🎯 Sugerencias inteligentes de marca */}
+            <div>
+              <label className="text-xs text-gray-500 uppercase tracking-wider mb-2 block">🎯 Sugerencias para tu clínica</label>
+              <div className="space-y-2">
+                {getSuggestions().map((suggestion, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setAnaConfig({
+                      name: suggestion.name,
+                      color: suggestion.color,
+                      welcome: suggestion.welcome,
+                      photo: anaConfig.photo,
+                      useClinicLogo: anaConfig.useClinicLogo
+                    })}
+                    className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-left hover:bg-white/10 transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div 
+                          className="w-6 h-6 rounded-full border-2 border-white/30"
+                          style={{ backgroundColor: suggestion.color }}
+                        />
+                        <div className="text-left">
+                          <div className="text-sm font-medium text-white">{suggestion.name}</div>
+                          <div className="text-xs text-gray-400">{suggestion.reason}</div>
+                        </div>
+                      </div>
+                      <div className="text-xs text-blue-400">Aplicar</div>
+                    </div>
+                    <div className="text-xs text-gray-500 mt-2 italic">
+                      "{suggestion.welcome.substring(0, 60)}..."
+                    </div>
+                  </button>
+                ))}
               </div>
             </div>
 
