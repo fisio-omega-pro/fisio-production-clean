@@ -233,6 +233,8 @@ Responde de forma natural y humana, evitando sonar como un bot repetitivo. Nunca
         
 Ya he guardado tus datos correctamente en ${context.clinicName || 'la clínica'}. Soy Ana, tu asistente personal, y estoy aquí para cuidarte y que todo sea más fácil para ti.
 
+✨ **UN CONSEJO:** Te he dejado un botón azul justo aquí debajo (**"INSTALAR APP"**). Te recomiendo mucho pulsarlo para que estemos siempre en contacto directo y no te pierdas ningún aviso.
+
 ¿En qué puedo ayudarte hoy para empezar?`,
         confidence: 'high'
       };

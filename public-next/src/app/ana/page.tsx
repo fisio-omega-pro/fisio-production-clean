@@ -41,6 +41,22 @@ function AnaChatContent() {
   const [userEmail, setUserEmail] = useState('');
   const [showForm, setShowForm] = useState(true);
 
+  // 🏪 Cargar persistencia de sesión
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedName = localStorage.getItem(`ana_user_name_${clinicId}`);
+      const savedEmail = localStorage.getItem(`ana_user_email_${clinicId}`);
+      const isRegistered = localStorage.getItem(`ana_registered_${clinicId}`) === 'true';
+
+      if (isRegistered && savedName && savedEmail) {
+        setUserName(savedName);
+        setUserEmail(savedEmail);
+        setUserRegistered(true);
+        setShowForm(false);
+      }
+    }
+  }, [clinicId]);
+
   // 🤖 Ana Profile State
   const [anaProfile, setAnaProfile] = useState({
     name: 'Ana',
@@ -155,6 +171,13 @@ function AnaChatContent() {
 
     setUserRegistered(true);
     setShowForm(false);
+
+    // Guardar en persistencia local
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`ana_user_name_${clinicId}`, userName);
+      localStorage.setItem(`ana_user_email_${clinicId}`, userEmail);
+      localStorage.setItem(`ana_registered_${clinicId}`, 'true');
+    }
 
     // Trigger initial welcome message from Ana via backend (SILENTLY)
     const registrationMessage = `Hola, me llamo ${userName} y mi email es ${userEmail}. Me acabo de registrar.`;
@@ -313,8 +336,8 @@ function AnaChatContent() {
         {messages.map((msg, idx) => (
           <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${msg.role === 'user'
-                ? 'bg-[#dcf8c6] text-gray-800 rounded-br-sm'
-                : 'bg-white text-gray-800 rounded-bl-sm shadow-sm'
+              ? 'bg-[#dcf8c6] text-gray-800 rounded-br-sm'
+              : 'bg-white text-gray-800 rounded-bl-sm shadow-sm'
               }`}>
               <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{msg.text}</p>
               <p className={`text-[10px] mt-2 flex items-center gap-1 ${msg.role === 'user' ? 'text-gray-500 justify-end' : 'text-gray-400'
