@@ -12,6 +12,15 @@ class DashboardService {
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const token = localStorage.getItem('fisio_token');
+
+    // 🛡️ Si no hay token en absoluto, redirigir al login inmediatamente
+    if (!token && !endpoint.includes('/login') && !endpoint.includes('/register')) {
+      console.warn(`[AUTH] Sin token para ${endpoint}. Redirigiendo al login...`);
+      localStorage.clear();
+      window.location.href = '/login';
+      throw new Error('No autenticado');
+    }
+
     const headers: any = {
       'Content-Type': 'application/json',
       ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
@@ -20,6 +29,15 @@ class DashboardService {
     if (options.body instanceof FormData) delete headers['Content-Type'];
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, { ...options, headers });
+
+    // 🛡️ Si el servidor devuelve 401, la sesión expiró → forzar re-login
+    if (response.status === 401) {
+      console.warn(`[AUTH] Sesión expirada (401) en ${endpoint}. Re-login requerido.`);
+      localStorage.removeItem('fisio_token');
+      window.location.href = '/login';
+      throw new Error('Sesión expirada. Por favor, inicia sesión de nuevo.');
+    }
+
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`Error ${response.status}: ${errorText}`);
