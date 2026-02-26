@@ -1,4 +1,5 @@
 const claudeService = require('./claudeService');
+const { SecretManagerServiceClient } = require('@google-cloud/secret-manager');
 
 class HybridAnaService {
   constructor() {
