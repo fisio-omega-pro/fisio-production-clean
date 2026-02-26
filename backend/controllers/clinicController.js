@@ -87,6 +87,12 @@ const register = async (req, res, next) => {
         precio_bono_5: Number(d.precio_bono_5) || 225,
         modo_caza_activo: false
       },
+      // 🤖 Configuración por defecto de Ana
+      ana_name: d.ana_name || 'Ana',
+      ana_photo: d.ana_photo || null,
+      ana_color: d.ana_color || '#075E54',
+      ana_welcome: d.ana_welcome || null,
+      ana_use_clinic_logo: d.ana_use_clinic_logo || false,
       // Auditoría legal mínima
       legal: {
         aceptado: legalAccepted,

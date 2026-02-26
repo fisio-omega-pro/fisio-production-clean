@@ -233,6 +233,32 @@ Ana - Clínica Barcelona Prueba`,
       }
     }
 
+    // 📱 REGLA PLATA: Ayuda con instalación de app
+    if (lowerMessage.includes('instalar') || lowerMessage.includes('app') || lowerMessage.includes('descargar') || 
+        lowerMessage.includes('instalo') || lowerMessage.includes('como instalo')) {
+      return {
+        source: 'rules',
+        response: `📱 **GUÍA DE INSTALACIÓN**
+
+**Opción 1: Botón Azul (Recomendado)**
+👇 Toca el botón "📱 INSTALAR APP" que está aquí abajo
+Luego pulsa "Instalar" o "Añadir a pantalla de inicio"
+
+**Opción 2: Manual**
+📱 **Android:** Menú ⋮ > "Añadir a pantalla de inicio"
+📱 **iPhone:** Icono compartir ⬆️ > "Añadir a pantalla de inicio"
+
+**¿Por qué instalar?**
+✅ Notificaciones instantáneas de citas
+✅ Chat más rápido y fluido
+✅ Acceso directo sin navegador
+✅ Recordatorios automáticos
+
+¿Necesitas ayuda con algún paso específico?`,
+        confidence: 'high'
+      };
+    }
+
     // Detectar selección de hora específica (15:00) - MÁXIMA PRIORIDAD
     if ((lowerMessage.includes('15') || lowerMessage.includes('quince')) &&
       (lowerMessage.includes('h') || lowerMessage.includes('horas') || lowerMessage.includes(':00')) &&

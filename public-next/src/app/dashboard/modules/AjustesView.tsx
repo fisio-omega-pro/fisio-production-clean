@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useMemo, useState } from 'react';
-import { User, Shield, Loader2, CheckCircle2, Ticket, CreditCard, AlertCircle } from 'lucide-react';
+import { User, Shield, Loader2, CheckCircle2, Ticket, CreditCard, AlertCircle, Bot } from 'lucide-react';
 import { InputField, ActionButton } from '../components/Atoms';
 import { dashboardAPI } from '../services';
 import { useRouter } from 'next/navigation';
@@ -26,11 +26,33 @@ export const AjustesView = ({ clinicData, onUpdated }: { clinicData: any; onUpda
   const cancelAtDate = cancelAtSeconds ? new Date(cancelAtSeconds * 1000) : null;
   const planLabel = PLAN_LABELS[String(clinicData?.plan || 'solo').toLowerCase()] || 'Pro';
 
+  // 🤖 Estado para configuración de Ana
+  const [anaConfig, setAnaConfig] = useState({
+    name: clinicData?.ana_name || 'Ana',
+    color: clinicData?.ana_color || '#075E54',
+    welcome: clinicData?.ana_welcome || '',
+    photo: clinicData?.ana_photo || '',
+    useClinicLogo: clinicData?.ana_use_clinic_logo || false
+  });
+  const [anaSaving, setAnaSaving] = useState(false);
+  const [anaSaved, setAnaSaved] = useState(false);
+
   useEffect(() => {
     // Mantener sincronía si llega clinicData después
     setNombre(initialName);
     setEmail(initialEmail);
   }, [initialName, initialEmail]);
+
+  useEffect(() => {
+    // Sincronizar configuración de Ana
+    setAnaConfig({
+      name: clinicData?.ana_name || 'Ana',
+      color: clinicData?.ana_color || '#075E54',
+      welcome: clinicData?.ana_welcome || '',
+      photo: clinicData?.ana_photo || '',
+      useClinicLogo: clinicData?.ana_use_clinic_logo || false
+    });
+  }, [clinicData]);
 
   const canSave = useMemo(() => {
     if (!nombre.trim()) return false;
@@ -52,6 +74,27 @@ export const AjustesView = ({ clinicData, onUpdated }: { clinicData: any; onUpda
       setError(e?.message || 'No se pudo guardar.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // 🤖 Función para guardar configuración de Ana
+  const saveAnaConfig = async () => {
+    setAnaSaving(true);
+    setAnaSaved(false);
+    try {
+      // TODO: Implementar API call para guardar configuración de Ana
+      // await dashboardAPI.updateAnaConfig(anaConfig);
+      
+      // Simulación por ahora
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      await onUpdated();
+      setAnaSaved(true);
+      setTimeout(() => setAnaSaved(false), 2000);
+    } catch (e: any) {
+      setError(e?.message || 'No se pudo guardar la configuración de Ana.');
+    } finally {
+      setAnaSaving(false);
     }
   };
 
@@ -190,6 +233,102 @@ export const AjustesView = ({ clinicData, onUpdated }: { clinicData: any; onUpda
                {bonosSaving && <span className="absolute inset-0 flex items-center justify-center"><Loader2 className="animate-spin text-white w-4 h-4" /></span>}
              </button>
            </div>
+        </section>
+
+        {/* 🤖 CONFIGURACIÓN DE ANA */}
+        <section className="bg-white/[0.02] border border-white/5 rounded-[32px] p-8">
+          <h3 className="text-xs font-black text-blue-500 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+            <Bot size={14} /> Asistente Ana
+          </h3>
+          
+          <div className="space-y-6">
+            {/* Nombre de Ana */}
+            <div>
+              <label className="text-xs text-gray-500 uppercase tracking-wider mb-2 block">Nombre del asistente</label>
+              <input
+                type="text"
+                value={anaConfig.name}
+                onChange={(e) => setAnaConfig(prev => ({ ...prev, name: e.target.value }))}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-blue-500/50"
+                placeholder="Nombre del asistente"
+              />
+            </div>
+
+            {/* Color del tema */}
+            <div>
+              <label className="text-xs text-gray-500 uppercase tracking-wider mb-2 block">Color del tema</label>
+              <div className="flex gap-2">
+                {['#075E54', '#FF5722', '#2196F3', '#4CAF50', '#9C27B0'].map(color => (
+                  <button
+                    key={color}
+                    onClick={() => setAnaConfig(prev => ({ ...prev, color }))}
+                    className={`w-8 h-8 rounded-full border-2 ${anaConfig.color === color ? 'border-white' : 'border-transparent'}`}
+                    style={{ backgroundColor: color }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Mensaje de bienvenida */}
+            <div>
+              <label className="text-xs text-gray-500 uppercase tracking-wider mb-2 block">Mensaje de bienvenida personalizado</label>
+              <textarea
+                value={anaConfig.welcome}
+                onChange={(e) => setAnaConfig(prev => ({ ...prev, welcome: e.target.value }))}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-blue-500/50 resize-none"
+                rows={3}
+                placeholder="Mensaje personalizado de bienvenida..."
+              />
+            </div>
+
+            {/* Foto de perfil */}
+            <div>
+              <label className="text-xs text-gray-500 uppercase tracking-wider mb-2 block">Foto de perfil</label>
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-full bg-white/10 border border-white/20 overflow-hidden">
+                  {clinicData?.ana_photo ? (
+                    <img src={clinicData.ana_photo} alt="Ana" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-500">
+                      <Bot size={24} />
+                    </div>
+                  )}
+                </div>
+                <button className="px-4 py-2 bg-blue-500/20 text-blue-400 rounded-xl text-xs hover:bg-blue-500/30 transition-colors">
+                  Cambiar foto
+                </button>
+              </div>
+            </div>
+
+            {/* Botón de guardar */}
+            <div className="flex items-center justify-between pt-4 border-t border-white/10">
+              <div className="text-xs text-gray-500">
+                {anaSaved && (
+                  <span className="text-green-400 flex items-center gap-1">
+                    <CheckCircle2 size={12} />
+                    Configuración guardada
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={saveAnaConfig}
+                disabled={anaSaving}
+                className="px-4 py-2 bg-blue-500 text-white rounded-xl text-xs font-semibold hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+              >
+                {anaSaving ? (
+                  <>
+                    <Loader2 className="animate-spin" size={14} />
+                    Guardando...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 size={14} />
+                    Guardar configuración
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </section>
       </div>
     </div>

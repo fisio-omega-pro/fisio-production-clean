@@ -49,6 +49,33 @@ function AnaChatContent() {
     custom_color: '#075E54'
   });
 
+  // 📥 Cargar configuración de Ana desde Firestore
+  useEffect(() => {
+    const loadAnaProfile = async () => {
+      if (!clinicId) return;
+      
+      try {
+        const response = await fetch(`/api/public/clinic-info?clinicId=${clinicId}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.data) {
+            setAnaProfile({
+              name: data.data.ana_name || 'Ana',
+              photo_url: data.data.ana_photo || null,
+              use_clinic_logo: data.data.ana_use_clinic_logo || false,
+              custom_color: data.data.ana_color || '#075E54'
+            });
+            setClinicName(data.data.nombre_clinica || data.data.nombre || 'la clínica');
+          }
+        }
+      } catch (error) {
+        console.error('Error loading Ana profile:', error);
+      }
+    };
+
+    loadAnaProfile();
+  }, [clinicId]);
+
   useEffect(() => {
     // PWA install prompt listener
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -117,13 +144,41 @@ function AnaChatContent() {
     // Add Ana response
     setMessages(prev => [...prev, {
       role: 'ana',
-      text: `Gracias. Te recomiendo que te descargues nuestra app para estar mejor comunicados.
+      text: `¡Gracias por registrarte! 🎉
 
-Toca el botón "Instalar app" que verás aquí abajo y se instalará automáticamente.
+� **ANTES DE EMPEZAR - INSTALA LA APP GRATIS:**
+
+📱 **Toca el botón "📱 INSTALAR APP" aquí abajo**
+
+✅ Notificaciones instantáneas de citas
+✅ Chat más rápido y fluido  
+✅ Acceso directo sin navegador
+✅ Recordatorios automáticos
+
+Es 100% GRATIS y se instala en 10 segundos.
 
 Una vez instalada, podremos comunicarnos directamente y yo podré ayudarte mejor con tus citas y seguimiento.`,
       timestamp: Date.now()
     }]);
+
+    // Add PWA install prompt message
+    setTimeout(() => {
+      setMessages(prev => [...prev, {
+        role: 'ana',
+        text: `🔥 **¿LISTO PARA INSTALAR?**
+
+👇 **Toca AHORA el botón "📱 INSTALAR APP"**
+
+Es 100% GRATIS y se instala en 10 segundos:
+
+1. Toca el botón azul "📱 INSTALAR APP"
+2. Pulsa "Instalar" o "Añadir a pantalla de inicio"
+3. ¡Listo! La app aparecerá en tu móvil
+
+¿Necesitas ayuda? ¡Dime "instalar" y te guío paso a paso!`,
+        timestamp: Date.now()
+      }]);
+    }, 3000);
 
     setUserRegistered(true);
     setShowForm(false);
@@ -198,7 +253,7 @@ Una vez instalada, podremos comunicarnos directamente y yo podré ayudarte mejor
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h1 className="text-white font-semibold">Ana</h1>
+            <h1 className="text-white font-semibold">{anaProfile.name}</h1>
             <p className="text-xs text-green-300">Asistente de {clinicName || 'la clínica'}</p>
             <p className="text-xs text-green-200 flex items-center gap-1">
               <div className="w-2 h-2 bg-green-400 rounded-full"></div>
@@ -220,15 +275,25 @@ Una vez instalada, podremos comunicarnos directamente y yo podré ayudarte mejor
 
         {/* Ana Profile Photo */}
         <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/30 shadow-lg">
-          <img
-            src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face&auto=format"
-            alt="Ana"
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-              e.currentTarget.parentElement.innerHTML = '<div class="w-full h-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center"><span class="text-white font-bold text-lg">A</span></div>';
-            }}
-          />
+          {anaProfile.photo_url ? (
+            <img
+              src={anaProfile.photo_url}
+              alt={anaProfile.name}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          ) : (
+            <img
+              src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face&auto=format"
+              alt={anaProfile.name}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          )}
         </div>
       </div>
 
@@ -320,10 +385,52 @@ Una vez instalada, podremos comunicarnos directamente y yo podré ayudarte mejor
               </button>
             </div>
 
-            <button className="text-gray-500 hover:text-gray-700 p-2">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M2 17h20v2H2zm1.15-4.05L4 11.47l.85 1.48 1.3-.75-.85-1.48H7v-1.5H5.3l.85-1.48L4.85 7 4 8.47 3.15 7l-1.3.75.85 1.48H1v1.5h1.7l-.85 1.48 1.3.75zm6.7-.75l1.48.85 1.48-.85-.85-1.48H14v-1.5h-2.05l.85-1.48L11 7l-1.48 1.48L8.05 7l-1.3.75.85 1.48H5v1.5h2.05l-.85 1.48zm8 0l1.48.85 1.48-.85-.85-1.48H22v-1.5h-2.05l.85-1.48L19 7l-1.48 1.48L16.05 7l-1.3.75.85 1.48H13v1.5h2.05l-.85 1.48z" />
+            <button 
+              onClick={() => {
+                if (window.deferredPrompt) {
+                  window.deferredPrompt.prompt();
+                  window.deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                      console.log('User accepted the A2HS prompt');
+                      setMessages(prev => [...prev, {
+                        role: 'ana',
+                        text: `🎉 **¡INSTALACIÓN COMPLETADA!**
+
+¡Perfecto! Ya tienes nuestra app en tu móvil.
+
+Ahora podrás:
+✅ Recibir notificaciones instantáneas
+✅ Chatear más rápido
+✅ Acceder directamente sin navegador
+
+¿En qué puedo ayudarte ahora?`,
+                        timestamp: Date.now()
+                      }]);
+                    } else {
+                      console.log('User dismissed the A2HS prompt');
+                    }
+                    window.deferredPrompt = null;
+                  });
+                } else {
+                  setMessages(prev => [...prev, {
+                    role: 'ana',
+                    text: `Si no ves el botón de instalación:
+
+1. En Android: Toca los 3 puntos ⋮ > "Añadir a pantalla de inicio"
+2. En iOS: Toca el icono de compartir ⬆️ > "Añadir a pantalla de inicio"
+
+¿Necesitas ayuda paso a paso?`,
+                    timestamp: Date.now()
+                  }]);
+                }
+              }}
+              className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-full font-semibold text-sm shadow-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 flex items-center gap-2"
+              title="Instalar App en tu móvil"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17 2H7c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-5 2c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm0 14c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/>
               </svg>
+              📱 INSTALAR APP
             </button>
 
             <button
