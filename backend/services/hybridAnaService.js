@@ -241,6 +241,16 @@ Es muy sencillo:
 3. ¡Listo! Me tendrás siempre a mano en tu pantalla de inicio.
 
 ¿En qué puedo ayudarte hoy para empezar?`,
+        confidence: 'high'
+      };
+    }
+
+    // 💰 REGLA ORO: Confirmación de pago/enlace (Si el usuario acepta)
+    if ((lowerMessage.includes('si') || lowerMessage.includes('claro') || lowerMessage.includes('vale') || lowerMessage.includes('por favor')) &&
+      !lowerMessage.includes('no')) {
+
+      const historyText = JSON.stringify(context.history || []).toLowerCase();
+      if (historyText.includes('enlace') || historyText.includes('fianza') || historyText.includes('pago')) {
         return {
           source: 'rules',
           response: `¡Perfecto! Aquí tienes las opciones para formalizar la reserva de 15€:
