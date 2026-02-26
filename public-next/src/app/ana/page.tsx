@@ -49,6 +49,18 @@ function AnaChatContent() {
     custom_color: '#075E54'
   });
 
+  const [isAppInstalled, setIsAppInstalled] = useState(false);
+
+  // 🕵️ Detectar si ya es una PWA instalada
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+        || (window.navigator as any).standalone
+        || document.referrer.includes('android-app://');
+      setIsAppInstalled(isStandalone);
+    }
+  }, []);
+
   // 📥 Cargar configuración de Ana desde Firestore
   useEffect(() => {
     const loadAnaProfile = async () => {
@@ -300,12 +312,12 @@ function AnaChatContent() {
       }}>
         {messages.map((msg, idx) => (
           <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max - w - [80 %] rounded - 2xl px - 4 py - 2 ${msg.role === 'user'
-              ? 'bg-[#dcf8c6] text-gray-800 rounded-br-sm'
-              : 'bg-white text-gray-800 rounded-bl-sm shadow-sm'
+            <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${msg.role === 'user'
+                ? 'bg-[#dcf8c6] text-gray-800 rounded-br-sm'
+                : 'bg-white text-gray-800 rounded-bl-sm shadow-sm'
               }`}>
-              <p className="text-sm">{msg.text}</p>
-              <p className={`text - xs mt - 1 flex items - center gap - 1 ${msg.role === 'user' ? 'text-gray-500 justify-end' : 'text-gray-400'
+              <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+              <p className={`text-[10px] mt-2 flex items-center gap-1 ${msg.role === 'user' ? 'text-gray-500 justify-end' : 'text-gray-400'
                 }`}>
                 {new Date(msg.timestamp).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
                 {msg.role === 'user' && <span className="text-blue-500">✓✓</span>}
@@ -357,6 +369,41 @@ function AnaChatContent() {
         </div>
       ) : (
         <div className="bg-[#f0f2f5] px-4 py-2 border-t border-gray-200">
+          {/* 📱 Botón de Instalación (Si no está instalada y estamos en registro completado) */}
+          {!isAppInstalled && userRegistered && (
+            <div className="mb-2">
+              <button
+                onClick={() => {
+                  if (window.deferredPrompt) {
+                    window.deferredPrompt.prompt();
+                    window.deferredPrompt.userChoice.then((choiceResult: any) => {
+                      if (choiceResult.outcome === 'accepted') {
+                        setIsAppInstalled(true);
+                        setMessages(prev => [...prev, {
+                          role: 'ana',
+                          text: "¡Excelente! Ya tienes la App instalada. Verás lo cómodo que es recibir mis avisos directamente en tu pantalla de inicio. 😊",
+                          timestamp: Date.now()
+                        }]);
+                      }
+                      window.deferredPrompt = null;
+                    });
+                  } else {
+                    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+                    if (isIOS) {
+                      alert('✨ PARA INSTALAR EN IPHONE:\n\n1. Toca el botón "Compartir" (el cuadrado con la flecha ⬆️ abajo)\n2. Busca y toca "Añadir a pantalla de inicio"\n3. Pulsa "Añadir" ¡Y listo! 📱');
+                    } else {
+                      alert('📱 Tu navegador ya tiene la App instalada o no soporta instalación automática.\n\nBusca los 3 puntos (⋮) en tu navegador y selecciona "Añadir a pantalla de inicio".');
+                    }
+                  }
+                }}
+                className="w-full bg-[#0086ea] text-white py-3 rounded-xl font-bold text-base shadow-lg hover:bg-[#007ab5] active:scale-95 transition-all flex items-center justify-center gap-3 animate-pulse"
+              >
+                <Download size={20} />
+                📱 INSTALAR APP DE LA CLÍNICA
+              </button>
+            </div>
+          )}
+
           <div className="flex items-center gap-2">
             <button className="text-gray-500 hover:text-gray-700 p-2">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
