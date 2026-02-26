@@ -1,33 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://fisio-backend-omega-27rnwsehcq-ew.a.run.app';
+
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const clinicId = searchParams.get('clinicId');
+    // Reenviar el Authorization header al backend real
+    const authHeader = request.headers.get('authorization') || '';
 
-    if (!clinicId) {
-      return NextResponse.json(
-        { success: false, error: 'clinicId is required' },
-        { status: 400 }
-      );
-    }
-
-    // Llamar al backend para obtener datos del dashboard
-    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
-    const response = await fetch(`${backendUrl}/api/dashboard/data?clinicId=${clinicId}`);
-
-    if (!response.ok) {
-      return NextResponse.json(
-        { success: false, error: 'Failed to fetch dashboard data' },
-        { status: response.status }
-      );
-    }
+    const response = await fetch(`${BACKEND_URL}/api/dashboard/data`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authHeader ? { 'Authorization': authHeader } : {}),
+      },
+    });
 
     const data = await response.json();
-    return NextResponse.json(data);
 
+    if (!response.ok) {
+      return NextResponse.json(data, { status: response.status });
+    }
+
+    return NextResponse.json(data);
   } catch (error) {
-    console.error('Error in dashboard data API:', error);
+    console.error('Error in dashboard data proxy:', error);
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }
