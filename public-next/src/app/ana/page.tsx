@@ -77,19 +77,26 @@ function AnaChatContent() {
   }, [clinicId]);
 
   useEffect(() => {
+    // 🔋 Registrar Service Worker para PWA (necesario para botón instalar)
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(reg => console.log('✅ SW registrado:', reg.scope))
+        .catch(err => console.error('🔥 Error SW:', err));
+    }
+
     // PWA install prompt listener
-    const handleBeforeInstallPrompt = (e: Event) => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      console.log('📥 beforeinstallprompt detectado');
       e.preventDefault();
       window.deferredPrompt = e;
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
-
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
-  }, [clinicId]);
+  }, []); // Removed clinicId from dependencies as it's not used here
 
   // Update manifest with clinic logo
   useEffect(() => {
@@ -122,7 +129,7 @@ function AnaChatContent() {
     }
   }, [clinicId]);
 
-  const handleUserRegistration = () => {
+  const handleUserRegistration = async () => {
     if (!userName.trim() || !userEmail.trim()) {
       alert('Por favor, introduce tu nombre y email');
       return;
@@ -138,7 +145,7 @@ function AnaChatContent() {
     setShowForm(false);
 
     // Trigger initial welcome message from Ana via backend (SILENTLY)
-    const welcomeMsg техническо = `Hola, me llamo ${userName} y mi email es ${userEmail}. Me acabo de registrar.`;
+    const registrationMessage = `Hola, me llamo ${userName} y mi email es ${userEmail}. Me acabo de registrar.`;
 
     setIsTyping(true);
 
@@ -147,7 +154,7 @@ function AnaChatContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: welcomeMsg техническо,
+          message: registrationMessage,
           clinicId,
           history: []
         })
@@ -373,8 +380,8 @@ function AnaChatContent() {
               onClick={sendMessage}
               disabled={!input.trim() || isTyping}
               className={`p-3 rounded-full transition ${input.trim() && !isTyping
-                  ? 'bg-[#0086ea] text-white hover:bg-[#007ab5] shadow-md'
-                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                ? 'bg-[#0086ea] text-white hover:bg-[#007ab5] shadow-md'
+                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                 }`}
             >
               <Send size={20} />
