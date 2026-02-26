@@ -7,17 +7,17 @@ const Stripe = require('stripe');
 
 // 🚨 FUNCIÓN CRÍTICA: BLINDAJE LEGAL (AUDIT LOG)
 const createAuditLog = async (clinicId, userId, action, resourceId) => {
-    try {
-        await db.collection('audit_logs').add({
-            clinicId,
-            userId,
-            action, // EJ: CREATE_PATIENT, VIEW_NOTE, DELETE_APPOINTMENT
-            resourceId,
-            timestamp: Timestamp.now()
-        });
-    } catch(e) {
-        console.error("CRITICAL: Failed to create audit log.", e.message);
-    }
+  try {
+    await db.collection('audit_logs').add({
+      clinicId,
+      userId,
+      action, // EJ: CREATE_PATIENT, VIEW_NOTE, DELETE_APPOINTMENT
+      resourceId,
+      timestamp: Timestamp.now()
+    });
+  } catch (e) {
+    console.error("CRITICAL: Failed to create audit log.", e.message);
+  }
 };
 
 // --- APLICACIÓN DE AUDITORÍA A FUNCIONES SENSIBLES ---
@@ -113,7 +113,7 @@ const register = async (req, res, next) => {
           referrals_last_at: now,
         }, { merge: true });
         await createAuditLog(referred_by_clinic_id, referred_by_clinic_id, 'REFERRAL_NEW_SIGNUP', ref.id);
-      } catch (_) {}
+      } catch (_) { }
     }
 
     // 📄 Contrato + Email de bienvenida (best-effort, no bloquea registro)
@@ -239,7 +239,7 @@ const forgotPassword = async (req, res, next) => {
     // Siempre devolvemos success true para no filtrar existencia de cuentas
     if (result.ok && result.token) {
       // Best effort: si falla el email, no revelamos información sensible
-      try { await sendResetEmail(String(email || ''), result.token); } catch (_) {}
+      try { await sendResetEmail(String(email || ''), result.token); } catch (_) { }
     }
 
     return res.json({ success: true });
@@ -263,65 +263,65 @@ const resetPassword = async (req, res, next) => {
 
 // 2. CREAR CITA
 const createAppointment = async (req, res) => {
-    try {
-        const d = req.body || {};
-        const fecha = String(d.fecha || '').trim();
-        const hora = String(d.hora || '').trim();
-        if (!fecha || !hora) return res.status(400).json({ success: false, error: 'fecha y hora requeridos' });
+  try {
+    const d = req.body || {};
+    const fecha = String(d.fecha || '').trim();
+    const hora = String(d.hora || '').trim();
+    if (!fecha || !hora) return res.status(400).json({ success: false, error: 'fecha y hora requeridos' });
 
-        const payload = {
-          clinic_id: req.clinicId,
-          nombre: String(d.nombre || '').trim() || 'Paciente',
-          telefono: String(d.telefono || '').trim() || '',
-          email: String(d.email || '').trim() || '',
-          fecha,
-          hora,
-          specialist_id: String(d.specialistId || d.docId || '').trim() || null,
-          estado: String(d.estado || 'pendiente'),
-          pagado: !!d.pagado,
-          created_at: Timestamp.now(),
-          updated_at: Timestamp.now()
-        };
+    const payload = {
+      clinic_id: req.clinicId,
+      nombre: String(d.nombre || '').trim() || 'Paciente',
+      telefono: String(d.telefono || '').trim() || '',
+      email: String(d.email || '').trim() || '',
+      fecha,
+      hora,
+      specialist_id: String(d.specialistId || d.docId || '').trim() || null,
+      estado: String(d.estado || 'pendiente'),
+      pagado: !!d.pagado,
+      created_at: Timestamp.now(),
+      updated_at: Timestamp.now()
+    };
 
-        const ref = await db.collection('citas').add(payload);
-        // 🚨 LOG: Creación de cita sensible
-        await createAuditLog(req.clinicId, req.userId || req.clinicId, 'CREATE_APPOINTMENT', ref.id);
-        res.json({ success: true });
-    } catch (e) { res.status(500).json({ error: e.message }); }
+    const ref = await db.collection('citas').add(payload);
+    // 🚨 LOG: Creación de cita sensible
+    await createAuditLog(req.clinicId, req.userId || req.clinicId, 'CREATE_APPOINTMENT', ref.id);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 };
 
 // 3. GUARDAR NOTA DE PACIENTE (El punto más crítico para HIPAA)
 const savePatientNote = async (req, res) => {
-    try {
-        const body = req.body || {};
-        const pid = String(body.patientId || body.p || '').trim();
-        const text = String(body.content || body.c || '').trim();
-        if (!pid || !text) return res.status(400).json({ success: false, error: 'patientId y content requeridos' });
+  try {
+    const body = req.body || {};
+    const pid = String(body.patientId || body.p || '').trim();
+    const text = String(body.content || body.c || '').trim();
+    if (!pid || !text) return res.status(400).json({ success: false, error: 'patientId y content requeridos' });
 
-        const patientRef = db.collection('pacientes').doc(pid);
-        const patientDoc = await patientRef.get();
-        if (!patientDoc.exists) return res.status(404).json({ success: false, error: 'Paciente no encontrado' });
-        const pData = patientDoc.data() || {};
-        if (String(pData.clinic_id || '') !== String(req.clinicId || '')) {
-          return res.status(403).json({ success: false, error: 'No autorizado' });
-        }
+    const patientRef = db.collection('pacientes').doc(pid);
+    const patientDoc = await patientRef.get();
+    if (!patientDoc.exists) return res.status(404).json({ success: false, error: 'Paciente no encontrado' });
+    const pData = patientDoc.data() || {};
+    if (String(pData.clinic_id || '') !== String(req.clinicId || '')) {
+      return res.status(403).json({ success: false, error: 'No autorizado' });
+    }
 
-        await db.collection('pacientes').doc(pid).update({
-          last_note: text,
-          last_note_at: Timestamp.now(),
-          updated_at: Timestamp.now()
-        });
+    await db.collection('pacientes').doc(pid).update({
+      last_note: text,
+      last_note_at: Timestamp.now(),
+      updated_at: Timestamp.now()
+    });
 
-        await patientRef.collection('notas').add({
-          clinic_id: req.clinicId,
-          content: text,
-          created_at: Timestamp.now()
-        });
+    await patientRef.collection('notas').add({
+      clinic_id: req.clinicId,
+      content: text,
+      created_at: Timestamp.now()
+    });
 
-        // 🚨 LOG: Modificación de historial
-        await createAuditLog(req.clinicId, req.userId || req.clinicId, 'MODIFY_PATIENT_RECORD', pid);
-        res.json({ success: true });
-    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+    // 🚨 LOG: Modificación de historial
+    await createAuditLog(req.clinicId, req.userId || req.clinicId, 'MODIFY_PATIENT_RECORD', pid);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 };
 
 // 3b. HISTORIAL CLÍNICO (para el modal de Agenda)
@@ -367,7 +367,7 @@ const getPatientHistory = async (req, res, next) => {
       const ms =
         ts && typeof ts.toMillis === 'function' ? ts.toMillis()
           : ts && ts._seconds ? ts._seconds * 1000
-          : Date.now();
+            : Date.now();
       return {
         id: d.id,
         fecha: ms,
@@ -381,87 +381,87 @@ const getPatientHistory = async (req, res, next) => {
 
 // 4. ACCESO AL DASHBOARD
 const getDashboardData = async (req, res, next) => {
+  try {
+    // 🚨 LOG: Acceso al Dashboard
+    await createAuditLog(req.clinicId, req.userId || req.clinicId, 'VIEW_DASHBOARD', req.clinicId);
+    // ... (resto de la lógica de datos)
+    const [clinicDoc, equipoSnap, pacientesSnap, citasSnap, bonosSnap] = await Promise.all([
+      db.collection('clinicas').doc(req.clinicId).get(),
+      db.collection('clinicas').doc(req.clinicId).collection('equipo').get(),
+      db.collection('pacientes').where('clinic_id', '==', req.clinicId).get(),
+      db.collection('citas').where('clinic_id', '==', req.clinicId).get(),
+      db.collection('bonos').where('clinic_id', '==', req.clinicId).get()
+    ]);
+    // ... (retorno de datos)
+    const data = clinicDoc.data();
+    // Referidos: asegurar que la clínica tenga código (best-effort)
+    let referralCode = String(data?.referral_code || '').trim().toUpperCase();
+    if (!referralCode) {
+      const genReferralCode = () => Math.random().toString(36).slice(2, 6).toUpperCase() + Math.random().toString(36).slice(2, 6).toUpperCase();
+      for (let i = 0; i < 6; i++) {
+        const candidate = genReferralCode();
+        const exists = await db.collection('clinicas').where('referral_code', '==', candidate).limit(1).get();
+        if (exists.empty) { referralCode = candidate; break; }
+      }
+      if (!referralCode) referralCode = genReferralCode();
+      try {
+        await db.collection('clinicas').doc(req.clinicId).set({ referral_code: referralCode, updated_at: Timestamp.now() }, { merge: true });
+      } catch (_) { }
+    }
+    // Stats de referidos (simple)
+    let referredCount = 0;
     try {
-        // 🚨 LOG: Acceso al Dashboard
-        await createAuditLog(req.clinicId, req.userId || req.clinicId, 'VIEW_DASHBOARD', req.clinicId);
-        // ... (resto de la lógica de datos)
-        const [clinicDoc, equipoSnap, pacientesSnap, citasSnap, bonosSnap] = await Promise.all([
-          db.collection('clinicas').doc(req.clinicId).get(),
-          db.collection('clinicas').doc(req.clinicId).collection('equipo').get(),
-          db.collection('pacientes').where('clinic_id', '==', req.clinicId).get(),
-          db.collection('citas').where('clinic_id', '==', req.clinicId).get(),
-          db.collection('bonos').where('clinic_id', '==', req.clinicId).get()
-        ]);
-        // ... (retorno de datos)
-        const data = clinicDoc.data();
-        // Referidos: asegurar que la clínica tenga código (best-effort)
-        let referralCode = String(data?.referral_code || '').trim().toUpperCase();
-        if (!referralCode) {
-          const genReferralCode = () => Math.random().toString(36).slice(2, 6).toUpperCase() + Math.random().toString(36).slice(2, 6).toUpperCase();
-          for (let i = 0; i < 6; i++) {
-            const candidate = genReferralCode();
-            const exists = await db.collection('clinicas').where('referral_code', '==', candidate).limit(1).get();
-            if (exists.empty) { referralCode = candidate; break; }
-          }
-          if (!referralCode) referralCode = genReferralCode();
-          try {
-            await db.collection('clinicas').doc(req.clinicId).set({ referral_code: referralCode, updated_at: Timestamp.now() }, { merge: true });
-          } catch (_) {}
-        }
-        // Stats de referidos (simple)
-        let referredCount = 0;
-        try {
-          const referredSnap = await db.collection('clinicas').where('referred_by_clinic_id', '==', req.clinicId).get();
-          referredCount = referredSnap.size || 0;
-        } catch (_) {}
-        let equipo = equipoSnap.docs.map(d => ({id: d.id, ...d.data()}));
-        if (equipo.length === 0) {
-          equipo = [{ id: 'admin-lead', nombre: data.nombre_clinica, especialidad: 'Dirección', avatarUrl: data.logo_url, isOwner: true }];
-        }
-        let agendaRaw = citasSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-        const specialistId = String(req.specialistId || '').trim() || null;
-        if (specialistId) {
-          agendaRaw = agendaRaw.filter((c) => String(c.specialist_id || '') === specialistId);
-          const onlyMe = equipo.filter((e) => e.id === specialistId);
-          if (onlyMe.length) equipo = onlyMe;
-        }
-        const currentUser = { 
-          specialistId: specialistId || null, 
-          isOwner: !specialistId,
-          email: data.email || '' // Añadir email de la clínica
-        };
-        // 🔒 Nunca exponer hashes/credenciales al cliente
-        // eslint-disable-next-line no-unused-vars
-        const { password, ...safeClinic } = (data || {});
-        // Balance simple (real/potencial) a partir de citas + precio de sesión configurado
-        const precioSesion = Number((data?.config_ia && data.config_ia.precio) || 50);
-        let real = 0;
-        let potencial = 0;
-        agendaRaw.forEach((c) => {
-          const amount = Number(c.precio_sesion || precioSesion || 0);
-          const pagado = !!c.pagado || String(c.estado || '').toLowerCase() === 'pagado' || String(c.estado || '').toLowerCase() === 'pagada';
-          if (pagado) real += amount;
-          else potencial += amount;
-        });
-        const plan = String(data?.plan || 'solo').toLowerCase();
-        const planPrice = plan === 'corporate' ? 500 : plan === 'team' ? 300 : 100;
-        const roi = planPrice > 0 ? Math.round((real / planPrice) * 100) : 0;
+      const referredSnap = await db.collection('clinicas').where('referred_by_clinic_id', '==', req.clinicId).get();
+      referredCount = referredSnap.size || 0;
+    } catch (_) { }
+    let equipo = equipoSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (equipo.length === 0) {
+      equipo = [{ id: 'admin', nombre: data.nombre_clinica || data.nombre || 'Clínica', especialidad: 'Dirección', avatarUrl: data.logo_url, isOwner: true }];
+    }
+    let agendaRaw = citasSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const specialistId = String(req.specialistId || '').trim() || null;
+    if (specialistId) {
+      agendaRaw = agendaRaw.filter((c) => String(c.specialist_id || '') === specialistId);
+      const onlyMe = equipo.filter((e) => e.id === specialistId);
+      if (onlyMe.length) equipo = onlyMe;
+    }
+    const currentUser = {
+      specialistId: specialistId || null,
+      isOwner: !specialistId,
+      email: data.email || '' // Añadir email de la clínica
+    };
+    // 🔒 Nunca exponer hashes/credenciales al cliente
+    // eslint-disable-next-line no-unused-vars
+    const { password, ...safeClinic } = (data || {});
+    // Balance simple (real/potencial) a partir de citas + precio de sesión configurado
+    const precioSesion = Number((data?.config_ia && data.config_ia.precio) || 50);
+    let real = 0;
+    let potencial = 0;
+    agendaRaw.forEach((c) => {
+      const amount = Number(c.precio_sesion || precioSesion || 0);
+      const pagado = !!c.pagado || String(c.estado || '').toLowerCase() === 'pagado' || String(c.estado || '').toLowerCase() === 'pagada';
+      if (pagado) real += amount;
+      else potencial += amount;
+    });
+    const plan = String(data?.plan || 'solo').toLowerCase();
+    const planPrice = plan === 'corporate' ? 500 : plan === 'team' ? 300 : 100;
+    const roi = planPrice > 0 ? Math.round((real / planPrice) * 100) : 0;
 
-        res.json({ 
-          success: true, 
-          data: { 
-            configStatus: { hasLogo: !!data.logo_url, hasStripe: data.stripe_status === 'active', hasSubscription: !!data.subscription_active },
-            clinicData: { id: req.clinicId, ...safeClinic },
-            equipo,
-            pacientes: pacientesSnap.docs.map(d => ({id: d.id, ...d.data()})),
-            agenda: agendaRaw,
-            bonos: bonosSnap.docs.map(d => ({id: d.id, ...d.data()})),
-            balance: { real, potencial, roi, tendenciaMensual: 12 },
-            referrals: { code: referralCode, count: referredCount },
-            currentUser
-          } 
-        });
-    } catch (e) { next(e); }
+    res.json({
+      success: true,
+      data: {
+        configStatus: { hasLogo: !!data.logo_url, hasStripe: data.stripe_status === 'active', hasSubscription: !!data.subscription_active },
+        clinicData: { id: req.clinicId, ...safeClinic },
+        equipo,
+        pacientes: pacientesSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+        agenda: agendaRaw,
+        bonos: bonosSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+        balance: { real, potencial, roi, tendenciaMensual: 12 },
+        referrals: { code: referralCode, count: referredCount },
+        currentUser
+      }
+    });
+  } catch (e) { next(e); }
 };
 
 // Referidos: endpoint dedicado (para el tab Referidos)
@@ -497,7 +497,7 @@ const getLegalStatus = async (req, res, next) => {
     try {
       const contratosSnap = await db.collection('contratos').where('clinicId', '==', req.clinicId).limit(50).get();
       contratosCount = contratosSnap.size || 0;
-    } catch (_) {}
+    } catch (_) { }
 
     const legal = c.legal || {};
     const status = {
@@ -646,7 +646,7 @@ const saveSpecialist = async (req, res, next) => {
         const current = (currentDoc.data() || {});
         const previousEmail = String(current.login_email || '').trim().toLowerCase() || null;
         if (previousEmail && previousEmail !== (loginEmail || '')) {
-          try { await db.collection('staff_logins').doc(previousEmail).delete(); } catch (_) {}
+          try { await db.collection('staff_logins').doc(previousEmail).delete(); } catch (_) { }
         }
         if (loginEmail) {
           await db.collection('staff_logins').doc(loginEmail).set({
@@ -656,7 +656,7 @@ const saveSpecialist = async (req, res, next) => {
           }, { merge: true });
           if (previousEmail !== loginEmail) sendPasswordSetupEmail = true;
         } else if (previousEmail) {
-          try { await db.collection('staff_logins').doc(previousEmail).delete(); } catch (_) {}
+          try { await db.collection('staff_logins').doc(previousEmail).delete(); } catch (_) { }
         }
       }
       await col.doc(id).set(payload, { merge: true });
@@ -703,11 +703,11 @@ const importPatients = async (req, res, next) => {
         const ref = db.collection('pacientes').doc();
         batch.set(ref, {
           clinic_id: req.clinicId,
-          nombre: String(p.nombre || '').trim() || 'Paciente',
-          telefono: String(p.telefono || '').trim() || '',
-          email: String(p.email || '').trim() || '',
-          dolencia: String(p.dolencia || '').trim() || 'Consulta inicial',
-          status: String(p.status || 'ACTIVO'),
+          nombre: String(p.nombre || p.name || p.contacto || 'Paciente').trim(),
+          telefono: String(p.telefono || p.phone || p.movil || '').trim(),
+          email: String(p.email || p.mail || '').trim().toLowerCase(),
+          dolencia: String(p.dolencia || p.observaciones || p.notas || 'Consulta inicial').trim(),
+          status: String(p.status || 'ACTIVO').toUpperCase(),
           created_at: Timestamp.now(),
           updated_at: Timestamp.now()
         });
@@ -880,7 +880,7 @@ const createUpgradeSession = async (req, res, next) => {
       const totalClinics = (typeof countSnap.data === 'function' ? countSnap.data() : {})?.count ?? 0;
       const trialCap = (await initEnv()).FREE_TRIAL_CAP ?? 50;
       allowTrial = totalClinics <= trialCap;
-    } catch (_) {}
+    } catch (_) { }
     const { url } = await paymentService.createSubscriptionSession(req.clinicId, clinic.email, plan, req, { allowTrial });
     await createAuditLog(req.clinicId, req.userId || req.clinicId, 'STRIPE_UPGRADE_SESSION', plan);
     return res.json({ success: true, url });
@@ -1081,7 +1081,7 @@ const handleStripeConnectWebhook = async (req, res, next) => {
     const { initEnv } = require('../config/env');
     const env = await initEnv();
     const webhookSecret = String(env.STRIPE_WEBHOOK_SECRET || '').trim();
-    
+
     if (!webhookSecret) {
       console.error('🔥 [WEBHOOK] STRIPE_WEBHOOK_SECRET no configurado');
       return res.status(500).json({ error: 'Webhook secret no configurado' });
@@ -1094,10 +1094,10 @@ const handleStripeConnectWebhook = async (req, res, next) => {
     if (event.type === 'account.updated') {
       const account = event.data.object;
       console.log(`🏦 [WEBHOOK] Cuenta actualizada: ${account.id}, status: ${account.charges_enabled ? 'enabled' : 'disabled'}`);
-      
+
       // Actualizar el estado en Firestore
       if (account.metadata?.fisio_interno_id) {
-        await db.collection('clinics').doc(account.metadata.fisio_interno_id).update({
+        await db.collection('clinicas').doc(account.metadata.fisio_interno_id).update({
           stripe_status: account.charges_enabled ? 'active' : 'pending',
           stripe_charges_enabled: account.charges_enabled,
           stripe_payouts_enabled: account.payouts_enabled,
@@ -1127,12 +1127,12 @@ const handleStripeConnectWebhook = async (req, res, next) => {
 const vincularBancoProfesional = async (req, res, next) => {
   try {
     const { emailPro, fisioIdEnTuApp } = req.body;
-    
+
     // Validaciones básicas
     if (!emailPro || !fisioIdEnTuApp) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Faltan datos: emailPro y fisioIdEnTuApp son requeridos' 
+      return res.status(400).json({
+        success: false,
+        error: 'Faltan datos: emailPro y fisioIdEnTuApp son requeridos'
       });
     }
 
@@ -1141,7 +1141,7 @@ const vincularBancoProfesional = async (req, res, next) => {
     const sk = String(env.STRIPE_SK || '').trim();
     if (!sk) return res.status(503).json({ success: false, error: 'Stripe no configurado' });
     if (!sk.startsWith('sk_')) return res.status(503).json({ success: false, error: 'Stripe mal configurado' });
-    
+
     const stripe = Stripe(sk);
     const frontendUrl = String(env.FRONTEND_URL || env.FRONTEND_BASE || 'https://fisiotool.com').trim();
 
@@ -1158,17 +1158,17 @@ const vincularBancoProfesional = async (req, res, next) => {
 
     // *** FORZAR PAÍS ESPAÑA PARA USUARIOS ESPAÑOLES ***
     // Detectar usuarios españoles por múltiples criterios
-    const isSpanishUser = emailPro.includes('.es') || 
-                         emailPro.includes('spain') || 
-                         emailPro.includes('espana') || 
-                         emailPro.includes('outlook.com') ||
-                         emailPro.includes('gmail.com') && emailPro.includes('clinica') ||
-                         fisioIdEnTuApp.includes('TEST') || 
-                         fisioIdEnTuApp.includes('CLINICA') ||
-                         emailPro.includes('barcelona') ||
-                         emailPro.includes('madrid') ||
-                         emailPro.includes('valencia');
-    
+    const isSpanishUser = emailPro.includes('.es') ||
+      emailPro.includes('spain') ||
+      emailPro.includes('espana') ||
+      emailPro.includes('outlook.com') ||
+      emailPro.includes('gmail.com') && emailPro.includes('clinica') ||
+      fisioIdEnTuApp.includes('TEST') ||
+      fisioIdEnTuApp.includes('CLINICA') ||
+      emailPro.includes('barcelona') ||
+      emailPro.includes('madrid') ||
+      emailPro.includes('valencia');
+
     if (isSpanishUser) {
       accountData.country = 'ES';  // Forzar España
       accountData.default_currency = 'eur';  // Forzar EUR
@@ -1181,9 +1181,9 @@ const vincularBancoProfesional = async (req, res, next) => {
 
     // 2. Determinar el país para el formulario
     let targetCountry = 'US'; // Default
-    if (emailPro.includes('test') || emailPro.includes('prueba') || emailPro.includes('clinica') || 
-        emailPro.includes('.es') || emailPro.includes('spain') || emailPro.includes('espana') || 
-        emailPro.includes('outlook.com') || fisioIdEnTuApp.includes('TEST') || fisioIdEnTuApp.includes('CLINICA')) {
+    if (emailPro.includes('test') || emailPro.includes('prueba') || emailPro.includes('clinica') ||
+      emailPro.includes('.es') || emailPro.includes('spain') || emailPro.includes('espana') ||
+      emailPro.includes('outlook.com') || fisioIdEnTuApp.includes('TEST') || fisioIdEnTuApp.includes('CLINICA')) {
       targetCountry = 'ES';  // Forzar España para pruebas
       console.log(`🇪🇸 [STRIPE_CONNECT] Forzando formulario ES para email: ${emailPro}`);
     }
@@ -1216,9 +1216,9 @@ const vincularBancoProfesional = async (req, res, next) => {
     await db.collection('stripe_connect_profesionales').doc(account.id).set(connectData);
 
     // 4. Actualizar/crear el documento del fisioterapeuta con su stripeAccountId
-    const clinicRef = db.collection('clinics').doc(fisioIdEnTuApp);
+    const clinicRef = db.collection('clinicas').doc(fisioIdEnTuApp);
     const clinicDoc = await clinicRef.get();
-    
+
     if (clinicDoc.exists) {
       await clinicRef.update({
         stripe_account_id: account.id,
@@ -1240,17 +1240,17 @@ const vincularBancoProfesional = async (req, res, next) => {
     console.log(`🏦 [STRIPE_CONNECT] Cuenta ${account.id} guardada para fisio: ${fisioIdEnTuApp}`);
 
     // 5. Devolvemos la URL y el ID de la cuenta
-    return res.json({ 
+    return res.json({
       success: true,
-      url: accountLink.url, 
-      stripeAccountId: account.id 
+      url: accountLink.url,
+      stripeAccountId: account.id
     });
 
   } catch (error) {
     console.error('🔥 [STRIPE_CONNECT] Error en vincularBancoProfesional:', error);
-    return res.status(500).json({ 
-      success: false, 
-      error: error.message || 'Error al generar enlace de Stripe Connect' 
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Error al generar enlace de Stripe Connect'
     });
   }
 };
@@ -1261,10 +1261,10 @@ const processPaymentReminders = async (req, res) => {
     console.log('🚀 DEBUG: Request received for clinic:', req.body.clinicId, 'API_KEY_PRESENT:', !!process.env.ANTHROPIC_API_KEY);
     console.log('🚀 DEBUG: Message:', req.body.message);
     console.log('🚀 DEBUG: Headers:', JSON.stringify(req.headers, null, 2));
-    
+
     const { processPaymentReminders } = require('../services/paymentReminderService');
     const result = await processPaymentReminders();
-    
+
     res.json({ success: true, ...result });
   } catch (e) {
     console.error('🔥 Error processing payment reminders:', e);
@@ -1277,7 +1277,7 @@ const processAppointmentReminders = async (req, res) => {
   try {
     const { processPendingReminders } = require('../services/appointmentReminderService');
     const result = await processPendingReminders();
-    
+
     res.json({ success: true, ...result });
   } catch (e) {
     console.error('🔥 Error processing appointment reminders:', e);
@@ -1285,8 +1285,24 @@ const processAppointmentReminders = async (req, res) => {
   }
 };
 
+const updateAnaConfig = async (req, res, next) => {
+  try {
+    const { name, color, welcome, photo, useClinicLogo } = req.body;
+    await db.collection('clinicas').doc(req.clinicId).update({
+      ana_name: String(name || 'Ana').trim(),
+      ana_color: String(color || '#075E54').trim(),
+      ana_welcome: String(welcome || '').trim(),
+      ana_photo: photo || null,
+      ana_use_clinic_logo: !!useClinicLogo,
+      updated_at: Timestamp.now()
+    });
+    await createAuditLog(req.clinicId, req.userId || req.clinicId, 'UPDATE_ANA_CONFIG', req.clinicId);
+    res.json({ success: true });
+  } catch (e) { next(e); }
+};
+
 // 🚨 EXPORTACIÓN DE FUNCIONES CONSOLIDADAS
-module.exports = { 
+module.exports = {
   register,
   login,
   forgotPassword,
@@ -1315,9 +1331,9 @@ module.exports = {
   createCitaBonoCheckout,
   verifyPayment,
   handleStripeWebhook,
-  uploadLogo,
   vincularBancoProfesional,
   handleStripeConnectWebhook,
   processPaymentReminders,
-  processAppointmentReminders
+  processAppointmentReminders,
+  updateAnaConfig
 };

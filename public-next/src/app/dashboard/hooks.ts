@@ -6,13 +6,13 @@ import Papa from 'papaparse';
 export const useDashboardState = () => {
   // 1. ESTADOS DE DATOS
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
-  const [agenda, setAgenda] = useState<any[]>([]); 
+  const [agenda, setAgenda] = useState<any[]>([]);
   const [bonos, setBonos] = useState<any[]>([]); // 🚨 RESTAURADO: Cajón para los bonos
   const [balance, setBalance] = useState<BalanceFinanciero>({ real: 0, potencial: 0, roi: 0, tendenciaMensual: 0 });
   const [clinicData, setClinicData] = useState<any>({ nombre: '', is_blind: false });
   const [configStatus, setConfigStatus] = useState({ hasLogo: false, hasSubscription: false, hasStripe: false });
   const [equipo, setEquipo] = useState<Especialista[]>([]);
-  const [currentUser, setCurrentUser] = useState<{ specialistId: string | null; isOwner: boolean }>({ specialistId: null, isOwner: true });
+  const [currentUser, setCurrentUser] = useState<{ specialistId: string | null; isOwner: boolean; email?: string }>({ specialistId: null, isOwner: true, email: '' });
 
   // 2. CONTROL DE UI
   const [isLoading, setIsLoading] = useState(true);
@@ -21,7 +21,7 @@ export const useDashboardState = () => {
   const [clinicId, setClinicId] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
-  
+
   // 3. ESTADOS DE INTERACCIÓN
   const [noteContent, setNoteContent] = useState("");
   const [selectedPatientId, setSelectedPatientId] = useState("");
@@ -57,10 +57,10 @@ export const useDashboardState = () => {
           }
         }
       }
-    } catch (err) { 
-      console.error("❌ Fallo en sincronización:", err); 
-    } finally { 
-      setIsLoading(false); 
+    } catch (err) {
+      console.error("❌ Fallo en sincronización:", err);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -86,20 +86,26 @@ export const useDashboardState = () => {
       complete: async (results) => {
         try {
           const rawData = results.data as any[];
-          const mapped = rawData.map(row => ({
-            nombre: row.nombre || row.Name || row.Paciente || '',
-            telefono: row.telefono || row.Phone || '',
-            email: row.email || row.Mail || '',
-            dolencia: row.dolencia || row.patologia || 'Consulta inicial'
-          }));
+          const mapped = rawData.map(row => {
+            const findKey = (variations: string[]) => {
+              const k = Object.keys(row).find(key => variations.includes(key.toLowerCase().trim()));
+              return k ? row[k] : '';
+            };
+            return {
+              nombre: findKey(['nombre', 'name', 'contacto', 'paciente', 'full name']),
+              telefono: findKey(['telefono', 'phone', 'movil', 'móvil', 'whatsapp', 'tel']),
+              email: findKey(['email', 'mail', 'correo', 'correo electrónico']),
+              dolencia: findKey(['dolencia', 'patologia', 'notas', 'observaciones', 'motivo', 'síntomas']) || 'Consulta inicial'
+            };
+          });
           const count = await dashboardAPI.importPatients(mapped);
           alert(`✅ Éxito: ${count} pacientes integrados.`);
           setModalType(null);
           refreshData();
-        } catch (e) { 
-          alert("Error en procesado masivo."); 
-        } finally { 
-          setImporting(false); 
+        } catch (e) {
+          alert("Error en procesado masivo.");
+        } finally {
+          setImporting(false);
         }
       }
     });
@@ -115,7 +121,7 @@ export const useDashboardState = () => {
   // 6. RETORNO DE CONTRATO (Íntegro y sin omisiones)
   return {
     pacientes, agenda, bonos, balance, clinicData, configStatus, equipo, currentUser,
-    isLoading, activeTab, setActiveTab, modalType, setModalType, 
+    isLoading, activeTab, setActiveTab, modalType, setModalType,
     clinicId, setClinicId, loading, setLoading, voiceEnabled, setVoiceEnabled,
     noteContent, setNoteContent, selectedPatientId, setSelectedPatientId,
     selectedEvent, setSelectedEvent, memberToEdit, setMemberToEdit, importing,
@@ -134,9 +140,9 @@ export const useVoiceAssistant = (enabled: boolean) => {
       setIsRecording(true);
       const rec = new Speech();
       rec.lang = 'es-ES';
-      rec.onresult = (e: any) => { 
-        setTranscript(e.results[0][0].transcript); 
-        setIsRecording(false); 
+      rec.onresult = (e: any) => {
+        setTranscript(e.results[0][0].transcript);
+        setIsRecording(false);
       };
       rec.onerror = () => setIsRecording(false);
       rec.start();

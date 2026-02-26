@@ -86,6 +86,7 @@ router.post('/dashboard/save-note', ensureHandler(clinicController.savePatientNo
 router.post('/dashboard/save-suggestion', ensureHandler(adminController.saveSuggestion, 'saveSuggestion'));
 router.post('/dashboard/create-ticket', ensureHandler(adminController.createTicket, 'createTicket'));
 router.post('/dashboard/update-settings', ensureHandler(adminController.updateSettings, 'updateSettings'));
+router.post('/dashboard/update-ana-config', ensureHandler(clinicController.updateAnaConfig, 'updateAnaConfig'));
 router.post('/dashboard/add-sede', ensureHandler(clinicController.addSede, 'addSede'));
 router.post('/dashboard/save-specialist', ensureHandler(clinicController.saveSpecialist, 'saveSpecialist'));
 router.post('/dashboard/import-patients', ensureHandler(clinicController.importPatients, 'importPatients'));

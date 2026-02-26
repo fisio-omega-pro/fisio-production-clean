@@ -20,6 +20,7 @@ import { CobrosView } from './modules/CobrosView';
 import { BonosView } from './modules/BonosView';
 import { ReferidosView } from './modules/ReferidosView';
 import { AjustesView } from './modules/AjustesView';
+import { AnaConfigView } from './modules/AnaConfigView';
 import { SugerenciasView } from './modules/SugerenciasView';
 import { VoiceModal } from './components/modals/VoiceModal';
 import { AppointmentModal } from './components/modals/AppointmentModal';
@@ -43,14 +44,14 @@ export default function DashboardOmega() {
   const { isRecording, transcript, toggleRecording, setTranscript } = useVoiceAssistant(state.voiceEnabled);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const lastSpokenTab = useRef<string>('');
-  
+
   // DATOS DE FORMULARIOS
   const [apptData, setApptData] = useState({ nombre: '', telefono: '', email: '', fecha: '', hora: '', docId: '' });
   const [blockData, setBlockData] = useState({ date: '', startTime: '09:00', endTime: '20:00', reason: '', allDay: false });
   const [sedeData, setSedeData] = useState({ nombre: '', calle: '', numero: '', cp: '', ciudad: '', provincia: '' });
   const [bonoData, setBonoData] = useState({ paciente_nombre: '', sesiones_totales: 10, fecha_vencimiento: '' });
   const [upgradePlan, setUpgradePlan] = useState<'team' | 'corporate'>('team');
-  
+
   // Refs para modales
   const logoInputRef = useRef<HTMLInputElement>(null);
   const stripeInputRef = useRef<HTMLInputElement>(null);
@@ -58,14 +59,14 @@ export default function DashboardOmega() {
   const [isUploadingStripe, setIsUploadingStripe] = useState(false);
 
   useEffect(() => { if (transcript) state.setNoteContent(transcript); }, [transcript]);
-  
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('id')) state.setClinicId(params.get('id')!);
     // Stripe: si volvemos de checkout con session_id, sincronizar (best-effort) y limpiar la URL
     const sid = params.get('session_id');
     if (sid) {
-      dashboardAPI.verifySubscription(String(sid)).then(() => state.refreshData()).catch(() => {});
+      dashboardAPI.verifySubscription(String(sid)).then(() => state.refreshData()).catch(() => { });
       try {
         params.delete('session_id');
         const qs = params.toString();
@@ -105,24 +106,24 @@ export default function DashboardOmega() {
       state.refreshData();
     } catch (e) { alert("Error al guardar cita."); }
   };
-  
+
   const handleAddSede = async () => {
     state.setLoading(true);
-    try { 
-      await dashboardAPI.addSede(sedeData); 
-      alert("✅ Infraestructura actualizada."); 
-      state.setModalType(null); 
-      state.refreshData(); 
-    } catch (e) { alert("Error al guardar sede."); } 
+    try {
+      await dashboardAPI.addSede(sedeData);
+      alert("✅ Infraestructura actualizada.");
+      state.setModalType(null);
+      state.refreshData();
+    } catch (e) { alert("Error al guardar sede."); }
     finally { state.setLoading(false); }
   };
 
   const handleCreateBono = async () => {
-    try { 
-      await dashboardAPI.createBono(bonoData); 
-      alert("✅ Bono emitido correctamente."); 
-      state.setModalType(null); 
-      state.refreshData(); 
+    try {
+      await dashboardAPI.createBono(bonoData);
+      alert("✅ Bono emitido correctamente.");
+      state.setModalType(null);
+      state.refreshData();
     } catch (e) { alert("Error al emitir bono."); }
   };
 
@@ -149,14 +150,14 @@ export default function DashboardOmega() {
 
   const renderContent = () => {
     if (state.isLoading) return <div className="p-20 text-center text-blue-500 animate-pulse font-black text-xs uppercase tracking-widest">Sincronizando...</div>;
-    
+
     switch (state.activeTab) {
       case 'home': return <HomeView clinicId={state.clinicId} configStatus={state.configStatus} clinicData={state.clinicData} onRefresh={state.refreshData} onGoToAsistente={() => state.setActiveTab('asistente')} />;
-      case 'agenda': return <AgendaView currentUser={state.currentUser} equipo={state.equipo} agenda={state.agenda} horario={state.clinicData.horario || {apertura:'09:00', cierre:'20:00'}} onBlockSchedule={() => state.setModalType('bloqueo')} onNewAppointment={(d:any)=> { setApptData({...apptData, fecha: d.date, hora: d.time}); state.setModalType('cita'); }} onEventClick={state.setSelectedEvent} />;
+      case 'agenda': return <AgendaView currentUser={state.currentUser} equipo={state.equipo} agenda={state.agenda} horario={state.clinicData.horario || { apertura: '09:00', cierre: '20:00' }} onBlockSchedule={() => state.setModalType('bloqueo')} onNewAppointment={(d: any) => { setApptData({ ...apptData, fecha: d.date, hora: d.time, docId: d.specialistId || '' }); state.setModalType('cita'); }} onEventClick={state.setSelectedEvent} />;
       case 'pacientes': return <PacientesView pacientes={state.pacientes} onDictate={() => state.setModalType('voz')} onImport={() => state.setModalType('importar')} />;
-      case 'finanzas': return <FinanzasView balance={state.balance} pacientes={state.pacientes} onActivateCampaign={async()=>{ await dashboardAPI.launchCampaign(); state.refreshData(); }} clinicData={state.clinicData} onGoToImport={() => { state.setActiveTab('pacientes'); state.setModalType('importar'); }} />;
+      case 'finanzas': return <FinanzasView balance={state.balance} pacientes={state.pacientes} onActivateCampaign={async () => { await dashboardAPI.launchCampaign(); state.refreshData(); }} clinicData={state.clinicData} onGoToImport={() => { state.setActiveTab('pacientes'); state.setModalType('importar'); }} />;
       case 'bonos': return <BonosView clinicData={state.clinicData} bonos={state.bonos} onActivate={async () => { await dashboardAPI.activateBonos(); state.refreshData(); }} onDeactivate={async () => { await dashboardAPI.deactivateBonos(); state.refreshData(); }} onNewBono={() => state.setModalType('nuevo_bono')} />;
-      case 'equipo': return <EquipoView currentUser={state.currentUser} equipo={state.equipo} onAddMember={() => state.setModalType('editar_perfil')} currentPlan={state.clinicData.plan} onViewCalendar={()=>state.setActiveTab('agenda')} onEditMember={(m)=> { state.setMemberToEdit(m); state.setModalType('editar_perfil'); }} />;
+      case 'equipo': return <EquipoView currentUser={state.currentUser} equipo={state.equipo} onAddMember={() => state.setModalType('editar_perfil')} currentPlan={state.clinicData.plan} onViewCalendar={() => state.setActiveTab('agenda')} onEditMember={(m) => { state.setMemberToEdit(m); state.setModalType('editar_perfil'); }} onUpgrade={async () => { const url = await dashboardAPI.upgradePlan('team'); if (url) window.location.href = url; }} />;
       case 'sedes':
         if (!hasMultiClinicPlan) {
           return (
@@ -173,6 +174,7 @@ export default function DashboardOmega() {
         return <SedesView clinicData={state.clinicData} onAddSede={() => state.setModalType('sede')} />;
       case 'cobros': return <CobrosView hasStripe={state.configStatus.hasStripe} clinicData={state.clinicData} />;
       case 'asistente': return <AsistenteView />;
+      case 'config_ana': return <AnaConfigView clinicData={state.clinicData} onUpdated={state.refreshData} />;
       case 'referidos': return <ReferidosView />;
       case 'ajustes': return <AjustesView clinicData={state.clinicData} onUpdated={state.refreshData} />;
       case 'sugerencias': return <SugerenciasView />;
@@ -184,14 +186,16 @@ export default function DashboardOmega() {
     <DashboardLayout activeTab={state.activeTab} onTabChange={state.setActiveTab} navItems={navItemsFiltered}>
       {/* BLOQUEO COMPLETO DEL DASHBOARD - PASOS OBLIGATORIOS */}
       {isBlocked ? (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-6" role="dialog" aria-modal="true" aria-labelledby="setup-title">
           <div className="bg-gradient-to-br from-[#0a0b10] to-black rounded-3xl border border-red-500/30 p-8 max-w-2xl w-full">
             <div className="text-center mb-8">
-              <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Crown size={40} className="text-red-400" />
-              </div>
-              <h1 className="text-2xl font-bold text-white mb-2">Configuración Obligatoria</h1>
+              <h1 id="setup-title" className="text-3xl font-black text-white mb-2">CONFIGURACIÓN OBLIGATORIA</h1>
               <p className="text-gray-400">Completa estos pasos IMPRESCINDIBLES para operar</p>
+              {state.clinicData?.is_blind && (
+                <p className="text-blue-400 text-sm mt-2">
+                  Usa Tab para navegar entre pasos y Enter para activar cada acción.
+                </p>
+              )}
             </div>
 
             {/* PASO 1: LOGO - IMPRESCINDIBLE */}
@@ -210,11 +214,13 @@ export default function DashboardOmega() {
                   <button
                     onClick={() => state.setModalType('logo_upload')}
                     className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-black hover:bg-red-600 transition"
+                    aria-label="Subir logo de la clínica - Paso 1 obligatorio"
+                    title="Subir logo de la clínica"
                   >
                     Subir Logo
                   </button>
                 ) : (
-                  <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                  <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center" aria-label="Logo completado">
                     <span className="text-white">✓</span>
                   </div>
                 )}
@@ -235,16 +241,15 @@ export default function DashboardOmega() {
                 </div>
                 {needsPatients ? (
                   <button
-                    onClick={() => {
-                      state.setActiveTab('pacientes');
-                      setTimeout(() => state.setModalType('importar'), 100);
-                    }}
+                    onClick={() => state.setModalType('importar')}
                     className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-black hover:bg-red-600 transition"
+                    aria-label="Importar pacientes - Paso 2 obligatorio para activar el dashboard"
+                    title="Importar pacientes desde archivo CSV"
                   >
                     Importar Pacientes
                   </button>
                 ) : (
-                  <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                  <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center" aria-label="Pacientes importados correctamente">
                     <span className="text-white">✓</span>
                   </div>
                 )}
@@ -254,8 +259,8 @@ export default function DashboardOmega() {
             <div className="mt-8 text-center">
               <p className="text-red-400 text-sm font-semibold mb-2">
                 {needsLogo && needsPatients ? "⚠️ Debes completar los pasos 1 y 2 para continuar" :
-                 needsLogo ? "⚠️ Debes subir tu logo para continuar" :
-                 "⚠️ Debes importar pacientes para continuar"}
+                  needsLogo ? "⚠️ Debes subir tu logo para continuar" :
+                    "⚠️ Debes importar pacientes para continuar"}
               </p>
               <p className="text-gray-500 text-xs">
                 Estos pasos son obligatorios para garantizar el funcionamiento correcto del dashboard
@@ -286,7 +291,7 @@ export default function DashboardOmega() {
             alert(e?.message || 'Error al guardar el especialista.');
           }
         }}
-        onUpload={async()=>{}}
+        onUpload={async () => { }}
         uploading={state.loading}
       />
       <ImportModal isOpen={state.modalType === 'importar'} onClose={() => state.setModalType(null)} fileInputRef={fileInputRef} onFileSelect={(e) => e.target.files && state.handleImportFile(e.target.files[0])} isImporting={state.importing} />
@@ -300,6 +305,15 @@ export default function DashboardOmega() {
         }}
         isUploading={isUploadingLogo}
       />
+
+      {/* SetupWizard para usuarios invidentes */}
+      {isBlocked && state.clinicData?.is_blind && (
+        <SetupWizard
+          status={state.configStatus}
+          onRefresh={state.refreshData}
+          isBlind={true}
+        />
+      )}
       <StripeModal
         isOpen={state.modalType === 'stripe_connect'}
         onClose={() => state.setModalType(null)}
@@ -329,52 +343,52 @@ export default function DashboardOmega() {
         }}
         loading={state.loading}
       />
-      
+
       <Modal isOpen={state.modalType === 'nuevo_bono'} onClose={() => state.setModalType(null)} title="Emitir Bono de Sesiones">
-         <div className="flex flex-col gap-6 p-2">
-            <InputField label="Nombre del Paciente" value={bonoData.paciente_nombre} onChange={(v)=>setBonoData({...bonoData, paciente_nombre:v})} />
-            <InputField label="Sesiones" type="number" value={bonoData.sesiones_totales.toString()} onChange={(v)=>setBonoData({...bonoData, sesiones_totales:parseInt(v)})} />
-            <InputField label="Vencimiento" type="date" value={bonoData.fecha_vencimiento} onChange={(v)=>setBonoData({...bonoData, fecha_vencimiento:v})} />
-            <ActionButton onClick={handleCreateBono} fullWidth>ACTIVAR MONEDERO ➜</ActionButton>
-         </div>
+        <div className="flex flex-col gap-6 p-2">
+          <InputField label="Nombre del Paciente" value={bonoData.paciente_nombre} onChange={(v) => setBonoData({ ...bonoData, paciente_nombre: v })} />
+          <InputField label="Sesiones" type="number" value={bonoData.sesiones_totales.toString()} onChange={(v) => setBonoData({ ...bonoData, sesiones_totales: parseInt(v) })} />
+          <InputField label="Vencimiento" type="date" value={bonoData.fecha_vencimiento} onChange={(v) => setBonoData({ ...bonoData, fecha_vencimiento: v })} />
+          <ActionButton onClick={handleCreateBono} fullWidth>ACTIVAR MONEDERO ➜</ActionButton>
+        </div>
       </Modal>
 
       <Modal isOpen={state.modalType === 'sede' && hasMultiClinicPlan} onClose={() => state.setModalType(null)} title="Nueva Sede">
-         <div className="flex flex-col gap-6 p-2">
-            <InputField label="Nombre" value={sedeData.nombre} onChange={(v)=>setSedeData({...sedeData, nombre:v})} />
-            <InputField label="Calle" value={sedeData.calle} onChange={(v)=>setSedeData({...sedeData, calle:v})} />
-            <ActionButton onClick={handleAddSede} fullWidth>REGISTRAR INFRAESTRUCTURA ➜</ActionButton>
-         </div>
+        <div className="flex flex-col gap-6 p-2">
+          <InputField label="Nombre" value={sedeData.nombre} onChange={(v) => setSedeData({ ...sedeData, nombre: v })} />
+          <InputField label="Calle" value={sedeData.calle} onChange={(v) => setSedeData({ ...sedeData, calle: v })} />
+          <ActionButton onClick={handleAddSede} fullWidth>REGISTRAR INFRAESTRUCTURA ➜</ActionButton>
+        </div>
       </Modal>
-      
-      <Modal isOpen={state.modalType === 'reactivacion'} onClose={() => state.setModalType(null)} title="Motor ASG"><div className="text-center p-4"><Zap size={48} className="text-yellow-500 mx-auto mb-4" /><ActionButton onClick={() => state.setModalType(null)} fullWidth style={{background:'#facc15', color:'#000'}}>LANZAR CAMPAÑA</ActionButton></div></Modal>
+
+      <Modal isOpen={state.modalType === 'reactivacion'} onClose={() => state.setModalType(null)} title="Motor ASG"><div className="text-center p-4"><Zap size={48} className="text-yellow-500 mx-auto mb-4" /><ActionButton onClick={() => state.setModalType(null)} fullWidth style={{ background: '#facc15', color: '#000' }}>LANZAR CAMPAÑA</ActionButton></div></Modal>
       <Modal isOpen={state.modalType === 'upgrade'} onClose={() => state.setModalType(null)} title="Mejorar Plan">
-         <div className="text-center p-4">
-           <Crown size={48} className="text-yellow-500 mx-auto mb-4" />
-           <div className="mb-4 text-left">
-             <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Selecciona plan</div>
-             <select
-               value={upgradePlan}
-               onChange={(e) => setUpgradePlan(e.target.value as any)}
-               className="w-full bg-[#0a0b10] border border-white/10 rounded-xl text-sm text-white px-4 py-3 appearance-none focus:outline-none focus:ring-1 focus:ring-yellow-500"
-             >
-               <option value="team">Team (multifisio)</option>
-               <option value="corporate">Corporate</option>
-             </select>
-           </div>
-           <ActionButton
-             onClick={async()=>{ const url=await dashboardAPI.upgradePlan(upgradePlan); window.location.href=url; }}
-             fullWidth
-             style={{background:'#fbbf24', color:'#000'}}
-           >
-             IR A PASARELA DE PAGO
-           </ActionButton>
-           {(needsStripe || needsSubscription) && (
-             <div className="text-[11px] text-gray-400 mt-3">
-               Si Stripe está en revisión, la pasarela puede abrirse en modo offline temporalmente.
-             </div>
-           )}
-         </div>
+        <div className="text-center p-4">
+          <Crown size={48} className="text-yellow-500 mx-auto mb-4" />
+          <div className="mb-4 text-left">
+            <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Selecciona plan</div>
+            <select
+              value={upgradePlan}
+              onChange={(e) => setUpgradePlan(e.target.value as any)}
+              className="w-full bg-[#0a0b10] border border-white/10 rounded-xl text-sm text-white px-4 py-3 appearance-none focus:outline-none focus:ring-1 focus:ring-yellow-500"
+            >
+              <option value="team">Team (multifisio)</option>
+              <option value="corporate">Corporate</option>
+            </select>
+          </div>
+          <ActionButton
+            onClick={async () => { const url = await dashboardAPI.upgradePlan(upgradePlan); window.location.href = url; }}
+            fullWidth
+            style={{ background: '#fbbf24', color: '#000' }}
+          >
+            IR A PASARELA DE PAGO
+          </ActionButton>
+          {(needsStripe || needsSubscription) && (
+            <div className="text-[11px] text-gray-400 mt-3">
+              Si Stripe está en revisión, la pasarela puede abrirse en modo offline temporalmente.
+            </div>
+          )}
+        </div>
       </Modal>
 
       {state.selectedEvent && <HistoryModal event={state.selectedEvent} onClose={() => state.setSelectedEvent(null)} />}

@@ -3,6 +3,20 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Volume2, Zap, VolumeX, RotateCcw, ShieldCheck, Scale, Users, Wallet, HelpCircle, Mic, Coffee, HeartPulse } from 'lucide-react';
 
+// Metadatos para lectores de pantalla
+export const metadata = {
+  title: 'FisioTool Pro - Plataforma Accesible para Fisioterapeutas Invidentes',
+  description: 'Software de gestión clínica diseñado específicamente para fisioterapeutas invidentes. Control total por voz, agenda inteligente y blindaje económico. Navegación 100% accesible.',
+  keywords: 'fisioterapia invidentes, software accesible, gestión clínica voz, agenda automática, fisioterapeuta discapacidad visual',
+  robots: 'index, follow',
+  openGraph: {
+    title: 'FisioTool Pro - Independencia Total para Fisioterapeutas Invidentes',
+    description: 'La única plataforma de gestión clínica diseñada desde cero para ser navegada sin vista. Control por voz, agenda inteligente y blindaje económico.',
+    type: 'website',
+    locale: 'es_ES'
+  }
+};
+
 // --- INTEGRIDAD TOTAL DE TEXTOS ---
 const SCRIPTS = {
   hero: {
@@ -57,7 +71,7 @@ export default function LandingProfesional() {
   const synth = useRef<SpeechSynthesis | null>(null);
   const voices = useRef<{ ana: SpeechSynthesisVoice | null, lex: SpeechSynthesisVoice | null }>({ ana: null, lex: null });
 
-  // Carga de voces
+  // Carga de voces y configuración de accesibilidad
   useEffect(() => {
     synth.current = window.speechSynthesis;
     const loadVoices = () => {
@@ -67,7 +81,19 @@ export default function LandingProfesional() {
     };
     loadVoices();
     if (synth.current) synth.current.onvoiceschanged = loadVoices;
-  }, []);
+    
+    // Anunciar arrival para lectores de pantalla
+    const announceArrival = () => {
+      const announcement = "Bienvenido a FisioTool Pro. Plataforma accesible para fisioterapeutas invidentes. Presiona espacio para pausar, R para repetir, o tabula para navegar por secciones.";
+      const utterance = new SpeechSynthesisUtterance(announcement);
+      utterance.voice = voices.current.ana;
+      utterance.rate = 0.9;
+      utterance.volume = 0.8;
+      setTimeout(() => synth.current?.speak(utterance), 1000);
+    };
+    
+    if (hasStarted) announceArrival();
+  }, [hasStarted]);
 
   // MOTOR DE AUDIO ROBUSTO (Segmentación para evitar cortes)
   const speak = useCallback((key: SectionKey) => {
@@ -78,20 +104,35 @@ export default function LandingProfesional() {
     // Dividimos el texto por puntos para que la API no se sature
     const sentences = section.content.match(/[^.!?]+[.!?]+/g) || [section.content];
     
-    sentences.forEach((sentence) => {
+    sentences.forEach((sentence, index) => {
       const utterance = new SpeechSynthesisUtterance(sentence.trim());
       utterance.voice = section.persona === 'Ana' ? voices.current.ana : voices.current.lex;
-      utterance.rate = section.persona === 'Ana' ? 0.95 : 0.88;
+      utterance.rate = section.persona === 'Ana' ? speechRate : speechRate * 0.9; // Lex un poco más lento
       utterance.pitch = section.persona === 'Ana' ? 1.0 : 0.8;
+      utterance.volume = 0.9;
+      
+      // Pequeña pausa entre frases para mejor comprensión
+      if (index > 0) {
+        utterance.pause = 100;
+      }
       
       utterance.onstart = () => {
         setCurrentSection(key);
         setIsPaused(false);
       };
       
+      utterance.onend = () => {
+        // Anunciar final de sección para lectores de pantalla
+        if (index === sentences.length - 1) {
+          setTimeout(() => {
+            announceToScreenReader(`Sección ${section.title} finalizada`);
+          }, 500);
+        }
+      };
+      
       synth.current?.speak(utterance);
     });
-  }, []);
+  }, [speechRate]);
 
   const togglePause = () => {
     if (synth.current?.paused) { synth.current.resume(); setIsPaused(false); }
@@ -100,42 +141,189 @@ export default function LandingProfesional() {
 
   useEffect(() => {
     const handleKeys = (e: KeyboardEvent) => {
-      if (e.code === 'Space') { e.preventDefault(); togglePause(); }
-      if (e.key.toLowerCase() === 'r') speak(currentSection);
-      if (e.key === 'Enter' && currentSection === 'cta') window.location.href = '/setup?plan=solo&is_blind=1';
+      // Evitar interferencia con lectores de pantalla
+      if (e.ctrlKey || e.altKey) return;
+      
+      switch (e.key.toLowerCase()) {
+        case ' ':
+          e.preventDefault();
+          togglePause();
+          announceToScreenReader("Audio pausado o reanudado");
+          break;
+        case 'r':
+          e.preventDefault();
+          speak(currentSection);
+          announceToScreenReader(`Reproduciendo sección: ${SCRIPTS[currentSection].title}`);
+          break;
+        case 'enter':
+          if (currentSection === 'cta') {
+            window.location.href = '/setup?plan=solo&is_blind=1';
+          }
+          break;
+        case 'h':
+          e.preventDefault();
+          setCurrentSection('hero');
+          speak('hero');
+          break;
+        case 'f':
+          e.preventDefault();
+          setCurrentSection('features');
+          speak('features');
+          break;
+        case 'p':
+          e.preventDefault();
+          setCurrentSection('pricing');
+          speak('pricing');
+          break;
+        case 'l':
+          e.preventDefault();
+          setCurrentSection('legal');
+          speak('legal');
+          break;
+        case 'q':
+          e.preventDefault();
+          setCurrentSection('faq');
+          speak('faq');
+          break;
+        case 'c':
+          e.preventDefault();
+          setCurrentSection('cta');
+          speak('cta');
+          break;
+        case 'escape':
+          e.preventDefault();
+          if (synth.current) {
+            synth.current.cancel();
+            announceToScreenReader("Audio detenido");
+          }
+          break;
+        case '?':
+          e.preventDefault();
+          announceHelp();
+          break;
+        case '+':
+        case '=':
+          e.preventDefault();
+          adjustSpeechRate(0.1);
+          break;
+        case '-':
+        case '_':
+          e.preventDefault();
+          adjustSpeechRate(-0.1);
+          break;
+        case 't':
+          e.preventDefault();
+          setHighContrast(!highContrast);
+          announceToScreenReader(highContrast ? "Modificado a contraste normal" : "Modificado a alto contraste");
+          break;
+      }
     };
+    
     window.addEventListener('keydown', handleKeys);
     return () => window.removeEventListener('keydown', handleKeys);
   }, [currentSection, speak]);
 
+  const announceToScreenReader = (message: string) => {
+    const utterance = new SpeechSynthesisUtterance(message);
+    utterance.voice = voices.current.ana;
+    utterance.rate = 0.9;
+    utterance.volume = 0.6;
+    synth.current?.speak(utterance);
+  };
+
+  const announceHelp = () => {
+    const helpText = `Atajos de teclado: H para inicio, F para características, P para precios, L para legal, Q para preguntas frecuentes, C para llamada a la acción. Controles de audio: Espacio para pausar, R para repetir, Escape para detener audio. Personalización: Más y Menos para ajustar velocidad de voz actual ${Math.round(speechRate * 100)}%, T para alternar alto contraste. Navegación: Tab para moverse entre secciones, flechas para explorar contenido, Interrogación para repetir esta ayuda.`;
+    announceToScreenReader(helpText);
+  };
+
+  // Control de velocidad de voz
+  const [speechRate, setSpeechRate] = useState(0.95);
+  
+  const adjustSpeechRate = (delta: number) => {
+    const newRate = Math.max(0.5, Math.min(1.5, speechRate + delta));
+    setSpeechRate(newRate);
+    announceToScreenReader(`Velocidad de voz ajustada a ${Math.round(newRate * 100)} por ciento`);
+  };
+
+  // Estado para modo alto contraste
+  const [highContrast, setHighContrast] = useState(false);
+
   if (!hasStarted) {
     return (
-      <div onClick={() => { setHasStarted(true); speak('hero'); }} style={styles.curtain}>
-        <div style={styles.pulseContainer}><Zap size={60} color="#fff" /></div>
+      <div 
+        onClick={() => { setHasStarted(true); speak('hero'); }} 
+        style={{
+          ...styles.curtain,
+          background: highContrast ? '#000' : styles.curtain.background,
+          color: highContrast ? '#fff' : styles.curtain.color
+        }}
+        role="button"
+        tabIndex={0}
+        aria-label="Iniciar experiencia accesible de FisioTool Pro"
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setHasStarted(true);
+            speak('hero');
+          }
+        }}
+      >
+        <div style={styles.pulseContainer}>
+          <Zap size={60} color="#fff" aria-hidden="true" />
+        </div>
         <h1 style={styles.title}>FISIOTOOL PRO</h1>
-        <p style={styles.subtitle}>Toca la pantalla para iniciar la experiencia completa narrada por Ana y Lex.</p>
-        <div style={styles.startBtn}>ACTIVAR AUDIOGUÍA PROFESIONAL</div>
+        <p style={styles.subtitle}>
+          Toca la pantalla o presiona Enter para iniciar la experiencia completa narrada por Ana y Lex.
+        </p>
+        <div style={styles.startBtn}>
+          ACTIVAR AUDIOGUÍA PROFESIONAL
+        </div>
+        <div style={{marginTop: '3rem', fontSize: '1rem', opacity: 0.6}}>
+          <button 
+            onClick={(e) => { e.stopPropagation(); setHighContrast(!highContrast); }}
+            style={{background: 'none', border: '1px solid #666', color: '#fff', padding: '10px 20px', borderRadius: '5px', cursor: 'pointer'}}
+            aria-label={highContrast ? "Desactivar modo alto contraste" : "Activar modo alto contraste"}
+          >
+            {highContrast ? 'CONTRASTE NORMAL' : 'ALTO CONTRASTE'}
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div style={styles.page}>
-      <nav style={styles.voiceBar} aria-live="assertive">
-        <Volume2 size={24} />
-        <span style={{flex: 1}}>HABLANDO: {SCRIPTS[currentSection].persona.toUpperCase()} - {SCRIPTS[currentSection].title}</span>
-        {isPaused && <span style={styles.pauseBadge}>PAUSA</span>}
-        <div style={styles.controlsHint}>[Espacio] Pausar | [R] Repetir</div>
-      </nav>
+    <div style={styles.page} role="application" aria-label="FisioTool Pro - Plataforma accesible para fisioterapeutas invidentes">
+      {/* Barra de estado de voz */}
+      <header style={styles.voiceBar} role="status" aria-live="polite" aria-atomic="true">
+        <Volume2 size={24} aria-hidden="true" />
+        <span style={{flex: 1}} aria-label="Estado actual del audio">
+          HABLANDO: {SCRIPTS[currentSection].persona.toUpperCase()} - {SCRIPTS[currentSection].title}
+        </span>
+        {isPaused && <span style={styles.pauseBadge} aria-label="Audio en pausa">PAUSA</span>}
+        <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
+          <span style={{fontSize: '12px', opacity: 0.8}} aria-label={`Velocidad de voz actual ${Math.round(speechRate * 100)}%`}>
+            Velocidad: {Math.round(speechRate * 100)}%
+          </span>
+          {highContrast && <span style={{background: '#fff', color: '#000', padding: '2px 8px', borderRadius: '3px', fontSize: '11px'}} aria-label="Modo alto contraste activado">ALTO CONTRASTE</span>}
+        </div>
+        <div style={styles.controlsHint} aria-label="Controles de teclado">
+          [Espacio] Pausar | [R] Repetir | [+/-] Velocidad | [T] Contraste | [?] Ayuda
+        </div>
+      </header>
 
-      <main>
-        {(Object.keys(SCRIPTS) as SectionKey[]).map((key) => {
+      <main role="main" aria-label="Contenido principal de FisioTool Pro">
+        {(Object.keys(SCRIPTS) as SectionKey[]).map((key, index) => {
           const s = SCRIPTS[key];
+          const sectionTitle = `Sección ${index + 1}: ${s.title} - Voz de ${s.persona}`;
+          
           return (
             <section 
               key={key} 
               id={key}
               tabIndex={0} 
+              role="region"
+              aria-labelledby={`${key}-title`}
+              aria-describedby={`${key}-content`}
               onFocus={() => speak(key)}
               style={{
                 ...styles.section, 
@@ -143,35 +331,80 @@ export default function LandingProfesional() {
               }}
             >
               <div style={styles.container}>
-                <div style={styles.personaBadge}>
-                  {s.persona === 'Ana' ? <HeartPulse size={18}/> : <ShieldCheck size={18}/>}
-                  VOZ: {s.persona.toUpperCase()}
+                <header style={styles.personaBadge}>
+                  {s.persona === 'Ana' ? 
+                    <HeartPulse size={18} aria-hidden="true"/> : 
+                    <ShieldCheck size={18} aria-hidden="true"/>
+                  }
+                  <span aria-label={`Voz actual: ${s.persona}`}>VOZ: {s.persona.toUpperCase()}</span>
+                </header>
+                
+                <h2 id={`${key}-title`} style={styles.h2} aria-label={s.title}>
+                  {s.title}
+                </h2>
+                
+                <div style={styles.contentBox} role="document">
+                  <p id={`${key}-content`} style={styles.p} aria-label={`Contenido narrado por ${s.persona}`}>
+                    {s.content}
+                  </p>
                 </div>
-                <h2 style={styles.h2}>{s.title}</h2>
-                <div style={styles.contentBox}>
-                  <p style={styles.p}>{s.content}</p>
-                </div>
-                <button onClick={() => speak(key)} style={styles.replayBtn} aria-label="Repetir este bloque">
-                  <RotateCcw size={18} /> Volver a escuchar sección
-                </button>
+                
+                <footer>
+                  <button 
+                    onClick={() => speak(key)} 
+                    style={styles.replayBtn} 
+                    aria-label={`Repetir sección ${s.title} narrada por ${s.persona}`}
+                    title={`Repetir sección ${s.title}`}
+                  >
+                    <RotateCcw size={18} aria-hidden="true" /> 
+                    Volver a escuchar sección
+                  </button>
+                </footer>
               </div>
             </section>
           );
         })}
 
-        <section style={styles.ctaSection}>
+        {/* Sección de llamada a la acción */}
+        <section 
+          style={styles.ctaSection} 
+          role="region"
+          aria-labelledby="cta-title"
+          aria-describedby="cta-description"
+        >
           <div style={styles.container}>
+            <h2 id="cta-title" style={{fontSize: '2.5rem', fontWeight: 900, marginBottom: '2rem', color: '#fff'}}>
+              RECLAMA TU MES DE LIBERTAD
+            </h2>
+            <p id="cta-description" style={{fontSize: '1.5rem', marginBottom: '3rem', opacity: 0.9, lineHeight: 1.6}}>
+              Has llegado al final del recorrido auditivo, pero este es solo el comienzo de tu nueva vida. 
+              No dejes que esta oportunidad se pierda en el ruido del día a día.
+            </p>
             <button 
               style={styles.hugeBtn}
               onClick={() => window.location.href = '/setup?plan=solo&is_blind=1'}
               onFocus={() => speak('cta')}
+              aria-label="Registrarte gratis en FisioTool Pro - Comienza tu mes gratuito"
+              title="Registrarte gratis en FisioTool Pro"
             >
               RECLAMAR MI MES GRATIS AHORA
             </button>
-            <p style={{marginTop: '2rem', opacity: 0.6}}>Presiona Enter para registrarte instantáneamente</p>
+            <p style={{marginTop: '2rem', opacity: 0.6}} aria-label="Instrucción de teclado">
+              Presiona Enter para registrarte instantáneamente, o C para escuchar esta sección nuevamente
+            </p>
           </div>
         </section>
       </main>
+
+      {/* Pie de página con información adicional */}
+      <footer style={{padding: '3rem 5%', textAlign: 'center', background: '#000', borderTop: '1px solid rgba(255,255,255,0.1)'}} role="contentinfo">
+        <p style={{opacity: 0.6, fontSize: '1rem'}}>
+          FisioTool Pro - Independencia total para fisioterapeutas invidentes
+        </p>
+        <p style={{opacity: 0.4, fontSize: '0.9rem', marginTop: '1rem'}}>
+          Presiona ? en cualquier momento para escuchar los atajos de teclado disponibles
+        </p>
+      </footer>
     </div>
   );
 }

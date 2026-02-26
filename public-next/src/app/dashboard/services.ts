@@ -3,7 +3,7 @@ import { API_BASE_URL } from '@/lib/apiBase';
 
 class DashboardService {
   private static instance: DashboardService;
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): DashboardService {
     if (!DashboardService.instance) DashboardService.instance = new DashboardService();
@@ -65,9 +65,9 @@ class DashboardService {
   }
 
   public async createBono(bono: any): Promise<void> {
-    await this.request('/api/dashboard/create-bono', { 
-      method: 'POST', 
-      body: JSON.stringify({ bono }) 
+    await this.request('/api/dashboard/create-bono', {
+      method: 'POST',
+      body: JSON.stringify({ bono })
     });
   }
 
@@ -136,13 +136,10 @@ class DashboardService {
     await this.request('/api/dashboard/update-settings', { method: 'POST', body: JSON.stringify({ nombre, email }) });
   }
 
-  public async uploadLogo(file: File): Promise<void> {
-    const formData = new FormData();
-    formData.append('logo', file);
-    await this.request('/api/dashboard/upload-logo', { 
-      method: 'POST', 
-      body: formData,
-      headers: {} // Remove Content-Type to let browser set it for FormData
+  public async updateAnaConfig(config: any): Promise<{ success: boolean }> {
+    return this.request<{ success: boolean }>('/api/dashboard/update-ana-config', {
+      method: 'POST',
+      body: JSON.stringify(config)
     });
   }
 }

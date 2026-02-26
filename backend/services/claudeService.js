@@ -1,6 +1,7 @@
 const Anthropic = require('@anthropic-ai/sdk');
 const { SecretManagerServiceClient } = require('@google-cloud/secret-manager');
 const geminiService = require('./geminiService');
+const paymentService = require('./paymentService');
 
 class ClaudeService {
   // ... (getApiKey remains the same)
@@ -45,12 +46,12 @@ class ClaudeService {
         return await geminiService.generateResponse(prompt);
       } catch (geminiError) {
         console.error('🔥 All AI Engines failed:', geminiError.message);
-        return this._simulateClaudeResponse(prompt);
+        return await this._simulateClaudeResponse(prompt);
       }
     }
   }
 
-  _simulateClaudeResponse(prompt) {
+  async _simulateClaudeResponse(prompt) {
     const lowerPrompt = prompt.toLowerCase();
 
     // Extraer mensaje del usuario del prompt
@@ -117,6 +118,49 @@ Soy Ana, y estoy aquí para ayudarte de verdad. Si no he respondido correctament
 
 Ana - Clínica Barcelona Prueba [OMEGA-V4]`;
     }
+
+    // 💳 Generar enlace de pago real (para fallback)
+    const generatePaymentLinkFallback = async (clinicId, amount = 15) => {
+      try {
+        if (!clinicId) return null;
+        
+        // Obtener info de la clínica
+        const clinicDoc = await db.collection('clinicas').doc(clinicId).get();
+        if (!clinicDoc.exists) return null;
+        
+        const clinic = clinicDoc.data();
+        const accountId = clinic.stripe_account_id;
+        
+        if (!accountId) {
+          console.log('⚠️ [PAYMENT] La clínica no tiene cuenta Stripe conectada');
+          return null;
+        }
+        
+        // Crear sesión de pago
+        const mockReq = {
+          clinicId,
+          body: { amount, concepto: 'Fianza de cita' }
+        };
+        
+        const { url, error } = await paymentService.createOneTimePaymentSession(
+          amount * 100, // Convertir a céntimos
+          accountId,
+          'Fianza de cita',
+          mockReq
+        );
+        
+        if (error) {
+          console.error('🔥 [PAYMENT] Error generando enlace:', error);
+          return null;
+        }
+        
+        console.log('✅ [PAYMENT] Enlace generado:', url);
+        return url;
+      } catch (e) {
+        console.error('🔥 [PAYMENT] Error en generatePaymentLinkFallback:', e);
+        return null;
+      }
+    };
 
     // Simulación inteligente basada en el mensaje del usuario
     if (lowerUserMessage.includes('cita') || lowerUserMessage.includes('necesito')) {
@@ -192,12 +236,22 @@ Ana - Clínica Barcelona Prueba [OMEGA-V4]`;
 
       // Si es hora futura
       if (hour > currentHour || (hour === currentHour && minute > currentMinute)) {
+        // 🚀 Generar enlace de pago real (async en fallback)
+        const paymentUrl = await generatePaymentLinkFallback('bleRbykAj1TgF4lOYdMh', 15); // Test clinic ID
+        
+        let paymentText = '';
+        if (paymentUrl) {
+          paymentText = `💳 **Tarjeta:** [PAGAR 15€ AHORA](${paymentUrl})`;
+        } else {
+          paymentText = `💳 **Tarjeta:** La clínica está configurando el pago online. Por ahora, usa Bizum.`;
+        }
+        
         return `¡Perfecto! Tengo disponibilidad hoy a las ${userTimeMatch[0]}.
 
 Para confirmar tu cita, necesito que pagues la fianza de 15€:
 
 📱 **Bizum:** Envía 15€ al +34600123456
-💳 **Tarjeta:** Te enviaré un enlace seguro para pagar
+${paymentText}
 
 📸 **IMPORTANTE:** Después de pagar, envíame:
 - Captura del Bizum ✅
@@ -222,15 +276,29 @@ Ana - Clínica Barcelona Prueba [OMEGA-V4]`;
 Ana - Clínica Barcelona Prueba [OMEGA-V4]`;
     }
 
-    return `Entiendo tu mensaje. Soy Ana tu asistente de Fisiotool.
+    // Evitar repetición de "Hola soy Ana" si ya hay contexto
+    const hasPreviousGreeting = lowerUserMessage.includes('hola') || 
+                                lowerUserMessage.includes('buenos') ||
+                                lowerUserMessage.includes('gracias') ||
+                                lowerUserMessage.includes('adiós');
+    
+    if (hasPreviousGreeting) {
+      return `¡Hola de nuevo! 😊
 
-Puedo ayudarte con:
-- 📅 Reservar citas
-- 💆 Información sobre tratamientos  
+¿En qué te puedo ayudar ahora? Si tienes alguna duda sobre las citas, tratamientos o pagos, estoy aquí para resolverla contigo.
+
+Ana - Clínica Barcelona Prueba`;
+    }
+    
+    return `Entiendo perfectamente lo que necesitas. 
+
+Estoy aquí para ayudarte con lo que sea:
+- 📅 Tus citas y horarios
+- 💆 Los tratamientos que ofrecemos  
 - 📋 Seguimiento de tu terapia
-- 💳 Procesos de pago
+- 💳 Cualquier duda sobre pagos
 
-¿Qué necesitas específicamente? Estoy aquí para ayudarte.
+¿Cuál es tu consulta específica? Juntos la resolveremos. 😊
 
 Ana - Clínica Barcelona Prueba`;
   }

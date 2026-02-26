@@ -1,4 +1,6 @@
 const claudeService = require('./claudeService');
+const { db } = require('../config/firebase');
+const paymentService = require('./paymentService');
 
 class HybridAnaService {
   constructor() {
@@ -217,8 +219,11 @@ Responde de forma natural y humana, evitando sonar como un bot repetitivo. Nunca
   }
 
   // ⚙️ Procesar con reglas (rápido y sin coste)
-  async processWithRules(message, context) {
+  async processWithRules(message, context = {}) {
     const lowerMessage = message.toLowerCase();
+    
+    // 🧠 Obtener contexto para evitar repeticiones
+    const contextualInfo = await this.getContextualResponse(message, context);
     console.log(`🔍 [RULES] Evaluating message: "${lowerMessage}"`);
 
     // 🌸 REGLA DE BIENVENIDA EMPÁTICA (Tras registro)
@@ -246,16 +251,28 @@ Ya he guardado tus datos correctamente en ${context.clinicName || 'la clínica'}
 
       const historyText = JSON.stringify(context.history || []).toLowerCase();
       if (historyText.includes('enlace') || historyText.includes('fianza') || historyText.includes('pago')) {
+        
+        // 🚀 Generar enlace de pago real
+        const paymentUrl = await this.generatePaymentLink(context.clinicId, 15);
+        const clinicInfo = await this.getClinicInfo(context.clinicId);
+        
+        let paymentText = '';
+        if (paymentUrl) {
+          paymentText = `💳 **Tarjeta:** [PAGAR 15€ AHORA](${paymentUrl})`;
+        } else {
+          paymentText = `💳 **Tarjeta:** La clínica está configurando el pago online. Por ahora, usa Bizum o contacta directamente.`;
+        }
+        
         return {
           source: 'rules',
           response: `¡Perfecto! Aquí tienes las opciones para formalizar la reserva de 15€:
 
-📱 **Bizum:** Envía 15€ al +34600123456
-💳 **Tarjeta:** Te envío el link de pago seguro en 1 minuto
+📱 **Bizum:** Envía 15€ al ${clinicInfo.bizum || '+34600123456'}
+${paymentText}
 
 📸 **IMPORTANTE:** Una vez pagado, envíame la captura por aquí para confirmar tu cita definitivamente.
 
-Ana - Clínica Barcelona Prueba`,
+Ana - ${clinicInfo.nombre}`,
           confidence: 'high'
         };
       }
@@ -292,14 +309,25 @@ Luego pulsa "Instalar" o "Añadir a pantalla de inicio"
       (lowerMessage.includes('h') || lowerMessage.includes('horas') || lowerMessage.includes(':00')) &&
       (lowerMessage.includes('estaria bien') || lowerMessage.includes('quiero') || lowerMessage.includes('reservar'))) {
 
+      // 🚀 Generar enlace de pago real
+      const paymentUrl = await this.generatePaymentLink(context.clinicId, 15);
+      const clinicInfo = await this.getClinicInfo(context.clinicId);
+      
+      let paymentText = '';
+      if (paymentUrl) {
+        paymentText = `💳 **Tarjeta:** [PAGAR 15€ AHORA](${paymentUrl})`;
+      } else {
+        paymentText = `💳 **Tarjeta:** La clínica está configurando el pago online. Por ahora, usa Bizum o contacta directamente.`;
+      }
+
       return {
         source: 'rules',
         response: `¡Perfecto! Tengo disponibilidad hoy a las 15:00.
 
 Para confirmar tu cita, necesito que pagues la fianza de 15€:
 
-📱 **Bizum:** Envía 15€ al +34600123456
-💳 **Tarjeta:** Te enviaré un enlace seguro para pagar
+📱 **Bizum:** Envía 15€ al ${clinicInfo.bizum || '+34600123456'}
+${paymentText}
 
 📸 **IMPORTANTE:** Después de pagar, envíame:
 - Captura del Bizum ✅
@@ -307,7 +335,7 @@ Para confirmar tu cita, necesito que pagues la fianza de 15€:
 
 Una vez verificado el pago, tu cita quedará confirmada.
 
-Ana - Clínica Barcelona Prueba`,
+Ana - ${clinicInfo.nombre}`,
         confidence: 'high'
       };
     }
@@ -316,14 +344,26 @@ Ana - Clínica Barcelona Prueba`,
     if ((lowerMessage.includes('noo') || lowerMessage.includes('no te dije') || lowerMessage.includes('te dije que')) &&
       (lowerMessage.includes('quiero') || lowerMessage.includes('reservar')) &&
       lowerMessage.includes('15')) {
+      
+      // 🚀 Generar enlace de pago real
+      const paymentUrl = await this.generatePaymentLink(context.clinicId, 15);
+      const clinicInfo = await this.getClinicInfo(context.clinicId);
+      
+      let paymentText = '';
+      if (paymentUrl) {
+        paymentText = `💳 **Tarjeta:** [PAGAR 15€ AHORA](${paymentUrl})`;
+      } else {
+        paymentText = `💳 **Tarjeta:** La clínica está configurando el pago online. Por ahora, usa Bizum o contacta directamente.`;
+      }
+      
       return {
         source: 'rules',
         response: `¡Entendido! Confirmo tu cita para hoy a las 15:00.
 
 Para confirmar tu cita, necesito que pagues la fianza de 15€:
 
-📱 **Bizum:** Envías 15€ al +34600123456
-💳 **Tarjeta:** Te enviaré un enlace seguro para pagar
+📱 **Bizum:** Envías 15€ al ${clinicInfo.bizum || '+34600123456'}
+${paymentText}
 
 📸 **IMPORTANTE:** Después de pagar, envíame:
 - Captura del Bizum ✅
@@ -331,7 +371,7 @@ Para confirmar tu cita, necesito que pagues la fianza de 15€:
 
 Una vez verificado el pago, tu cita quedará confirmada.
 
-Ana - Clínica Barcelona Prueba`,
+Ana - ${clinicInfo.nombre}`,
         confidence: 'high'
       };
     }
@@ -559,14 +599,26 @@ Ana - Clínica Barcelona Prueba`,
     if ((lowerMessage.includes('noo') || lowerMessage.includes('no te dije') || lowerMessage.includes('te dije que')) &&
       (lowerMessage.includes('quiero') || lowerMessage.includes('reservar')) &&
       lowerMessage.includes('15')) {
+      
+      // 🚀 Generar enlace de pago real
+      const paymentUrl = await this.generatePaymentLink(context.clinicId, 15);
+      const clinicInfo = await this.getClinicInfo(context.clinicId);
+      
+      let paymentText = '';
+      if (paymentUrl) {
+        paymentText = `💳 **Tarjeta:** [PAGAR 15€ AHORA](${paymentUrl})`;
+      } else {
+        paymentText = `💳 **Tarjeta:** La clínica está configurando el pago online. Por ahora, usa Bizum o contacta directamente.`;
+      }
+      
       return {
         source: 'rules',
         response: `¡Entendido! Confirmo tu cita para hoy a las 15:00.
 
 Para confirmar tu cita, necesito que pagues la fianza de 15€:
 
-📱 **Bizum:** Envías 15€ al +34600123456
-💳 **Tarjeta:** Te enviaré un enlace seguro para pagar
+📱 **Bizum:** Envías 15€ al ${clinicInfo.bizum || '+34600123456'}
+${paymentText}
 
 📸 **IMPORTANTE:** Después de pagar, envíame:
 - Captura del Bizum ✅
@@ -574,7 +626,7 @@ Para confirmar tu cita, necesito que pagues la fianza de 15€:
 
 Una vez verificado el pago, tu cita quedará confirmada.
 
-Ana - Clínica Barcelona Prueba`,
+Ana - ${clinicInfo.nombre}`,
         confidence: 'high'
       };
     }
@@ -593,22 +645,146 @@ Por favor, dime qué necesitas y haré todo lo posible por asistirte correctamen
       };
     }
 
-    // Fallback
+    // Fallback contextual y humano
+    const contextMessages = context.history || [];
+    const lastUserMessage = contextMessages[contextMessages.length - 1]?.text || '';
+    
+    // Si el usuario parece frustrado o confundido
+    if (lastUserMessage.includes('no funciona') || 
+        lastUserMessage.includes('confundido') || 
+        lastUserMessage.includes('no entiendo') ||
+        lowerMessage.includes('frustrado')) {
+      return {
+        source: 'rules',
+        response: `Entiendo tu frustración y te pido disculpas si algo no está funcionando como esperabas. 
+
+Estoy aquí para ayudarte de verdad. ¿Qué es lo que necesitas exactamente? Si hay algún problema con el pago o las citas, lo resolveremos juntos.
+
+Ana - ${await this.getClinicInfo(context.clinicId).then(c => c.nombre) || 'la clínica'}`,
+        confidence: 'medium'
+      };
+    }
+    
+    // Si menciona pago pero no encaja en otras reglas
+    if (lowerMessage.includes('pago') || lowerMessage.includes('enlace') || lowerMessage.includes('tarjeta')) {
+      return {
+        source: 'rules',
+        response: `Entiendo que necesitas ayuda con el pago. 
+
+¿Estás intentando pagar una fianza de cita? Si es así, dime "sí, quiero el enlace de pago" y te ayudaré a generarlo.
+
+Si tienes otro tipo de consulta sobre pagos, explícame un poco más y te ayudaré enseguida.
+
+Ana - ${await this.getClinicInfo(context.clinicId).then(c => c.nombre) || 'la clínica'}`,
+        confidence: 'medium'
+      };
+    }
+    
+    // Fallback general pero más contextual
     return {
       source: 'rules',
-      response: 'Entiendo tu consulta. Para ayudarte mejor, ¿podrías darme más detalles sobre qué necesitas?',
+      response: `Entiendo lo que necesitas. 
+
+Para poder ayudarte mejor, ¿podrías decirme con qué tema específico necesitas ayuda? Por ejemplo:
+- ¿Quieres reservar o cambiar una cita?
+- ¿Necesitas información sobre tratamientos?
+- ¿Tienes alguna duda sobre un pago?
+
+Estoy aquí para lo que necesites. 😊
+
+Ana - ${await this.getClinicInfo(context.clinicId).then(c => c.nombre) || 'la clínica'}`,
       confidence: 'low'
     };
   }
 
+  // 🧠 Memoria de contexto para evitar repeticiones
+  async getContextualResponse(message, context) {
+    const history = context.history || [];
+    const lastAnaResponse = history.slice().reverse().find(msg => msg.role === 'ana')?.text || '';
+    
+    // Si Ana acaba de presentarse, no volver a hacerlo
+    if (lastAnaResponse.includes('Soy Ana') || 
+        lastAnaResponse.includes('Hola, soy Ana') ||
+        lastAnaResponse.includes('¡Hola! Soy Ana')) {
+      return {
+        shouldAvoidGreeting: true,
+        lastTopic: this.detectLastTopic(lastAnaResponse)
+      };
+    }
+    
+    return {
+      shouldAvoidGreeting: false,
+      lastTopic: this.detectLastTopic(lastAnaResponse)
+    };
+  }
+  
+  detectLastTopic(response) {
+    if (response.includes('pago') || response.includes('enlace')) return 'payment';
+    if (response.includes('cita') || response.includes('horario')) return 'appointment';
+    if (response.includes('tratamiento')) return 'treatment';
+    return 'general';
+  }
+
+  // 💳 Generar enlace de pago real
+  async generatePaymentLink(clinicId, amount = 15) {
+    try {
+      if (!clinicId) return null;
+      
+      // Obtener info de la clínica
+      const clinicDoc = await db.collection('clinicas').doc(clinicId).get();
+      if (!clinicDoc.exists) return null;
+      
+      const clinic = clinicDoc.data();
+      const accountId = clinic.stripe_account_id;
+      
+      if (!accountId) {
+        console.log('⚠️ [PAYMENT] La clínica no tiene cuenta Stripe conectada');
+        return null;
+      }
+      
+      // Crear sesión de pago
+      const mockReq = {
+        clinicId,
+        body: { amount, concepto: 'Fianza de cita' }
+      };
+      
+      const { url, error } = await paymentService.createOneTimePaymentSession(
+        amount * 100, // Convertir a céntimos
+        accountId,
+        'Fianza de cita',
+        mockReq
+      );
+      
+      if (error) {
+        console.error('🔥 [PAYMENT] Error generando enlace:', error);
+        return null;
+      }
+      
+      console.log('✅ [PAYMENT] Enlace generado:', url);
+      return url;
+    } catch (e) {
+      console.error('🔥 [PAYMENT] Error en generatePaymentLink:', e);
+      return null;
+    }
+  }
+
   // 🏥 Obtener información real de la clínica
   async getClinicInfo(clinicId) {
-    // Aquí iría la lógica para obtener datos reales de Firestore
-    return {
-      nombre: 'Clínica de Fisioterapia',
-      especialistas: ['Dr. García'], // Un solo fisio como debe ser
-      horario: { apertura: '09:00', cierre: '20:00' }
-    };
+    try {
+      if (!clinicId) return { nombre: 'la clínica' };
+      const doc = await db.collection('clinicas').doc(clinicId).get();
+      if (!doc.exists) return { nombre: 'la clínica' };
+      const data = doc.data();
+      return {
+        nombre: data.nombre_clinica || data.nombre || 'la clínica',
+        bizum: data.bizum || '+34600123456',
+        stripe_active: !!data.stripe_account_id,
+        horario: data.horario || { apertura: '09:00', cierre: '20:00' }
+      };
+    } catch (e) {
+      console.error('🔥 Error fetching clinic info for Ana:', e);
+      return { nombre: 'la clínica' };
+    }
   }
 }
 

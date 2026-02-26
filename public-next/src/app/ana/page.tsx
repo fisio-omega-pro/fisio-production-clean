@@ -392,8 +392,8 @@ function AnaChatContent() {
         </div>
       ) : (
         <div className="bg-[#f0f2f5] px-4 py-2 border-t border-gray-200">
-          {/* 📱 Botón de Instalación (Si no está instalada y estamos en registro completado) */}
-          {!isAppInstalled && userRegistered && (
+          {/* 📱 Botón de Instalación (Solo si no está instalada y usuario está registrado) */}
+          {userRegistered && !isAppInstalled && (
             <div className="mb-2">
               <button
                 onClick={() => {

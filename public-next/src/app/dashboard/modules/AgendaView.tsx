@@ -27,7 +27,7 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
     return new Date(d.getFullYear(), d.getMonth(), 1);
   });
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
-  
+
   const now = new Date();
   const currentDay = now.getDate();
 
@@ -36,7 +36,7 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
     const start = parseInt(horario?.apertura?.split(':')[0] || '8');
     const end = parseInt(horario?.cierre?.split(':')[0] || '20');
     const hArray = [];
-    for(let i = start; i <= end; i++) {
+    for (let i = start; i <= end; i++) {
       hArray.push(`${String(i).padStart(2, '0')}:00`);
     }
     return hArray;
@@ -104,13 +104,18 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
     return list.find((a) => {
       const h = String(a.hora || '');
       const hNum = Number(h.split(':')[0] || '0');
-      return hNum === hourNum && (String(a.specialist_id || '') === specId || specId === 'admin' || !a.specialist_id);
+      const aSpecId = String(a.specialist_id || '').trim();
+
+      const isCorrectTime = hNum === hourNum;
+      const isForThisSpec = aSpecId === specId || (specId === 'admin' && (!aSpecId || aSpecId === 'null'));
+
+      return isCorrectTime && isForThisSpec;
     }) || null;
   };
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500 h-full font-sans">
-      
+
       {/* --- TOOLBAR DE PRECISIÓN --- */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/[0.02] p-4 rounded-[32px] border border-white/5 shadow-2xl backdrop-blur-xl">
         <div className="flex bg-black/40 p-1.5 rounded-2xl border border-white/10">
@@ -145,34 +150,34 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
 
       {/* --- ÁREA DE CALENDARIO (REPARADA) --- */}
       <div className="bg-[#0a0a0c] border border-white/5 rounded-[48px] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] flex-1 overflow-hidden flex flex-col">
-        
+
         {viewMode === 'mes' ? (
           <div className="p-10 flex flex-col h-full overflow-y-auto custom-scrollbar">
             <div className="flex justify-between items-center mb-10 border-b border-white/5 pb-8">
-               <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-blue-600/10 rounded-2xl flex items-center justify-center text-blue-500 border border-blue-500/20"><CalendarIcon size={24}/></div>
-                  <h3 className="text-3xl font-black uppercase italic tracking-tighter">
-                    {monthLabel.split(' ')[0]} <span className="text-blue-600">{monthLabel.split(' ').slice(1).join(' ')}</span>
-                  </h3>
-               </div>
-               <div className="flex gap-3">
-                  <button
-                    onClick={() => setMonthCursor((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))}
-                    className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl transition-all"
-                    aria-label="Mes anterior"
-                  >
-                    <ChevronLeft size={20}/>
-                  </button>
-                  <button
-                    onClick={() => setMonthCursor((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))}
-                    className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl transition-all"
-                    aria-label="Mes siguiente"
-                  >
-                    <ChevronRight size={20}/>
-                  </button>
-               </div>
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-blue-600/10 rounded-2xl flex items-center justify-center text-blue-500 border border-blue-500/20"><CalendarIcon size={24} /></div>
+                <h3 className="text-3xl font-black uppercase italic tracking-tighter">
+                  {monthLabel.split(' ')[0]} <span className="text-blue-600">{monthLabel.split(' ').slice(1).join(' ')}</span>
+                </h3>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setMonthCursor((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))}
+                  className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl transition-all"
+                  aria-label="Mes anterior"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <button
+                  onClick={() => setMonthCursor((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))}
+                  className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl transition-all"
+                  aria-label="Mes siguiente"
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </div>
             </div>
-            
+
             {/* GRID MENSUAL: Reparado para que no se corte */}
             <div className="grid grid-cols-7 gap-3 flex-1 min-h-[500px]">
               {['LUN', 'MAR', 'MIE', 'JUE', 'VIE', 'SAB', 'DOM'].map(d => (
@@ -181,21 +186,21 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
               {Array.from({ length: daysInMonth }).map((_, i) => {
                 const dayNum = i + 1;
                 const isToday = dayNum === currentDay;
-                const dateStr = `${monthCursor.getFullYear()}-${String(monthCursor.getMonth() + 1).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
+                const dateStr = `${monthCursor.getFullYear()}-${String(monthCursor.getMonth() + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
                 const dots = dayDots[dateStr] || { paid: false, pending: false };
 
                 return (
-                  <div 
-                    key={i} 
+                  <div
+                    key={i}
                     onClick={() => { setSelectedDate(dateStr); setViewMode('dia'); }}
                     className={`min-h-[100px] border transition-all rounded-3xl p-4 flex flex-col justify-between group cursor-pointer ${isToday ? 'bg-blue-600/10 border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.1)]' : 'bg-white/[0.01] border-white/5 hover:border-blue-500/30'}`}
                   >
                     <span className={`text-lg font-black ${isToday ? 'text-blue-500' : 'text-gray-600 group-hover:text-white'}`}>{dayNum}</span>
-                    
+
                     {/* Semáforo Visual Mes */}
                     <div className="flex gap-1.5">
-                       {dots.paid && <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />}
-                       {dots.pending && <div className="w-2 h-2 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]" />}
+                      {dots.paid && <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />}
+                      {dots.pending && <div className="w-2 h-2 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]" />}
                     </div>
                   </div>
                 );
@@ -206,12 +211,12 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
           /* --- MODO DÍA: SEMÁFORO HORARIO --- */
           <div className="flex flex-col h-full">
             <div className="p-8 border-b border-white/5 bg-white/[0.01] flex justify-between items-center">
-               <div className="flex items-center gap-4">
-                  <div className="p-3 bg-blue-600 rounded-2xl text-white shadow-xl shadow-blue-600/20"><Clock size={20}/></div>
-                  <h4 className="text-xl font-black uppercase italic tracking-tighter">
-                    Agenda Diaria <span className="text-blue-500 text-sm ml-3 font-mono opacity-60">{selectedDate}</span>
-                  </h4>
-               </div>
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-blue-600 rounded-2xl text-white shadow-xl shadow-blue-600/20"><Clock size={20} /></div>
+                <h4 className="text-xl font-black uppercase italic tracking-tighter">
+                  Agenda Diaria <span className="text-blue-500 text-sm ml-3 font-mono opacity-60">{selectedDate}</span>
+                </h4>
+              </div>
             </div>
             <div className="flex flex-1 overflow-x-auto custom-scrollbar">
               {/* EJE HORARIO */}
@@ -235,8 +240,8 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
                       const isPaid = !!appt?.pagado;
 
                       return (
-                        <div 
-                          key={h} 
+                        <div
+                          key={h}
                           onClick={() => {
                             if (isBooked && appt) {
                               onEventClick({
@@ -256,10 +261,10 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
                         >
                           {isBooked ? (
                             <div className={`flex items-center gap-2 px-4 py-2 rounded-2xl border ${isPaid ? 'bg-green-500/10 border-green-500/30 text-green-500' : 'bg-orange-500/10 border-orange-500/30 text-orange-500'}`}>
-                               {isPaid ? <CheckCircle2 size={12}/> : <AlertCircle size={12}/>}
-                               <span className="text-[9px] font-black uppercase tracking-tighter">
-                                 {(appt?.nombre || 'CITA').toString().slice(0, 12)} · {appt?.hora || h}
-                               </span>
+                              {isPaid ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+                              <span className="text-[9px] font-black uppercase tracking-tighter">
+                                {(appt?.nombre || 'CITA').toString().slice(0, 12)} · {appt?.hora || h}
+                              </span>
                             </div>
                           ) : (
                             <div className="opacity-0 group-hover:opacity-100 bg-blue-600 text-white px-4 py-2 rounded-xl text-[8px] font-black uppercase shadow-lg transition-all transform scale-90 group-hover:scale-100">Agendar {h}</div>

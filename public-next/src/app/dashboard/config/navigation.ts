@@ -1,4 +1,4 @@
-import { Users, Calendar, PieChart, MessageSquare, Building2, CreditCard, Gift, Home, Lightbulb, MapPin, Ticket, Settings } from 'lucide-react';
+import { Users, Calendar, PieChart, MessageSquare, Building2, CreditCard, Gift, Home, Lightbulb, MapPin, Ticket, Settings, Bot } from 'lucide-react';
 import { NavItemConfig } from '../types';
 
 export const NAV_ITEMS: Record<string, NavItemConfig[]> = {
@@ -15,6 +15,7 @@ export const NAV_ITEMS: Record<string, NavItemConfig[]> = {
   ],
   inteligencia: [
     { id: 'asistente', label: 'Consultoría Ana', icon: MessageSquare },
+    { id: 'config_ana', label: 'Configurar Ana', icon: Bot, accent: true },
   ],
   configuracion: [
     { id: 'cobros', label: 'Pagos', icon: CreditCard },

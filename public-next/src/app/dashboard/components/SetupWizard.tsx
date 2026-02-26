@@ -16,35 +16,110 @@ export const SetupWizard: React.FC<SetupProps> = ({ status, onRefresh, isBlind }
     if (!isBlind) return;
     try {
       window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(
-        'Configuración inicial. Paso uno: logo. Paso dos: licencia. Paso tres: conectar Stripe. Puedes usar el logo genérico para avanzar.'
-      );
+      const getStatusText = () => {
+        const steps = [];
+        if (status.hasLogo) steps.push('logo completado');
+        if (status.hasSubscription) steps.push('suscripción activa');
+        if (status.hasStripe) steps.push('Stripe conectado');
+        
+        const remaining = [];
+        if (!status.hasLogo) remaining.push('subir logo');
+        if (!status.hasSubscription) remaining.push('activar suscripción');
+        if (!status.hasStripe) remaining.push('conectar Stripe');
+        
+        return `Configuración inicial. Completados: ${steps.length > 0 ? steps.join(', ') : 'ninguno'}. Pendientes: ${remaining.join(', ')}.`;
+      };
+      
+      const u = new SpeechSynthesisUtterance(getStatusText());
       u.lang = 'es-ES';
       u.rate = 0.95;
+      u.volume = 0.9;
       window.speechSynthesis.speak(u);
     } catch {
       // best-effort
     }
-  }, [isBlind]);
+  }, [isBlind, status]);
 
   // 1. Subir Logo Real
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if(!file) return;
     setLoading('upload');
-    try { await dashboardAPI.uploadLogo(file); await onRefresh(); }
-    catch(e: any){ alert(e?.message || "Error subida. Prueba la opción provisional."); }
+    
+    if (isBlind) {
+      try {
+        const u = new SpeechSynthesisUtterance('Subiendo logo. Por favor, espera...');
+        u.lang = 'es-ES';
+        u.rate = 0.95;
+        window.speechSynthesis.speak(u);
+      } catch {}
+    }
+    
+    try { 
+      await dashboardAPI.uploadLogo(file); 
+      await onRefresh();
+      
+      if (isBlind) {
+        try {
+          const u = new SpeechSynthesisUtterance('Logo subido correctamente. Paso uno completado.');
+          u.lang = 'es-ES';
+          u.rate = 0.95;
+          window.speechSynthesis.speak(u);
+        } catch {}
+      }
+    }
+    catch(e: any){ 
+      alert(e?.message || "Error subida. Prueba la opción provisional.");
+      
+      if (isBlind) {
+        try {
+          const u = new SpeechSynthesisUtterance('Error al subir logo. Por favor, intenta la opción provisional.');
+          u.lang = 'es-ES';
+          u.rate = 0.95;
+          window.speechSynthesis.speak(u);
+        } catch {}
+      }
+    }
     setLoading(null);
   };
 
   // 2. Usar Logo Provisional (FIXED)
   const handleSkipLogo = async () => {
     setLoading('skip');
+    
+    if (isBlind) {
+      try {
+        const u = new SpeechSynthesisUtterance('Usando logo provisional. Por favor, espera...');
+        u.lang = 'es-ES';
+        u.rate = 0.95;
+        window.speechSynthesis.speak(u);
+      } catch {}
+    }
+    
     try { 
       console.log("Activando logo provisional...");
       await dashboardAPI.useDefaultLogo(); 
       await onRefresh(); 
-    } catch(e) { 
-      alert("Error de conexión. Revisa tu internet."); 
+      
+      if (isBlind) {
+        try {
+          const u = new SpeechSynthesisUtterance('Logo provisional activado. Paso uno completado.');
+          u.lang = 'es-ES';
+          u.rate = 0.95;
+          window.speechSynthesis.speak(u);
+        } catch {}
+      }
+    }
+    catch(e: any){ 
+      alert(e?.message || "Error al usar logo provisional.");
+      
+      if (isBlind) {
+        try {
+          const u = new SpeechSynthesisUtterance('Error al activar logo provisional.');
+          u.lang = 'es-ES';
+          u.rate = 0.95;
+          window.speechSynthesis.speak(u);
+        } catch {}
+      }
     }
     setLoading(null);
   };
@@ -52,13 +127,63 @@ export const SetupWizard: React.FC<SetupProps> = ({ status, onRefresh, isBlind }
   // 3. Pagar
   const handleSubscribe = async () => {
     setLoading('pay');
-    try { const url = await dashboardAPI.upgradePlan(); window.location.href = url; } catch(e){ alert("Error pago"); } setLoading(null);
+    
+    if (isBlind) {
+      try {
+        const u = new SpeechSynthesisUtterance('Redirigiendo a la pasarela de pago. Por favor, completa el formulario para activar tu suscripción.');
+        u.lang = 'es-ES';
+        u.rate = 0.95;
+        window.speechSynthesis.speak(u);
+      } catch {}
+    }
+    
+    try { 
+      const url = await dashboardAPI.upgradePlan(); 
+      window.location.href = url; 
+    } catch(e){ 
+      alert("Error pago");
+      
+      if (isBlind) {
+        try {
+          const u = new SpeechSynthesisUtterance('Error al procesar el pago. Por favor, intenta nuevamente.');
+          u.lang = 'es-ES';
+          u.rate = 0.95;
+          window.speechSynthesis.speak(u);
+        } catch {}
+      }
+    } 
+    setLoading(null);
   };
 
-  // 4. Banco
+  // 4. Conectar Stripe
   const handleConnectStripe = async () => {
-    setLoading('bank');
-    try { const url = await dashboardAPI.connectStripe(); window.location.href = url; } catch(e){ alert("Error banco"); } setLoading(null);
+    setLoading('stripe');
+    
+    if (isBlind) {
+      try {
+        const u = new SpeechSynthesisUtterance('Redirigiendo a Stripe para conectar tu cuenta bancaria. Por favor, sigue los pasos para configurar el pago.');
+        u.lang = 'es-ES';
+        u.rate = 0.95;
+        window.speechSynthesis.speak(u);
+      } catch {}
+    }
+    
+    try { 
+      const url = await dashboardAPI.connectStripe(); 
+      window.location.href = url; 
+    } catch(e){ 
+      alert("Error Stripe");
+      
+      if (isBlind) {
+        try {
+          const u = new SpeechSynthesisUtterance('Error al conectar Stripe. Por favor, intenta nuevamente.');
+          u.lang = 'es-ES';
+          u.rate = 0.95;
+          window.speechSynthesis.speak(u);
+        } catch {}
+      }
+    } 
+    setLoading(null);
   };
 
   return (
