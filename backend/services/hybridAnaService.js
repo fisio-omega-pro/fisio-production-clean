@@ -224,7 +224,7 @@ Responde de forma natural y humana, evitando sonar como un bot repetitivo. Nunca
     // 🌸 REGLA DE BIENVENIDA EMPÁTICA (Tras registro)
     if (lowerMessage.includes('me llamo') && lowerMessage.includes('email') && (lowerMessage.includes('registra') || lowerMessage.includes('registrado'))) {
       console.log('🌸 [RULES] Welcome rule MATCHED!');
-      const nameMatch = message.match(/me llamo ([^ y.,\n]+)/i);
+      const nameMatch = message.match(/me llamo ([^ ,.\n]+)/i);
       const userName = nameMatch ? nameMatch[1] : 'paciente';
 
       return {
