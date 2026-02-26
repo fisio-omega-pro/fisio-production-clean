@@ -221,17 +221,14 @@ Responde de forma natural y humana, evitando sonar como un bot repetitivo. Nunca
     console.log(`🔍 [RULES] Evaluating message: "${lowerMessage}"`);
 
     // 🌸 REGLA DE BIENVENIDA EMPÁTICA (Tras registro)
-    if (lowerMessage.includes('me llamo') && lowerMessage.includes('email')) {
+    if (lowerMessage.includes('me llamo') && lowerMessage.includes('email') && (lowerMessage.includes('registra') || lowerMessage.includes('registrado'))) {
       console.log('🌸 [RULES] Welcome rule MATCHED!');
+      const nameMatch = message.match(/me llamo ([^ y.,\n]+)/i);
+      const userName = nameMatch ? nameMatch[1] : 'paciente';
 
-      // 🌸 REGLA DE BIENVENIDA EMPÁTICA (Tras registro)
-      if (lowerMessage.includes('me llamo') && lowerMessage.includes('email') && lowerMessage.includes('registra')) {
-        const nameMatch = message.match(/me llamo ([^ y]+)/i);
-        const userName = nameMatch ? nameMatch[1] : 'paciente';
-
-        return {
-          source: 'rules',
-          response: `¡Hola ${userName}, qué alegría saludarte! 👋 
+      return {
+        source: 'rules',
+        response: `¡Hola ${userName}, qué alegría saludarte! 👋 
         
 Ya he guardado tus datos correctamente en ${context.clinicName || 'la clínica'}. Soy Ana, tu asistente personal, y estoy aquí para que todo sea más fácil para ti.
 
@@ -244,19 +241,9 @@ Es muy sencillo:
 3. ¡Listo! Me tendrás siempre a mano en tu pantalla de inicio.
 
 ¿En qué puedo ayudarte hoy para empezar?`,
-          confidence: 'high'
-        };
-      }
-
-      // 💰 REGLA ORO: Confirmación de pago/enlace (Si el usuario acepta)
-      if ((lowerMessage.includes('si') || lowerMessage.includes('claro') || lowerMessage.includes('vale') || lowerMessage.includes('por favor')) &&
-        !lowerMessage.includes('no')) {
-
-        const historyText = JSON.stringify(context.history || []).toLowerCase();
-        if (historyText.includes('enlace') || historyText.includes('fianza') || historyText.includes('pago')) {
-          return {
-            source: 'rules',
-            response: `¡Perfecto! Aquí tienes las opciones para formalizar la reserva de 15€:
+        return {
+          source: 'rules',
+          response: `¡Perfecto! Aquí tienes las opciones para formalizar la reserva de 15€:
 
 📱 **Bizum:** Envía 15€ al +34600123456
 💳 **Tarjeta:** Te envío el link de pago seguro en 1 minuto
@@ -264,17 +251,17 @@ Es muy sencillo:
 📸 **IMPORTANTE:** Una vez pagado, envíame la captura por aquí para confirmar tu cita definitivamente.
 
 Ana - Clínica Barcelona Prueba`,
-            confidence: 'high'
-          };
-        }
+          confidence: 'high'
+        };
       }
+    }
 
-      // 📱 REGLA PLATA: Ayuda con instalación de app
-      if (lowerMessage.includes('instalar') || lowerMessage.includes('app') || lowerMessage.includes('descargar') ||
-        lowerMessage.includes('instalo') || lowerMessage.includes('como instalo')) {
-        return {
-          source: 'rules',
-          response: `📱 **GUÍA DE INSTALACIÓN**
+    // 📱 REGLA PLATA: Ayuda con instalación de app
+    if (lowerMessage.includes('instalar') || lowerMessage.includes('app') || lowerMessage.includes('descargar') ||
+      lowerMessage.includes('instalo') || lowerMessage.includes('como instalo')) {
+      return {
+        source: 'rules',
+        response: `📱 **GUÍA DE INSTALACIÓN**
 
 **Opción 1: Botón Azul (Recomendado)**
 👇 Toca el botón "📱 INSTALAR APP" que está aquí abajo
@@ -291,18 +278,18 @@ Luego pulsa "Instalar" o "Añadir a pantalla de inicio"
 ✅ Recordatorios automáticos
 
 ¿Necesitas ayuda con algún paso específico?`,
-          confidence: 'high'
-        };
-      }
+        confidence: 'high'
+      };
+    }
 
-      // Detectar selección de hora específica (15:00) - MÁXIMA PRIORIDAD
-      if ((lowerMessage.includes('15') || lowerMessage.includes('quince')) &&
-        (lowerMessage.includes('h') || lowerMessage.includes('horas') || lowerMessage.includes(':00')) &&
-        (lowerMessage.includes('estaria bien') || lowerMessage.includes('quiero') || lowerMessage.includes('reservar'))) {
+    // Detectar selección de hora específica (15:00) - MÁXIMA PRIORIDAD
+    if ((lowerMessage.includes('15') || lowerMessage.includes('quince')) &&
+      (lowerMessage.includes('h') || lowerMessage.includes('horas') || lowerMessage.includes(':00')) &&
+      (lowerMessage.includes('estaria bien') || lowerMessage.includes('quiero') || lowerMessage.includes('reservar'))) {
 
-        return {
-          source: 'rules',
-          response: `¡Perfecto! Tengo disponibilidad hoy a las 15:00.
+      return {
+        source: 'rules',
+        response: `¡Perfecto! Tengo disponibilidad hoy a las 15:00.
 
 Para confirmar tu cita, necesito que pagues la fianza de 15€:
 
@@ -316,17 +303,17 @@ Para confirmar tu cita, necesito que pagues la fianza de 15€:
 Una vez verificado el pago, tu cita quedará confirmada.
 
 Ana - Clínica Barcelona Prueba`,
-          confidence: 'high'
-        };
-      }
+        confidence: 'high'
+      };
+    }
 
-      // Detectar "noo, te dije que quiero" (confirmación de 15:00)
-      if ((lowerMessage.includes('noo') || lowerMessage.includes('no te dije') || lowerMessage.includes('te dije que')) &&
-        (lowerMessage.includes('quiero') || lowerMessage.includes('reservar')) &&
-        lowerMessage.includes('15')) {
-        return {
-          source: 'rules',
-          response: `¡Entendido! Confirmo tu cita para hoy a las 15:00.
+    // Detectar "noo, te dije que quiero" (confirmación de 15:00)
+    if ((lowerMessage.includes('noo') || lowerMessage.includes('no te dije') || lowerMessage.includes('te dije que')) &&
+      (lowerMessage.includes('quiero') || lowerMessage.includes('reservar')) &&
+      lowerMessage.includes('15')) {
+      return {
+        source: 'rules',
+        response: `¡Entendido! Confirmo tu cita para hoy a las 15:00.
 
 Para confirmar tu cita, necesito que pagues la fianza de 15€:
 
@@ -340,18 +327,18 @@ Para confirmar tu cita, necesito que pagues la fianza de 15€:
 Una vez verificado el pago, tu cita quedará confirmada.
 
 Ana - Clínica Barcelona Prueba`,
-          confidence: 'high'
-        };
-      }
+        confidence: 'high'
+      };
+    }
 
-      // Detectar patrón "X:00? son las Y:ZZ" (MÁXIMA PRIORIDAD)
-      if (lowerMessage.match(/^\d{1,2}:\d{2}\s*\?\s*son\s*las\s*\d{1,2}:\d{2}/i)) {
-        const timeMatch = lowerMessage.match(/^\d{1,2}:\d{2}/);
-        const timeToCheck = timeMatch ? timeMatch[0] : '11:00';
+    // Detectar patrón "X:00? son las Y:ZZ" (MÁXIMA PRIORIDAD)
+    if (lowerMessage.match(/^\d{1,2}:\d{2}\s*\?\s*son\s*las\s*\d{1,2}:\d{2}/i)) {
+      const timeMatch = lowerMessage.match(/^\d{1,2}:\d{2}/);
+      const timeToCheck = timeMatch ? timeMatch[0] : '11:00';
 
-        return {
-          source: 'rules',
-          response: `¡Tienes toda la razón! Pido mil disculpas.
+      return {
+        source: 'rules',
+        response: `¡Tienes toda la razón! Pido mil disculpas.
 
 Son las ${new Date().getHours()}:${new Date().getMinutes().toString().padStart(2, '0')} y ofrecerte una cita para las ${timeToCheck} no tiene sentido.
 
@@ -362,16 +349,16 @@ Son las ${new Date().getHours()}:${new Date().getMinutes().toString().padStart(2
 ¿Cuál de estos horarios te viene bien? Te ofrezco un 10% de descuento en la fianza por la molestia.
 
 Ana - Clínica Barcelona Prueba`,
-          confidence: 'high'
-        };
-      }
+        confidence: 'high'
+      };
+    }
 
-      // Detectar "cita no procede" o rechazo de hora
-      if (lowerMessage.includes('cita no procede') || lowerMessage.includes('no procede') ||
-        lowerMessage.includes('no me sirve') || lowerMessage.includes('no quiero')) {
-        return {
-          source: 'rules',
-          response: `¡Entendido! Si la hora de 11:00 no te viene bien, te ofrezco estas alternativas:
+    // Detectar "cita no procede" o rechazo de hora
+    if (lowerMessage.includes('cita no procede') || lowerMessage.includes('no procede') ||
+      lowerMessage.includes('no me sirve') || lowerMessage.includes('no quiero')) {
+      return {
+        source: 'rules',
+        response: `¡Entendido! Si la hora de 11:00 no te viene bien, te ofrezco estas alternativas:
 
 📅 **Horarios disponibles hoy:**
 - 15:00 (Disponible)
@@ -382,19 +369,19 @@ Ana - Clínica Barcelona Prueba`,
 - 12:00 (Disponible)
 
 ¿Cuál de estas opciones te gustaría reservar?`,
-          confidence: 'high'
-        };
-      }
+        confidence: 'high'
+      };
+    }
 
-      // Detectar quejas sobre hora pasada (MÁXIMA PRIORIDAD sobre cita general)
-      if ((lowerMessage.includes('ya son las') || lowerMessage.includes('hora pasada') ||
-        lowerMessage.includes('como diantres') || lowerMessage.includes('mal configurada') ||
-        lowerMessage.includes('si son las') || lowerMessage.includes('son ya las') ||
-        lowerMessage.includes('y esta cita') || lowerMessage.includes('cita si son ya las')) &&
-        lowerMessage.includes('11')) {
-        return {
-          source: 'rules',
-          response: `¡Tienes toda la razón! Pido mil disculpas.
+    // Detectar quejas sobre hora pasada (MÁXIMA PRIORIDAD sobre cita general)
+    if ((lowerMessage.includes('ya son las') || lowerMessage.includes('hora pasada') ||
+      lowerMessage.includes('como diantres') || lowerMessage.includes('mal configurada') ||
+      lowerMessage.includes('si son las') || lowerMessage.includes('son ya las') ||
+      lowerMessage.includes('y esta cita') || lowerMessage.includes('cita si son ya las')) &&
+      lowerMessage.includes('11')) {
+      return {
+        source: 'rules',
+        response: `¡Tienes toda la razón! Pido mil disculpas.
 
 Son las ${new Date().getHours()}:${new Date().getMinutes().toString().padStart(2, '0')} y ofrecerte una cita para las 11:00 no tiene sentido.
 
@@ -405,40 +392,40 @@ Son las ${new Date().getHours()}:${new Date().getMinutes().toString().padStart(2
 ¿Cuál de estos horarios te viene bien? Te ofrezco un 10% de descuento en la fianza por la molestia.
 
 Ana - Clínica Barcelona Prueba`,
-          confidence: 'high'
-        };
-      }
+        confidence: 'high'
+      };
+    }
 
-      // Detectar solicitud de cita general (PRIORIDAD sobre hola)
-      if (lowerMessage.includes('cita') || lowerMessage.includes('precisando')) {
-        return {
-          source: 'rules',
-          response: `¡Perfecto! Puedo ayudarte con tu cita.
+    // Detectar solicitud de cita general (PRIORIDAD sobre hola)
+    if (lowerMessage.includes('cita') || lowerMessage.includes('precisando')) {
+      return {
+        source: 'rules',
+        response: `¡Perfecto! Puedo ayudarte con tu cita.
 
 📅 **Disponibilidad:**
 - **Hoy:** 11:00, 15:00, 17:30
 - **Mañana:** 10:00, 12:00, 16:00
 
 ¿Qué día y hora te gustaría reservar?`,
-          confidence: 'medium'
-        };
-      }
+        confidence: 'medium'
+      };
+    }
 
-      // Lógica de reglas existente (optimizada)
-      if (lowerMessage.includes('hola') || lowerMessage.includes('buenos días')) {
-        return {
-          source: 'rules',
-          response: `Hola, soy Ana de ${context.clinicName || 'la clínica'}. ¿En qué puedo ayudarte?`,
-          confidence: 'medium'
-        };
-      }
+    // Lógica de reglas existente (optimizada)
+    if (lowerMessage.includes('hola') || lowerMessage.includes('buenos días')) {
+      return {
+        source: 'rules',
+        response: `Hola, soy Ana de ${context.clinicName || 'la clínica'}. ¿En qué puedo ayudarte?`,
+        confidence: 'medium'
+      };
+    }
 
-      // Detectar solicitud de cita para hoy específicamente
-      if ((lowerMessage.includes('cita') || lowerMessage.includes('precisando')) &&
-        (lowerMessage.includes('hoy') || lowerMessage.includes('ahora'))) {
-        return {
-          source: 'rules',
-          response: `¡Perfecto! Tengo disponibilidad hoy. Déjame consultar los horarios disponibles...
+    // Detectar solicitud de cita para hoy específicamente
+    if ((lowerMessage.includes('cita') || lowerMessage.includes('precisando')) &&
+      (lowerMessage.includes('hoy') || lowerMessage.includes('ahora'))) {
+      return {
+        source: 'rules',
+        response: `¡Perfecto! Tengo disponibilidad hoy. Déjame consultar los horarios disponibles...
 
 📅 **Horarios de hoy:**
 - 11:00 (Disponible)
@@ -446,15 +433,15 @@ Ana - Clínica Barcelona Prueba`,
 - 17:30 (Disponible)
 
 ¿Cuál de estos horarios te viene bien?`,
-          confidence: 'medium'
-        };
-      }
+        confidence: 'medium'
+      };
+    }
 
-      // Detectar "te dije que hoy"
-      if (lowerMessage.includes('te dije') && lowerMessage.includes('hoy')) {
-        return {
-          source: 'rules',
-          response: `¡Entendido! Para hoy tengo estos horarios disponibles:
+    // Detectar "te dije que hoy"
+    if (lowerMessage.includes('te dije') && lowerMessage.includes('hoy')) {
+      return {
+        source: 'rules',
+        response: `¡Entendido! Para hoy tengo estos horarios disponibles:
 
 📅 **Horarios de hoy:**
 - 11:00 (Disponible)
@@ -462,45 +449,18 @@ Ana - Clínica Barcelona Prueba`,
 - 17:30 (Disponible)
 
 ¿Cuál prefieres?`,
-          confidence: 'medium'
-        };
-      }
+        confidence: 'medium'
+      };
+    }
 
-      // Detectar selección de hora específica (15:00)
-      if ((lowerMessage.includes('15') || lowerMessage.includes('quince')) &&
-        (lowerMessage.includes('h') || lowerMessage.includes('horas') || lowerMessage.includes(':00')) &&
-        (lowerMessage.includes('estaria bien') || lowerMessage.includes('quiero') || lowerMessage.includes('reservar'))) {
+    // Detectar selección de hora específica (15:00)
+    if ((lowerMessage.includes('15') || lowerMessage.includes('quince')) &&
+      (lowerMessage.includes('h') || lowerMessage.includes('horas') || lowerMessage.includes(':00')) &&
+      (lowerMessage.includes('estaria bien') || lowerMessage.includes('quiero') || lowerMessage.includes('reservar'))) {
 
-        return {
-          source: 'rules',
-          response: `¡Perfecto! Tengo disponibilidad hoy a las 15:00.
-
-Para confirmar tu cita, necesito que pagues la fianza de 15€:
-
-📱 **Bizum:** Envía 15€ al +34600123456
-💳 **Tarjeta:** Te enviaré un enlace seguro para pagar
-
-📸 **IMPORTANTE:** Después de pagar, envíame:
-- Captura del Bizum ✅
-- O email de confirmación de pago ✅
-
-Una vez verificado el pago, tu cita quedará confirmada.
-
-Ana - Clínica Barcelona Prueba`,
-          confidence: 'high'
-        };
-      }
-
-      // Detectar selección de hora específica (general)
-      if (lowerMessage.includes('hoy') && lowerMessage.match(/(\d{1,2}):(\d{2})/)) {
-        const timeMatch = lowerMessage.match(/(\d{1,2}):(\d{2})/);
-        const hour = timeMatch[1];
-        const minute = timeMatch[2];
-        const selectedTime = `${hour}:${minute}`;
-
-        return {
-          source: 'rules',
-          response: `¡Perfecto! Tengo disponibilidad hoy a las ${selectedTime}.
+      return {
+        source: 'rules',
+        response: `¡Perfecto! Tengo disponibilidad hoy a las 15:00.
 
 Para confirmar tu cita, necesito que pagues la fianza de 15€:
 
@@ -514,17 +474,44 @@ Para confirmar tu cita, necesito que pagues la fianza de 15€:
 Una vez verificado el pago, tu cita quedará confirmada.
 
 Ana - Clínica Barcelona Prueba`,
-          confidence: 'high'
-        };
-      }
+        confidence: 'high'
+      };
+    }
+
+    // Detectar selección de hora específica (general)
+    if (lowerMessage.includes('hoy') && lowerMessage.match(/(\d{1,2}):(\d{2})/)) {
+      const timeMatch = lowerMessage.match(/(\d{1,2}):(\d{2})/);
+      const hour = timeMatch[1];
+      const minute = timeMatch[2];
+      const selectedTime = `${hour}:${minute}`;
+
+      return {
+        source: 'rules',
+        response: `¡Perfecto! Tengo disponibilidad hoy a las ${selectedTime}.
+
+Para confirmar tu cita, necesito que pagues la fianza de 15€:
+
+📱 **Bizum:** Envía 15€ al +34600123456
+💳 **Tarjeta:** Te enviaré un enlace seguro para pagar
+
+📸 **IMPORTANTE:** Después de pagar, envíame:
+- Captura del Bizum ✅
+- O email de confirmación de pago ✅
+
+Una vez verificado el pago, tu cita quedará confirmada.
+
+Ana - Clínica Barcelona Prueba`,
+        confidence: 'high'
+      };
+    }
 
 
-      // Detectar "ya te lo dije"
-      if (lowerMessage.includes('ya te lo dije') || lowerMessage.includes('te dije ya') ||
-        lowerMessage.includes('ya te dije')) {
-        return {
-          source: 'rules',
-          response: `¡Entendido! Pido disculpas por la confusión.
+    // Detectar "ya te lo dije"
+    if (lowerMessage.includes('ya te lo dije') || lowerMessage.includes('te dije ya') ||
+      lowerMessage.includes('ya te dije')) {
+      return {
+        source: 'rules',
+        response: `¡Entendido! Pido disculpas por la confusión.
 
 Para tu cita de hoy, tengo estos horarios disponibles:
 
@@ -534,17 +521,17 @@ Para tu cita de hoy, tengo estos horarios disponibles:
 - 17:30 (Disponible)
 
 ¿Cuál de estos horarios te gustaría reservar?`,
-          confidence: 'high'
-        };
-      }
+        confidence: 'high'
+      };
+    }
 
 
-      // Detectar frustración por repetición
-      if (lowerMessage.includes('otra vez') || lowerMessage.includes('de nuevo') ||
-        lowerMessage.includes('otra vez') || lowerMessage.includes('repites')) {
-        return {
-          source: 'rules',
-          response: `¡Entiendo tu frustración! Pido disculpas por repetirme.
+    // Detectar frustración por repetición
+    if (lowerMessage.includes('otra vez') || lowerMessage.includes('de nuevo') ||
+      lowerMessage.includes('otra vez') || lowerMessage.includes('repites')) {
+      return {
+        source: 'rules',
+        response: `¡Entiendo tu frustración! Pido disculpas por repetirme.
 
 Te ofrezco directamente los horarios disponibles:
 
@@ -559,17 +546,17 @@ Te ofrezco directamente los horarios disponibles:
 ¿Cuál de estos horarios te gustaría reservar? Te confirmo la cita al momento.
 
 Ana - Clínica Barcelona Prueba`,
-          confidence: 'high'
-        };
-      }
+        confidence: 'high'
+      };
+    }
 
-      // Detectar "noo, te dije que quiero" (confirmación de 15:00)
-      if ((lowerMessage.includes('noo') || lowerMessage.includes('no te dije') || lowerMessage.includes('te dije que')) &&
-        (lowerMessage.includes('quiero') || lowerMessage.includes('reservar')) &&
-        lowerMessage.includes('15')) {
-        return {
-          source: 'rules',
-          response: `¡Entendido! Confirmo tu cita para hoy a las 15:00.
+    // Detectar "noo, te dije que quiero" (confirmación de 15:00)
+    if ((lowerMessage.includes('noo') || lowerMessage.includes('no te dije') || lowerMessage.includes('te dije que')) &&
+      (lowerMessage.includes('quiero') || lowerMessage.includes('reservar')) &&
+      lowerMessage.includes('15')) {
+      return {
+        source: 'rules',
+        response: `¡Entendido! Confirmo tu cita para hoy a las 15:00.
 
 Para confirmar tu cita, necesito que pagues la fianza de 15€:
 
@@ -583,41 +570,41 @@ Para confirmar tu cita, necesito que pagues la fianza de 15€:
 Una vez verificado el pago, tu cita quedará confirmada.
 
 Ana - Clínica Barcelona Prueba`,
-          confidence: 'high'
-        };
-      }
+        confidence: 'high'
+      };
+    }
 
-      // Detectar frustración
-      if (lowerMessage.includes('frustrar') || lowerMessage.includes('enfadado') ||
-        lowerMessage.includes('ire a otra clinica')) {
-        return {
-          source: 'rules',
-          response: `Entiendo tu frustración y te pido disculpas. Soy Ana, y estoy aquí para ayudarte.
+    // Detectar frustración
+    if (lowerMessage.includes('frustrar') || lowerMessage.includes('enfadado') ||
+      lowerMessage.includes('ire a otra clinica')) {
+      return {
+        source: 'rules',
+        response: `Entiendo tu frustración y te pido disculpas. Soy Ana, y estoy aquí para ayudarte.
 
 Por favor, dime qué necesitas y haré todo lo posible por asistirte correctamente.
 
 ¿Qué día y hora te gustaría para tu cita?`,
-          confidence: 'high'
-        };
-      }
-
-      // Fallback
-      return {
-        source: 'rules',
-        response: 'Entiendo tu consulta. Para ayudarte mejor, ¿podrías darme más detalles sobre qué necesitas?',
-        confidence: 'low'
+        confidence: 'high'
       };
     }
+
+    // Fallback
+    return {
+      source: 'rules',
+      response: 'Entiendo tu consulta. Para ayudarte mejor, ¿podrías darme más detalles sobre qué necesitas?',
+      confidence: 'low'
+    };
+  }
 
   // 🏥 Obtener información real de la clínica
   async getClinicInfo(clinicId) {
-      // Aquí iría la lógica para obtener datos reales de Firestore
-      return {
-        nombre: 'Clínica de Fisioterapia',
-        especialistas: ['Dr. García'], // Un solo fisio como debe ser
-        horario: { apertura: '09:00', cierre: '20:00' }
-      };
-    }
+    // Aquí iría la lógica para obtener datos reales de Firestore
+    return {
+      nombre: 'Clínica de Fisioterapia',
+      especialistas: ['Dr. García'], // Un solo fisio como debe ser
+      horario: { apertura: '09:00', cierre: '20:00' }
+    };
   }
+}
 
 module.exports = new HybridAnaService();
