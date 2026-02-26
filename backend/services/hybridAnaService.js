@@ -1,5 +1,4 @@
 const claudeService = require('./claudeService');
-const { SecretManagerServiceClient } = require('@google-cloud/secret-manager');
 
 class HybridAnaService {
   constructor() {
@@ -184,8 +183,9 @@ Responde de forma natural y humana, evitando sonar como un bot repetitivo. Nunca
     }
 
     // Then try Secret Manager
-    if (SecretManagerServiceClient) {
-      try {
+    try {
+      const { SecretManagerServiceClient } = require('@google-cloud/secret-manager');
+      if (SecretManagerServiceClient) {
         const projectId = process.env.GOOGLE_CLOUD_PROJECT || 'fisio-production';
         const name = `projects/${projectId}/secrets/ANTHROPIC_API_KEY/versions/latest`;
 
@@ -194,9 +194,9 @@ Responde de forma natural y humana, evitando sonar como un bot repetitivo. Nunca
 
         console.log('🔑 Using Claude API key from Secret Manager');
         return payload.trim();
-      } catch (error) {
-        console.error('🔥 Error getting Claude API key from Secret Manager:', error.message);
       }
+    } catch (error) {
+      console.log('⚠️ Secret Manager not available or failed:', error.message);
     }
 
     console.log('🔥 No Claude API key found');
