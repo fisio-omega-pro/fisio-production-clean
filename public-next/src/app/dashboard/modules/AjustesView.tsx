@@ -257,15 +257,71 @@ export const AjustesView = ({ clinicData, onUpdated }: { clinicData: any; onUpda
             {/* Color del tema */}
             <div>
               <label className="text-xs text-gray-500 uppercase tracking-wider mb-2 block">Color del tema</label>
-              <div className="flex gap-2">
-                {['#075E54', '#FF5722', '#2196F3', '#4CAF50', '#9C27B0'].map(color => (
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { name: 'WhatsApp Verde', hex: '#075E54', description: 'Verde profesional, confianza' },
+                  { name: 'Naranja Vibrante', hex: '#FF5722', description: 'Energía, creatividad' },
+                  { name: 'Azul Corporativo', hex: '#2196F3', description: 'Profesional, seriedad' },
+                  { name: 'Verde Naturaleza', hex: '#4CAF50', description: 'Salud, bienestar' },
+                  { name: 'Morado Elegante', hex: '#9C27B0', description: 'Lujo, sofisticación' },
+                  { name: 'Rojo Pasión', hex: '#F44336', description: 'Intensidad, vitalidad' }
+                ].map((colorOption) => (
                   <button
-                    key={color}
-                    onClick={() => setAnaConfig(prev => ({ ...prev, color }))}
-                    className={`w-8 h-8 rounded-full border-2 ${anaConfig.color === color ? 'border-white' : 'border-transparent'}`}
-                    style={{ backgroundColor: color }}
-                  />
+                    key={colorOption.hex}
+                    onClick={() => setAnaConfig(prev => ({ ...prev, color: colorOption.hex }))}
+                    className={`relative p-3 rounded-xl border-2 transition-all ${
+                      anaConfig.color === colorOption.hex 
+                        ? 'border-white bg-white/10' 
+                        : 'border-white/20 hover:border-white/40 hover:bg-white/5'
+                    }`}
+                  >
+                    <div 
+                      className="w-8 h-8 rounded-full mx-auto mb-2"
+                      style={{ backgroundColor: colorOption.hex }}
+                    />
+                    <div className="text-xs text-white font-medium">{colorOption.name}</div>
+                    <div className="text-[10px] text-gray-400 mt-1">{colorOption.description}</div>
+                    {anaConfig.color === colorOption.hex && (
+                      <div className="absolute top-2 right-2 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                        <CheckCircle2 size={10} className="text-white" />
+                      </div>
+                    )}
+                  </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Color personalizado para avanzados */}
+            <div>
+              <label className="text-xs text-gray-500 uppercase tracking-wider mb-2 block">Color personalizado (opcional)</label>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    value={anaConfig.color}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Validar que sea un color hex válido
+                      if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
+                        setAnaConfig(prev => ({ ...prev, color: value }));
+                      }
+                    }}
+                    placeholder="#FF5722"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-blue-500/50"
+                    maxLength={7}
+                  />
+                </div>
+                <div 
+                  className="w-12 h-12 rounded-xl border-2 border-white/20 flex items-center justify-center"
+                  style={{ backgroundColor: anaConfig.color }}
+                >
+                  {anaConfig.color === '#FFFFFF' && (
+                    <div className="w-6 h-6 bg-gray-800 rounded-full"></div>
+                  )}
+                </div>
+              </div>
+              <div className="text-[10px] text-gray-500 mt-1">
+                Formato: #RRGGBB (ej: #FF5722)
               </div>
             </div>
 
@@ -297,6 +353,45 @@ export const AjustesView = ({ clinicData, onUpdated }: { clinicData: any; onUpda
                 <button className="px-4 py-2 bg-blue-500/20 text-blue-400 rounded-xl text-xs hover:bg-blue-500/30 transition-colors">
                   Cambiar foto
                 </button>
+              </div>
+            </div>
+
+            {/* 📱 Previsualización en vivo del chat */}
+            <div>
+              <label className="text-xs text-gray-500 uppercase tracking-wider mb-2 block">📱 Previsualización en vivo</label>
+              <div className="bg-[#E5DDD5] rounded-2xl p-4 border border-white/20">
+                {/* Header del chat */}
+                <div className="flex items-center gap-3 pb-3 border-b border-white/30">
+                  <div className="w-10 h-10 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center">
+                    {clinicData?.ana_photo ? (
+                      <img src={clinicData.ana_photo} alt="Ana" className="w-full h-full object-cover" />
+                    ) : (
+                      <Bot size={16} className="text-white" />
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-gray-800">{anaConfig.name}</div>
+                    <div className="text-xs text-gray-600">Asistente de {clinicData?.nombre_clinica || 'la clínica'}</div>
+                  </div>
+                </div>
+                
+                {/* Mensaje de ejemplo */}
+                <div className="mt-3">
+                  <div className="bg-white rounded-2xl rounded-bl-sm px-4 py-2 shadow-sm max-w-[80%]">
+                    <p className="text-sm text-gray-800">
+                      ¡Hola! Soy {anaConfig.name} 🎉
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {anaConfig.welcome || 'Estoy aquí para ayudarte con tus citas y seguimiento.'}
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Indicador de color */}
+                <div className="mt-2 flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: anaConfig.color }}></div>
+                  <span className="text-xs text-gray-600">Color del tema: {anaConfig.color}</span>
+                </div>
               </div>
             </div>
 

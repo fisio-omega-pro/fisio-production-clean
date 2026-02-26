@@ -53,7 +53,7 @@ function AnaChatContent() {
   useEffect(() => {
     const loadAnaProfile = async () => {
       if (!clinicId) return;
-      
+
       try {
         const response = await fetch(`/api/public/clinic-info?clinicId=${clinicId}`);
         if (response.ok) {
@@ -155,33 +155,43 @@ function AnaChatContent() {
 ✅ Acceso directo sin navegador
 ✅ Recordatorios automáticos
 
-Es 100% GRATIS y se instala en 10 segundos.
-
-Una vez instalada, podremos comunicarnos directamente y yo podré ayudarte mejor con tus citas y seguimiento.`,
-      timestamp: Date.now()
-    }]);
-
-    // Add PWA install prompt message
-    setTimeout(() => {
-      setMessages(prev => [...prev, {
-        role: 'ana',
-        text: `🔥 **¿LISTO PARA INSTALAR?**
-
-👇 **Toca AHORA el botón "📱 INSTALAR APP"**
-
-Es 100% GRATIS y se instala en 10 segundos:
-
-1. Toca el botón azul "📱 INSTALAR APP"
-2. Pulsa "Instalar" o "Añadir a pantalla de inicio"
-3. ¡Listo! La app aparecerá en tu móvil
-
-¿Necesitas ayuda? ¡Dime "instalar" y te guío paso a paso!`,
-        timestamp: Date.now()
-      }]);
-    }, 3000);
-
     setUserRegistered(true);
     setShowForm(false);
+    
+    // Trigger initial welcome message from Ana via backend
+    const welcomeMsg = `Hola, me llamo ${ userName } y mi email es ${ userEmail }.Me acabo de registrar.`;
+    
+    // Simulate typing for a better UX before sending
+    setIsTyping(true);
+    
+    // Create the message payload and send
+    const userMessage = { role: 'user', text: welcomeMsg, timestamp: Date.now() };
+    setMessages(prev => [...prev, userMessage]);
+    
+    // We call the API directly here to ensure the registration context is clean
+    try {
+      const response = await fetch('/api/public/ana-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          message: welcomeMsg, 
+          clinicId, 
+          history: [] // No history yet for first message
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setMessages(prev => [...prev, {
+          role: 'ana',
+          text: data.response,
+          timestamp: Date.now()
+        }]);
+      }
+    } catch (e) {
+      console.error('🔥 Error sending registration welcome:', e);
+    }
+    setIsTyping(false);
   };
 
   const sendMessage = async () => {
@@ -234,7 +244,7 @@ Es 100% GRATIS y se instala en 10 segundos:
       console.error('🔥 [ANA] Error:', e);
       setMessages(prev => [...prev, {
         role: 'ana',
-        text: `Error técnico: ${e.message}. Por favor, llama a la clínica.`,
+        text: `Error técnico: ${ e.message }.Por favor, llama a la clínica.`,
         timestamp: Date.now()
       }]);
     }
@@ -303,14 +313,16 @@ Es 100% GRATIS y se instala en 10 segundos:
         backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\\"100\\" height=\\"100\\" xmlns=\\"http://www.w3.org/2000/svg\\"%3E%3Cdefs%3E%3Cpattern id=\\"wa-bg\\" width=\\"100\\" height=\\"100\\" patternUnits=\\"userSpaceOnUse\\"%3E%3Cpath d=\\"M 100 0 L 0 0 0 100\\" fill=\\"none\\" stroke=\\"rgba(255,255,255,0.1)\\" stroke-width=\\"0.5\\"/%3E%3C/pattern%3E%3C/defs%3E%3Crect width=\\"100%\\" height=\\"100%\\" fill=\\"url(%23wa-bg)\\" /%3E%3C/svg%3E")'
       }}>
         {messages.map((msg, idx) => (
-          <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[80%] rounded-2xl px-4 py-2 ${msg.role === 'user'
-              ? 'bg-[#dcf8c6] text-gray-800 rounded-br-sm'
-              : 'bg-white text-gray-800 rounded-bl-sm shadow-sm'
-              }`}>
+          <div key={idx} className={`flex ${ msg.role === 'user' ? 'justify-end' : 'justify-start' }`}>
+            <div className={`max - w - [80 %] rounded - 2xl px - 4 py - 2 ${
+      msg.role === 'user'
+        ? 'bg-[#dcf8c6] text-gray-800 rounded-br-sm'
+        : 'bg-white text-gray-800 rounded-bl-sm shadow-sm'
+    }`}>
               <p className="text-sm">{msg.text}</p>
-              <p className={`text-xs mt-1 flex items-center gap-1 ${msg.role === 'user' ? 'text-gray-500 justify-end' : 'text-gray-400'
-                }`}>
+              <p className={`text - xs mt - 1 flex items - center gap - 1 ${
+      msg.role === 'user' ? 'text-gray-500 justify-end' : 'text-gray-400'
+    }`}>
                 {new Date(msg.timestamp).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
                 {msg.role === 'user' && <span className="text-blue-500">✓✓</span>}
               </p>
@@ -394,7 +406,7 @@ Es 100% GRATIS y se instala en 10 segundos:
                       console.log('User accepted the A2HS prompt');
                       setMessages(prev => [...prev, {
                         role: 'ana',
-                        text: `🎉 **¡INSTALACIÓN COMPLETADA!**
+                        text: `🎉 **¡INSTALACIÓN COMPLETADA! **
 
 ¡Perfecto! Ya tienes nuestra app en tu móvil.
 
@@ -403,7 +415,7 @@ Ahora podrás:
 ✅ Chatear más rápido
 ✅ Acceder directamente sin navegador
 
-¿En qué puedo ayudarte ahora?`,
+¿En qué puedo ayudarte ahora ? `,
                         timestamp: Date.now()
                       }]);
                     } else {
@@ -416,10 +428,10 @@ Ahora podrás:
                     role: 'ana',
                     text: `Si no ves el botón de instalación:
 
-1. En Android: Toca los 3 puntos ⋮ > "Añadir a pantalla de inicio"
-2. En iOS: Toca el icono de compartir ⬆️ > "Añadir a pantalla de inicio"
+  1. En Android: Toca los 3 puntos ⋮ > "Añadir a pantalla de inicio"
+  2. En iOS: Toca el icono de compartir ⬆️ > "Añadir a pantalla de inicio"
 
-¿Necesitas ayuda paso a paso?`,
+¿Necesitas ayuda paso a paso ? `,
                     timestamp: Date.now()
                   }]);
                 }
@@ -436,10 +448,11 @@ Ahora podrás:
             <button
               onClick={sendMessage}
               disabled={!input.trim() || isTyping}
-              className={`p-2 rounded-full transition ${input.trim() && !isTyping
-                ? 'bg-[#0086ea] text-white hover:bg-[#007ab5]'
-                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                }`}
+              className={`p - 2 rounded - full transition ${
+    input.trim() && !isTyping
+    ? 'bg-[#0086ea] text-white hover:bg-[#007ab5]'
+    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+  } `}
             >
               <Send size={20} />
             </button>

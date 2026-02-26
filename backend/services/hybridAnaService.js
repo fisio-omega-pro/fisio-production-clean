@@ -212,6 +212,30 @@ Responde de forma natural y humana, evitando sonar como un bot repetitivo. Nunca
   async processWithRules(message, context) {
     const lowerMessage = message.toLowerCase();
 
+    // 🌸 REGLA DE BIENVENIDA EMPÁTICA (Tras registro)
+    if (lowerMessage.includes('me llamo') && lowerMessage.includes('email') && lowerMessage.includes('registrado')) {
+      const nameMatch = message.match(/me llamo ([^ y]+)/i);
+      const userName = nameMatch ? nameMatch[1] : 'paciente';
+
+      return {
+        source: 'rules',
+        response: `¡Hola ${userName}, qué alegría saludarte! 👋 
+        
+Ya he guardado tus datos correctamente en ${context.clinicName || 'la clínica'}. Soy Ana, tu asistente personal, y estoy aquí para que todo sea más fácil para ti.
+
+🚀 **UN CONSEJO IMPORTANTE:**
+Para que nunca te pierdas un aviso de cita, una alerta o un mensaje mío, te recomiendo mucho que te **instales nuestra App oficial** en tu móvil. 
+
+Es muy sencillo:
+1. 👇 Toca el botón azul **"📱 INSTALAR APP"** que verás aquí abajo.
+2. Pulsa "Instalar" o "Añadir".
+3. ¡Listo! Me tendrás siempre a mano en tu pantalla de inicio.
+
+¿En qué puedo ayudarte hoy para empezar?`,
+        confidence: 'high'
+      };
+    }
+
     // 💰 REGLA ORO: Confirmación de pago/enlace (Si el usuario acepta)
     if ((lowerMessage.includes('si') || lowerMessage.includes('claro') || lowerMessage.includes('vale') || lowerMessage.includes('por favor')) &&
       !lowerMessage.includes('no')) {
@@ -234,8 +258,8 @@ Ana - Clínica Barcelona Prueba`,
     }
 
     // 📱 REGLA PLATA: Ayuda con instalación de app
-    if (lowerMessage.includes('instalar') || lowerMessage.includes('app') || lowerMessage.includes('descargar') || 
-        lowerMessage.includes('instalo') || lowerMessage.includes('como instalo')) {
+    if (lowerMessage.includes('instalar') || lowerMessage.includes('app') || lowerMessage.includes('descargar') ||
+      lowerMessage.includes('instalo') || lowerMessage.includes('como instalo')) {
       return {
         source: 'rules',
         response: `📱 **GUÍA DE INSTALACIÓN**

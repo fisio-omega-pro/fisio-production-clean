@@ -512,21 +512,9 @@ REGLAS:
     // Get clinic configuration for intelligent responses
     const clinicConfig = await getClinicConfiguration(clinicId);
 
-    // Detectar si es primera interacción (nombre y email)
-    if (lowerMessage.includes('me llamo') || lowerMessage.includes('mi nombre es') ||
-      lowerMessage.includes('email') || lowerMessage.includes('correo') ||
-      (lowerMessage.includes('fermin') && lowerMessage.includes('gmail'))) {
+    // El sistema híbrido ya maneja la bienvenida. 
+    // Continuamos con el resto de la lógica legacy si es necesario.
 
-      const anaName = clinicConfig?.ana_profile?.name || 'Ana';
-
-      return `Gracias por aportarme tus datos. Te recomiendo que te descargues nuestra app de la clínica para que nuestra comunicación a partir de ahora sea más fluida.
-
-Puedes instalarla entrando en: https://fisiotool.com/ana?ref=${clinicId}
-
-Una vez instalada, podré gestionar tus citas, pagos y seguimientos automáticamente.
-
-${anaName} - ${clinicName}`;
-    }
 
     // Si ya tiene la app o pregunta después de dar datos
     if (lowerMessage.includes('gracias') || lowerMessage.includes('app descargada') ||
