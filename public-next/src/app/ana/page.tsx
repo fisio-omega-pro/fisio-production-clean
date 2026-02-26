@@ -134,55 +134,28 @@ function AnaChatContent() {
       return;
     }
 
-    // Add user message
-    setMessages(prev => [...prev, {
-      role: 'user',
-      text: `Me llamo ${userName} y mi email es ${userEmail}`,
-      timestamp: Date.now()
-    }]);
-
-    // Add Ana response
-    setMessages(prev => [...prev, {
-      role: 'ana',
-      text: `¡Gracias por registrarte! 🎉
-
-� **ANTES DE EMPEZAR - INSTALA LA APP GRATIS:**
-
-📱 **Toca el botón "📱 INSTALAR APP" aquí abajo**
-
-✅ Notificaciones instantáneas de citas
-✅ Chat más rápido y fluido  
-✅ Acceso directo sin navegador
-✅ Recordatorios automáticos
-
     setUserRegistered(true);
     setShowForm(false);
-    
-    // Trigger initial welcome message from Ana via backend
-    const welcomeMsg = `Hola, me llamo ${ userName } y mi email es ${ userEmail }.Me acabo de registrar.`;
-    
-    // Simulate typing for a better UX before sending
+
+    // Trigger initial welcome message from Ana via backend (SILENTLY)
+    const welcomeMsg техническо = `Hola, me llamo ${userName} y mi email es ${userEmail}. Me acabo de registrar.`;
+
     setIsTyping(true);
-    
-    // Create the message payload and send
-    const userMessage = { role: 'user', text: welcomeMsg, timestamp: Date.now() };
-    setMessages(prev => [...prev, userMessage]);
-    
-    // We call the API directly here to ensure the registration context is clean
+
     try {
       const response = await fetch('/api/public/ana-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          message: welcomeMsg, 
-          clinicId, 
-          history: [] // No history yet for first message
+        body: JSON.stringify({
+          message: welcomeMsg техническо,
+          clinicId,
+          history: []
         })
       });
 
       const data = await response.json();
       if (data.success) {
-        setMessages(prev => [...prev, {
+        setMessages([{
           role: 'ana',
           text: data.response,
           timestamp: Date.now()
@@ -190,6 +163,12 @@ function AnaChatContent() {
       }
     } catch (e) {
       console.error('🔥 Error sending registration welcome:', e);
+      // Fallback if API fails
+      setMessages([{
+        role: 'ana',
+        text: `¡Hola ${userName}! Ya te he registrado. ¿Cómo puedo ayudarte?`,
+        timestamp: Date.now()
+      }]);
     }
     setIsTyping(false);
   };
@@ -244,7 +223,7 @@ function AnaChatContent() {
       console.error('🔥 [ANA] Error:', e);
       setMessages(prev => [...prev, {
         role: 'ana',
-        text: `Error técnico: ${ e.message }.Por favor, llama a la clínica.`,
+        text: `Error técnico: ${e.message}.Por favor, llama a la clínica.`,
         timestamp: Date.now()
       }]);
     }
@@ -313,16 +292,14 @@ function AnaChatContent() {
         backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\\"100\\" height=\\"100\\" xmlns=\\"http://www.w3.org/2000/svg\\"%3E%3Cdefs%3E%3Cpattern id=\\"wa-bg\\" width=\\"100\\" height=\\"100\\" patternUnits=\\"userSpaceOnUse\\"%3E%3Cpath d=\\"M 100 0 L 0 0 0 100\\" fill=\\"none\\" stroke=\\"rgba(255,255,255,0.1)\\" stroke-width=\\"0.5\\"/%3E%3C/pattern%3E%3C/defs%3E%3Crect width=\\"100%\\" height=\\"100%\\" fill=\\"url(%23wa-bg)\\" /%3E%3C/svg%3E")'
       }}>
         {messages.map((msg, idx) => (
-          <div key={idx} className={`flex ${ msg.role === 'user' ? 'justify-end' : 'justify-start' }`}>
-            <div className={`max - w - [80 %] rounded - 2xl px - 4 py - 2 ${
-      msg.role === 'user'
-        ? 'bg-[#dcf8c6] text-gray-800 rounded-br-sm'
-        : 'bg-white text-gray-800 rounded-bl-sm shadow-sm'
-    }`}>
+          <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max - w - [80 %] rounded - 2xl px - 4 py - 2 ${msg.role === 'user'
+              ? 'bg-[#dcf8c6] text-gray-800 rounded-br-sm'
+              : 'bg-white text-gray-800 rounded-bl-sm shadow-sm'
+              }`}>
               <p className="text-sm">{msg.text}</p>
-              <p className={`text - xs mt - 1 flex items - center gap - 1 ${
-      msg.role === 'user' ? 'text-gray-500 justify-end' : 'text-gray-400'
-    }`}>
+              <p className={`text - xs mt - 1 flex items - center gap - 1 ${msg.role === 'user' ? 'text-gray-500 justify-end' : 'text-gray-400'
+                }`}>
                 {new Date(msg.timestamp).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
                 {msg.role === 'user' && <span className="text-blue-500">✓✓</span>}
               </p>
@@ -390,74 +367,19 @@ function AnaChatContent() {
                 placeholder="Escribe un mensaje..."
                 className="w-full bg-white border border-gray-300 rounded-full px-4 py-2 pr-10 text-gray-800 placeholder-gray-500 focus:outline-none focus:border-gray-400"
               />
-              <button className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-                </svg>
-              </button>
             </div>
-
-            <button 
-              onClick={() => {
-                if (window.deferredPrompt) {
-                  window.deferredPrompt.prompt();
-                  window.deferredPrompt.userChoice.then((choiceResult) => {
-                    if (choiceResult.outcome === 'accepted') {
-                      console.log('User accepted the A2HS prompt');
-                      setMessages(prev => [...prev, {
-                        role: 'ana',
-                        text: `🎉 **¡INSTALACIÓN COMPLETADA! **
-
-¡Perfecto! Ya tienes nuestra app en tu móvil.
-
-Ahora podrás:
-✅ Recibir notificaciones instantáneas
-✅ Chatear más rápido
-✅ Acceder directamente sin navegador
-
-¿En qué puedo ayudarte ahora ? `,
-                        timestamp: Date.now()
-                      }]);
-                    } else {
-                      console.log('User dismissed the A2HS prompt');
-                    }
-                    window.deferredPrompt = null;
-                  });
-                } else {
-                  setMessages(prev => [...prev, {
-                    role: 'ana',
-                    text: `Si no ves el botón de instalación:
-
-  1. En Android: Toca los 3 puntos ⋮ > "Añadir a pantalla de inicio"
-  2. En iOS: Toca el icono de compartir ⬆️ > "Añadir a pantalla de inicio"
-
-¿Necesitas ayuda paso a paso ? `,
-                    timestamp: Date.now()
-                  }]);
-                }
-              }}
-              className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-full font-semibold text-sm shadow-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 flex items-center gap-2"
-              title="Instalar App en tu móvil"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M17 2H7c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-5 2c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm0 14c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/>
-              </svg>
-              📱 INSTALAR APP
-            </button>
 
             <button
               onClick={sendMessage}
               disabled={!input.trim() || isTyping}
-              className={`p - 2 rounded - full transition ${
-    input.trim() && !isTyping
-    ? 'bg-[#0086ea] text-white hover:bg-[#007ab5]'
-    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-  } `}
+              className={`p-3 rounded-full transition ${input.trim() && !isTyping
+                  ? 'bg-[#0086ea] text-white hover:bg-[#007ab5] shadow-md'
+                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                }`}
             >
               <Send size={20} />
             </button>
           </div>
-
         </div>
       )}
     </div>
