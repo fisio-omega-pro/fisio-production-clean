@@ -31,15 +31,15 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
 
   // Función para obtener nombre del día de la semana
   const getDayName = (dateString: string) => {
-    const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
     const date = new Date(dateString);
-    return days[date.getDay()];
+    return days[date.getDay() === 0 ? 6 : date.getDay() - 1]; // Ajustar: Lunes=0, Domingo=6
   };
 
   // Función para verificar si es domingo
   const isSunday = (dateString: string) => {
     const date = new Date(dateString);
-    return date.getDay() === 0;
+    return date.getDay() === 0; // Domingo = 0 en JavaScript
   };
 
   // Función para navegar días
@@ -50,17 +50,18 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
     setSelectedDate(newDate.toISOString().split('T')[0]);
   };
 
-  // Función para generar días de la semana
+  // Función para generar días de la semana (Lunes a Domingo)
   const getWeekDays = () => {
-    const startOfWeek = new Date(selectedDate);
-    const day = startOfWeek.getDay();
-    const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1); // Ajustar para que lunes sea el primer día
-    startOfWeek.setDate(diff);
+    const selectedDateObj = new Date(selectedDate);
+    const day = selectedDateObj.getDay(); // 0=Domingo, 1=Lunes, ..., 6=Sábado
+    const diff = selectedDateObj.getDate() - day + (day === 0 ? -6 : 1); // Ajustar para que Lunes sea el primer día
+    const monday = new Date(selectedDateObj);
+    monday.setDate(diff);
 
     const weekDays = [];
     for (let i = 0; i < 7; i++) {
-      const currentDate = new Date(startOfWeek);
-      currentDate.setDate(startOfWeek.getDate() + i);
+      const currentDate = new Date(monday);
+      currentDate.setDate(monday.getDate() + i);
       weekDays.push(currentDate.toISOString().split('T')[0]);
     }
     return weekDays;
@@ -87,6 +88,10 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
     for (let i = reapertura; i <= cierreFinal; i++) {
       hArray.push(`${String(i).padStart(2, '0')}:00`);
     }
+    
+    // Debug: Mostrar horas generadas
+    console.log('🕐 HORAS GENERADAS:', hArray);
+    console.log('📋 HORARIO RECIBIDO:', horario);
     
     return hArray;
   }, [horario]);
@@ -147,6 +152,13 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
     const y = monthCursor.getFullYear();
     const m = monthCursor.getMonth();
     return new Date(y, m + 1, 0).getDate();
+  }, [monthCursor]);
+
+  // Calcular el primer día del mes (0=Lunes, 6=Domingo)
+  const firstDayOfMonth = useMemo(() => {
+    const firstDate = new Date(monthCursor.getFullYear(), monthCursor.getMonth(), 1);
+    const day = firstDate.getDay(); // 0=Domingo, 1=Lunes, ..., 6=Sábado
+    return day === 0 ? 6 : day - 1; // Convertir a 0=Lunes, 6=Domingo
   }, [monthCursor]);
 
   const dayDots = useMemo(() => {
@@ -292,11 +304,18 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
               </div>
             </div>
 
-            {/* GRID MENSUAL: Reparado para que no se corte */}
+            {/* GRID MENSUAL: Alineado Lunes-Domingo */}
             <div className="grid grid-cols-7 gap-3 flex-1 min-h-[500px]">
               {['LUN', 'MAR', 'MIE', 'JUE', 'VIE', 'SAB', 'DOM'].map((d, index) => (
                 <div key={d} className={`text-center text-[10px] font-black tracking-[0.3em] pb-4 ${index === 6 ? 'text-red-500' : 'text-gray-700'}`}>{d}</div>
               ))}
+              
+              {/* Celdas vacías antes del primer día del mes */}
+              {Array.from({ length: firstDayOfMonth }).map((_, i) => (
+                <div key={`empty-${i}`} className="min-h-[100px]" />
+              ))}
+              
+              {/* Días del mes */}
               {Array.from({ length: daysInMonth }).map((_, i) => {
                 const dayNum = i + 1;
                 const isToday = dayNum === currentDay;
@@ -306,7 +325,7 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
 
                 return (
                   <div
-                    key={i}
+                    key={dayNum}
                     onClick={() => { setSelectedDate(dateStr); setViewMode('dia'); }}
                     className={`min-h-[100px] border transition-all rounded-3xl p-4 flex flex-col justify-between group cursor-pointer ${
                       isToday 
