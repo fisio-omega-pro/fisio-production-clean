@@ -89,10 +89,6 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
       hArray.push(`${String(i).padStart(2, '0')}:00`);
     }
     
-    // Debug: Mostrar horas generadas
-    console.log('🕐 HORAS GENERADAS:', hArray);
-    console.log('📋 HORARIO RECIBIDO:', horario);
-    
     return hArray;
   }, [horario]);
 
@@ -185,32 +181,11 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
   }, [agendaForMonth, bloqueosForMonth]);
 
   const findApptForSlot = (specId: string, hour: string) => {
-    const hourNum = Number(String(hour || '').split(':')[0] || '0');
-    
-    // Si es admin o no hay especialistas, mostrar todas las citas del día
-    let list;
-    if (specId === 'admin' || effectiveSpec === 'all') {
-      list = agendaForDate; // Todas las citas del día
-    } else {
-      list = agendaForDate.filter((a) => String(a.specialist_id || '') === specId);
-    }
-    
-    return list.find((a) => {
-      const h = String(a.hora || '');
-      const hNum = Number(h.split(':')[0] || '0');
-
-      const isCorrectTime = hNum === hourNum;
-      
-      // Para admin, aceptar cualquier cita (sin especialista o con especialista)
-      if (specId === 'admin') {
-        return isCorrectTime;
-      }
-      
-      // Para otros especialistas, verificar coincidencia
-      const aSpecId = String(a.specialist_id || '').trim();
-      const isForThisSpec = !aSpecId || aSpecId === 'null' || aSpecId === specId;
-      
-      return isCorrectTime && isForThisSpec;
+    // Lógica simple: buscar cita para la hora específica
+    return agendaForDate.find((a) => {
+      const appointmentHour = String(a.hora || '').split(':')[0];
+      const targetHour = String(hour || '').split(':')[0];
+      return appointmentHour === targetHour;
     }) || null;
   };
 
@@ -224,17 +199,6 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
       return hourNum >= startHour && hourNum < endHour;
     });
   };
-
-  // Debug: Mostrar información de renderizado
-  console.log('🎯 RENDERIZADO DIARIO:', {
-    viewMode,
-    selectedDate,
-    equipoCount: equipo?.length || 0,
-    displayTeam: displayTeam.map(t => ({ id: t.id, nombre: t.nombre })),
-    agendaForDateCount: agendaForDate.length,
-    hoursCount: hours.length,
-    effectiveSpec
-  });
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500 h-full font-sans">
@@ -446,21 +410,51 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
                 {getWeekDays().map(dayDate => {
                   const dayCitas = agenda.filter(a => a.fecha === dayDate);
                   const dayBloqueos = bloqueos.filter(b => b.date === dayDate);
+                  const isCurrentDay = dayDate === selectedDate;
+                  const isSundayDay = isSunday(dayDate);
                   
                   return (
-                    <div key={dayDate} className="border border-white/5 rounded-xl p-2 bg-white/[0.01]">
+                    <div 
+                      key={dayDate} 
+                      onClick={() => {
+                        setSelectedDate(dayDate);
+                        setViewMode('dia');
+                      }}
+                      className={`border rounded-xl p-2 cursor-pointer transition-all ${
+                        isCurrentDay
+                          ? 'bg-blue-600/10 border-blue-500/50'
+                          : isSundayDay
+                            ? 'bg-red-500/5 border-red-500/20 hover:border-red-500/40'
+                            : 'bg-white/[0.01] border-white/5 hover:border-blue-500/30'
+                      }`}
+                    >
                       <div className="text-[8px] text-gray-500 mb-2">
                         {dayCitas.length} cita{dayCitas.length !== 1 ? 's' : ''}
                         {dayBloqueos.length > 0 && ` • ${dayBloqueos.length} bloqueo${dayBloqueos.length !== 1 ? 's' : ''}`}
                       </div>
                       
-                      {/* Citas del día */}
+                      {/* Citas del día - CLICABLES */}
                       {dayCitas.slice(0, 3).map(cita => (
-                        <div key={cita.id} className={`text-[7px] p-1 rounded mb-1 ${
-                          cita.pagado 
-                            ? 'bg-green-500/20 text-green-400' 
-                            : 'bg-orange-500/20 text-orange-400'
-                        }`}>
+                        <div 
+                          key={cita.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEventClick({
+                              id: cita.id,
+                              title: cita.nombre || 'Paciente',
+                              start: cita.hora,
+                              type: cita.estado || 'Consulta',
+                              phone: cita.telefono || '',
+                              telefono: cita.telefono || '',
+                              email: cita.email || '',
+                            });
+                          }}
+                          className={`text-[7px] p-1 rounded mb-1 cursor-pointer transition-all ${
+                            cita.pagado 
+                              ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' 
+                              : 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30'
+                          }`}
+                        >
                           {cita.hora} • {cita.nombre.slice(0, 8)}
                         </div>
                       ))}
@@ -473,7 +467,7 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
                       
                       {/* Bloqueos del día */}
                       {dayBloqueos.map(bloqueo => (
-                        <div key={bloqueo.id} className="text-[7px] p-1 rounded mb-1 bg-red-500/20 text-red-400">
+                        <div key={bloqueo.id} className="text-[7px] p-1 rounded mb-1 bg-red-500/20 text-red-500">
                           🚫 {bloqueo.reason || 'Bloqueado'}
                         </div>
                       ))}
