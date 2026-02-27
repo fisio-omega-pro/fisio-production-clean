@@ -72,14 +72,10 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
 
   // 1. GENERACIÓN DE HORAS (Manejo de cierre de 14h a 16h)
   const hours = useMemo(() => {
-    console.log('🔍 DEPURACIÓN HORARIO RECIBIDO:', horario);
-    
     const apertura = parseInt(horario?.apertura?.split(':')[0] || '8');
     const cierre = parseInt(horario?.cierre?.split(':')[0] || '14');
     const reapertura = parseInt(horario?.reapertura?.split(':')[0] || '16');
     const cierreFinal = parseInt(horario?.cierre_final?.split(':')[0] || '21');
-    
-    console.log('🔍 VALORES PARSEADOS:', { apertura, cierre, reapertura, cierreFinal });
     
     const hArray = [];
     
@@ -92,8 +88,6 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
     for (let i = reapertura; i <= cierreFinal; i++) {
       hArray.push(`${String(i).padStart(2, '0')}:00`);
     }
-    
-    console.log('🔍 HORAS GENERADAS:', hArray);
     
     return hArray;
   }, [horario]);
@@ -205,16 +199,6 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
       return hourNum >= startHour && hourNum < endHour;
     });
   };
-
-  // Debug: Mostrar información de renderizado
-  console.log('🎯 RENDERIZADO CALENDARIO DIARIO:', {
-    viewMode,
-    selectedDate,
-    hoursCount: hours.length,
-    displayTeamCount: displayTeam.length,
-    agendaForDateCount: agendaForDate.length,
-    shouldRenderDaily: viewMode === 'dia'
-  });
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500 h-full font-sans">
@@ -524,30 +508,23 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
               </div>
             </div>
 
-            {/* SELECTOR DE ESPECIALISTAS Y BOTONES - UNA SOLA VEZ */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-6 border-b border-white/5 flex-shrink-0">
-              <div className="flex items-center gap-2 overflow-x-auto max-w-sm no-scrollbar">
-                {!isStaff && (
-                  <>
-                    <button onClick={() => setSelectedSpec('all')} className={`px-4 py-2 rounded-full border text-[9px] font-black transition-all ${selectedSpec === 'all' ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white/5 border-white/10 text-gray-500'}`}>TODOS</button>
-                    {equipo.map(s => (
-                      <button key={s.id} onClick={() => setSelectedSpec(s.id)} className={`px-4 py-2 rounded-full border text-[9px] font-black whitespace-nowrap transition-all ${selectedSpec === s.id ? 'bg-white border-white text-black' : 'bg-white/5 border-white/10 text-gray-500'}`}>
-                        {s.nombre}
-                      </button>
-                    ))}
-                  </>
-                )}
-                {isStaff && equipo.length > 0 && (
-                  <span className="px-4 py-2 rounded-full border border-blue-500/30 bg-blue-600/10 text-[9px] font-black text-blue-400 uppercase">
-                    {equipo[0]?.nombre || 'Mi agenda'}
-                  </span>
-                )}
-              </div>
-
-              <div className="flex gap-2">
-                <button onClick={onBlockSchedule} className="px-5 py-2.5 bg-red-500/10 text-red-500 rounded-2xl text-[10px] font-black border border-red-500/20 hover:bg-red-500 hover:text-white transition-all">BLOQUEAR</button>
-                <button onClick={() => onNewAppointment({ date: selectedDate, time: '09:00' })} className="px-5 py-2.5 bg-blue-600 text-white rounded-2xl text-[10px] font-black shadow-lg shadow-blue-600/40 hover:scale-105 active:scale-95 transition-all">NUEVA CITA ➜</button>
-              </div>
+            {/* SELECTOR DE ESPECIALISTAS - SIN BOTONES DUPLICADOS */}
+            <div className="flex items-center gap-2 overflow-x-auto max-w-sm no-scrollbar p-6 border-b border-white/5 flex-shrink-0">
+              {!isStaff && (
+                <>
+                  <button onClick={() => setSelectedSpec('all')} className={`px-4 py-2 rounded-full border text-[9px] font-black transition-all ${selectedSpec === 'all' ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white/5 border-white/10 text-gray-500'}`}>TODOS</button>
+                  {equipo.map(s => (
+                    <button key={s.id} onClick={() => setSelectedSpec(s.id)} className={`px-4 py-2 rounded-full border text-[9px] font-black whitespace-nowrap transition-all ${selectedSpec === s.id ? 'bg-white border-white text-black' : 'bg-white/5 border-white/10 text-gray-500'}`}>
+                      {s.nombre}
+                    </button>
+                  ))}
+                </>
+              )}
+              {isStaff && equipo.length > 0 && (
+                <span className="px-4 py-2 rounded-full border border-blue-500/30 bg-blue-600/10 text-[9px] font-black text-blue-400 uppercase">
+                  {equipo[0]?.nombre || 'Mi agenda'}
+                </span>
+              )}
             </div>
 
             {/* GRID DIARIO - CON ALTURA FIJA Y SCROLL */}
