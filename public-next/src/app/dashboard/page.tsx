@@ -106,10 +106,23 @@ export default function DashboardOmega() {
   const handleCreateAppt = async () => {
     try {
       await dashboardAPI.createAppointment(apptData);
-      alert("✅ Cita registrada.");
       state.setModalType(null);
+      setApptData({ nombre: '', telefono: '', email: '', fecha: '', hora: '', docId: '' });
       state.refreshData();
-    } catch (e) { alert("Error al guardar cita."); }
+    } catch (error) {
+      console.error('Error creating appointment:', error);
+    }
+  };
+
+  const handleBlockSchedule = async () => {
+    try {
+      await dashboardAPI.createBlock(blockData);
+      state.setModalType(null);
+      setBlockData({ date: '', startTime: '09:00', endTime: '20:00', reason: '', allDay: false });
+      state.refreshData();
+    } catch (error) {
+      console.error('Error creating block:', error);
+    }
   };
 
   const handleAddSede = async () => {
@@ -334,7 +347,7 @@ export default function DashboardOmega() {
 
       {/* --- REGISTRO INTEGRAL DE MODALES --- */}
       <AppointmentModal isOpen={state.modalType === 'cita'} onClose={() => state.setModalType(null)} data={apptData} setData={setApptData} onSubmit={handleCreateAppt} />
-      <BlockModal isOpen={state.modalType === 'bloqueo'} onClose={() => state.setModalType(null)} data={blockData} setData={setBlockData} onSubmit={() => state.setModalType(null)} />
+      <BlockModal isOpen={state.modalType === 'bloqueo'} onClose={() => state.setModalType(null)} data={blockData} setData={setBlockData} onSubmit={handleBlockSchedule} />
       <EditProfileModal
         isOpen={state.modalType === 'editar_perfil'}
         onClose={() => state.setModalType(null)}

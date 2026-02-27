@@ -163,6 +163,13 @@ class DashboardService {
     await this.request('/api/dashboard/update-settings', { method: 'POST', body: JSON.stringify({ nombre, email }) });
   }
 
+  public async createBlock(blockData: { date: string; startTime: string; endTime: string; reason: string; allDay: boolean }): Promise<{ success: boolean }> {
+    return this.request<{ success: boolean }>('/api/dashboard/create-block', {
+      method: 'POST',
+      body: JSON.stringify(blockData)
+    });
+  }
+
   public async updateAsistenteConfig(config: any): Promise<{ success: boolean }> {
     return this.request<{ success: boolean }>('/api/dashboard/update-ana-config', {
       method: 'POST',
