@@ -32,14 +32,25 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
   const now = new Date();
   const currentDay = now.getDate();
 
-  // 1. GENERACIÓN DE HORAS (Blindada de 08:00 a 21:00 por defecto)
+  // 1. GENERACIÓN DE HORAS (Manejo de cierre de 14h a 16h)
   const hours = useMemo(() => {
-    const start = parseInt(horario?.apertura?.split(':')[0] || '8');
-    const end = parseInt(horario?.cierre?.split(':')[0] || '20');
+    const apertura = parseInt(horario?.apertura?.split(':')[0] || '9');
+    const cierre = parseInt(horario?.cierre?.split(':')[0] || '14');
+    const reapertura = parseInt(horario?.reapertura?.split(':')[0] || '16');
+    const cierreFinal = parseInt(horario?.cierre_final?.split(':')[0] || '20');
+    
     const hArray = [];
-    for (let i = start; i <= end; i++) {
+    
+    // Horas de la mañana (apertura hasta cierre)
+    for (let i = apertura; i <= cierre; i++) {
       hArray.push(`${String(i).padStart(2, '0')}:00`);
     }
+    
+    // Horas de la tarde (reapertura hasta cierre final)
+    for (let i = reapertura; i <= cierreFinal; i++) {
+      hArray.push(`${String(i).padStart(2, '0')}:00`);
+    }
+    
     return hArray;
   }, [horario]);
 

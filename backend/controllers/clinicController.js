@@ -299,8 +299,55 @@ const createAppointment = async (req, res) => {
     };
 
     const ref = await db.collection('citas').add(payload);
+    
     // 🚨 LOG: Creación de cita sensible
     await createAuditLog(req.clinicId, req.userId || req.clinicId, 'CREATE_APPOINTMENT', ref.id);
+    
+    // 📧 ENVIAR NOTIFICACIÓN DE PAGO SI NO ESTÁ PAGADA
+    if (!d.pagado && payload.email) {
+      try {
+        const { schedulePaymentReminder } = require('../services/paymentReminderService');
+        
+        // Crear fecha y hora de la cita para recordatorio
+        const appointmentDateTime = new Date(`${fecha} ${hora}:00`);
+        
+        // Generar enlace de pago
+        const { createOneTimePaymentSession } = require('../services/paymentService');
+        const paymentResult = await createOneTimePaymentSession(
+          payload.nombre,
+          payload.email,
+          payload.telefono,
+          50, // Precio por defecto
+          `Cita: ${fecha} ${hora}`,
+          req.clinicId
+        );
+        
+        if (paymentResult.success) {
+          // Programar recordatorio de pago 1 hora antes
+          const reminderResult = await schedulePaymentReminder(
+            paymentResult.paymentId,
+            req.clinicId,
+            payload.email,
+            appointmentDateTime,
+            50
+          );
+          
+          if (reminderResult.success) {
+            console.log(`📧 [APPOINTMENT] Payment reminder scheduled for ${payload.email}`);
+          }
+          
+          // Actualizar cita con ID de pago
+          await db.collection('citas').doc(ref.id).update({
+            payment_id: paymentResult.paymentId,
+            payment_url: paymentResult.paymentUrl
+          });
+        }
+      } catch (e) {
+        console.error('🔥 Error scheduling payment reminder:', e);
+        // No fallar la creación de cita si falla el recordatorio
+      }
+    }
+    
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 };
