@@ -34,10 +34,10 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
 
   // 1. GENERACIÓN DE HORAS (Manejo de cierre de 14h a 16h)
   const hours = useMemo(() => {
-    const apertura = parseInt(horario?.apertura?.split(':')[0] || '9');
+    const apertura = parseInt(horario?.apertura?.split(':')[0] || '8');
     const cierre = parseInt(horario?.cierre?.split(':')[0] || '14');
     const reapertura = parseInt(horario?.reapertura?.split(':')[0] || '16');
-    const cierreFinal = parseInt(horario?.cierre_final?.split(':')[0] || '20');
+    const cierreFinal = parseInt(horario?.cierre_final?.split(':')[0] || '21');
     
     const hArray = [];
     
