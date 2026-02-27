@@ -206,6 +206,16 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
     });
   };
 
+  // Debug: Mostrar información de renderizado
+  console.log('🎯 RENDERIZADO CALENDARIO DIARIO:', {
+    viewMode,
+    selectedDate,
+    hoursCount: hours.length,
+    displayTeamCount: displayTeam.length,
+    agendaForDateCount: agendaForDate.length,
+    shouldRenderDaily: viewMode === 'dia'
+  });
+
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500 h-full font-sans">
 
@@ -486,17 +496,62 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
         ) : (
           /* --- MODO DÍA: SEMÁFORO HORARIO --- */
           <div className="flex flex-col h-full">
-            <div className="p-8 border-b border-white/5 bg-white/[0.01] flex justify-between items-center">
+            {/* ENCABEZADO DIARIO */}
+            <div className="flex justify-between items-center p-6 border-b border-white/5">
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-blue-600 rounded-2xl text-white shadow-xl shadow-blue-600/20"><Clock size={20} /></div>
-                <h4 className="text-xl font-black uppercase italic tracking-tighter">
-                  Agenda Diaria <span className="text-blue-500 text-sm ml-3 font-mono opacity-60">{selectedDate}</span>
-                </h4>
+                <button 
+                  onClick={() => navigateDay('prev')} 
+                  className="p-2 hover:bg-white/10 rounded-xl transition-all"
+                  aria-label="Día anterior"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <div className="text-center">
+                  <h2 className="text-xl font-black text-white">
+                    {new Date(selectedDate).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                  </h2>
+                  <span className="text-sm text-gray-500">
+                    {new Date(selectedDate).getDate()}
+                  </span>
+                </div>
+                <button 
+                  onClick={() => navigateDay('next')} 
+                  className="p-2 hover:bg-white/10 rounded-xl transition-all"
+                  aria-label="Día siguiente"
+                >
+                  <ChevronRight size={16} />
+                </button>
               </div>
             </div>
-            <div className="flex flex-1 overflow-x-auto custom-scrollbar">
-              {/* EJE HORARIO */}
-              <div className="w-20 border-r border-white/5 bg-black/40 flex-shrink-0">
+
+            {/* SELECTOR DE ESPECIALISTAS (solo jefe ve TODOS y puede cambiar; staff solo ve su agenda) */}
+            <div className="flex items-center gap-2 overflow-x-auto max-w-sm no-scrollbar px-2">
+              {!isStaff && (
+                <>
+                  <button onClick={() => setSelectedSpec('all')} className={`px-4 py-2 rounded-full border text-[9px] font-black transition-all ${selectedSpec === 'all' ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white/5 border-white/10 text-gray-500'}`}>TODOS</button>
+                  {equipo.map(s => (
+                    <button key={s.id} onClick={() => setSelectedSpec(s.id)} className={`px-4 py-2 rounded-full border text-[9px] font-black whitespace-nowrap transition-all ${selectedSpec === s.id ? 'bg-white border-white text-black' : 'bg-white/5 border-white/10 text-gray-500'}`}>
+                      {s.nombre}
+                    </button>
+                  ))}
+                </>
+              )}
+              {isStaff && equipo.length > 0 && (
+                <span className="px-4 py-2 rounded-full border border-blue-500/30 bg-blue-600/10 text-[9px] font-black text-blue-400 uppercase">
+                  {equipo[0]?.nombre || 'Mi agenda'}
+                </span>
+              )}
+            </div>
+
+            <div className="flex gap-2">
+              <button onClick={onBlockSchedule} className="px-5 py-2.5 bg-red-500/10 text-red-500 rounded-2xl text-[10px] font-black border border-red-500/20 hover:bg-red-500 hover:text-white transition-all">BLOQUEAR</button>
+              <button onClick={() => onNewAppointment({ date: selectedDate, time: '09:00' })} className="px-5 py-2.5 bg-blue-600 text-white rounded-2xl text-[10px] font-black shadow-lg shadow-blue-600/40 hover:scale-105 active:scale-95 transition-all">NUEVA CITA ➜</button>
+            </div>
+
+            {/* GRID DIARIO */}
+            <div className="flex flex-1 min-h-0">
+              {/* HORA */}
+              <div className="w-20 flex-shrink-0">
                 <div className="h-14 border-b border-white/5" />
                 {hours.map(h => (
                   <div key={h} className="h-24 border-b border-white/5 flex items-center justify-center text-[10px] font-black text-gray-700 font-mono">{h}</div>
