@@ -495,9 +495,9 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
           </div>
         ) : (
           /* --- MODO DÍA: SEMÁFORO HORARIO --- */
-          <div className="flex flex-col h-full">
+          <div className="flex flex-col h-full overflow-hidden">
             {/* ENCABEZADO DIARIO */}
-            <div className="flex justify-between items-center p-6 border-b border-white/5">
+            <div className="flex justify-between items-center p-6 border-b border-white/5 flex-shrink-0">
               <div className="flex items-center gap-4">
                 <button 
                   onClick={() => navigateDay('prev')} 
@@ -524,101 +524,106 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
               </div>
             </div>
 
-            {/* SELECTOR DE ESPECIALISTAS (solo jefe ve TODOS y puede cambiar; staff solo ve su agenda) */}
-            <div className="flex items-center gap-2 overflow-x-auto max-w-sm no-scrollbar px-2">
-              {!isStaff && (
-                <>
-                  <button onClick={() => setSelectedSpec('all')} className={`px-4 py-2 rounded-full border text-[9px] font-black transition-all ${selectedSpec === 'all' ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white/5 border-white/10 text-gray-500'}`}>TODOS</button>
-                  {equipo.map(s => (
-                    <button key={s.id} onClick={() => setSelectedSpec(s.id)} className={`px-4 py-2 rounded-full border text-[9px] font-black whitespace-nowrap transition-all ${selectedSpec === s.id ? 'bg-white border-white text-black' : 'bg-white/5 border-white/10 text-gray-500'}`}>
-                      {s.nombre}
-                    </button>
-                  ))}
-                </>
-              )}
-              {isStaff && equipo.length > 0 && (
-                <span className="px-4 py-2 rounded-full border border-blue-500/30 bg-blue-600/10 text-[9px] font-black text-blue-400 uppercase">
-                  {equipo[0]?.nombre || 'Mi agenda'}
-                </span>
-              )}
-            </div>
-
-            <div className="flex gap-2">
-              <button onClick={onBlockSchedule} className="px-5 py-2.5 bg-red-500/10 text-red-500 rounded-2xl text-[10px] font-black border border-red-500/20 hover:bg-red-500 hover:text-white transition-all">BLOQUEAR</button>
-              <button onClick={() => onNewAppointment({ date: selectedDate, time: '09:00' })} className="px-5 py-2.5 bg-blue-600 text-white rounded-2xl text-[10px] font-black shadow-lg shadow-blue-600/40 hover:scale-105 active:scale-95 transition-all">NUEVA CITA ➜</button>
-            </div>
-
-            {/* GRID DIARIO */}
-            <div className="flex flex-1 min-h-0">
-              {/* HORA */}
-              <div className="w-20 flex-shrink-0">
-                <div className="h-14 border-b border-white/5" />
-                {hours.map(h => (
-                  <div key={h} className="h-24 border-b border-white/5 flex items-center justify-center text-[10px] font-black text-gray-700 font-mono">{h}</div>
-                ))}
+            {/* SELECTOR DE ESPECIALISTAS Y BOTONES - UNA SOLA VEZ */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-6 border-b border-white/5 flex-shrink-0">
+              <div className="flex items-center gap-2 overflow-x-auto max-w-sm no-scrollbar">
+                {!isStaff && (
+                  <>
+                    <button onClick={() => setSelectedSpec('all')} className={`px-4 py-2 rounded-full border text-[9px] font-black transition-all ${selectedSpec === 'all' ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white/5 border-white/10 text-gray-500'}`}>TODOS</button>
+                    {equipo.map(s => (
+                      <button key={s.id} onClick={() => setSelectedSpec(s.id)} className={`px-4 py-2 rounded-full border text-[9px] font-black whitespace-nowrap transition-all ${selectedSpec === s.id ? 'bg-white border-white text-black' : 'bg-white/5 border-white/10 text-gray-500'}`}>
+                        {s.nombre}
+                      </button>
+                    ))}
+                  </>
+                )}
+                {isStaff && equipo.length > 0 && (
+                  <span className="px-4 py-2 rounded-full border border-blue-500/30 bg-blue-600/10 text-[9px] font-black text-blue-400 uppercase">
+                    {equipo[0]?.nombre || 'Mi agenda'}
+                  </span>
+                )}
               </div>
-              {/* COLUMNAS POR FISIO */}
-              <div className="flex flex-1">
-                {displayTeam.map(spec => (
-                  <div key={spec.id} className="flex-1 min-w-[260px] border-r border-white/5 last:border-0 flex flex-col">
-                    <div className="h-14 bg-white/[0.03] border-b border-white/5 flex items-center px-6 gap-3">
-                      <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-[9px] font-black text-white shadow-lg">{spec.nombre.charAt(0)}</div>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 truncate">{spec.nombre}</p>
-                    </div>
-                    {hours.map(h => {
-                      const appt = findApptForSlot(spec.id, h);
-                      const isBooked = !!appt;
-                      const isPaid = !!appt?.pagado;
-                      const isBlocked = isHourBlocked(h);
 
-                      return (
-                        <div
-                          key={h}
-                          onClick={() => {
-                            if (isBooked && appt) {
-                              onEventClick({
-                                id: appt.id,
-                                title: appt.nombre || 'Paciente',
-                                start: `${appt.hora || h}`,
-                                type: appt.estado || 'Consulta',
-                                phone: appt.telefono || '',
-                                telefono: appt.telefono || '',
-                                email: appt.email || '',
-                              });
-                            } else if (!isBlocked) {
-                              onNewAppointment({ date: selectedDate, time: h, specialistId: spec.id });
-                            }
-                          }}
-                          className={`h-24 border-b border-white/5 transition-all relative flex items-center justify-center group ${
-                            isBlocked 
-                              ? 'bg-red-500/10 cursor-not-allowed border-red-500/20' 
-                              : isBooked 
-                                ? (isPaid ? 'bg-green-500/5 cursor-default' : 'bg-orange-500/5 cursor-default')
-                                : 'hover:bg-blue-600/[0.03] cursor-crosshair'
-                          }`}
-                        >
-                          {isBlocked ? (
-                            <div className="flex items-center gap-2 px-4 py-2 rounded-2xl border border-red-500/30 bg-red-500/10 text-red-500">
-                              <AlertCircle size={12} />
-                              <span className="text-[9px] font-black uppercase tracking-tighter">
-                                BLOQUEADO
-                              </span>
-                            </div>
-                          ) : isBooked ? (
-                            <div className={`flex items-center gap-2 px-4 py-2 rounded-2xl border ${isPaid ? 'bg-green-500/10 border-green-500/30 text-green-500' : 'bg-orange-500/10 border-orange-500/30 text-orange-500'}`}>
-                              {isPaid ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
-                              <span className="text-[9px] font-black uppercase tracking-tighter">
-                                {(appt?.nombre || 'CITA').toString().slice(0, 12)} · {appt?.hora || h}
-                              </span>
-                            </div>
-                          ) : (
-                            <div className="opacity-0 group-hover:opacity-100 bg-blue-600 text-white px-4 py-2 rounded-xl text-[8px] font-black uppercase shadow-lg transition-all transform scale-90 group-hover:scale-100">Agendar {h}</div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ))}
+              <div className="flex gap-2">
+                <button onClick={onBlockSchedule} className="px-5 py-2.5 bg-red-500/10 text-red-500 rounded-2xl text-[10px] font-black border border-red-500/20 hover:bg-red-500 hover:text-white transition-all">BLOQUEAR</button>
+                <button onClick={() => onNewAppointment({ date: selectedDate, time: '09:00' })} className="px-5 py-2.5 bg-blue-600 text-white rounded-2xl text-[10px] font-black shadow-lg shadow-blue-600/40 hover:scale-105 active:scale-95 transition-all">NUEVA CITA ➜</button>
+              </div>
+            </div>
+
+            {/* GRID DIARIO - CON ALTURA FIJA Y SCROLL */}
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+              <div className="flex min-h-full">
+                {/* COLUMNA DE HORAS */}
+                <div className="w-20 flex-shrink-0">
+                  <div className="h-14 border-b border-white/5 flex-shrink-0" />
+                  {hours.map(h => (
+                    <div key={h} className="h-24 border-b border-white/5 flex items-center justify-center text-[10px] font-black text-gray-700 font-mono flex-shrink-0">{h}</div>
+                  ))}
+                </div>
+                
+                {/* COLUMNAS POR ESPECIALISTA */}
+                <div className="flex flex-1">
+                  {displayTeam.map(spec => (
+                    <div key={spec.id} className="flex-1 min-w-[260px] border-r border-white/5 last:border-0 flex flex-col">
+                      <div className="h-14 bg-white/[0.03] border-b border-white/5 flex items-center px-6 gap-3 flex-shrink-0">
+                        <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-[9px] font-black text-white shadow-lg">{spec.nombre.charAt(0)}</div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 truncate">{spec.nombre}</p>
+                      </div>
+                      {hours.map(h => {
+                        const appt = findApptForSlot(spec.id, h);
+                        const isBooked = !!appt;
+                        const isPaid = !!appt?.pagado;
+                        const isBlocked = isHourBlocked(h);
+
+                        return (
+                          <div
+                            key={h}
+                            onClick={() => {
+                              if (isBooked && appt) {
+                                onEventClick({
+                                  id: appt.id,
+                                  title: appt.nombre || 'Paciente',
+                                  start: `${appt.hora || h}`,
+                                  type: appt.estado || 'Consulta',
+                                  phone: appt.telefono || '',
+                                  telefono: appt.telefono || '',
+                                  email: appt.email || '',
+                                });
+                              } else if (!isBlocked) {
+                                onNewAppointment({ date: selectedDate, time: h, specialistId: spec.id });
+                              }
+                            }}
+                            className={`h-24 border-b border-white/5 transition-all relative flex items-center justify-center group flex-shrink-0 ${
+                              isBlocked 
+                                ? 'bg-red-500/10 cursor-not-allowed border-red-500/20' 
+                                : isBooked 
+                                  ? (isPaid ? 'bg-green-500/5 cursor-default' : 'bg-orange-500/5 cursor-default')
+                                  : 'hover:bg-blue-600/[0.03] cursor-crosshair'
+                            }`}
+                          >
+                            {isBlocked ? (
+                              <div className="flex items-center gap-2 px-4 py-2 rounded-2xl border border-red-500/30 bg-red-500/10 text-red-500">
+                                <AlertCircle size={12} />
+                                <span className="text-[9px] font-black uppercase tracking-tighter">
+                                  BLOQUEADO
+                                </span>
+                              </div>
+                            ) : isBooked ? (
+                              <div className={`flex items-center gap-2 px-4 py-2 rounded-2xl border ${isPaid ? 'bg-green-500/10 border-green-500/30 text-green-500' : 'bg-orange-500/10 border-orange-500/30 text-orange-500'}`}>
+                                {isPaid ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+                                <span className="text-[9px] font-black uppercase tracking-tighter">
+                                  {(appt?.nombre || 'CITA').toString().slice(0, 12)} · {appt?.hora || h}
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="opacity-0 group-hover:opacity-100 bg-blue-600 text-white px-4 py-2 rounded-xl text-[8px] font-black uppercase shadow-lg transition-all transform scale-90 group-hover:scale-100">Agendar {h}</div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
