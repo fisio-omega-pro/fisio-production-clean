@@ -14,8 +14,8 @@ export const NAV_ITEMS: Record<string, NavItemConfig[]> = {
     { id: 'equipo', label: 'Equipo', icon: Users },
   ],
   inteligencia: [
-    { id: 'asistente', label: 'Consultoría Ana', icon: MessageSquare },
-    { id: 'config_ana', label: 'Configurar Ana', icon: Bot, accent: true },
+    { id: 'asistente', label: 'Consultoría Asistente', icon: MessageSquare },
+    { id: 'config_ana', label: 'Configurar Asistente', icon: Bot, accent: true },
   ],
   configuracion: [
     { id: 'cobros', label: 'Pagos', icon: CreditCard },

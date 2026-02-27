@@ -158,7 +158,7 @@ export default function DashboardOmega() {
     if (state.isLoading) return <div className="p-20 text-center text-blue-500 animate-pulse font-black text-xs uppercase tracking-widest">Sincronizando...</div>;
 
     switch (state.activeTab) {
-      case 'home': return <HomeView clinicId={state.clinicId} configStatus={state.configStatus} clinicData={state.clinicData} onRefresh={state.refreshData} onGoToAsistente={() => state.setActiveTab('asistente')} />;
+      case 'home': return <HomeView clinicId={state.clinicId} configStatus={state.configStatus} clinicData={state.clinicData} onRefresh={state.refreshData} onGoToAsistente={() => state.setActiveTab('config_ana')} />;
       case 'agenda': return <AgendaView currentUser={state.currentUser} equipo={state.equipo} agenda={state.agenda} horario={state.clinicData.horario || { apertura: '09:00', cierre: '20:00' }} onBlockSchedule={() => state.setModalType('bloqueo')} onNewAppointment={(d: any) => { setApptData({ ...apptData, fecha: d.date, hora: d.time, docId: d.specialistId || '' }); state.setModalType('cita'); }} onEventClick={state.setSelectedEvent} />;
       case 'pacientes': return <PacientesView pacientes={state.pacientes} onDictate={() => state.setModalType('voz')} onImport={() => state.setModalType('importar')} />;
       case 'finanzas': return <FinanzasView balance={state.balance} pacientes={state.pacientes} onActivateCampaign={async () => { await dashboardAPI.launchCampaign(); state.refreshData(); }} clinicData={state.clinicData} onGoToImport={() => { state.setActiveTab('pacientes'); state.setModalType('importar'); }} />;
