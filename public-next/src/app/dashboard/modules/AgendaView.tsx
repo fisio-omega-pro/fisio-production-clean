@@ -9,7 +9,7 @@ interface AgendaProps {
   equipo: Especialista[];
   agenda: any[];
   bloqueos: any[];
-  horario: { apertura?: string; cierre?: string };
+  horario: { apertura?: string; cierre?: string; reapertura?: string; cierre_final?: string };
   onBlockSchedule: () => void;
   onNewAppointment: (data: any) => void;
   onEventClick: (event: any) => void;
@@ -84,6 +84,12 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
     return list.filter((a) => String(a.fecha || '') === day);
   }, [agenda, selectedDate]);
 
+  const bloqueosForDate = useMemo(() => {
+    const day = selectedDate;
+    const list = Array.isArray(bloqueos) ? bloqueos : [];
+    return list.filter((b) => String(b.date || '') === day);
+  }, [bloqueos, selectedDate]);
+
   const agendaForMonth = useMemo(() => {
     const list = Array.isArray(agenda) ? agenda : [];
     const y = monthCursor.getFullYear();
@@ -92,6 +98,14 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
     return list.filter((a) => String(a.fecha || '').startsWith(prefix));
   }, [agenda, monthCursor]);
 
+  const bloqueosForMonth = useMemo(() => {
+    const list = Array.isArray(bloqueos) ? bloqueos : [];
+    const y = monthCursor.getFullYear();
+    const m = monthCursor.getMonth() + 1;
+    const prefix = `${y}-${String(m).padStart(2, '0')}-`;
+    return list.filter((b) => String(b.date || '').startsWith(prefix));
+  }, [bloqueos, monthCursor]);
+
   const daysInMonth = useMemo(() => {
     const y = monthCursor.getFullYear();
     const m = monthCursor.getMonth();
@@ -99,16 +113,27 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
   }, [monthCursor]);
 
   const dayDots = useMemo(() => {
-    const map: Record<string, { paid: boolean; pending: boolean }> = {};
+    const map: Record<string, { paid: boolean; pending: boolean; blocked: boolean }> = {};
+    
+    // Procesar citas
     agendaForMonth.forEach((a) => {
       const f = String(a.fecha || '');
       if (!f) return;
-      if (!map[f]) map[f] = { paid: false, pending: false };
+      if (!map[f]) map[f] = { paid: false, pending: false, blocked: false };
       if (a.pagado) map[f].paid = true;
       if (String(a.estado || '') === 'pendiente') map[f].pending = true;
     });
+    
+    // Procesar bloqueos
+    bloqueosForMonth.forEach((b) => {
+      const f = String(b.date || '');
+      if (!f) return;
+      if (!map[f]) map[f] = { paid: false, pending: false, blocked: false };
+      map[f].blocked = true;
+    });
+    
     return map;
-  }, [agendaForMonth]);
+  }, [agendaForMonth, bloqueosForMonth]);
 
   const findApptForSlot = (specId: string, hour: string) => {
     const hourNum = Number(String(hour || '').split(':')[0] || '0');
@@ -123,6 +148,17 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
 
       return isCorrectTime && isForThisSpec;
     }) || null;
+  };
+
+  const isHourBlocked = (hour: string) => {
+    const hourNum = Number(String(hour || '').split(':')[0] || '0');
+    return bloqueosForDate.some((b) => {
+      const startHour = Number(String(b.startTime || '').split(':')[0] || '0');
+      const endHour = Number(String(b.endTime || '').split(':')[0] || '0');
+      
+      if (b.allDay) return true; // Todo el día bloqueado
+      return hourNum >= startHour && hourNum < endHour;
+    });
   };
 
   return (
@@ -199,7 +235,7 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
                 const dayNum = i + 1;
                 const isToday = dayNum === currentDay;
                 const dateStr = `${monthCursor.getFullYear()}-${String(monthCursor.getMonth() + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
-                const dots = dayDots[dateStr] || { paid: false, pending: false };
+                const dots = dayDots[dateStr] || { paid: false, pending: false, blocked: false };
 
                 return (
                   <div
@@ -213,6 +249,7 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
                     <div className="flex gap-1.5">
                       {dots.paid && <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />}
                       {dots.pending && <div className="w-2 h-2 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]" />}
+                      {dots.blocked && <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" />}
                     </div>
                   </div>
                 );
@@ -250,6 +287,7 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
                       const appt = findApptForSlot(spec.id, h);
                       const isBooked = !!appt;
                       const isPaid = !!appt?.pagado;
+                      const isBlocked = isHourBlocked(h);
 
                       return (
                         <div
@@ -265,13 +303,26 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
                                 telefono: appt.telefono || '',
                                 email: appt.email || '',
                               });
-                            } else {
+                            } else if (!isBlocked) {
                               onNewAppointment({ date: selectedDate, time: h, specialistId: spec.id });
                             }
                           }}
-                          className={`h-24 border-b border-white/5 transition-all relative flex items-center justify-center group ${isBooked ? (isPaid ? 'bg-green-500/5 cursor-default' : 'bg-orange-500/5 cursor-default') : 'hover:bg-blue-600/[0.03] cursor-crosshair'}`}
+                          className={`h-24 border-b border-white/5 transition-all relative flex items-center justify-center group ${
+                            isBlocked 
+                              ? 'bg-red-500/10 cursor-not-allowed border-red-500/20' 
+                              : isBooked 
+                                ? (isPaid ? 'bg-green-500/5 cursor-default' : 'bg-orange-500/5 cursor-default')
+                                : 'hover:bg-blue-600/[0.03] cursor-crosshair'
+                          }`}
                         >
-                          {isBooked ? (
+                          {isBlocked ? (
+                            <div className="flex items-center gap-2 px-4 py-2 rounded-2xl border border-red-500/30 bg-red-500/10 text-red-500">
+                              <AlertCircle size={12} />
+                              <span className="text-[9px] font-black uppercase tracking-tighter">
+                                BLOQUEADO
+                              </span>
+                            </div>
+                          ) : isBooked ? (
                             <div className={`flex items-center gap-2 px-4 py-2 rounded-2xl border ${isPaid ? 'bg-green-500/10 border-green-500/30 text-green-500' : 'bg-orange-500/10 border-orange-500/30 text-orange-500'}`}>
                               {isPaid ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
                               <span className="text-[9px] font-black uppercase tracking-tighter">

@@ -9,7 +9,7 @@ export interface AgendaProps {
   equipo: Especialista[];
   agenda: any[];
   bloqueos: any[];
-  horario: { apertura?: string; cierre?: string };
+  horario: { apertura?: string; cierre?: string; reapertura?: string; cierre_final?: string };
   onBlockSchedule: () => void;
   onNewAppointment: (data: any) => void;
   onEventClick: (event: any) => void;
