@@ -72,10 +72,14 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
 
   // 1. GENERACIÓN DE HORAS (Manejo de cierre de 14h a 16h)
   const hours = useMemo(() => {
+    console.log('🔍 DEPURACIÓN HORARIO RECIBIDO:', horario);
+    
     const apertura = parseInt(horario?.apertura?.split(':')[0] || '8');
     const cierre = parseInt(horario?.cierre?.split(':')[0] || '14');
     const reapertura = parseInt(horario?.reapertura?.split(':')[0] || '16');
     const cierreFinal = parseInt(horario?.cierre_final?.split(':')[0] || '21');
+    
+    console.log('🔍 VALORES PARSEADOS:', { apertura, cierre, reapertura, cierreFinal });
     
     const hArray = [];
     
@@ -88,6 +92,8 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
     for (let i = reapertura; i <= cierreFinal; i++) {
       hArray.push(`${String(i).padStart(2, '0')}:00`);
     }
+    
+    console.log('🔍 HORAS GENERADAS:', hArray);
     
     return hArray;
   }, [horario]);
