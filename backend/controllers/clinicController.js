@@ -400,12 +400,13 @@ const getDashboardData = async (req, res, next) => {
     // 🚨 LOG: Acceso al Dashboard
     await createAuditLog(req.clinicId, req.userId || req.clinicId, 'VIEW_DASHBOARD', req.clinicId);
     // ... (resto de la lógica de datos)
-    const [clinicDoc, equipoSnap, pacientesSnap, citasSnap, bonosSnap] = await Promise.all([
+    const [clinicDoc, equipoSnap, pacientesSnap, citasSnap, bonosSnap, bloqueosSnap] = await Promise.all([
       db.collection('clinicas').doc(req.clinicId).get(),
       db.collection('clinicas').doc(req.clinicId).collection('equipo').get(),
       db.collection('pacientes').where('clinicId', '==', req.clinicId).get(),
       db.collection('citas').where('clinicId', '==', req.clinicId).get(),
-      db.collection('bonos').where('clinicId', '==', req.clinicId).get()
+      db.collection('bonos').where('clinicId', '==', req.clinicId).get(),
+      db.collection('bloqueos').where('clinicId', '==', req.clinicId).get()
     ]);
     console.log('🔍 [DASHBOARD] ClinicDoc exists:', clinicDoc.exists);
     console.log('🔍 [DASHBOARD] ClinicId:', req.clinicId);
@@ -481,6 +482,7 @@ const getDashboardData = async (req, res, next) => {
         equipo,
         pacientes: pacientesSnap.docs.map(d => ({ id: d.id, ...d.data() })),
         agenda: agendaRaw,
+        bloqueos: bloqueosSnap.docs.map(d => ({ id: d.id, ...d.data() })),
         bonos: bonosSnap.docs.map(d => ({ id: d.id, ...d.data() })),
         balance: { real, potencial, roi, tendenciaMensual: 12 },
         referrals: { code: referralCode, count: referredCount },

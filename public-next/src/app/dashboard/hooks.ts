@@ -5,8 +5,9 @@ import Papa from 'papaparse';
 
 export const useDashboardState = () => {
   // 1. ESTADOS DE DATOS
-  const [pacientes, setPacientes] = useState<Paciente[]>([]);
+  const [pacientes, setPacientes] = useState<any[]>([]);
   const [agenda, setAgenda] = useState<any[]>([]);
+  const [bloqueos, setBloqueos] = useState<any[]>([]);
   const [bonos, setBonos] = useState<any[]>([]); // 🚨 RESTAURADO: Cajón para los bonos
   const [balance, setBalance] = useState<BalanceFinanciero>({ real: 0, potencial: 0, roi: 0, tendenciaMensual: 0 });
   const [clinicData, setClinicData] = useState<any>({ nombre: '', is_blind: false });
@@ -37,6 +38,7 @@ export const useDashboardState = () => {
       if (data) {
         setPacientes(data.pacientes || []);
         setAgenda(data.agenda || []);
+        setBloqueos(data.bloqueos || []);
         setBonos(data.bonos || []); // 🚨 CAPTURA: Recibimos bonos del transportista
         setBalance(data.balance || { real: 0, potencial: 0, roi: 0, tendenciaMensual: 0 });
         setConfigStatus(data.configStatus);
@@ -120,7 +122,7 @@ export const useDashboardState = () => {
 
   // 6. RETORNO DE CONTRATO (Íntegro y sin omisiones)
   return {
-    pacientes, agenda, bonos, balance, clinicData, configStatus, equipo, currentUser,
+    pacientes, agenda, bloqueos, bonos, balance, clinicData, configStatus, equipo, currentUser,
     isLoading, activeTab, setActiveTab, modalType, setModalType,
     clinicId, setClinicId, loading, setLoading, voiceEnabled, setVoiceEnabled,
     noteContent, setNoteContent, selectedPatientId, setSelectedPatientId,

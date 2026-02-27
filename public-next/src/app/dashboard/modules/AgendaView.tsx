@@ -8,13 +8,14 @@ interface AgendaProps {
   currentUser?: { specialistId: string | null; isOwner: boolean };
   equipo: Especialista[];
   agenda: any[];
+  bloqueos: any[];
   horario: { apertura?: string; cierre?: string };
   onBlockSchedule: () => void;
   onNewAppointment: (data: any) => void;
   onEventClick: (event: any) => void;
 }
 
-export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda, horario, onBlockSchedule, onNewAppointment, onEventClick }) => {
+export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda, bloqueos, horario, onBlockSchedule, onNewAppointment, onEventClick }) => {
   const isStaff = !!(currentUser?.specialistId);
   const staffSpecId = currentUser?.specialistId || '';
   const [viewMode, setViewMode] = useState<'dia' | 'mes'>('dia');

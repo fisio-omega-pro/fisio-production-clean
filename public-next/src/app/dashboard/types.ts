@@ -4,6 +4,16 @@ export type ModalType = 'voz' | 'bloqueo' | 'equipo' | 'sede' | 'welcome' | 'cit
 export interface NavItemConfig { id: TabId; label: string; icon: LucideIcon; accent?: boolean; }
 export interface Bono { id: string; paciente_nombre: string; sesiones_totales: number; sesiones_restantes: number; fecha_vencimiento: string; status: 'activo' | 'agotado'; }
 export interface Especialista { id: string; nombre: string; especialidad: string; activo?: boolean; avatarUrl?: string; login_email?: string; }
+export interface AgendaProps {
+  currentUser: { specialistId: string | null; isOwner: boolean; email?: string };
+  equipo: Especialista[];
+  agenda: any[];
+  bloqueos: any[];
+  horario: { apertura?: string; cierre?: string };
+  onBlockSchedule: () => void;
+  onNewAppointment: (data: any) => void;
+  onEventClick: (event: any) => void;
+}
 export interface Paciente { id: string; nombre: string; telefono: string; email: string; status: 'ACTIVO' | 'INACTIVO' | 'PENDIENTE'; ultimaVisita?: string; }
 export interface BalanceFinanciero { real: number; potencial: number; roi: number; tendenciaMensual: number; }
 export interface ChatMessage { role: 'ana' | 'user' | 'lex'; text: string; timestamp: number; }
