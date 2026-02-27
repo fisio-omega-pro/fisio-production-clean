@@ -54,7 +54,7 @@ export const HistoryModal = ({ event, onClose }: { event: any, onClose: () => vo
           </h4>
 
           {loading ? (
-            <div className="text-center py-10 text-gray-500 animate-pulse text-sm">Consultando memoria de Ana...</div>
+            <div className="text-center py-10 text-gray-500 animate-pulse text-sm">Consultando memoria de tu asistente...</div>
           ) : data?.historial && data.historial.length > 0 ? (
             <div className="space-y-6">
               {data.historial.map((note: any) => (

@@ -50,7 +50,7 @@ export const EditProfileModal = ({ isOpen, onClose, member, setMember, onSave, o
           <div className="flex-1">
              <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">Estado Operativo</p>
              <h4 className="text-white font-bold uppercase tracking-tighter">Disponible para Citas</h4>
-             <p className="text-[10px] text-gray-500 mt-1">Este perfil es visible para Ana en la recepción inteligente.</p>
+             <p className="text-[10px] text-gray-500 mt-1">Este perfil es visible para tu asistente en la recepción inteligente.</p>
           </div>
           <input type="file" ref={fileRef} onChange={handleFile} accept="image/*" className="hidden" />
         </div>

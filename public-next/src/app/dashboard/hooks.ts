@@ -50,7 +50,7 @@ export const useDashboardState = () => {
           // Por defecto, siempre activo (el saludo solo una vez por sesión)
           setVoiceEnabled(true);
           if (!hasGreeted.current) {
-            const welcome = new SpeechSynthesisUtterance(`Bienvenido, soy Ana. El sistema está sincronizado.`);
+            const welcome = new SpeechSynthesisUtterance(`Bienvenido, soy tu asistente personal. El sistema está sincronizado.`);
             welcome.lang = 'es-ES';
             window.speechSynthesis.speak(welcome);
             hasGreeted.current = true;

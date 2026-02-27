@@ -150,7 +150,7 @@ class DashboardService {
     await this.request('/api/dashboard/save-suggestion', { method: 'POST', body: JSON.stringify({ text }) });
   }
 
-  /** Crear ticket: type 'consulta' (Ana responde por email) o 'tecnico' (urgente a equipo). */
+  /** Crear ticket: type 'consulta' (tu asistente responde por email) o 'tecnico' (urgente a equipo). */
   public async createTicket(type: 'consulta' | 'tecnico', message: string): Promise<{ ticketId: string }> {
     const res = await this.request<{ success: boolean; ticketId: string }>(
       '/api/dashboard/create-ticket',
@@ -163,7 +163,7 @@ class DashboardService {
     await this.request('/api/dashboard/update-settings', { method: 'POST', body: JSON.stringify({ nombre, email }) });
   }
 
-  public async updateAnaConfig(config: any): Promise<{ success: boolean }> {
+  public async updateAsistenteConfig(config: any): Promise<{ success: boolean }> {
     return this.request<{ success: boolean }>('/api/dashboard/update-ana-config', {
       method: 'POST',
       body: JSON.stringify(config)

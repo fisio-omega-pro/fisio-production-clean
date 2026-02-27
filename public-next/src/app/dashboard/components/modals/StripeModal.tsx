@@ -110,7 +110,7 @@ export const StripeModal = ({ isOpen, onClose, clinicId, configStatus, userEmail
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-400">✓</span>
-                  <span>Generar enlaces de pago para Ana</span>
+                  <span>Generar enlaces de pago para tu asistente</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-400">✓</span>

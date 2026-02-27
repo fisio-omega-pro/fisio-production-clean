@@ -19,7 +19,7 @@ export const ImportModal = ({ isOpen, onClose, fileInputRef, onFileSelect, isImp
         <div className="bg-blue-600/5 p-4 rounded-2xl border border-blue-500/20 flex gap-4 items-center">
            <Sparkles size={24} className="text-blue-500 flex-shrink-0" />
            <p className="text-[11px] text-gray-400 leading-relaxed">
-             No te preocupes por el formato. Sube tu Excel o CSV y <strong>Ana se encargará de identificar</strong> los nombres, teléfonos y correos para organizar tu base de datos automáticamente.
+             No te preocupes por el formato. Sube tu Excel o CSV y <strong>tu asistente se encargará de identificar</strong> los nombres, teléfonos y correos para organizar tu base de datos automáticamente.
            </p>
         </div>
 
@@ -30,7 +30,7 @@ export const ImportModal = ({ isOpen, onClose, fileInputRef, onFileSelect, isImp
           {isImporting ? (
             <div className="flex flex-col items-center gap-4">
                <Loader2 size={48} className="text-blue-500 animate-spin" />
-               <p className="text-sm font-black text-blue-400 uppercase tracking-widest">Ana está mapeando los datos...</p>
+               <p className="text-sm font-black text-blue-400 uppercase tracking-widest">Tu asistente está mapeando los datos...</p>
             </div>
           ) : (
             <>

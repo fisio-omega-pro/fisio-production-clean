@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Copy, Smartphone, CheckCircle2, ExternalLink,
-  Monitor, Database, Activity, MessageSquare
+  Monitor, Database, Activity, MessageSquare, Bot, Settings
 } from 'lucide-react';
 
 interface HomeProps {
@@ -61,7 +61,7 @@ export const HomeView: React.FC<HomeProps> = ({ clinicId, configStatus, clinicDa
   const publicLink = currentOrigin ? `${currentOrigin}/ana?ref=${clinicId}` : `/ana?ref=${clinicId}`;
 
   // OPCIÓN A (Humanizada):
-  const whatsappScript = `Hola 👋 Soy Ana, del equipo de recepción de ${clinicData.nombre || 'la clínica'}. Para ver los huecos libres ahora mismo y reservar sin esperas, entra en mi agenda personal: 👉 ${publicLink}`;
+  const whatsappScript = `Hola 👋 Soy tu asistente personal, del equipo de recepción de ${clinicData.nombre || 'la clínica'}. Para ver los huecos libres ahora mismo y reservar sin esperas, entra en mi agenda personal: 👉 ${publicLink}`;
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(whatsappScript);
@@ -88,7 +88,7 @@ export const HomeView: React.FC<HomeProps> = ({ clinicId, configStatus, clinicDa
             className="mt-4 inline-flex items-center gap-2 text-xs font-bold text-blue-400 hover:text-blue-300 uppercase tracking-widest"
           >
             <MessageSquare size={14} />
-            Deja que Ana te capacite: pregúntale cómo sacar partido al panel
+            Deja que tu asistente te capacite: pregúntale cómo sacar partido al panel
           </button>
         )}
       </div>
@@ -139,6 +139,35 @@ export const HomeView: React.FC<HomeProps> = ({ clinicId, configStatus, clinicDa
               </button>
             </div>
             <p className="text-[11px] text-gray-500 mt-2">Ese enlace es el que reciben tus pacientes al hacer clic; úsalo para comprobar qué ven antes de enviarlo por WhatsApp.</p>
+          </div>
+
+          {/* TARJETA: CONFIGURA TU ASISTENTE PERSONAL */}
+          <div className="bg-[#0a0a0a] border border-white/5 rounded-3xl p-6 md:p-8 shadow-2xl relative overflow-hidden group">
+            <div className="absolute inset-0 border border-white/5 rounded-3xl group-hover:border-purple-500/20 transition-colors duration-500 pointer-events-none"></div>
+
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center border border-purple-500/20 shadow-[0_0_15px_rgba(147,51,234,0.2)]">
+                <Bot size={24} className="text-purple-500" />
+              </div>
+              <div>
+                <h3 className="text-lg md:text-xl font-bold text-white">Configura tu Asistente Personal</h3>
+                <p className="text-xs md:text-sm text-gray-400">Personaliza la IA que atenderá a tus pacientes 24/7.</p>
+              </div>
+            </div>
+
+            <div className="bg-black rounded-xl border border-white/10 p-5 mb-6">
+              <p className="text-gray-300 text-sm leading-relaxed">
+                Define el nombre, personalidad y conocimientos de tu asistente para que atienda a tus pacientes como si fuera parte de tu equipo.
+              </p>
+            </div>
+
+            <button
+              onClick={onGoToAsistente}
+              className="w-full py-4 px-6 rounded-xl font-bold text-sm bg-purple-500 text-white hover:bg-purple-600 transition-all shadow-lg shadow-purple-500/20 flex items-center justify-center gap-2"
+            >
+              <Settings size={18} />
+              CONFIGURAR ASISTENTE PERSONAL
+            </button>
           </div>
         </div>
 
@@ -206,7 +235,7 @@ export const HomeView: React.FC<HomeProps> = ({ clinicId, configStatus, clinicDa
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Activity size={14} className="text-green-500" />
-                  <span className="text-xs text-gray-300">Inteligencia Ana</span>
+                  <span className="text-xs text-gray-300">Inteligencia Asistente</span>
                 </div>
                 <span className="text-[10px] font-bold text-green-500">CONECTADA</span>
               </div>

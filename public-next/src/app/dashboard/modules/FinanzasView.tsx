@@ -25,14 +25,14 @@ export const FinanzasView = ({ balance, pacientes = [], onActivateCampaign, clin
         <div className="flex-1 max-w-xl">
           <h3 className="text-lg font-bold text-white mb-2">Recuperar pacientes inactivos</h3>
           <p className="text-gray-400 text-sm leading-relaxed">
-            Ana envía emails a los pacientes que no han venido en los últimos 30 días y les ofrece bonos. Tú solo activas la campaña; cuando alguien responda, te avisamos.
+            Tu asistente personal envía emails a los pacientes que no han venido en los últimos 30 días y les ofrece bonos. Tú solo activas la campaña; cuando alguien responda, te avisamos.
           </p>
           {!hasPatients && (
             <div className="mt-4 flex items-start gap-3 rounded-xl bg-amber-500/10 border border-amber-500/20 p-4">
               <AlertCircle size={20} className="text-amber-500 shrink-0 mt-0.5" />
               <div>
                 <p className="text-amber-200 text-sm font-medium">Necesitas tener pacientes en el sistema</p>
-                <p className="text-amber-200/80 text-xs mt-1">Para activar la campaña, primero importa o sube tu base de pacientes desde la sección Pacientes. Sin datos, Ana no tiene a quién contactar.</p>
+                <p className="text-amber-200/80 text-xs mt-1">Para activar la campaña, primero importa o sube tu base de pacientes desde la sección Pacientes. Sin datos, tu asistente no tiene a quién contactar.</p>
                 {onGoToImport && (
                   <button
                     type="button"
