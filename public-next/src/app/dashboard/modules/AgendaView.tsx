@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Users, Clock, Filter, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Users, Clock, Filter, CheckCircle2, AlertCircle, CalendarDays } from 'lucide-react';
 import { Especialista } from '../types';
 
 interface AgendaProps {
@@ -18,7 +18,7 @@ interface AgendaProps {
 export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda, bloqueos, horario, onBlockSchedule, onNewAppointment, onEventClick }) => {
   const isStaff = !!(currentUser?.specialistId);
   const staffSpecId = currentUser?.specialistId || '';
-  const [viewMode, setViewMode] = useState<'dia' | 'mes'>('dia');
+  const [viewMode, setViewMode] = useState<'dia' | 'semana' | 'mes'>('dia');
   const [selectedSpec, setSelectedSpec] = useState<string>('all');
   useEffect(() => {
     if (isStaff && staffSpecId) setSelectedSpec(staffSpecId);
@@ -28,6 +28,43 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
     return new Date(d.getFullYear(), d.getMonth(), 1);
   });
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
+
+  // Función para obtener nombre del día de la semana
+  const getDayName = (dateString: string) => {
+    const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const date = new Date(dateString);
+    return days[date.getDay()];
+  };
+
+  // Función para verificar si es domingo
+  const isSunday = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.getDay() === 0;
+  };
+
+  // Función para navegar días
+  const navigateDay = (direction: 'prev' | 'next') => {
+    const currentDate = new Date(selectedDate);
+    const newDate = new Date(currentDate);
+    newDate.setDate(currentDate.getDate() + (direction === 'next' ? 1 : -1));
+    setSelectedDate(newDate.toISOString().split('T')[0]);
+  };
+
+  // Función para generar días de la semana
+  const getWeekDays = () => {
+    const startOfWeek = new Date(selectedDate);
+    const day = startOfWeek.getDay();
+    const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1); // Ajustar para que lunes sea el primer día
+    startOfWeek.setDate(diff);
+
+    const weekDays = [];
+    for (let i = 0; i < 7; i++) {
+      const currentDate = new Date(startOfWeek);
+      currentDate.setDate(startOfWeek.getDate() + i);
+      weekDays.push(currentDate.toISOString().split('T')[0]);
+    }
+    return weekDays;
+  };
 
   const now = new Date();
   const currentDay = now.getDate();
@@ -168,8 +205,37 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/[0.02] p-4 rounded-[32px] border border-white/5 shadow-2xl backdrop-blur-xl">
         <div className="flex bg-black/40 p-1.5 rounded-2xl border border-white/10">
           <button onClick={() => setViewMode('dia')} className={`px-6 py-2 rounded-xl text-[10px] font-black transition-all ${viewMode === 'dia' ? 'bg-white text-black shadow-lg' : 'text-gray-500 hover:text-white'}`}>DÍA</button>
+          <button onClick={() => setViewMode('semana')} className={`px-6 py-2 rounded-xl text-[10px] font-black transition-all ${viewMode === 'semana' ? 'bg-white text-black shadow-lg' : 'text-gray-500 hover:text-white'}`}>SEMANA</button>
           <button onClick={() => setViewMode('mes')} className={`px-6 py-2 rounded-xl text-[10px] font-black transition-all ${viewMode === 'mes' ? 'bg-white text-black shadow-lg' : 'text-gray-500 hover:text-white'}`}>MES</button>
         </div>
+
+        {/* NAVEGACIÓN DE DÍAS (solo para vista día) */}
+        {viewMode === 'dia' && (
+          <div className="flex items-center gap-3 bg-black/40 p-2 rounded-2xl border border-white/10">
+            <button 
+              onClick={() => navigateDay('prev')} 
+              className="p-2 hover:bg-white/10 rounded-xl transition-all"
+              aria-label="Día anterior"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <div className="px-4 py-2 bg-blue-600/20 rounded-xl">
+              <span className={`text-[10px] font-black uppercase tracking-wider ${isSunday(selectedDate) ? 'text-red-400' : 'text-blue-400'}`}>
+                {getDayName(selectedDate).slice(0, 3)}
+              </span>
+              <span className="ml-2 text-[11px] font-bold text-white">
+                {new Date(selectedDate).getDate()}
+              </span>
+            </div>
+            <button 
+              onClick={() => navigateDay('next')} 
+              className="p-2 hover:bg-white/10 rounded-xl transition-all"
+              aria-label="Día siguiente"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        )}
 
         {/* SELECTOR DE ESPECIALISTAS (solo jefe ve TODOS y puede cambiar; staff solo ve su agenda) */}
         <div className="flex items-center gap-2 overflow-x-auto max-w-sm no-scrollbar px-2">
@@ -228,22 +294,44 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
 
             {/* GRID MENSUAL: Reparado para que no se corte */}
             <div className="grid grid-cols-7 gap-3 flex-1 min-h-[500px]">
-              {['LUN', 'MAR', 'MIE', 'JUE', 'VIE', 'SAB', 'DOM'].map(d => (
-                <div key={d} className="text-center text-[10px] font-black text-gray-700 tracking-[0.3em] pb-4">{d}</div>
+              {['LUN', 'MAR', 'MIE', 'JUE', 'VIE', 'SAB', 'DOM'].map((d, index) => (
+                <div key={d} className={`text-center text-[10px] font-black tracking-[0.3em] pb-4 ${index === 6 ? 'text-red-500' : 'text-gray-700'}`}>{d}</div>
               ))}
               {Array.from({ length: daysInMonth }).map((_, i) => {
                 const dayNum = i + 1;
                 const isToday = dayNum === currentDay;
                 const dateStr = `${monthCursor.getFullYear()}-${String(monthCursor.getMonth() + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
                 const dots = dayDots[dateStr] || { paid: false, pending: false, blocked: false };
+                const isSundayDay = isSunday(dateStr);
 
                 return (
                   <div
                     key={i}
                     onClick={() => { setSelectedDate(dateStr); setViewMode('dia'); }}
-                    className={`min-h-[100px] border transition-all rounded-3xl p-4 flex flex-col justify-between group cursor-pointer ${isToday ? 'bg-blue-600/10 border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.1)]' : 'bg-white/[0.01] border-white/5 hover:border-blue-500/30'}`}
+                    className={`min-h-[100px] border transition-all rounded-3xl p-4 flex flex-col justify-between group cursor-pointer ${
+                      isToday 
+                        ? 'bg-blue-600/10 border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.1)]' 
+                        : isSundayDay
+                          ? 'bg-red-500/5 border-red-500/20 hover:border-red-500/40'
+                          : 'bg-white/[0.01] border-white/5 hover:border-blue-500/30'
+                    }`}
                   >
-                    <span className={`text-lg font-black ${isToday ? 'text-blue-500' : 'text-gray-600 group-hover:text-white'}`}>{dayNum}</span>
+                    <span className={`text-lg font-black ${
+                      isToday 
+                        ? 'text-blue-500' 
+                        : isSundayDay
+                          ? 'text-red-400 group-hover:text-red-300'
+                          : 'text-gray-600 group-hover:text-white'
+                    }`}>{dayNum}</span>
+
+                    {/* Nombre del día de la semana */}
+                    <span className={`text-[8px] font-medium ${
+                      isSundayDay 
+                        ? 'text-red-500/70' 
+                        : 'text-gray-500/70'
+                    }`}>
+                      {getDayName(dateStr).slice(0, 3)}
+                    </span>
 
                     {/* Semáforo Visual Mes */}
                     <div className="flex gap-1.5">
@@ -254,6 +342,100 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
                   </div>
                 );
               })}
+            </div>
+          </div>
+        ) : viewMode === 'semana' ? (
+          /* --- MODO SEMANA: VISTA DE 7 DÍAS --- */
+          <div className="flex flex-col h-full">
+            <div className="p-8 border-b border-white/5 bg-white/[0.01]">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="p-3 bg-blue-600 rounded-2xl text-white shadow-xl shadow-blue-600/20"><CalendarDays size={20} /></div>
+                <h4 className="text-xl font-black uppercase italic tracking-tighter">
+                  Agenda Semanal
+                </h4>
+              </div>
+              
+              {/* Días de la semana */}
+              <div className="grid grid-cols-7 gap-2">
+                {getWeekDays().map((dayDate, index) => {
+                  const dayName = getDayName(dayDate);
+                  const dayNum = new Date(dayDate).getDate();
+                  const isCurrentDay = dayDate === selectedDate;
+                  const isSundayDay = isSunday(dayDate);
+                  
+                  return (
+                    <div
+                      key={dayDate}
+                      onClick={() => setSelectedDate(dayDate)}
+                      className={`p-3 rounded-xl border text-center cursor-pointer transition-all ${
+                        isCurrentDay
+                          ? 'bg-blue-600/20 border-blue-500/50'
+                          : isSundayDay
+                            ? 'bg-red-500/10 border-red-500/30'
+                            : 'bg-white/[0.02] border-white/10 hover:border-blue-500/30'
+                      }`}
+                    >
+                      <div className={`text-[9px] font-black uppercase tracking-wider mb-1 ${
+                        isSundayDay ? 'text-red-400' : 'text-gray-400'
+                      }`}>
+                        {dayName.slice(0, 3)}
+                      </div>
+                      <div className={`text-lg font-bold ${
+                        isCurrentDay 
+                          ? 'text-blue-400' 
+                          : isSundayDay
+                            ? 'text-red-400'
+                            : 'text-white'
+                      }`}>
+                        {dayNum}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            
+            {/* Vista compacta de la semana */}
+            <div className="flex-1 overflow-x-auto custom-scrollbar p-4">
+              <div className="grid grid-cols-7 gap-2 min-w-[800px]">
+                {getWeekDays().map(dayDate => {
+                  const dayCitas = agenda.filter(a => a.fecha === dayDate);
+                  const dayBloqueos = bloqueos.filter(b => b.date === dayDate);
+                  
+                  return (
+                    <div key={dayDate} className="border border-white/5 rounded-xl p-2 bg-white/[0.01]">
+                      <div className="text-[8px] text-gray-500 mb-2">
+                        {dayCitas.length} cita{dayCitas.length !== 1 ? 's' : ''}
+                        {dayBloqueos.length > 0 && ` • ${dayBloqueos.length} bloqueo${dayBloqueos.length !== 1 ? 's' : ''}`}
+                      </div>
+                      
+                      {/* Citas del día */}
+                      {dayCitas.slice(0, 3).map(cita => (
+                        <div key={cita.id} className={`text-[7px] p-1 rounded mb-1 ${
+                          cita.pagado 
+                            ? 'bg-green-500/20 text-green-400' 
+                            : 'bg-orange-500/20 text-orange-400'
+                        }`}>
+                          {cita.hora} • {cita.nombre.slice(0, 8)}
+                        </div>
+                      ))}
+                      
+                      {dayCitas.length > 3 && (
+                        <div className="text-[7px] text-gray-500">
+                          +{dayCitas.length - 3} más
+                        </div>
+                      )}
+                      
+                      {/* Bloqueos del día */}
+                      {dayBloqueos.map(bloqueo => (
+                        <div key={bloqueo.id} className="text-[7px] p-1 rounded mb-1 bg-red-500/20 text-red-400">
+                          🚫 {bloqueo.reason || 'Bloqueado'}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         ) : (

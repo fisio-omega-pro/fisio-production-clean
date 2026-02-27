@@ -136,7 +136,12 @@ class DashboardService {
     );
     return { cancel_at: res.cancel_at ?? null };
   }
-  public async createAppointment(d: any): Promise<void> { await this.request('/api/dashboard/appointment', { method: 'POST', body: JSON.stringify(d) }); }
+  public async createAppointment(d: any): Promise<{ success: boolean; conflict?: boolean; error?: string }> {
+    return this.request<{ success: boolean; conflict?: boolean; error?: string }>('/api/dashboard/appointment', { 
+      method: 'POST', 
+      body: JSON.stringify(d) 
+    });
+  }
   public async getPatientHistory(phone: string): Promise<{ paciente: any; historial: any[] }> {
     const res = await this.request<{ success: boolean; paciente: any; historial: any[] }>(
       `/api/dashboard/patient-history?phone=${encodeURIComponent(phone)}`
