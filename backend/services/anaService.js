@@ -109,11 +109,52 @@ const getClinicConfiguration = async (clinicId) => {
   }
 };
 
-// --- 📅 REAL AGENDA AVAILABILITY CHECKER ---
+// ---  REAL AGENDA AVAILABILITY CHECKER ---
 const checkAvailability = async (clinicId, requestedDate, requestedTime) => {
   try {
-    // CRITICAL: Only check if this EXACT slot exists in the fisio's agenda
-    // NEVER assume availability based on opening hours
+    // CRITICAL: First check if requested time is within clinic hours and NOT during break
+    const clinicConfig = await getClinicConfig(clinicId);
+    if (!clinicConfig || !clinicConfig.horario) {
+      return {
+        available: false,
+        reason: 'No se pudo verificar el horario de la clínica. Por favor, contacta directamente con la clínica.'
+      };
+    }
+
+    const horario = clinicConfig.horario;
+    const requestedHour = parseInt(requestedTime.split(':')[0]);
+    const apertura = parseInt(horario.apertura?.split(':')[0] || '8');
+    const cierre = parseInt(horario.cierre?.split(':')[0] || '14');  // Fin de mañana
+    const reapertura = parseInt(horario.reapertura?.split(':')[0] || '16');  // Inicio de tarde
+    const cierreFinal = parseInt(horario.cierre_final?.split(':')[0] || '21');  // Cierre definitivo
+
+    //  VERIFICACIÓN EXQUISITA DEL HORARIO DE DESCANSO
+    if (requestedHour >= cierre && requestedHour < reapertura) {
+      return {
+        available: false,
+        reason: `El horario de ${requestedTime} coincide con el descanso de la clínica (${cierre}:00-${reapertura}:00). 
+        
+Los horarios disponibles son:
+• Mañana: ${horario.apertura} - ${horario.cierre}
+• Tarde: ${horario.reapertura} - ${horario.cierre_final}
+
+¿Te gustaría otro horario dentro del horario de atención?`
+      };
+    }
+
+    //  VERIFICACIÓN DE HORARIO FUERA DE HORARIO DE ATENCIÓN
+    if (requestedHour < apertura || requestedHour > cierreFinal) {
+      return {
+        available: false,
+        reason: `El horario de ${requestedTime} está fuera del horario de atención de la clínica.
+
+Horario de atención:
+• Mañana: ${horario.apertura} - ${horario.cierre}
+• Tarde: ${horario.reapertura} - ${horario.cierre_final}
+
+Por favor, selecciona un horario dentro de estos rangos.`
+      };
+    }
 
     // Convert "hoy" and "mañana" to actual dates
     let actualDate = requestedDate;
@@ -132,7 +173,7 @@ const checkAvailability = async (clinicId, requestedDate, requestedTime) => {
       .where('hora', '==', requestedTime)
       .get();
 
-    console.log(`🔍 [ANA] Checking REAL agenda for ${requestedDate} at ${requestedTime}. Found ${agendaSnapshot.size} matches.`);
+    console.log(` [ANA] Checking REAL agenda for ${requestedDate} at ${requestedTime}. Found ${agendaSnapshot.size} matches.`);
 
     if (agendaSnapshot.empty) {
       // Get ALL available slots for the day to offer alternatives
@@ -148,13 +189,13 @@ const checkAvailability = async (clinicId, requestedDate, requestedTime) => {
         return {
           available: false,
           reason: `El horario ${requestedTime} no está disponible, pero tengo estos horarios libres hoy:
-${alternatives}
+-${alternatives}
 
 ¿Te gustaría alguno de estos horarios?`
         };
       } else {
         // Check next day
-        const tomorrow = new Date(requestedDate);
+        const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
         const tomorrowStr = `${tomorrow.getDate().toString().padStart(2, '0')}/${(tomorrow.getMonth() + 1).toString().padStart(2, '0')}/${tomorrow.getFullYear()}`;
 
@@ -170,7 +211,7 @@ ${alternatives}
           return {
             available: false,
             reason: `El horario ${requestedTime} no está disponible hoy. Para mañana (${tomorrowStr}) tengo:
-${tomorrowAlternatives}
+-${tomorrowAlternatives}
 
 ¿Te gustaría alguno de estos horarios?`
           };
@@ -221,14 +262,14 @@ ${alternatives}
     }
 
     // Slot exists and is available
-    const clinicConfig = await getClinicConfiguration(clinicId);
+    const clinicData = await getClinicConfig(clinicId);
 
     return {
       available: true,
       clinicConfig: {
-        duracion_cita: slotData.duracion || clinicConfig?.duracion_cita || 45,
-        precio_sesion: clinicConfig?.precio_sesion || 50,
-        fianza_cita: clinicConfig?.fianza_cita || 20,
+        duracion_cita: slotData.duracion || clinicData?.duracion_cita || 45,
+        precio_sesion: clinicData?.precio_sesion || 50,
+        fianza_cita: clinicData?.fianza_cita || 20,
         especialista: slotData.especialista || 'Disponible'
       }
     };
@@ -241,6 +282,16 @@ ${alternatives}
 // --- 🕐 GET REAL AGENDA SLOTS (NEVER GENERATE) ---
 const getAvailableTimeSlots = async (clinicId, requestedDate) => {
   try {
+    // CRITICAL: Get clinic config to filter break times
+    const clinicConfig = await getClinicConfig(clinicId);
+    if (!clinicConfig || !clinicConfig.horario) {
+      console.log('🔍 [ANA] No clinic config found, returning all slots');
+    }
+
+    const horario = clinicConfig?.horario;
+    const cierre = parseInt(horario?.cierre?.split(':')[0] || '14');  // Fin de mañana
+    const reapertura = parseInt(horario?.reapertura?.split(':')[0] || '16');  // Inicio de tarde
+
     // Convert "hoy" and "mañana" to actual dates
     let actualDate = requestedDate;
     if (requestedDate === 'hoy') {
@@ -269,6 +320,15 @@ const getAvailableTimeSlots = async (clinicId, requestedDate) => {
 
       // Only include slots that are marked as available in the agenda
       if (appointment.estado === 'disponible' || appointment.tipo === 'disponible') {
+        // 🚫 VERIFICACIÓN EXQUISITA: Excluir horas de descanso
+        const slotHour = parseInt(appointment.hora?.split(':')[0] || '0');
+        
+        // Si hay configuración de horario, verificar que no sea hora de descanso
+        if (horario && slotHour >= cierre && slotHour < reapertura) {
+          console.log(`🚫 [ANA] Excluding break time slot: ${appointment.hora}`);
+          continue; // Saltar esta hora, está en horario de descanso
+        }
+
         agendaSlots.push({
           hora: appointment.hora,
           disponible: true,
