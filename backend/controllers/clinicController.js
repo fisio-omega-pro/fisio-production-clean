@@ -282,7 +282,27 @@ const createAppointment = async (req, res) => {
     const d = req.body || {};
     const fecha = String(d.fecha || '').trim();
     const hora = String(d.hora || '').trim();
+    const specialistId = String(d.specialistId || d.docId || '').trim() || null;
+    
     if (!fecha || !hora) return res.status(400).json({ success: false, error: 'fecha y hora requeridos' });
+
+    // 🔥 VALIDACIÓN CRÍTICA: Verificar si ya existe una cita para la misma fecha, hora y especialista
+    const existingCitaQuery = await db.collection('citas')
+      .where('clinic_id', '==', req.clinicId)
+      .where('fecha', '==', fecha)
+      .where('hora', '==', hora)
+      .where('specialist_id', '==', specialistId)
+      .limit(1)
+      .get();
+    
+    if (!existingCitaQuery.empty) {
+      console.log(`🚨 [DUPLICATE] Intento de cita duplicada: ${fecha} ${hora} para especialista ${specialistId}`);
+      return res.status(409).json({ 
+        success: false, 
+        error: 'Ya existe una cita agendada para esta fecha y hora',
+        conflict: true
+      });
+    }
 
     const payload = {
       clinic_id: req.clinicId,
@@ -291,7 +311,7 @@ const createAppointment = async (req, res) => {
       email: String(d.email || '').trim() || '',
       fecha,
       hora,
-      specialist_id: String(d.specialistId || d.docId || '').trim() || null,
+      specialist_id: specialistId,
       estado: String(d.estado || 'pendiente'),
       pagado: !!d.pagado,
       created_at: Timestamp.now(),

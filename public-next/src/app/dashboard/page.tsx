@@ -105,12 +105,26 @@ export default function DashboardOmega() {
 
   const handleCreateAppt = async () => {
     try {
-      await dashboardAPI.createAppointment(apptData);
-      state.setModalType(null);
-      setApptData({ nombre: '', telefono: '', email: '', fecha: '', hora: '', docId: '' });
-      state.refreshData();
-    } catch (error) {
+      const response = await dashboardAPI.createAppointment(apptData);
+      
+      if (response.success) {
+        state.setModalType(null);
+        setApptData({ nombre: '', telefono: '', email: '', fecha: '', hora: '', docId: '' });
+        state.refreshData();
+      } else if (response.conflict) {
+        // Error de cita duplicada
+        alert('⚠️ Ya existe una cita agendada para esta fecha y hora. Por favor, selecciona otro horario.');
+      } else {
+        alert('❌ Error al crear la cita. Por favor, inténtalo de nuevo.');
+      }
+    } catch (error: any) {
       console.error('Error creating appointment:', error);
+      
+      if (error.response?.status === 409) {
+        alert('⚠️ Ya existe una cita agendada para esta fecha y hora. Por favor, selecciona otro horario.');
+      } else {
+        alert('❌ Error al crear la cita. Por favor, inténtalo de nuevo.');
+      }
     }
   };
 
