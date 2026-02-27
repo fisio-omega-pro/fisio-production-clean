@@ -201,27 +201,14 @@ const login = async (req, res, next) => {
       console.log(`🔐 [LOGIN] Campos disponibles: ${Object.keys(data).sort().join(', ')}`);
 
       // Intentar ambos campos por si acaso hay inconsistencia en la DB
-      const passwordToCheck = String(data.password || data.password_hash || '').trim();
+      const passwordField = data.password || data.password_hash || '';
       console.log(`🔐 [LOGIN] password exists: ${!!data.password} (${data.password?.length || 0} chars), password_hash exists: ${!!data.password_hash} (${data.password_hash?.length || 0} chars)`);
-      console.log(`🔐 [LOGIN] Hash a usar: ${passwordToCheck.substring(0, 10)}... (TOTAL: ${passwordToCheck.length} chars)`);
+      console.log(`🔐 [LOGIN] Hash a usar: ${passwordField.substring(0, 10)}... (TOTAL: ${passwordField.length} chars)`);
 
       const inputPassword = String(password || '').trim();
-      
-      // Primero intentar bcrypt
-      let ok = false;
-      if (passwordToCheck.length > 20) { // Probablemente un hash
-        ok = await bcrypt.compare(inputPassword, passwordToCheck);
-        console.log(`🔐 [LOGIN] Comparación bcrypt: INPUT_LEN=${inputPassword.length}, HASH_MATCH=${ok}`);
-      } else {
-        // Fallback a texto plano para pruebas
-        ok = inputPassword === passwordToCheck;
-        console.log(`🔐 [LOGIN] Comparación texto plano: INPUT="${inputPassword}" vs FIELD="${passwordToCheck}" MATCH=${ok}`);
-      }
-
-      if (!ok) {
-        console.warn(`🚫 [LOGIN] Error de contraseña para: ${normalizedEmail}`);
-        return res.status(401).json({ success: false, error: 'Credenciales incorrectas' });
-      }
+      const ok = await bcrypt.compare(inputPassword, String(passwordField || ''));
+      console.log(`🔐 [LOGIN] Password match: ${ok}`);
+      if (!ok) return res.status(401).json({ success: false, error: 'Credenciales incorrectas' });
 
       const token = jwt.sign({ clinicId: doc.id }, env.JWT_SECRET, { expiresIn: '30d' });
       console.log(`🔐 [LOGIN] OK: ${doc.id}`);
