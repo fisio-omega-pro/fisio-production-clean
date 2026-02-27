@@ -186,15 +186,30 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
 
   const findApptForSlot = (specId: string, hour: string) => {
     const hourNum = Number(String(hour || '').split(':')[0] || '0');
-    const list = agendaForDate.filter((a) => (effectiveSpec === 'all' || String(a.specialist_id || '') === specId));
+    
+    // Si es admin o no hay especialistas, mostrar todas las citas del día
+    let list;
+    if (specId === 'admin' || effectiveSpec === 'all') {
+      list = agendaForDate; // Todas las citas del día
+    } else {
+      list = agendaForDate.filter((a) => String(a.specialist_id || '') === specId);
+    }
+    
     return list.find((a) => {
       const h = String(a.hora || '');
       const hNum = Number(h.split(':')[0] || '0');
-      const aSpecId = String(a.specialist_id || '').trim();
 
       const isCorrectTime = hNum === hourNum;
-      const isForThisSpec = aSpecId === specId || (specId === 'admin' && (!aSpecId || aSpecId === 'null'));
-
+      
+      // Para admin, aceptar cualquier cita (sin especialista o con especialista)
+      if (specId === 'admin') {
+        return isCorrectTime;
+      }
+      
+      // Para otros especialistas, verificar coincidencia
+      const aSpecId = String(a.specialist_id || '').trim();
+      const isForThisSpec = !aSpecId || aSpecId === 'null' || aSpecId === specId;
+      
       return isCorrectTime && isForThisSpec;
     }) || null;
   };
@@ -209,6 +224,17 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
       return hourNum >= startHour && hourNum < endHour;
     });
   };
+
+  // Debug: Mostrar información de renderizado
+  console.log('🎯 RENDERIZADO DIARIO:', {
+    viewMode,
+    selectedDate,
+    equipoCount: equipo?.length || 0,
+    displayTeam: displayTeam.map(t => ({ id: t.id, nombre: t.nombre })),
+    agendaForDateCount: agendaForDate.length,
+    hoursCount: hours.length,
+    effectiveSpec
+  });
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500 h-full font-sans">
