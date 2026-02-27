@@ -1,5 +1,11 @@
 import { Metadata } from 'next';
 
+export const viewport = {
+  themeColor: '#0066ff',
+  width: 'device-width',
+  initialScale: 1,
+};
+
 export const metadata: Metadata = {
   title: 'FisioTool Pro - Plataforma Accesible para Fisioterapeutas Invidentes',
   description: 'Software de gestión clínica diseñado específicamente para fisioterapeutas invidentes. Control total por voz, agenda inteligente y blindaje económico. Navegación 100% accesible.',

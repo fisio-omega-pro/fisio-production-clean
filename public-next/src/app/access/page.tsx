@@ -53,7 +53,9 @@ export default function LandingProfesional() {
   const [hasStarted, setHasStarted] = useState(false);
   const [currentSection, setCurrentSection] = useState<SectionKey>('hero');
   const [isPaused, setIsPaused] = useState(false);
-  
+  const [speechRate, setSpeechRate] = useState(0.95);
+  const [highContrast, setHighContrast] = useState(false);
+
   const synth = useRef<SpeechSynthesis | null>(null);
   const voices = useRef<{ ana: SpeechSynthesisVoice | null, lex: SpeechSynthesisVoice | null }>({ ana: null, lex: null });
 
@@ -67,7 +69,7 @@ export default function LandingProfesional() {
     };
     loadVoices();
     if (synth.current) synth.current.onvoiceschanged = loadVoices;
-    
+
     // Anunciar arrival para lectores de pantalla
     const announceArrival = () => {
       const announcement = "Bienvenido a FisioTool Pro. Plataforma accesible para fisioterapeutas invidentes. Presiona espacio para pausar, R para repetir, o tabula para navegar por secciones.";
@@ -77,7 +79,7 @@ export default function LandingProfesional() {
       utterance.volume = 0.8;
       setTimeout(() => synth.current?.speak(utterance), 1000);
     };
-    
+
     if (hasStarted) announceArrival();
   }, [hasStarted]);
 
@@ -89,24 +91,22 @@ export default function LandingProfesional() {
     const section = SCRIPTS[key];
     // Dividimos el texto por puntos para que la API no se sature
     const sentences = section.content.match(/[^.!?]+[.!?]+/g) || [section.content];
-    
+
     sentences.forEach((sentence, index) => {
       const utterance = new SpeechSynthesisUtterance(sentence.trim());
       utterance.voice = section.persona === 'Ana' ? voices.current.ana : voices.current.lex;
       utterance.rate = section.persona === 'Ana' ? speechRate : speechRate * 0.9; // Lex un poco más lento
       utterance.pitch = section.persona === 'Ana' ? 1.0 : 0.8;
       utterance.volume = 0.9;
-      
+
       // Pequeña pausa entre frases para mejor comprensión
-      if (index > 0) {
-        utterance.pause = 100;
-      }
-      
+      // (No existe propiedad 'pause' en Utterance, se maneja por el flujo natural)
+
       utterance.onstart = () => {
         setCurrentSection(key);
         setIsPaused(false);
       };
-      
+
       utterance.onend = () => {
         // Anunciar final de sección para lectores de pantalla
         if (index === sentences.length - 1) {
@@ -115,7 +115,7 @@ export default function LandingProfesional() {
           }, 500);
         }
       };
-      
+
       synth.current?.speak(utterance);
     });
   }, [speechRate]);
@@ -129,7 +129,7 @@ export default function LandingProfesional() {
     const handleKeys = (e: KeyboardEvent) => {
       // Evitar interferencia con lectores de pantalla
       if (e.ctrlKey || e.altKey) return;
-      
+
       switch (e.key.toLowerCase()) {
         case ' ':
           e.preventDefault();
@@ -204,7 +204,7 @@ export default function LandingProfesional() {
           break;
       }
     };
-    
+
     window.addEventListener('keydown', handleKeys);
     return () => window.removeEventListener('keydown', handleKeys);
   }, [currentSection, speak]);
@@ -222,22 +222,16 @@ export default function LandingProfesional() {
     announceToScreenReader(helpText);
   };
 
-  // Control de velocidad de voz
-  const [speechRate, setSpeechRate] = useState(0.95);
-  
   const adjustSpeechRate = (delta: number) => {
     const newRate = Math.max(0.5, Math.min(1.5, speechRate + delta));
     setSpeechRate(newRate);
     announceToScreenReader(`Velocidad de voz ajustada a ${Math.round(newRate * 100)} por ciento`);
   };
 
-  // Estado para modo alto contraste
-  const [highContrast, setHighContrast] = useState(false);
-
   if (!hasStarted) {
     return (
-      <div 
-        onClick={() => { setHasStarted(true); speak('hero'); }} 
+      <div
+        onClick={() => { setHasStarted(true); speak('hero'); }}
         style={{
           ...styles.curtain,
           background: highContrast ? '#000' : styles.curtain.background,
@@ -264,10 +258,10 @@ export default function LandingProfesional() {
         <div style={styles.startBtn}>
           ACTIVAR AUDIOGUÍA PROFESIONAL
         </div>
-        <div style={{marginTop: '3rem', fontSize: '1rem', opacity: 0.6}}>
-          <button 
+        <div style={{ marginTop: '3rem', fontSize: '1rem', opacity: 0.6 }}>
+          <button
             onClick={(e) => { e.stopPropagation(); setHighContrast(!highContrast); }}
-            style={{background: 'none', border: '1px solid #666', color: '#fff', padding: '10px 20px', borderRadius: '5px', cursor: 'pointer'}}
+            style={{ background: 'none', border: '1px solid #666', color: '#fff', padding: '10px 20px', borderRadius: '5px', cursor: 'pointer' }}
             aria-label={highContrast ? "Desactivar modo alto contraste" : "Activar modo alto contraste"}
           >
             {highContrast ? 'CONTRASTE NORMAL' : 'ALTO CONTRASTE'}
@@ -282,15 +276,15 @@ export default function LandingProfesional() {
       {/* Barra de estado de voz */}
       <header style={styles.voiceBar} role="status" aria-live="polite" aria-atomic="true">
         <Volume2 size={24} aria-hidden="true" />
-        <span style={{flex: 1}} aria-label="Estado actual del audio">
+        <span style={{ flex: 1 }} aria-label="Estado actual del audio">
           HABLANDO: {SCRIPTS[currentSection].persona.toUpperCase()} - {SCRIPTS[currentSection].title}
         </span>
         {isPaused && <span style={styles.pauseBadge} aria-label="Audio en pausa">PAUSA</span>}
-        <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
-          <span style={{fontSize: '12px', opacity: 0.8}} aria-label={`Velocidad de voz actual ${Math.round(speechRate * 100)}%`}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <span style={{ fontSize: '12px', opacity: 0.8 }} aria-label={`Velocidad de voz actual ${Math.round(speechRate * 100)}%`}>
             Velocidad: {Math.round(speechRate * 100)}%
           </span>
-          {highContrast && <span style={{background: '#fff', color: '#000', padding: '2px 8px', borderRadius: '3px', fontSize: '11px'}} aria-label="Modo alto contraste activado">ALTO CONTRASTE</span>}
+          {highContrast && <span style={{ background: '#fff', color: '#000', padding: '2px 8px', borderRadius: '3px', fontSize: '11px' }} aria-label="Modo alto contraste activado">ALTO CONTRASTE</span>}
         </div>
         <div style={styles.controlsHint} aria-label="Controles de teclado">
           [Espacio] Pausar | [R] Repetir | [+/-] Velocidad | [T] Contraste | [?] Ayuda
@@ -301,48 +295,48 @@ export default function LandingProfesional() {
         {(Object.keys(SCRIPTS) as SectionKey[]).map((key, index) => {
           const s = SCRIPTS[key];
           const sectionTitle = `Sección ${index + 1}: ${s.title} - Voz de ${s.persona}`;
-          
+
           return (
-            <section 
-              key={key} 
+            <section
+              key={key}
               id={key}
-              tabIndex={0} 
+              tabIndex={0}
               role="region"
               aria-labelledby={`${key}-title`}
               aria-describedby={`${key}-content`}
               onFocus={() => speak(key)}
               style={{
-                ...styles.section, 
+                ...styles.section,
                 background: s.persona === 'Lex' ? '#080c14' : (key === 'faq' ? '#0a0a0a' : 'transparent')
               }}
             >
               <div style={styles.container}>
                 <header style={styles.personaBadge}>
-                  {s.persona === 'Ana' ? 
-                    <HeartPulse size={18} aria-hidden="true"/> : 
-                    <ShieldCheck size={18} aria-hidden="true"/>
+                  {s.persona === 'Ana' ?
+                    <HeartPulse size={18} aria-hidden="true" /> :
+                    <ShieldCheck size={18} aria-hidden="true" />
                   }
                   <span aria-label={`Voz actual: ${s.persona}`}>VOZ: {s.persona.toUpperCase()}</span>
                 </header>
-                
+
                 <h2 id={`${key}-title`} style={styles.h2} aria-label={s.title}>
                   {s.title}
                 </h2>
-                
+
                 <div style={styles.contentBox} role="document">
                   <p id={`${key}-content`} style={styles.p} aria-label={`Contenido narrado por ${s.persona}`}>
                     {s.content}
                   </p>
                 </div>
-                
+
                 <footer>
-                  <button 
-                    onClick={() => speak(key)} 
-                    style={styles.replayBtn} 
+                  <button
+                    onClick={() => speak(key)}
+                    style={styles.replayBtn}
                     aria-label={`Repetir sección ${s.title} narrada por ${s.persona}`}
                     title={`Repetir sección ${s.title}`}
                   >
-                    <RotateCcw size={18} aria-hidden="true" /> 
+                    <RotateCcw size={18} aria-hidden="true" />
                     Volver a escuchar sección
                   </button>
                 </footer>
@@ -352,21 +346,21 @@ export default function LandingProfesional() {
         })}
 
         {/* Sección de llamada a la acción */}
-        <section 
-          style={styles.ctaSection} 
+        <section
+          style={styles.ctaSection}
           role="region"
           aria-labelledby="cta-title"
           aria-describedby="cta-description"
         >
           <div style={styles.container}>
-            <h2 id="cta-title" style={{fontSize: '2.5rem', fontWeight: 900, marginBottom: '2rem', color: '#fff'}}>
+            <h2 id="cta-title" style={{ fontSize: '2.5rem', fontWeight: 900, marginBottom: '2rem', color: '#fff' }}>
               RECLAMA TU MES DE LIBERTAD
             </h2>
-            <p id="cta-description" style={{fontSize: '1.5rem', marginBottom: '3rem', opacity: 0.9, lineHeight: 1.6}}>
-              Has llegado al final del recorrido auditivo, pero este es solo el comienzo de tu nueva vida. 
+            <p id="cta-description" style={{ fontSize: '1.5rem', marginBottom: '3rem', opacity: 0.9, lineHeight: 1.6 }}>
+              Has llegado al final del recorrido auditivo, pero este es solo el comienzo de tu nueva vida.
               No dejes que esta oportunidad se pierda en el ruido del día a día.
             </p>
-            <button 
+            <button
               style={styles.hugeBtn}
               onClick={() => window.location.href = '/setup?plan=solo&is_blind=1'}
               onFocus={() => speak('cta')}
@@ -375,7 +369,7 @@ export default function LandingProfesional() {
             >
               RECLAMAR MI MES GRATIS AHORA
             </button>
-            <p style={{marginTop: '2rem', opacity: 0.6}} aria-label="Instrucción de teclado">
+            <p style={{ marginTop: '2rem', opacity: 0.6 }} aria-label="Instrucción de teclado">
               Presiona Enter para registrarte instantáneamente, o C para escuchar esta sección nuevamente
             </p>
           </div>
@@ -383,11 +377,11 @@ export default function LandingProfesional() {
       </main>
 
       {/* Pie de página con información adicional */}
-      <footer style={{padding: '3rem 5%', textAlign: 'center', background: '#000', borderTop: '1px solid rgba(255,255,255,0.1)'}} role="contentinfo">
-        <p style={{opacity: 0.6, fontSize: '1rem'}}>
+      <footer style={{ padding: '3rem 5%', textAlign: 'center', background: '#000', borderTop: '1px solid rgba(255,255,255,0.1)' }} role="contentinfo">
+        <p style={{ opacity: 0.6, fontSize: '1rem' }}>
           FisioTool Pro - Independencia total para fisioterapeutas invidentes
         </p>
-        <p style={{opacity: 0.4, fontSize: '0.9rem', marginTop: '1rem'}}>
+        <p style={{ opacity: 0.4, fontSize: '0.9rem', marginTop: '1rem' }}>
           Presiona ? en cualquier momento para escuchar los atajos de teclado disponibles
         </p>
       </footer>

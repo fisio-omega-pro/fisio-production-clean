@@ -1,10 +1,12 @@
 import { Metadata } from 'next';
 
-export const metadata: Metadata = {
-  title: 'Ana - Asistente FisioTool',
-  description: 'Chatea con Ana, tu asistente de fisioterapia personal',
-  manifest: '/manifest.json',
+export const viewport = {
   themeColor: '#075e54',
+  width: 'device-width',
+  initialScale: 1,
+};
+
+export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
