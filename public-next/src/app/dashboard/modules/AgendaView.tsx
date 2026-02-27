@@ -79,13 +79,13 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
     
     const hArray = [];
     
-    // Horas de la mañana (apertura hasta cierre)
-    for (let i = apertura; i <= cierre; i++) {
+    // 🚫 PRECISIÓN DE RELOJERO: Mañana hasta cierre - 1 hora
+    for (let i = apertura; i < cierre; i++) {
       hArray.push(`${String(i).padStart(2, '0')}:00`);
     }
     
-    // Horas de la tarde (reapertura hasta cierre final)
-    for (let i = reapertura; i <= cierreFinal; i++) {
+    // 🚫 PRECISIÓN DE RELOJERO: Tarde hasta cierre final - 1 hora
+    for (let i = reapertura; i < cierreFinal; i++) {
       hArray.push(`${String(i).padStart(2, '0')}:00`);
     }
     
