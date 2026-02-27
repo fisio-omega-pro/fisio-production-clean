@@ -388,12 +388,18 @@ const getDashboardData = async (req, res, next) => {
     const [clinicDoc, equipoSnap, pacientesSnap, citasSnap, bonosSnap] = await Promise.all([
       db.collection('clinicas').doc(req.clinicId).get(),
       db.collection('clinicas').doc(req.clinicId).collection('equipo').get(),
-      db.collection('pacientes').where('clinic_id', '==', req.clinicId).get(),
-      db.collection('citas').where('clinic_id', '==', req.clinicId).get(),
-      db.collection('bonos').where('clinic_id', '==', req.clinicId).get()
+      db.collection('pacientes').where('clinicId', '==', req.clinicId).get(),
+      db.collection('citas').where('clinicId', '==', req.clinicId).get(),
+      db.collection('bonos').where('clinicId', '==', req.clinicId).get()
     ]);
+    console.log('🔍 [DASHBOARD] ClinicDoc exists:', clinicDoc.exists);
+    console.log('🔍 [DASHBOARD] ClinicId:', req.clinicId);
     // ... (retorno de datos)
     const data = clinicDoc.data();
+    console.log('🔍 [DASHBOARD] Clinic data:', data ? '✅ Found' : '❌ Null');
+    console.log('🔍 [DASHBOARD] Email:', data?.email);
+    console.log('🔍 [DASHBOARD] Logo URL:', data?.logo_url);
+    console.log('🔍 [DASHBOARD] Plan:', data?.plan);
     // Referidos: asegurar que la clínica tenga código (best-effort)
     let referralCode = String(data?.referral_code || '').trim().toUpperCase();
     if (!referralCode) {
