@@ -128,29 +128,57 @@ const checkAvailability = async (clinicId, requestedDate, requestedTime) => {
     const reapertura = parseInt(horario.reapertura?.split(':')[0] || '16');  // Inicio de tarde
     const cierreFinal = parseInt(horario.cierre_final?.split(':')[0] || '21');  // Cierre definitivo
 
-    //  VERIFICACIÓN EXQUISITA DEL HORARIO DE DESCANSO
+    // 🚫 VERIFICACIÓN EXQUISITA: Última hora posible (cierre - 1 hora)
+    const ultimaHoraManana = cierre - 1;
+    const ultimaHoraTarde = cierreFinal - 1;
+
+    // 🚫 VERIFICACIÓN EXQUISITA DEL HORARIO DE DESCANSO
     if (requestedHour >= cierre && requestedHour < reapertura) {
       return {
         available: false,
         reason: `El horario de ${requestedTime} coincide con el descanso de la clínica (${cierre}:00-${reapertura}:00). 
         
 Los horarios disponibles son:
-• Mañana: ${horario.apertura} - ${horario.cierre}
-• Tarde: ${horario.reapertura} - ${horario.cierre_final}
+• Mañana: ${horario.apertura} - ${ultimaHoraManana}:00
+• Tarde: ${horario.reapertura} - ${ultimaHoraTarde}:00
 
 ¿Te gustaría otro horario dentro del horario de atención?`
       };
     }
 
-    //  VERIFICACIÓN DE HORARIO FUERA DE HORARIO DE ATENCIÓN
+    // 🚫 VERIFICACIÓN EXQUISITA: Última hora de cita (no puede ser a la hora de cierre)
+    if (requestedHour >= cierreFinal) {
+      return {
+        available: false,
+        reason: `El horario de ${requestedTime} no es válido para una cita porque la clínica cierra a las ${cierreFinal}:00.
+        
+La última hora posible para cita es hasta las ${ultimaHoraTarde}:00.
+
+¿Te gustaría otro horario?`
+      };
+    }
+
+    // 🚫 VERIFICACIÓN EXQUISITA: Última hora de mañana (no puede ser a la hora de cierre de mañana)
+    if (requestedHour >= cierre) {
+      return {
+        available: false,
+        reason: `El horario de ${requestedTime} no es válido para una cita porque la clínica cierra por la mañana a las ${cierre}:00.
+        
+La última hora posible para cita por la mañana es hasta las ${ultimaHoraManana}:00.
+
+¿Te gustaría otro horario?`
+      };
+    }
+
+    // 🚫 VERIFICACIÓN DE HORARIO FUERA DE HORARIO DE ATENCIÓN
     if (requestedHour < apertura || requestedHour > cierreFinal) {
       return {
         available: false,
         reason: `El horario de ${requestedTime} está fuera del horario de atención de la clínica.
 
 Horario de atención:
-• Mañana: ${horario.apertura} - ${horario.cierre}
-• Tarde: ${horario.reapertura} - ${horario.cierre_final}
+• Mañana: ${horario.apertura} - ${ultimaHoraManana}:00
+• Tarde: ${horario.reapertura} - ${ultimaHoraTarde}:00
 
 Por favor, selecciona un horario dentro de estos rangos.`
       };
@@ -282,7 +310,7 @@ ${alternatives}
 // --- 🕐 GET REAL AGENDA SLOTS (NEVER GENERATE) ---
 const getAvailableTimeSlots = async (clinicId, requestedDate) => {
   try {
-    // CRITICAL: Get clinic config to filter break times
+    // CRITICAL: Get clinic config to filter break times and last hour
     const clinicConfig = await getClinicConfig(clinicId);
     if (!clinicConfig || !clinicConfig.horario) {
       console.log('🔍 [ANA] No clinic config found, returning all slots');
@@ -291,6 +319,11 @@ const getAvailableTimeSlots = async (clinicId, requestedDate) => {
     const horario = clinicConfig?.horario;
     const cierre = parseInt(horario?.cierre?.split(':')[0] || '14');  // Fin de mañana
     const reapertura = parseInt(horario?.reapertura?.split(':')[0] || '16');  // Inicio de tarde
+    const cierreFinal = parseInt(horario?.cierre_final?.split(':')[0] || '21');  // Cierre definitivo
+
+    // 🚫 PRECISIÓN DE RELOJERO: Últimas horas válidas para citas
+    const ultimaHoraManana = cierre - 1;  // Si cierra a 14, última cita es 13
+    const ultimaHoraTarde = cierreFinal - 1;  // Si cierra a 21, última cita es 20
 
     // Convert "hoy" and "mañana" to actual dates
     let actualDate = requestedDate;
@@ -320,13 +353,28 @@ const getAvailableTimeSlots = async (clinicId, requestedDate) => {
 
       // Only include slots that are marked as available in the agenda
       if (appointment.estado === 'disponible' || appointment.tipo === 'disponible') {
-        // 🚫 VERIFICACIÓN EXQUISITA: Excluir horas de descanso
+        // 🚫 VERIFICACIÓN EXQUISITA: Excluir horas de descanso y última hora
         const slotHour = parseInt(appointment.hora?.split(':')[0] || '0');
         
-        // Si hay configuración de horario, verificar que no sea hora de descanso
-        if (horario && slotHour >= cierre && slotHour < reapertura) {
-          console.log(`🚫 [ANA] Excluding break time slot: ${appointment.hora}`);
-          continue; // Saltar esta hora, está en horario de descanso
+        // Si hay configuración de horario, verificar precision
+        if (horario) {
+          // 🚫 Excluir horas de descanso (14:00-16:00)
+          if (slotHour >= cierre && slotHour < reapertura) {
+            console.log(`🚫 [ANA] Excluding break time slot: ${appointment.hora}`);
+            continue; // Saltar esta hora, está en horario de descanso
+          }
+
+          // 🚫 Excluir última hora de mañana (14:00)
+          if (slotHour >= cierre) {
+            console.log(`🚫 [ANA] Excluding last morning hour slot: ${appointment.hora} (clinic closes at ${cierre}:00)`);
+            continue;
+          }
+
+          // 🚫 Excluir última hora de tarde (21:00)
+          if (slotHour >= cierreFinal) {
+            console.log(`🚫 [ANA] Excluding last evening hour slot: ${appointment.hora} (clinic closes at ${cierreFinal}:00)`);
+            continue;
+          }
         }
 
         agendaSlots.push({
