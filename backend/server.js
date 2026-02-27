@@ -1,4 +1,5 @@
 console.log("🔥 ¡ESTOY VIVO! Server.js iniciado - PRUEBA DE FUEGO DEL EXPERTO");
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 
 const express = require('express');
 const app = express();
@@ -82,12 +83,12 @@ async function initialize(options = {}) {
     corsOriginsRaw === '*'
       ? '*'
       : (origin, cb) => {
-          if (!origin) return cb(null, true);
-          if (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) return cb(null, true);
-          if (allowList && allowList.includes(origin)) return cb(null, true);
-          if (isOriginAllowed(origin)) return cb(null, true);
-          return cb(new Error('CORS blocked'), false);
-        };
+        if (!origin) return cb(null, true);
+        if (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) return cb(null, true);
+        if (allowList && allowList.includes(origin)) return cb(null, true);
+        if (isOriginAllowed(origin)) return cb(null, true);
+        return cb(new Error('CORS blocked'), false);
+      };
 
   app.use(cors({
     origin: corsOrigin,
@@ -127,7 +128,7 @@ async function initialize(options = {}) {
   // Rutas de diagnóstico (sin auth)
   const diagnostics = require('./routes/diagnostics');
   app.use('/diagnostics', diagnostics);
-  
+
   // 🧱 Rate limiting: general API y límite estricto en auth (anti brute-force)
   const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -165,7 +166,7 @@ async function initialize(options = {}) {
   app.post('/vincular-banco-profesional', express.json(), async (req, res) => {
     try {
       const clinicController = require('./controllers/clinicController');
-      await clinicController.vincularBancoProfesional(req, res, () => {});
+      await clinicController.vincularBancoProfesional(req, res, () => { });
     } catch (error) {
       console.error('🔥 [STRIPE_CONNECT] Error en endpoint /vincular-banco-profesional:', error);
       res.status(500).json({ success: false, error: 'Error interno del servidor' });
@@ -176,7 +177,7 @@ async function initialize(options = {}) {
   app.post('/webhook/stripe-connect', express.raw({ type: 'application/json' }), async (req, res) => {
     try {
       const clinicController = require('./controllers/clinicController');
-      await clinicController.handleStripeConnectWebhook(req, res, () => {});
+      await clinicController.handleStripeConnectWebhook(req, res, () => { });
     } catch (error) {
       console.error('🔥 [WEBHOOK] Error en endpoint /webhook/stripe-connect:', error);
       res.status(500).json({ error: 'Error interno del servidor' });
@@ -251,7 +252,7 @@ async function initialize(options = {}) {
         console.error('🔥 [CRON] Error en recaptación:', e.message);
       }
     }, 5 * 60 * 1000); // 5 minutos
-    
+
     // Primera revisión inmediata al iniciar
     setTimeout(() => readEmails().catch(e => console.error('🔥 Error en primera revisión:', e)), 10000);
   }

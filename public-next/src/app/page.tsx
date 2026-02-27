@@ -19,31 +19,36 @@ export const dynamic = 'force-dynamic';
 export default function LandingPage() {
   // Efecto visual de fondo (Sutil y elegante)
   const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
+  const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
+    setMounted(true);
     const handleMouse = (e: MouseEvent) => {
-      setMousePos({ 
-        x: (e.clientX / window.innerWidth) * 100, 
-        y: (e.clientY / window.innerHeight) * 100 
+      setMousePos({
+        x: (e.clientX / window.innerWidth) * 100,
+        y: (e.clientY / window.innerHeight) * 100
       });
     };
     window.addEventListener('mousemove', handleMouse);
     return () => window.removeEventListener('mousemove', handleMouse);
   }, []);
 
+  if (!mounted) return null;
+
   return (
-    <main style={{ 
-      backgroundColor: '#020305', 
-      minHeight: '100vh', 
-      color: '#fff', 
+    <main style={{
+      backgroundColor: '#020305',
+      minHeight: '100vh',
+      color: '#fff',
       fontFamily: '"Inter", sans-serif',
       position: 'relative',
       overflowX: 'hidden'
     }}>
-      
+
       {/* FONDO INTERACTIVO */}
-      <div style={{ 
-        position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none', 
-        background: `radial-gradient(circle at ${mousePos.x}% ${mousePos.y}%, rgba(0, 102, 255, 0.08) 0%, transparent 40%)` 
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none',
+        background: `radial-gradient(circle at ${mousePos.x}% ${mousePos.y}%, rgba(0, 102, 255, 0.08) 0%, transparent 40%)`
       }} />
 
       {/* Bloque 1: Hero. Bloque 2: Video presentación (único vídeo). Sin testimonios. */}

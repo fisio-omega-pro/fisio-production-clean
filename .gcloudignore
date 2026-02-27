@@ -26,3 +26,5 @@ README-cloudshell.txt
 *.swp
 backend/config/key.json
 backend/config/service-key.json
+**/.env
+**/backend/.env

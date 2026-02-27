@@ -44,6 +44,11 @@ export default function DashboardOmega() {
   const { isRecording, transcript, toggleRecording, setTranscript } = useVoiceAssistant(state.voiceEnabled);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const lastSpokenTab = useRef<string>('');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // DATOS DE FORMULARIOS
   const [apptData, setApptData] = useState({ nombre: '', telefono: '', email: '', fecha: '', hora: '', docId: '' });
@@ -142,10 +147,11 @@ export default function DashboardOmega() {
   };
 
   const needsSubscription = !state.configStatus?.hasSubscription;
-  const needsStripe = false; // Temporarily disabled for testing - !state.configStatus?.hasStripe;
-  const needsLogo = !state.clinicData?.logo_url;
+  // Siempre requerir Stripe Connect después del pago, hasta que esté configurado
+  const needsStripe = !state.configStatus?.hasStripe || (!state.clinicData?.stripe_account_id && state.configStatus?.hasSubscription);
+  const needsLogo = !state.clinicData?.logo_url || state.clinicData?.logo_url.includes('placeholder');
   const needsPatients = state.pacientes.length === 0;
-  const needsSetup = !state.isLoading && (needsStripe || needsLogo || needsPatients);
+  const needsSetup = !state.isLoading && (needsStripe || needsLogo || needsPatients || needsSubscription);
   const isBlocked = needsSetup; // Bloqueo real del dashboard
 
   const renderContent = () => {
@@ -182,6 +188,8 @@ export default function DashboardOmega() {
     }
   };
 
+  if (!mounted) return null;
+
   return (
     <DashboardLayout activeTab={state.activeTab} onTabChange={state.setActiveTab} navItems={navItemsFiltered}>
       {/* BLOQUEO COMPLETO DEL DASHBOARD - PASOS OBLIGATORIOS */}
@@ -189,7 +197,7 @@ export default function DashboardOmega() {
         <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-6" role="dialog" aria-modal="true" aria-labelledby="setup-title">
           <div className="bg-gradient-to-br from-[#0a0b10] to-black rounded-3xl border border-red-500/30 p-8 max-w-2xl w-full">
             <div className="text-center mb-8">
-              <h1 id="setup-title" className="text-3xl font-black text-white mb-2">CONFIGURACIÓN OBLIGATORIA</h1>
+              <h1 id="setup-title" className="text-3xl font-black text-white mb-2">🚀 CONFIGURACIÓN OMEGA (v2.2)</h1>
               <p className="text-gray-400">Completa estos pasos IMPRESCINDIBLES para operar</p>
               {state.clinicData?.is_blind && (
                 <p className="text-blue-400 text-sm mt-2">
@@ -256,11 +264,63 @@ export default function DashboardOmega() {
               </div>
             </div>
 
+            {/* PASO 3: IBAN / STRIPE CONNECT - IMPRESCINDIBLE */}
+            <div className={`mb-6 p-4 rounded-2xl border ${needsStripe ? 'border-red-500/30 bg-red-500/5' : 'border-green-500/30 bg-green-500/5'}`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${needsStripe ? 'bg-red-500' : 'bg-green-500'}`}>
+                    <span className="text-white font-bold">3</span>
+                  </div>
+                  <div>
+                    <h3 className="text-white font-semibold">Vincular Banco (IBAN)</h3>
+                    <p className="text-gray-400 text-sm">Para recibir los pagos de tus pacientes</p>
+                  </div>
+                </div>
+                {needsStripe ? (
+                  <button
+                    onClick={() => state.setModalType('stripe_connect')}
+                    className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-black hover:bg-red-600 transition"
+                  >
+                    Configurar Cobros
+                  </button>
+                ) : (
+                  <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                    <span className="text-white">✓</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* PASO 4: SUSCRIPCIÓN - IMPRESCINDIBLE */}
+            <div className={`mb-6 p-4 rounded-2xl border ${needsSubscription ? 'border-red-500/30 bg-red-500/5' : 'border-green-500/30 bg-green-500/5'}`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${needsSubscription ? 'bg-red-500' : 'bg-green-500'}`}>
+                    <span className="text-white font-bold">4</span>
+                  </div>
+                  <div>
+                    <h3 className="text-white font-semibold">Activar Suscripción</h3>
+                    <p className="text-gray-400 text-sm">Suscripción Fisiotool Pro</p>
+                  </div>
+                </div>
+                {needsSubscription ? (
+                  <button
+                    onClick={() => state.setModalType('upgrade')}
+                    className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-black hover:bg-red-600 transition"
+                  >
+                    Activar Plan
+                  </button>
+                ) : (
+                  <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                    <span className="text-white">✓</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div className="mt-8 text-center">
               <p className="text-red-400 text-sm font-semibold mb-2">
-                {needsLogo && needsPatients ? "⚠️ Debes completar los pasos 1 y 2 para continuar" :
-                  needsLogo ? "⚠️ Debes subir tu logo para continuar" :
-                    "⚠️ Debes importar pacientes para continuar"}
+                {needsLogo || needsPatients || needsStripe || needsSubscription ? "⚠️ Completa todos los pasos para activar el dashboard" : "✅ ¡Todo listo!"}
               </p>
               <p className="text-gray-500 text-xs">
                 Estos pasos son obligatorios para garantizar el funcionamiento correcto del dashboard

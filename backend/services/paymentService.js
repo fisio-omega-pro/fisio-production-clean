@@ -27,11 +27,11 @@ const getStripe = async () => {
     console.error('🔥 [STRIPE INIT] Clave inválida: debe empezar por "sk_". Revisa STRIPE_SECRET_KEY en Secret Manager.');
     return null;
   }
-  
+
   // LOG DE SEGURIDAD: Vemos qué tipo de llave estamos usando
   const keyType = sk.startsWith('sk_live') ? 'PRODUCCIÓN (LIVE)' : 'PRUEBAS (TEST)';
   console.log(`💳 [STRIPE INIT] Usando llave de: ${keyType}`);
-  
+
   stripeInstance = Stripe(sk);
   return stripeInstance;
 };
@@ -248,7 +248,25 @@ const cancelSubscriptionAtPeriodEnd = async (subscriptionId) => {
   }
 };
 
+/**
+ * Cancela la suscripción de forma inmediata (el usuario pierde el acceso al instante).
+ * Útil para procesos de borrado total de cuenta.
+ * @param {string} subscriptionId - ID de la suscripción en Stripe (sub_xxx)
+ * @returns {{ canceled: boolean }}
+ */
+const cancelSubscriptionImmediately = async (subscriptionId) => {
+  const stripe = await getStripe();
+  if (!stripe || !subscriptionId) return { canceled: false };
+  try {
+    await stripe.subscriptions.cancel(String(subscriptionId).trim());
+    return { canceled: true };
+  } catch (e) {
+    console.warn('⚠️ [STRIPE] cancelSubscriptionImmediately:', e?.message || e);
+    throw e;
+  }
+};
+
 const createDepositLink = async () => null;
 const createConnectAccount = async () => null;
 
-module.exports = { createSubscriptionSession, createOneTimePaymentSession, upgradeExistingSubscription, cancelSubscriptionAtPeriodEnd, createDepositLink, createConnectAccount };
+module.exports = { createSubscriptionSession, createOneTimePaymentSession, upgradeExistingSubscription, cancelSubscriptionAtPeriodEnd, cancelSubscriptionImmediately, createDepositLink, createConnectAccount };

@@ -99,7 +99,9 @@ router.post('/dashboard/stripe-connect', ensureHandler(clinicController.startStr
 router.post('/dashboard/stripe-verify', ensureHandler(clinicController.finalizeStripeConnect, 'finalizeStripeConnect'));
 router.post('/dashboard/upgrade-plan', ensureHandler(clinicController.createUpgradeSession, 'createUpgradeSession'));
 router.post('/dashboard/cancel-subscription', ensureHandler(clinicController.cancelSubscription, 'cancelSubscription'));
+router.delete('/dashboard/delete-account', ensureHandler(clinicController.deleteAccount, 'deleteAccount'));
 router.post('/dashboard/cobrar-cita-bono', ensureHandler(clinicController.createCitaBonoCheckout, 'createCitaBonoCheckout'));
+
 router.post('/dashboard/payment-verify', ensureHandler(clinicController.verifyPayment, 'verifyPayment'));
 router.post('/chat/dashboard', ensureHandler(chatController.handleChat, 'handleChat'));
 
