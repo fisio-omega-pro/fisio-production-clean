@@ -1417,6 +1417,53 @@ const updateAnaConfig = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
+const uploadAnaPhoto = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'No se proporcionó ningún archivo' });
+    }
+
+    const { initEnv } = require('../config/env');
+    const env = await initEnv();
+    const bucketName = env.GCS_BUCKET_NAME;
+    
+    if (!bucketName) {
+      return res.status(503).json({ success: false, error: 'Storage no configurado' });
+    }
+
+    const { Storage } = require('@google-cloud/storage');
+    const storage = new Storage();
+    const bucket = storage.bucket(bucketName);
+    
+    // Generar nombre único para el archivo
+    const fileName = `ana-photos/${req.clinicId}/${Date.now()}-${req.file.originalname}`;
+    const file = bucket.file(fileName);
+    
+    // Subir archivo
+    await file.save(req.file.buffer, {
+      metadata: {
+        contentType: req.file.mimetype,
+      },
+    });
+    
+    // Hacer archivo público
+    await file.makePublic();
+    
+    const publicUrl = `https://storage.googleapis.com/${bucketName}/${fileName}`;
+    
+    await createAuditLog(req.clinicId, req.userId || req.clinicId, 'UPLOAD_ANA_PHOTO', fileName);
+    
+    res.json({ 
+      success: true, 
+      url: publicUrl 
+    });
+    
+  } catch (e) { 
+    console.error('🔥 Error uploading Ana photo:', e);
+    next(e); 
+  }
+};
+
 // 🚨 EXPORTACIÓN DE FUNCIONES CONSOLIDADAS
 module.exports = {
   register,
@@ -1452,6 +1499,7 @@ module.exports = {
   handleStripeConnectWebhook,
   processPaymentReminders,
   processAppointmentReminders,
-  updateAnaConfig
+  updateAnaConfig,
+  uploadAnaPhoto
 };
 

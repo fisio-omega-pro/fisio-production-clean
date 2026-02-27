@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Bot, CheckCircle2, Loader2, Palette, MessageSquare, Camera, Sparkles, Layout } from 'lucide-react';
 import { dashboardAPI } from '../services';
 
@@ -29,6 +29,8 @@ export const AnaConfigView = ({ clinicData, onUpdated }: AnaConfigProps) => {
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [uploadingPhoto, setUploadingPhoto] = useState(false);
+    const photoInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (clinicData) {
@@ -46,7 +48,7 @@ export const AnaConfigView = ({ clinicData, onUpdated }: AnaConfigProps) => {
         setSaving(true);
         setError(null);
         try {
-            await dashboardAPI.updateAnaConfig(config);
+            await dashboardAPI.updateAsistenteConfig(config);
             await onUpdated();
             setSaved(true);
             setTimeout(() => setSaved(false), 3000);
@@ -54,6 +56,39 @@ export const AnaConfigView = ({ clinicData, onUpdated }: AnaConfigProps) => {
             setError(e.message || 'Error al guardar la configuración');
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handlePhotoUpload = async (file: File) => {
+        setUploadingPhoto(true);
+        setError(null);
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('type', 'ana_photo');
+            
+            const response = await fetch('/api/dashboard/upload-ana-photo', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                setConfig({ ...config, photo: result.url, useClinicLogo: false });
+            } else {
+                throw new Error(result.error || 'Error al subir la foto');
+            }
+        } catch (e: any) {
+            setError(e.message || 'Error al subir la foto');
+        } finally {
+            setUploadingPhoto(false);
+        }
+    };
+
+    const handlePhotoSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            handlePhotoUpload(file);
         }
     };
 
@@ -135,22 +170,87 @@ export const AnaConfigView = ({ clinicData, onUpdated }: AnaConfigProps) => {
                                 </div>
                             </div>
 
-                            <div className="flex items-center justify-between p-6 bg-white/5 border border-white/10 rounded-2xl">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-xl bg-blue-600/20 flex items-center justify-center text-blue-400">
-                                        <Camera size={24} />
-                                    </div>
-                                    <div>
-                                        <h4 className="text-sm font-bold text-white">Usar Logo de la Clínica</h4>
-                                        <p className="text-[10px] text-gray-400">Usa tu logo actual como foto de Ana</p>
+                            <div className="space-y-6">
+                                {/* Foto del Asistente */}
+                                <div>
+                                    <label className="text-[10px] text-gray-500 uppercase tracking-widest mb-4 block font-bold">Foto del Asistente</label>
+                                    
+                                    <div className="space-y-4">
+                                        {/* Opción 1: Foto Personalizada */}
+                                        <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+                                            <div className="flex items-center gap-4 mb-4">
+                                                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500/20 to-blue-500/20 border-2 border-purple-500/30 flex items-center justify-center overflow-hidden">
+                                                    {config.photo ? (
+                                                        <img src={config.photo} alt="Asistente" className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <Camera className="text-purple-400" size={24} />
+                                                    )}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <h4 className="text-sm font-bold text-white">Foto Personalizada</h4>
+                                                    <p className="text-[10px] text-gray-400">Sube una imagen para tu asistente</p>
+                                                </div>
+                                                <input
+                                                    ref={photoInputRef}
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={handlePhotoSelect}
+                                                    className="hidden"
+                                                />
+                                                <button
+                                                    onClick={() => photoInputRef.current?.click()}
+                                                    disabled={uploadingPhoto}
+                                                    className="px-4 py-2 bg-purple-500 hover:bg-purple-600 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-2"
+                                                >
+                                                    {uploadingPhoto ? <Loader2 className="animate-spin" size={14} /> : <Camera size={14} />}
+                                                    {uploadingPhoto ? 'SUBIENDO...' : 'SUBIR FOTO'}
+                                                </button>
+                                            </div>
+                                            
+                                            {config.photo && (
+                                                <div className="flex items-center justify-between p-3 bg-purple-500/10 border border-purple-500/20 rounded-xl">
+                                                    <span className="text-xs text-purple-300">✅ Foto personalizada activa</span>
+                                                    <button
+                                                        onClick={() => setConfig({ ...config, photo: '', useClinicLogo: false })}
+                                                        className="text-xs text-red-400 hover:text-red-300 transition-colors"
+                                                    >
+                                                        Eliminar
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Opción 2: Logo de la Clínica */}
+                                        <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-12 h-12 rounded-xl bg-blue-600/20 flex items-center justify-center text-blue-400">
+                                                        <Camera size={24} />
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="text-sm font-bold text-white">Usar Logo de la Clínica</h4>
+                                                        <p className="text-[10px] text-gray-400">Usa tu logo actual como foto del asistente</p>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => setConfig({ ...config, useClinicLogo: !config.useClinicLogo, photo: '' })}
+                                                    className={`relative w-12 h-6 rounded-full transition-all ${config.useClinicLogo ? 'bg-blue-600' : 'bg-white/10'}`}
+                                                >
+                                                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${config.useClinicLogo ? 'left-7' : 'left-1'}`} />
+                                                </button>
+                                            </div>
+                                            
+                                            {config.useClinicLogo && (
+                                                <div className="mt-4 flex items-center justify-between p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+                                                    <span className="text-xs text-blue-300">✅ Logo de clínica activo</span>
+                                                    {clinicData?.logo_url && (
+                                                        <img src={clinicData.logo_url} alt="Logo" className="w-8 h-8 object-contain" />
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                                <button
-                                    onClick={() => setConfig({ ...config, useClinicLogo: !config.useClinicLogo })}
-                                    className={`relative w-12 h-6 rounded-full transition-all ${config.useClinicLogo ? 'bg-blue-600' : 'bg-white/10'}`}
-                                >
-                                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${config.useClinicLogo ? 'left-7' : 'left-1'}`} />
-                                </button>
                             </div>
                         </div>
                     </section>
@@ -191,6 +291,8 @@ export const AnaConfigView = ({ clinicData, onUpdated }: AnaConfigProps) => {
                                     <div className="w-10 h-10 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center overflow-hidden">
                                         {config.useClinicLogo && clinicData?.logo_url ? (
                                             <img src={clinicData.logo_url} alt="Logo" className="w-full h-full object-cover" />
+                                        ) : config.photo ? (
+                                            <img src={config.photo} alt="Asistente" className="w-full h-full object-cover" />
                                         ) : (
                                             <Bot className="text-white" size={20} />
                                         )}

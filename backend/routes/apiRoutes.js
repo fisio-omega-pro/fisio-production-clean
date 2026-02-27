@@ -101,7 +101,7 @@ router.post('/dashboard/upgrade-plan', ensureHandler(clinicController.createUpgr
 router.post('/dashboard/cancel-subscription', ensureHandler(clinicController.cancelSubscription, 'cancelSubscription'));
 router.delete('/dashboard/delete-account', ensureHandler(clinicController.deleteAccount, 'deleteAccount'));
 router.post('/dashboard/cobrar-cita-bono', ensureHandler(clinicController.createCitaBonoCheckout, 'createCitaBonoCheckout'));
-
+router.post('/dashboard/upload-ana-photo', upload.single('file'), ensureHandler(clinicController.uploadAnaPhoto, 'uploadAnaPhoto'));
 router.post('/dashboard/payment-verify', ensureHandler(clinicController.verifyPayment, 'verifyPayment'));
 router.post('/chat/dashboard', ensureHandler(chatController.handleChat, 'handleChat'));
 
