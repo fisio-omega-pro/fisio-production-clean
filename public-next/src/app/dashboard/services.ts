@@ -16,7 +16,6 @@ class DashboardService {
     // 🛡️ Si no hay token en absoluto, redirigir al login inmediatamente
     if (!token && !endpoint.includes('/login') && !endpoint.includes('/register')) {
       console.warn(`[AUTH] Sin token para ${endpoint}. Redirigiendo al login...`);
-      localStorage.clear();
       window.location.href = '/login';
       throw new Error('No autenticado');
     }
@@ -30,11 +29,16 @@ class DashboardService {
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, { ...options, headers });
 
-    // 🛡️ Si el servidor devuelve 401, la sesión expiró → forzar re-login
+    // 🛡️ Si el servidor devuelve 401, la sesión expiró
+    // Disparamos un evento global en lugar de redirigir inmediatamente para evitar
+    // race conditions (ej: upload de logo que empieza justo antes de la redirección).
     if (response.status === 401) {
-      console.warn(`[AUTH] Sesión expirada (401) en ${endpoint}. Re-login requerido.`);
+      console.warn(`[AUTH] Sesión expirada (401) en ${endpoint}.`);
       localStorage.removeItem('fisio_token');
-      window.location.href = '/login';
+      // Evento que el Layout puede escuchar para redirigir limpiamente
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('fisio:session-expired'));
+      }
       throw new Error('Sesión expirada. Por favor, inicia sesión de nuevo.');
     }
 
@@ -97,6 +101,11 @@ class DashboardService {
   public async addSede(sede: any): Promise<void> { await this.request('/api/dashboard/add-sede', { method: 'POST', body: JSON.stringify({ sede }) }); }
   public async saveSpecialist(specialist: any): Promise<void> { await this.request('/api/dashboard/save-specialist', { method: 'POST', body: JSON.stringify({ specialist }) }); }
   public async uploadLogo(file: File): Promise<void> {
+    const token = localStorage.getItem('fisio_token');
+    if (!token) {
+      window.location.href = '/login';
+      throw new Error('Sesión expirada. Por favor, inicia sesión de nuevo.');
+    }
     const fd = new FormData();
     fd.append('logo', file);
     const res = await this.request<{ success: boolean; logo_url?: string }>('/api/dashboard/upload-logo', { method: 'POST', body: fd as any });

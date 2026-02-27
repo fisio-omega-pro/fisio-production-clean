@@ -43,6 +43,20 @@ export const DashboardLayout = ({ children, activeTab, onTabChange, navItems }: 
     window.location.href = '/login';
   };
 
+  // Sesión expirada: redirigir al login cuando el backend devuelve 401
+  useEffect(() => {
+    const onSessionExpired = () => {
+      try { window.speechSynthesis?.cancel?.(); } catch { /* best-effort */ }
+      try {
+        localStorage.removeItem('fisio_token');
+        localStorage.removeItem('fisio_is_blind');
+      } catch { /* best-effort */ }
+      window.location.href = '/login';
+    };
+    window.addEventListener('fisio:session-expired', onSessionExpired);
+    return () => window.removeEventListener('fisio:session-expired', onSessionExpired);
+  }, []);
+
   // PWA: capturar beforeinstallprompt para que Instalación funcione
   useEffect(() => {
     const handler = (e: any) => {
@@ -61,7 +75,7 @@ export const DashboardLayout = ({ children, activeTab, onTabChange, navItems }: 
     <div className="flex h-screen w-screen bg-[#030507] text-white overflow-hidden font-sans">
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#0a0a0a] border-r border-white/5 transform transition-transform duration-300 lg:relative lg:translate-x-0 ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-6 flex items-center gap-3 border-b border-white/5">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-600/20"><Sparkles size={18}/></div>
+          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-600/20"><Sparkles size={18} /></div>
           <span className="font-black tracking-tighter text-lg uppercase">Fisiotool <span className="text-blue-500 font-light">Pro</span></span>
         </div>
         <nav className="flex-1 overflow-y-auto p-4 space-y-8">
@@ -78,9 +92,9 @@ export const DashboardLayout = ({ children, activeTab, onTabChange, navItems }: 
         </nav>
         <div className="p-4 border-t border-white/5">
           <div className="flex items-center gap-3 p-2 bg-white/5 rounded-xl border border-white/5">
-             <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center"><User size={14} color="#fff"/></div>
-             <div className="flex-1"><div className="text-xs font-bold">Mi Clínica</div><div className="text-[9px] text-gray-500 uppercase">Premium Plan</div></div>
-             <button onClick={handleLogout} className="p-1 hover:text-red-500 transition-colors" aria-label="Cerrar sesión"><LogOut size={16} /></button>
+            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center"><User size={14} color="#fff" /></div>
+            <div className="flex-1"><div className="text-xs font-bold">Mi Clínica</div><div className="text-[9px] text-gray-500 uppercase">Premium Plan</div></div>
+            <button onClick={handleLogout} className="p-1 hover:text-red-500 transition-colors" aria-label="Cerrar sesión"><LogOut size={16} /></button>
           </div>
         </div>
       </aside>

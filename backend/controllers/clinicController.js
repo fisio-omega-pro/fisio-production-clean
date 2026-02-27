@@ -199,7 +199,7 @@ const login = async (req, res, next) => {
       const data = doc.data() || {};
       console.log(`🔐 [LOGIN] Clinica ID: ${doc.id}`);
       console.log(`🔐 [LOGIN] Password hash exists: ${!!data.password}`);
-      const ok = await bcrypt.compare(String(password), String(data.password || ''));
+      const ok = await bcrypt.compare(String(password), String(data.password_hash || ''));
       console.log(`🔐 [LOGIN] Password match: ${ok}`);
       if (!ok) return res.status(401).json({ success: false, error: 'Credenciales incorrectas' });
       const token = jwt.sign({ clinicId: doc.id }, env.JWT_SECRET, { expiresIn: '30d' });
