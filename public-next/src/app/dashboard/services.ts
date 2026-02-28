@@ -175,6 +175,21 @@ class DashboardService {
     });
   }
 
+  public async createPatient(patientData: {
+    nombre: string;
+    telefono: string;
+    email?: string;
+    edad?: number;
+    dolencia?: string;
+    fechaInicio?: string;
+    notas?: string;
+  }): Promise<{ success: boolean; patient?: any; error?: string }> {
+    return this.request<{ success: boolean; patient?: any; error?: string }>('/api/dashboard/create-patient', {
+      method: 'POST',
+      body: JSON.stringify(patientData)
+    });
+  }
+
   public async updateAsistenteConfig(config: any): Promise<{ success: boolean }> {
     return this.request<{ success: boolean }>('/api/dashboard/update-ana-config', {
       method: 'POST',

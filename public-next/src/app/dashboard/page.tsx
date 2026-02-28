@@ -30,6 +30,7 @@ import { EditProfileModal } from './components/modals/EditProfileModal';
 import { HistoryModal } from './components/HistoryModal';
 import { LogoModal } from './components/modals/LogoModal';
 import { StripeModal } from './components/modals/StripeModal';
+import { NewPatientModal } from './components/modals/NewPatientModal';
 import { Crown, Loader2, Zap, Ticket, User, Building2, MapPin, Info } from 'lucide-react';
 
 // Planes que incluyen multi-sede (300€): al subir de nivel se activa automáticamente en el dashboard
@@ -128,7 +129,24 @@ export default function DashboardOmega() {
     }
   };
 
-  const handleBlockSchedule = async () => {
+  const handleCreatePatient = async (patientData: any) => {
+  try {
+    const response = await dashboardAPI.createPatient(patientData);
+    
+    if (response.success) {
+      state.setModalType(null);
+      state.refreshData();
+      alert('✅ Paciente creado exitosamente');
+    } else {
+      alert(response.error || 'Error al crear paciente');
+    }
+  } catch (error) {
+    console.error('Error creating patient:', error);
+    alert('Error al crear paciente');
+  }
+};
+
+const handleBlockSchedule = async () => {
     try {
       await dashboardAPI.createBlock(blockData);
       state.setModalType(null);
@@ -187,7 +205,7 @@ export default function DashboardOmega() {
     switch (state.activeTab) {
       case 'home': return <HomeView clinicId={state.clinicId} configStatus={state.configStatus} clinicData={state.clinicData} onRefresh={state.refreshData} onGoToAsistente={() => state.setActiveTab('config_ana')} />;
       case 'agenda': return <AgendaView currentUser={state.currentUser} equipo={state.equipo} agenda={state.agenda} bloqueos={state.bloqueos} horario={state.clinicData.horario || { apertura: '08:00', cierre: '14:00', reapertura: '16:00', cierre_final: '21:00' }} onBlockSchedule={() => state.setModalType('bloqueo')} onNewAppointment={(d: any) => { setApptData({ ...apptData, fecha: d.date, hora: d.time, docId: d.specialistId || '' }); state.setModalType('cita'); }} onEventClick={state.setSelectedEvent} />;
-      case 'pacientes': return <PacientesView pacientes={state.pacientes} onDictate={() => state.setModalType('voz')} onImport={() => state.setModalType('importar')} />;
+      case 'pacientes': return <PacientesView pacientes={state.pacientes} onDictate={() => state.setModalType('voz')} onImport={() => state.setModalType('importar')} onNewPatient={() => state.setModalType('nuevo_paciente')} />;
       case 'finanzas': return <FinanzasView balance={state.balance} pacientes={state.pacientes} onActivateCampaign={async () => { await dashboardAPI.launchCampaign(); state.refreshData(); }} clinicData={state.clinicData} onGoToImport={() => { state.setActiveTab('pacientes'); state.setModalType('importar'); }} />;
       case 'bonos': return <BonosView clinicData={state.clinicData} bonos={state.bonos} onActivate={async () => { await dashboardAPI.activateBonos(); state.refreshData(); }} onDeactivate={async () => { await dashboardAPI.deactivateBonos(); state.refreshData(); }} onNewBono={() => state.setModalType('nuevo_bono')} />;
       case 'equipo': return <EquipoView currentUser={state.currentUser} equipo={state.equipo} onAddMember={() => state.setModalType('editar_perfil')} currentPlan={state.clinicData.plan} onViewCalendar={() => state.setActiveTab('agenda')} onEditMember={(m) => { state.setMemberToEdit(m); state.setModalType('editar_perfil'); }} onUpgrade={async () => { const url = await dashboardAPI.upgradePlan('team'); if (url) window.location.href = url; }} />;
@@ -449,6 +467,12 @@ export default function DashboardOmega() {
       </Modal>
 
       <Modal isOpen={state.modalType === 'reactivacion'} onClose={() => state.setModalType(null)} title="Motor ASG"><div className="text-center p-4"><Zap size={48} className="text-yellow-500 mx-auto mb-4" /><ActionButton onClick={() => state.setModalType(null)} fullWidth style={{ background: '#facc15', color: '#000' }}>LANZAR CAMPAÑA</ActionButton></div></Modal>
+
+      <NewPatientModal 
+        isOpen={state.modalType === 'nuevo_paciente'} 
+        onClose={() => state.setModalType(null)} 
+        onSave={handleCreatePatient} 
+      />
       <Modal isOpen={state.modalType === 'upgrade'} onClose={() => state.setModalType(null)} title="Mejorar Plan">
         <div className="text-center p-4">
           <Crown size={48} className="text-yellow-500 mx-auto mb-4" />

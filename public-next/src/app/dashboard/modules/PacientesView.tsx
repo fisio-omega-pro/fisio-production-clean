@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { Search, Mic, Filter, UserPlus, Upload, Database, UserCheck, Activity, ChevronRight } from 'lucide-react';
 import { Paciente } from '../types';
 
-export const PacientesView = ({ pacientes, onDictate, onImport }: any) => {
+export const PacientesView = ({ pacientes, onDictate, onImport, onNewPatient }: any) => {
   const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState('todos');
 
@@ -31,6 +31,12 @@ export const PacientesView = ({ pacientes, onDictate, onImport }: any) => {
           </p>
         </div>
         <div className="flex gap-3">
+          <button 
+            onClick={onNewPatient}
+            className="flex items-center gap-3 px-6 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-600/20 transition-all"
+          >
+            <UserPlus size={16} /> CREAR NUEVO PACIENTE
+          </button>
           <button 
             onClick={onImport}
             className="flex items-center gap-3 px-6 py-4 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all"

@@ -619,6 +619,106 @@ const getLegalStatus = async (req, res, next) => {
 };
 
 // --- DASHBOARD: OPERACIONES REALES (sin stubs) ---
+const createBlock = async (req, res, next) => {
+  try {
+    const { clinicId } = req.params;
+    const blockData = req.body;
+
+    // Validar datos requeridos
+    if (!blockData.date || !blockData.startTime || !blockData.endTime) {
+      return res.status(400).json({ error: 'Fecha y horas son requeridas' });
+    }
+
+    const blockRef = await db.collection('bloqueos').add({
+      clinicId,
+      date: blockData.date,
+      startTime: blockData.startTime,
+      endTime: blockData.endTime,
+      reason: blockData.reason || 'Bloqueado',
+      allDay: blockData.allDay || false,
+      created_at: Timestamp.now()
+    });
+
+    await createAuditLog(clinicId, req.user?.uid || 'unknown', 'CREATE_BLOCK', blockRef.id);
+
+    res.status(201).json({ 
+      success: true, 
+      id: blockRef.id,
+      message: 'Bloqueo creado exitosamente' 
+    });
+
+  } catch (e) {
+    console.error('Error creating block:', e);
+    res.status(500).json({ error: 'Error al crear bloqueo' });
+  }
+};
+
+// Crear nuevo paciente
+const createPatient = async (req, res, next) => {
+  try {
+    const { clinicId } = req.params;
+    const patientData = req.body;
+
+    // Validar datos requeridos
+    if (!patientData.nombre || !patientData.telefono) {
+      return res.status(400).json({ 
+        error: 'Nombre y teléfono son obligatorios' 
+      });
+    }
+
+    // Verificar si ya existe un paciente con el mismo teléfono
+    const existingPatient = await db.collection('pacientes')
+      .where('clinic_id', '==', clinicId)
+      .where('telefono', '==', patientData.telefono)
+      .get();
+
+    if (!existingPatient.empty) {
+      return res.status(409).json({ 
+        error: 'Ya existe un paciente con este número de teléfono' 
+      });
+    }
+
+    // Crear el paciente
+    const patientRef = await db.collection('pacientes').add({
+      clinic_id: clinicId,
+      nombre: patientData.nombre.trim(),
+      telefono: patientData.telefono.trim(),
+      email: patientData.email?.trim() || '',
+      edad: patientData.edad || null,
+      dolencia: patientData.dolencia?.trim() || '',
+      fechaInicio: patientData.fechaInicio || '',
+      notas: patientData.notas?.trim() || '',
+      status: 'ACTIVO',
+      created_at: Timestamp.now(),
+      updated_at: Timestamp.now()
+    });
+
+    // Crear log de auditoría
+    await createAuditLog(clinicId, req.user?.uid || 'unknown', 'CREATE_PATIENT', patientRef.id);
+
+    res.status(201).json({ 
+      success: true, 
+      id: patientRef.id,
+      message: 'Paciente creado exitosamente',
+      patient: {
+        id: patientRef.id,
+        nombre: patientData.nombre.trim(),
+        telefono: patientData.telefono.trim(),
+        email: patientData.email?.trim() || '',
+        edad: patientData.edad || null,
+        dolencia: patientData.dolencia?.trim() || '',
+        fechaInicio: patientData.fechaInicio || '',
+        notas: patientData.notas?.trim() || '',
+        status: 'ACTIVO'
+      }
+    });
+
+  } catch (e) {
+    console.error('Error creating patient:', e);
+    res.status(500).json({ error: 'Error al crear paciente' });
+  }
+};
+
 const saveLogo = async (req, res, next) => {
   try {
     const publicUrl = String(req.body?.publicUrl || '').trim();
@@ -1607,6 +1707,7 @@ module.exports = {
   processAppointmentReminders,
   updateAnaConfig,
   uploadAnaPhoto,
-  createBlock
+  createBlock,
+  createPatient
 };
 
