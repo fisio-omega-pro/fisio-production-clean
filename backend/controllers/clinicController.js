@@ -1633,43 +1633,6 @@ const uploadAnaPhoto = async (req, res, next) => {
   }
 };
 
-const createBlock = async (req, res, next) => {
-  try {
-    const { date, startTime, endTime, reason, allDay } = req.body;
-    
-    // Validaciones básicas
-    if (!date) {
-      return res.status(400).json({ success: false, error: 'La fecha es obligatoria' });
-    }
-    
-    if (!allDay && (!startTime || !endTime)) {
-      return res.status(400).json({ success: false, error: 'Las horas de inicio y fin son obligatorias' });
-    }
-    
-    // Crear documento de bloqueo
-    const blockData = {
-      clinicId: req.clinicId,
-      date: String(date).trim(),
-      startTime: allDay ? '00:00' : String(startTime).trim(),
-      endTime: allDay ? '23:59' : String(endTime).trim(),
-      reason: String(reason || 'Bloqueo general').trim(),
-      allDay: !!allDay,
-      created_at: Timestamp.now(),
-      created_by: req.userId || req.clinicId
-    };
-    
-    await db.collection('bloqueos').add(blockData);
-    
-    await createAuditLog(req.clinicId, req.userId || req.clinicId, 'CREATE_BLOCK', `${date} ${startTime}-${endTime}`);
-    
-    res.json({ success: true });
-    
-  } catch (e) { 
-    console.error('🔥 Error creating block:', e);
-    next(e); 
-  }
-};
-
 // 🚨 EXPORTACIÓN DE FUNCIONES CONSOLIDADAS
 module.exports = {
   register,
