@@ -44,7 +44,19 @@ class DashboardService {
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Error ${response.status}: ${errorText}`);
+      let errorMessage = `Error ${response.status}: ${errorText}`;
+      
+      // Intentar parsear JSON para obtener mensaje específico
+      try {
+        const errorJson = JSON.parse(errorText);
+        if (errorJson.error) {
+          errorMessage = errorJson.error;
+        }
+      } catch (e) {
+        // Si no es JSON, usar el texto original
+      }
+      
+      throw new Error(errorMessage);
     }
     return await response.json();
   }

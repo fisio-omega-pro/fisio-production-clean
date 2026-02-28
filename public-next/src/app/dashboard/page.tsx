@@ -138,11 +138,23 @@ export default function DashboardOmega() {
       state.refreshData();
       alert('✅ Paciente creado exitosamente');
     } else {
-      alert(response.error || 'Error al crear paciente');
+      alert(`❌ Error: ${response.error || 'Error al crear paciente'}`);
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating patient:', error);
-    alert('Error al crear paciente');
+    
+    // Extraer mensaje de error específico
+    let errorMessage = 'Error al crear paciente';
+    
+    if (error.response?.data?.error) {
+      errorMessage = error.response.data.error;
+    } else if (error.message) {
+      errorMessage = error.message;
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    }
+    
+    alert(`❌ Error: ${errorMessage}`);
   }
 };
 

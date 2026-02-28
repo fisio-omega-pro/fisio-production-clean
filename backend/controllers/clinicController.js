@@ -656,7 +656,7 @@ const createBlock = async (req, res, next) => {
 // Crear nuevo paciente
 const createPatient = async (req, res, next) => {
   try {
-    const { clinicId } = req.params;
+    const clinicId = req.clinicId; // Corregido: viene del middleware auth, no de params
     const patientData = req.body;
 
     // Validar datos requeridos
