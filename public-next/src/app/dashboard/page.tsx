@@ -132,6 +132,7 @@ export default function DashboardOmega() {
   const [upgradeLoading, setUpgradeLoading] = useState(false);
 
   const handleUpgradeToMultiSede = async () => {
+    alert('🔄 [DEBUG] Handler ejecutado - Iniciando upgrade...');
     setUpgradeLoading(true);
     try {
       console.log('🔄 [UPGRADE] Iniciando upgrade a plan business...');
