@@ -129,6 +129,25 @@ export default function DashboardOmega() {
     }
   };
 
+  const [upgradeLoading, setUpgradeLoading] = useState(false);
+
+  const handleUpgradeToMultiSede = async () => {
+    setUpgradeLoading(true);
+    try {
+      const url = await dashboardAPI.upgradePlan('business');
+      if (url) {
+        window.location.href = url;
+      } else {
+        alert('❌ Error: No se pudo generar la URL de pago');
+      }
+    } catch (error: any) {
+      console.error('Error upgrading plan:', error);
+      alert(`❌ Error: ${error.message || 'No se pudo procesar la actualización'}`);
+    } finally {
+      setUpgradeLoading(false);
+    }
+  };
+
   const handleCreatePatient = async (patientData: any) => {
   try {
     const response = await dashboardAPI.createPatient(patientData);
@@ -228,8 +247,8 @@ const handleBlockSchedule = async () => {
               <Building2 size={32} className="text-blue-500 mb-4" />
               <h2 className="text-xl font-bold text-white mb-2">Mis Clínicas</h2>
               <p className="text-gray-400 text-sm mb-6">Para añadir y gestionar varias clínicas desde un solo panel necesitas el plan Multi-Sede (300€/mes). Al subir de plan, solo pagas la parte proporcional hasta tu próxima factura.</p>
-              <ActionButton onClick={async () => { const url = await dashboardAPI.upgradePlan('team'); if (url) window.location.href = url; }} style={{ background: '#0066ff', color: '#fff' }}>
-                Subir a plan Multi-Sede (300€/mes)
+              <ActionButton onClick={handleUpgradeToMultiSede} disabled={upgradeLoading} style={{ background: '#0066ff', color: '#fff' }}>
+                {upgradeLoading ? 'Procesando...' : 'Subir a plan Multi-Sede (300€/mes)'}
               </ActionButton>
             </div>
           );
