@@ -34,7 +34,7 @@ import { NewPatientModal } from './components/modals/NewPatientModal';
 import { Crown, Loader2, Zap, Ticket, User, Building2, MapPin, Info } from 'lucide-react';
 
 // Planes que incluyen multi-sede (300€): al subir de nivel se activa automáticamente en el dashboard
-const PLANS_MULTI_CLINIC = ['team', 'business', 'clinic', 'corporate'];
+const PLANS_MULTI_CLINIC = ['business', 'clinic', 'corporate'];
 
 export default function DashboardOmega() {
   const state = useDashboardState();

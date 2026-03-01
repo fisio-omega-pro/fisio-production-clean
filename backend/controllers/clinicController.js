@@ -782,7 +782,7 @@ const saveCobrosConfig = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
-const PLANS_MULTI_CLINIC = ['team', 'business', 'clinic', 'corporate'];
+const PLANS_MULTI_CLINIC = ['business', 'clinic', 'corporate'];
 
 const addSede = async (req, res, next) => {
   try {
