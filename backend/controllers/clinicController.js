@@ -799,7 +799,6 @@ const addSede = async (req, res, next) => {
     const sedeDoc = {
       nombre: String(sede.nombre || '').trim() || 'Sede',
       calle: String(sede.calle || '').trim(),
-      direccion: String(sede.direccion || '').trim(),
       cp: String(sede.cp || '').trim(),
       ciudad: String(sede.ciudad || '').trim(),
       provincia: String(sede.provincia || '').trim(),
