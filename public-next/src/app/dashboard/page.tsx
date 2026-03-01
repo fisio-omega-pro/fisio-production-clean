@@ -132,25 +132,23 @@ export default function DashboardOmega() {
   const [upgradeLoading, setUpgradeLoading] = useState(false);
 
   const handleUpgradeToMultiSede = async () => {
-    alert('🔄 [DEBUG] Handler ejecutado - Iniciando upgrade...');
+    console.log('🔄 [DEBUG] Botón clickeado - Handler ejecutado');
     setUpgradeLoading(true);
     try {
-      console.log('🔄 [UPGRADE] Iniciando upgrade a plan business...');
+      console.log('🔄 [UPGRADE] Llamando a API con plan business...');
       const url = await dashboardAPI.upgradePlan('business');
       console.log('📋 [UPGRADE] URL recibida:', url);
       
-      if (url) {
+      if (url && url.startsWith('https://')) {
         console.log('✅ [UPGRADE] Redirigiendo a Stripe:', url);
         window.location.href = url;
       } else {
-        console.error('❌ [UPGRADE] No se recibió URL');
-        alert('❌ Error: No se pudo generar la URL de pago');
+        console.error('❌ [UPGRADE] URL inválida:', url);
+        alert('❌ Error: URL de pago inválida');
       }
     } catch (error: any) {
-      console.error('🔥 [UPGRADE] Error completo:', error);
-      console.error('🔥 [UPGRADE] Error message:', error.message);
-      console.error('🔥 [UPGRADE] Error response:', error.response);
-      alert(`❌ Error: ${error.message || 'No se pudo procesar la actualización'}`);
+      console.error('🔥 [UPGRADE] Error:', error);
+      alert(`❌ Error: ${error.message || 'Error en upgrade'}`);
     } finally {
       setUpgradeLoading(false);
     }
@@ -261,7 +259,11 @@ const handleBlockSchedule = async () => {
               <Building2 size={32} className="text-blue-500 mb-4" />
               <h2 className="text-xl font-bold text-white mb-2">Mis Clínicas</h2>
               <p className="text-gray-400 text-sm mb-6">Para añadir y gestionar varias clínicas desde un solo panel necesitas el plan Multi-Sede (300€/mes). Al subir de plan, solo pagas la parte proporcional hasta tu próxima factura.</p>
-              <ActionButton onClick={handleUpgradeToMultiSede} disabled={upgradeLoading} style={{ background: '#0066ff', color: '#fff' }}>
+              <ActionButton onClick={() => {
+                console.log('🔥 [TEST] Botón clickeado - Test simple');
+                alert('🔥 [TEST] Botón funciona');
+                handleUpgradeToMultiSede();
+              }} disabled={upgradeLoading} style={{ background: '#0066ff', color: '#fff' }}>
                 {upgradeLoading ? 'Procesando...' : 'Subir a plan Multi-Sede (300€/mes)'}
               </ActionButton>
             </div>
