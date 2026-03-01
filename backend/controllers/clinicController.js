@@ -1057,8 +1057,6 @@ const finalizeStripeConnect = async (req, res, next) => {
 
 const createUpgradeSession = async (req, res, next) => {
   try {
-    console.log('🔄 [UPGRADE] Iniciando upgrade session...');
-    
     const clinicDoc = await db.collection('clinicas').doc(req.clinicId).get();
     if (!clinicDoc.exists) return res.status(404).json({ success: false, error: 'Clínica no encontrada' });
     
@@ -1067,26 +1065,19 @@ const createUpgradeSession = async (req, res, next) => {
     const current = String(clinic.plan || 'solo').trim();
     const plan = requested || (current.toLowerCase() === 'corporate' ? 'corporate' : 'business');
     const subId = String(clinic.stripe_subscription_id || '').trim();
-    
-    console.log('🎯 [UPGRADE] Plan solicitado:', requested, 'Plan final:', plan);
 
     // Si ya tiene suscripción activa: upgrade con prorrateo
     if (subId && clinic.subscription_active) {
-      console.log('⬆️ [UPGRADE] Usando upgrade con prorrateo...');
       const { url } = await paymentService.upgradeExistingSubscription(subId, plan, req);
-      console.log('✅ [UPGRADE] URL generada:', url);
       await createAuditLog(req.clinicId, req.userId || req.clinicId, 'STRIPE_UPGRADE_PRORATION', plan);
       return res.json({ success: true, url });
     }
 
     // Sin suscripción previa: Checkout nuevo
-    console.log('🆕 [UPGRADE] Creando checkout nuevo...');
     const { url } = await paymentService.createSubscriptionSession(req.clinicId, clinic.email, plan, req, { allowTrial: false });
-    console.log('✅ [UPGRADE] URL de checkout generada:', url);
     await createAuditLog(req.clinicId, req.userId || req.clinicId, 'STRIPE_UPGRADE_SESSION', plan);
     return res.json({ success: true, url });
   } catch (e) { 
-    console.error('🔥 [UPGRADE] Error:', e);
     next(e); 
   }
 };
