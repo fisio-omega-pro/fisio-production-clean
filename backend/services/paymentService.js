@@ -12,8 +12,8 @@ const normalizePlan = (v) => {
   const s = String(v || '').trim().toLowerCase();
   if (!s) return 'solo';
   if (['pro', 'professional'].includes(s)) return 'solo';
-  if (['business', 'clinic'].includes(s)) return 'team';
-  if (['team', 'corporate', 'solo'].includes(s)) return s;
+  if (['clinic'].includes(s)) return 'team';  // clinic -> team
+  if (['team', 'business', 'corporate', 'solo'].includes(s)) return s;
   return 'solo';
 };
 
@@ -41,6 +41,7 @@ const getStripe = async () => {
 const FALLBACK_PRICE_IDS = {
   solo: 'price_1T2U1u4vUWb0SJ7OVu9z00oM',
   team: 'price_1T2U4b4vUWb0SJ7OVbGEmZND',
+  business: 'price_1T2U4b4vUWb0SJ7OVbGEmZND',  // Mismo precio que team (300€)
   corporate: 'price_1T2U5y4vUWb0SJ7OKMTpIn2t',
 };
 
@@ -51,6 +52,7 @@ const getPriceIdForPlan = async (plan) => {
   const map = {
     solo: priceSolo,
     team: String(env.STRIPE_PRICE_TEAM || '').trim() || FALLBACK_PRICE_IDS.team,
+    business: String(env.STRIPE_PRICE_BUSINESS || '').trim() || FALLBACK_PRICE_IDS.business,
     corporate: String(env.STRIPE_PRICE_CORPORATE || '').trim() || FALLBACK_PRICE_IDS.corporate,
   };
   return map[p] || map.solo;

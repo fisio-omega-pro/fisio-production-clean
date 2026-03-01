@@ -1057,22 +1057,37 @@ const finalizeStripeConnect = async (req, res, next) => {
 
 const createUpgradeSession = async (req, res, next) => {
   try {
+    console.log('🔄 [UPGRADE] Iniciando upgrade session...');
+    console.log('📋 [UPGRADE] Request body:', req.body);
+    
     const clinicDoc = await db.collection('clinicas').doc(req.clinicId).get();
     if (!clinicDoc.exists) return res.status(404).json({ success: false, error: 'Clínica no encontrada' });
+    
     const clinic = clinicDoc.data() || {};
+    console.log('🏥 [UPGRADE] Clínica:', clinic.nombre_clinica);
+    console.log('💳 [UPGRADE] Plan actual:', clinic.plan);
+    console.log('💰 [UPGRADE] Suscripción activa:', clinic.subscription_active);
+    
     const requested = String(req.body?.plan || '').trim();
     const current = String(clinic.plan || 'solo').trim();
-    const plan = requested || (current.toLowerCase() === 'corporate' ? 'corporate' : 'team');
+    const plan = requested || (current.toLowerCase() === 'corporate' ? 'corporate' : 'business');
     const subId = String(clinic.stripe_subscription_id || '').trim();
+    
+    console.log('🎯 [UPGRADE] Plan solicitado:', requested);
+    console.log('🎯 [UPGRADE] Plan final:', plan);
+    console.log('📋 [UPGRADE] Subscription ID:', subId);
 
     // Si ya tiene suscripción activa: upgrade con prorrateo (Stripe cobra solo la parte proporcional)
     if (subId && clinic.subscription_active) {
+      console.log('⬆️ [UPGRADE] Usando upgrade con prorrateo...');
       const { url } = await paymentService.upgradeExistingSubscription(subId, plan, req);
+      console.log('✅ [UPGRADE] URL de prorrateo generada:', url);
       await createAuditLog(req.clinicId, req.userId || req.clinicId, 'STRIPE_UPGRADE_PRORATION', plan);
       return res.json({ success: true, url });
     }
 
     // Sin suscripción previa: Checkout nuevo (alta o re-alta). Trial solo si total fisios ≤ FREE_TRIAL_CAP.
+    console.log('🆕 [UPGRADE] Creando checkout nuevo...');
     let allowTrial = true;
     try {
       const { initEnv } = require('../config/env');
@@ -1082,9 +1097,13 @@ const createUpgradeSession = async (req, res, next) => {
       allowTrial = totalClinics <= trialCap;
     } catch (_) { }
     const { url } = await paymentService.createSubscriptionSession(req.clinicId, clinic.email, plan, req, { allowTrial });
+    console.log('✅ [UPGRADE] URL de checkout nuevo generada:', url);
     await createAuditLog(req.clinicId, req.userId || req.clinicId, 'STRIPE_UPGRADE_SESSION', plan);
     return res.json({ success: true, url });
-  } catch (e) { next(e); }
+  } catch (e) { 
+    console.error('🔥 [UPGRADE] Error en createUpgradeSession:', e);
+    next(e); 
+  }
 };
 
 // Darse de baja: cancela la suscripción al final del periodo (el usuario mantiene acceso hasta esa fecha)
