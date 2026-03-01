@@ -134,14 +134,21 @@ export default function DashboardOmega() {
   const handleUpgradeToMultiSede = async () => {
     setUpgradeLoading(true);
     try {
+      console.log('🔄 [UPGRADE] Iniciando upgrade a plan business...');
       const url = await dashboardAPI.upgradePlan('business');
+      console.log('📋 [UPGRADE] URL recibida:', url);
+      
       if (url) {
+        console.log('✅ [UPGRADE] Redirigiendo a Stripe:', url);
         window.location.href = url;
       } else {
+        console.error('❌ [UPGRADE] No se recibió URL');
         alert('❌ Error: No se pudo generar la URL de pago');
       }
     } catch (error: any) {
-      console.error('Error upgrading plan:', error);
+      console.error('🔥 [UPGRADE] Error completo:', error);
+      console.error('🔥 [UPGRADE] Error message:', error.message);
+      console.error('🔥 [UPGRADE] Error response:', error.response);
       alert(`❌ Error: ${error.message || 'No se pudo procesar la actualización'}`);
     } finally {
       setUpgradeLoading(false);

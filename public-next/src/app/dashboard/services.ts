@@ -133,10 +133,12 @@ class DashboardService {
     });
   }
   public async upgradePlan(plan?: string): Promise<string> {
+    console.log('🔄 [API] Llamando a upgradePlan con plan:', plan);
     const res = await this.request<{ url: string }>('/api/dashboard/upgrade-plan', {
       method: 'POST',
       body: JSON.stringify(plan ? { plan } : {})
     });
+    console.log('📋 [API] Respuesta de upgradePlan:', res);
     return res.url;
   }
 
