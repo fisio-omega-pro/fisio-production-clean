@@ -191,6 +191,8 @@ const upgradeExistingSubscription = async (subscriptionId, newPlan, req) => {
   const newPriceId = await getPriceIdForPlan(normalized);
 
   try {
+    console.log(`🔄 [STRIPE] Upgrading subscription ${subscriptionId} to plan ${normalized}`);
+    
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
     const itemId = subscription.items?.data?.[0]?.id;
     if (!itemId) {
@@ -198,12 +200,16 @@ const upgradeExistingSubscription = async (subscriptionId, newPlan, req) => {
       return { url: `${frontendBase}/dashboard`, upgraded: false };
     }
 
+    console.log(`📋 [STRIPE] Customer: ${subscription.customer}, Item: ${itemId}`);
+
     // Cambiar al nuevo precio con prorrateo: Stripe cobra solo la diferencia proporcional
     await stripe.subscriptions.update(subscriptionId, {
       items: [{ id: itemId, price: newPriceId }],
       proration_behavior: 'create_prorations',
       metadata: { ...(subscription.metadata || {}), plan: normalized },
     });
+
+    console.log('✅ [STRIPE] Subscription updated, creating invoice...');
 
     // Crear/finalizar factura para cobrar el prorrateo ahora
     let invoices = await stripe.invoices.list({ subscription: subscriptionId, status: 'open', limit: 1 });
@@ -213,17 +219,27 @@ const upgradeExistingSubscription = async (subscriptionId, newPlan, req) => {
       invoice = invoices.data[0];
     }
     if (!invoice) {
-      invoice = await stripe.invoices.create({ subscription: subscriptionId, auto_advance: true });
+      // Añadir customer_id explícitamente para evitar el error
+      console.log(`📄 [STRIPE] Creating new invoice for customer ${subscription.customer}`);
+      invoice = await stripe.invoices.create({ 
+        subscription: subscriptionId, 
+        auto_advance: true,
+        customer: subscription.customer // Añadir customer explícitamente
+      });
     }
     if (invoice.status === 'draft') {
       invoice = await stripe.invoices.finalizeInvoice(invoice.id);
     }
+    
+    console.log(`💰 [STRIPE] Invoice: ${invoice.id}, Amount: ${invoice.amount_due}, Status: ${invoice.status}`);
+    
     if (invoice.amount_due > 0 && invoice.hosted_invoice_url) {
       return { url: invoice.hosted_invoice_url, upgraded: true };
     }
     return { url: `${frontendBase}/dashboard?upgraded=1`, upgraded: true };
   } catch (e) {
-    console.warn('⚠️ [STRIPE] upgradeExistingSubscription:', e?.message || e);
+    console.error('🔥 [STRIPE] upgradeExistingSubscription error:', e?.message || e);
+    console.error('🔥 [STRIPE] Full error:', e);
     throw e;
   }
 };
