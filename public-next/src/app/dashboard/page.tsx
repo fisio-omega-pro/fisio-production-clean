@@ -54,7 +54,7 @@ export default function DashboardOmega() {
   // DATOS DE FORMULARIOS
   const [apptData, setApptData] = useState({ nombre: '', telefono: '', email: '', fecha: '', hora: '', docId: '' });
   const [blockData, setBlockData] = useState({ date: '', startTime: '09:00', endTime: '20:00', reason: '', allDay: false });
-  const [sedeData, setSedeData] = useState({ nombre: '', calle: '', numero: '', cp: '', ciudad: '', provincia: '' });
+  const [sedeData, setSedeData] = useState({ nombre: '', calle: '', direccion: '', cp: '', ciudad: '', provincia: '' });
   const [bonoData, setBonoData] = useState({ paciente_nombre: '', sesiones_totales: 10, fecha_vencimiento: '' });
   const [upgradePlan, setUpgradePlan] = useState<'team' | 'corporate'>('team');
 
@@ -491,8 +491,12 @@ const handleBlockSchedule = async () => {
 
       <Modal isOpen={state.modalType === 'sede' && hasMultiClinicPlan} onClose={() => state.setModalType(null)} title="Nueva Sede">
         <div className="flex flex-col gap-6 p-2">
-          <InputField label="Nombre" value={sedeData.nombre} onChange={(v) => setSedeData({ ...sedeData, nombre: v })} />
+          <InputField label="Nombre de la Clínica" value={sedeData.nombre} onChange={(v) => setSedeData({ ...sedeData, nombre: v })} />
           <InputField label="Calle" value={sedeData.calle} onChange={(v) => setSedeData({ ...sedeData, calle: v })} />
+          <InputField label="Código Postal" value={sedeData.cp} onChange={(v) => setSedeData({ ...sedeData, cp: v })} />
+          <InputField label="Dirección Completa" value={sedeData.direccion} onChange={(v) => setSedeData({ ...sedeData, direccion: v })} />
+          <InputField label="Ciudad" value={sedeData.ciudad} onChange={(v) => setSedeData({ ...sedeData, ciudad: v })} />
+          <InputField label="Provincia" value={sedeData.provincia} onChange={(v) => setSedeData({ ...sedeData, provincia: v })} />
           <ActionButton onClick={handleAddSede} fullWidth>REGISTRAR INFRAESTRUCTURA ➜</ActionButton>
         </div>
       </Modal>
