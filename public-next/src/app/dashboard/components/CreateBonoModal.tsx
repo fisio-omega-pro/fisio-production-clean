@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { X, Search, User, Mail, Phone, Calendar, CreditCard, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { X, Search, User, Mail, Phone, Calendar, CreditCard, CheckCircle, AlertCircle, Loader2, Send, Smartphone } from 'lucide-react';
 
 interface CreateBonoModalProps {
   isOpen: boolean;
@@ -23,6 +23,8 @@ export const CreateBonoModal: React.FC<CreateBonoModalProps> = ({
   const [sesiones, setSesiones] = useState(5);
   const [fechaVencimiento, setFechaVencimiento] = useState('');
   const [generarPago, setGenerarPago] = useState(true);
+  const [enviarEmail, setEnviarEmail] = useState(true);
+  const [enviarApp, setEnviarApp] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -104,7 +106,9 @@ export const CreateBonoModal: React.FC<CreateBonoModalProps> = ({
         paciente_id: selectedPaciente.id,
         sesiones_totales: sesiones,
         fecha_vencimiento: fechaVencimiento || null,
-        generar_pago: generarPago
+        generar_pago: generarPago,
+        enviar_email: enviarEmail,
+        enviar_app: enviarApp
       };
 
       await onCreateBono(bono);
@@ -365,6 +369,52 @@ export const CreateBonoModal: React.FC<CreateBonoModalProps> = ({
                 </div>
               </label>
             </div>
+
+            {/* Opciones de Envío Automático */}
+            {generarPago && (
+              <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
+                <h3 className="font-medium text-white mb-4 flex items-center gap-2">
+                  <Send className="w-4 h-4" />
+                  Opciones de Envío Automático
+                </h3>
+                <div className="space-y-3">
+                  <label className="flex items-center space-x-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={enviarEmail}
+                      onChange={(e) => setEnviarEmail(e.target.checked)}
+                      className="w-5 h-5 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+                    />
+                    <div>
+                      <div className="font-medium text-white flex items-center gap-2">
+                        <Mail className="w-4 h-4" />
+                        Enviar por Email
+                      </div>
+                      <div className="text-sm text-gray-400">
+                        El paciente recibirá un email profesional con el enlace de pago
+                      </div>
+                    </div>
+                  </label>
+                  <label className="flex items-center space-x-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={enviarApp}
+                      onChange={(e) => setEnviarApp(e.target.checked)}
+                      className="w-5 h-5 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+                    />
+                    <div>
+                      <div className="font-medium text-white flex items-center gap-2">
+                        <Smartphone className="w-4 h-4" />
+                        Notificar en la App
+                      </div>
+                      <div className="text-sm text-gray-400">
+                        Enviar notificación push a la app del paciente
+                      </div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            )}
 
             {/* Resumen */}
             <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
