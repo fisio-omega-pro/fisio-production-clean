@@ -23,7 +23,8 @@ export const AnaConfigView = ({ clinicData, onUpdated }: AnaConfigProps) => {
         color: clinicData?.ana_color || '#075E54',
         welcome: clinicData?.ana_welcome || '¡Hola! Estoy aquí para ayudarte con tus citas y dudas. ¿En qué puedo apoyarte hoy?',
         photo: clinicData?.ana_photo || '',
-        useClinicLogo: clinicData?.ana_use_clinic_logo || false
+        useClinicLogo: clinicData?.ana_use_clinic_logo || false,
+        prospectionEmail: clinicData?.email_contacto || ''
     });
 
     const [saving, setSaving] = useState(false);
@@ -39,7 +40,8 @@ export const AnaConfigView = ({ clinicData, onUpdated }: AnaConfigProps) => {
                 color: clinicData.ana_color || '#075E54',
                 welcome: clinicData.ana_welcome || '¡Hola! Estoy aquí para ayudarte con tus citas y dudas. ¿En qué puedo apoyarte hoy?',
                 photo: clinicData.ana_photo || '',
-                useClinicLogo: !!clinicData.ana_use_clinic_logo
+                useClinicLogo: !!clinicData.ana_use_clinic_logo,
+                prospectionEmail: clinicData.email_contacto || ''
             });
         }
     }, [clinicData]);
@@ -131,6 +133,24 @@ export const AnaConfigView = ({ clinicData, onUpdated }: AnaConfigProps) => {
                                     className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm focus:outline-none focus:border-blue-500/50 focus:bg-white/[0.08] transition-all"
                                     placeholder="Ej: Ana, Coach, Recepción..."
                                 />
+                            </div>
+
+                            <div className="group">
+                                <label className="text-[10px] text-orange-500 uppercase tracking-widest mb-2 block font-bold transition-colors group-focus-within:text-orange-400">
+                                    📧 Email para Prospección de Pacientes <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="email"
+                                    value={config.prospectionEmail}
+                                    onChange={(e) => setConfig({ ...config, prospectionEmail: e.target.value })}
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm focus:outline-none focus:border-orange-500/50 focus:bg-white/[0.08] transition-all"
+                                    placeholder="ana@tuclinica.com"
+                                    required
+                                />
+                                <p className="text-[10px] text-gray-400 mt-2">
+                                    ⚠️ Email obligatorio para enviar comunicaciones de recuperación y seguimiento a pacientes. 
+                                    Los pacientes recibirán los mensajes desde esta dirección.
+                                </p>
                             </div>
 
                             <div>
