@@ -283,7 +283,7 @@ const createAppointment = async (req, res) => {
     const fecha = String(d.fecha || '').trim();
     const hora = String(d.hora || '').trim();
     const specialistId = String(d.specialistId || d.docId || '').trim() || null;
-    
+
     if (!fecha || !hora) return res.status(400).json({ success: false, error: 'fecha y hora requeridos' });
 
     // 🔥 VALIDACIÓN CRÍTICA: Verificar si ya existe una cita para la misma fecha, hora y especialista
@@ -294,11 +294,11 @@ const createAppointment = async (req, res) => {
       .where('specialist_id', '==', specialistId)
       .limit(1)
       .get();
-    
+
     if (!existingCitaQuery.empty) {
       console.log(`🚨 [DUPLICATE] Intento de cita duplicada: ${fecha} ${hora} para especialista ${specialistId}`);
-      return res.status(409).json({ 
-        success: false, 
+      return res.status(409).json({
+        success: false,
         error: 'Ya existe una cita agendada para esta fecha y hora',
         conflict: true
       });
@@ -319,18 +319,18 @@ const createAppointment = async (req, res) => {
     };
 
     const ref = await db.collection('citas').add(payload);
-    
+
     // 🚨 LOG: Creación de cita sensible
     await createAuditLog(req.clinicId, req.userId || req.clinicId, 'CREATE_APPOINTMENT', ref.id);
-    
+
     // 📧 ENVIAR NOTIFICACIÓN DE PAGO SI NO ESTÁ PAGADA
     if (!d.pagado && payload.email) {
       try {
         const { schedulePaymentReminder } = require('../services/paymentReminderService');
-        
+
         // Crear fecha y hora de la cita para recordatorio
         const appointmentDateTime = new Date(`${fecha} ${hora}:00`);
-        
+
         // Generar enlace de pago
         const { createOneTimePaymentSession } = require('../services/paymentService');
         const paymentResult = await createOneTimePaymentSession(
@@ -341,7 +341,7 @@ const createAppointment = async (req, res) => {
           `Cita: ${fecha} ${hora}`,
           req.clinicId
         );
-        
+
         if (paymentResult.success) {
           // Programar recordatorio de pago 1 hora antes
           const reminderResult = await schedulePaymentReminder(
@@ -351,11 +351,11 @@ const createAppointment = async (req, res) => {
             appointmentDateTime,
             50
           );
-          
+
           if (reminderResult.success) {
             console.log(`📧 [APPOINTMENT] Payment reminder scheduled for ${payload.email}`);
           }
-          
+
           // Actualizar cita con ID de pago
           await db.collection('citas').doc(ref.id).update({
             payment_id: paymentResult.paymentId,
@@ -367,7 +367,7 @@ const createAppointment = async (req, res) => {
         // No fallar la creación de cita si falla el recordatorio
       }
     }
-    
+
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 };
@@ -641,10 +641,10 @@ const createBlock = async (req, res, next) => {
 
     await createAuditLog(clinicId, req.user?.uid || 'unknown', 'CREATE_BLOCK', blockRef.id);
 
-    res.status(201).json({ 
-      success: true, 
+    res.status(201).json({
+      success: true,
       id: blockRef.id,
-      message: 'Bloqueo creado exitosamente' 
+      message: 'Bloqueo creado exitosamente'
     });
 
   } catch (e) {
@@ -661,8 +661,8 @@ const createPatient = async (req, res, next) => {
 
     // Validar datos requeridos
     if (!patientData.nombre || !patientData.telefono) {
-      return res.status(400).json({ 
-        error: 'Nombre y teléfono son obligatorios' 
+      return res.status(400).json({
+        error: 'Nombre y teléfono son obligatorios'
       });
     }
 
@@ -673,8 +673,8 @@ const createPatient = async (req, res, next) => {
       .get();
 
     if (!existingPatient.empty) {
-      return res.status(409).json({ 
-        error: 'Ya existe un paciente con este número de teléfono' 
+      return res.status(409).json({
+        error: 'Ya existe un paciente con este número de teléfono'
       });
     }
 
@@ -696,8 +696,8 @@ const createPatient = async (req, res, next) => {
     // Crear log de auditoría
     await createAuditLog(clinicId, req.user?.uid || 'unknown', 'CREATE_PATIENT', patientRef.id);
 
-    res.status(201).json({ 
-      success: true, 
+    res.status(201).json({
+      success: true,
       id: patientRef.id,
       message: 'Paciente creado exitosamente',
       patient: {
@@ -782,7 +782,7 @@ const saveCobrosConfig = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
-const PLANS_MULTI_CLINIC = ['business', 'clinic', 'corporate'];
+const PLANS_MULTI_CLINIC = ['team', 'business', 'clinic', 'corporate'];
 
 const addSede = async (req, res, next) => {
   try {
@@ -1059,7 +1059,7 @@ const createUpgradeSession = async (req, res, next) => {
   try {
     const clinicDoc = await db.collection('clinicas').doc(req.clinicId).get();
     if (!clinicDoc.exists) return res.status(404).json({ success: false, error: 'Clínica no encontrada' });
-    
+
     const clinic = clinicDoc.data() || {};
     const requested = String(req.body?.plan || '').trim();
     const current = String(clinic.plan || 'solo').trim();
@@ -1077,8 +1077,8 @@ const createUpgradeSession = async (req, res, next) => {
     const { url } = await paymentService.createSubscriptionSession(req.clinicId, clinic.email, plan, req, { allowTrial: false });
     await createAuditLog(req.clinicId, req.userId || req.clinicId, 'STRIPE_UPGRADE_SESSION', plan);
     return res.json({ success: true, url });
-  } catch (e) { 
-    next(e); 
+  } catch (e) {
+    next(e);
   }
 };
 
@@ -1589,7 +1589,7 @@ const uploadAnaPhoto = async (req, res, next) => {
     const { initEnv } = require('../config/env');
     const env = await initEnv();
     const bucketName = env.GCS_BUCKET_NAME;
-    
+
     if (!bucketName) {
       return res.status(503).json({ success: false, error: 'Storage no configurado' });
     }
@@ -1597,33 +1597,33 @@ const uploadAnaPhoto = async (req, res, next) => {
     const { Storage } = require('@google-cloud/storage');
     const storage = new Storage();
     const bucket = storage.bucket(bucketName);
-    
+
     // Generar nombre único para el archivo
     const fileName = `ana-photos/${req.clinicId}/${Date.now()}-${req.file.originalname}`;
     const file = bucket.file(fileName);
-    
+
     // Subir archivo
     await file.save(req.file.buffer, {
       metadata: {
         contentType: req.file.mimetype,
       },
     });
-    
+
     // Hacer archivo público
     await file.makePublic();
-    
+
     const publicUrl = `https://storage.googleapis.com/${bucketName}/${fileName}`;
-    
+
     await createAuditLog(req.clinicId, req.userId || req.clinicId, 'UPLOAD_ANA_PHOTO', fileName);
-    
-    res.json({ 
-      success: true, 
-      url: publicUrl 
+
+    res.json({
+      success: true,
+      url: publicUrl
     });
-    
-  } catch (e) { 
+
+  } catch (e) {
     console.error('🔥 Error uploading Ana photo:', e);
-    next(e); 
+    next(e);
   }
 };
 

@@ -194,7 +194,7 @@ const upgradeExistingSubscription = async (subscriptionId, newPlan, req) => {
 
   try {
     console.log(`🔄 [STRIPE] Upgrading subscription ${subscriptionId} to plan ${normalized}`);
-    
+
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
     const itemId = subscription.items?.data?.[0]?.id;
     if (!itemId) {
@@ -202,46 +202,67 @@ const upgradeExistingSubscription = async (subscriptionId, newPlan, req) => {
       return { url: `${frontendBase}/dashboard`, upgraded: false };
     }
 
-    console.log(`📋 [STRIPE] Customer: ${subscription.customer}, Item: ${itemId}`);
-
-    // Cambiar al nuevo precio con prorrateo: Stripe cobra solo la diferencia proporcional
+    // Cambiar al nuevo precio con prorrateo inmediato
+    // Usamos 'always_invoice' para que Stripe genere la factura al momento
     await stripe.subscriptions.update(subscriptionId, {
       items: [{ id: itemId, price: newPriceId }],
-      proration_behavior: 'create_prorations',
+      proration_behavior: 'always_invoice',
       metadata: { ...(subscription.metadata || {}), plan: normalized },
     });
 
-    console.log('✅ [STRIPE] Subscription updated, creating invoice...');
+    console.log('✅ [STRIPE] Subscription updated, creating/checking invoice...');
 
-    // Crear/finalizar factura para cobrar el prorrateo ahora
+    // Intentar buscar una factura abierta o borrador para cobrar el ajuste
     let invoices = await stripe.invoices.list({ subscription: subscriptionId, status: 'open', limit: 1 });
     let invoice = invoices.data[0];
+
     if (!invoice) {
       invoices = await stripe.invoices.list({ subscription: subscriptionId, status: 'draft', limit: 1 });
       invoice = invoices.data[0];
     }
+
     if (!invoice) {
-      // Añadir customer_id explícitamente para evitar el error
-      console.log(`📄 [STRIPE] Creating new invoice for customer ${subscription.customer}`);
-      invoice = await stripe.invoices.create({ 
-        subscription: subscriptionId, 
-        auto_advance: true,
-        customer: subscription.customer // Añadir customer explícitamente
-      });
+      // Si no hay factura pendiente, creamos una para forzar el cobro del prorrateo
+      try {
+        invoice = await stripe.invoices.create({
+          subscription: subscriptionId,
+          auto_advance: true,
+          customer: subscription.customer
+        });
+      } catch (invoiceError) {
+        console.warn('⚠️ [STRIPE] No se pudo crear factura (quizás prorrateo 0):', invoiceError.message);
+      }
     }
-    if (invoice.status === 'draft') {
-      invoice = await stripe.invoices.finalizeInvoice(invoice.id);
+
+    if (invoice && invoice.status === 'draft') {
+      try {
+        invoice = await stripe.invoices.finalizeInvoice(invoice.id);
+      } catch (finalizeError) {
+        console.warn('⚠️ [STRIPE] No se pudo finalizar factura:', finalizeError.message);
+      }
     }
-    
-    console.log(`💰 [STRIPE] Invoice: ${invoice.id}, Amount: ${invoice.amount_due}, Status: ${invoice.status}`);
-    
-    if (invoice.amount_due > 0 && invoice.hosted_invoice_url) {
+
+    // Si hay balace pendiente, mandamos a la pasarela de la factura
+    if (invoice && invoice.amount_due > 0 && invoice.hosted_invoice_url) {
+      console.log(`💰 [STRIPE] Redirigiendo a factura de pago: ${invoice.hosted_invoice_url}`);
       return { url: invoice.hosted_invoice_url, upgraded: true };
     }
-    return { url: `${frontendBase}/dashboard?upgraded=1`, upgraded: true };
+
+    // Si no hay nada que pagar (0€) o falló la factura, mandamos al Customer Portal 
+    // para que vea su nuevo plan o simplemente al dashboard si el portal falla.
+    try {
+      const portalSession = await stripe.billingPortal.sessions.create({
+        customer: subscription.customer,
+        return_url: `${frontendBase}/dashboard?upgraded=1`,
+      });
+      console.log('✅ [STRIPE] Redirigiendo a Customer Portal (Prorrateo 0€)');
+      return { url: portalSession.url, upgraded: true };
+    } catch (portalError) {
+      console.error('❌ [STRIPE] Error al crear sesión del portal:', portalError.message);
+      return { url: `${frontendBase}/dashboard?upgraded=1`, upgraded: true };
+    }
   } catch (e) {
     console.error('🔥 [STRIPE] upgradeExistingSubscription error:', e?.message || e);
-    console.error('🔥 [STRIPE] Full error:', e);
     throw e;
   }
 };

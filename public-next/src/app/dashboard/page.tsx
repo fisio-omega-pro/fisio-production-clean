@@ -34,7 +34,7 @@ import { NewPatientModal } from './components/modals/NewPatientModal';
 import { Crown, Loader2, Zap, Ticket, User, Building2, MapPin, Info } from 'lucide-react';
 
 // Planes que incluyen multi-sede (300€): al subir de nivel se activa automáticamente en el dashboard
-const PLANS_MULTI_CLINIC = ['business', 'clinic', 'corporate'];
+const PLANS_MULTI_CLINIC = ['team', 'business', 'corporate'];
 
 export default function DashboardOmega() {
   const state = useDashboardState();
@@ -107,7 +107,7 @@ export default function DashboardOmega() {
   const handleCreateAppt = async () => {
     try {
       const response = await dashboardAPI.createAppointment(apptData);
-      
+
       if (response.success) {
         state.setModalType(null);
         setApptData({ nombre: '', telefono: '', email: '', fecha: '', hora: '', docId: '' });
@@ -120,7 +120,7 @@ export default function DashboardOmega() {
       }
     } catch (error: any) {
       console.error('Error creating appointment:', error);
-      
+
       if (error.response?.status === 409) {
         alert('⚠️ Ya existe una cita agendada para esta fecha y hora. Por favor, selecciona otro horario.');
       } else {
@@ -135,7 +135,7 @@ export default function DashboardOmega() {
     setUpgradeLoading(true);
     try {
       const url = await dashboardAPI.upgradePlan('business');
-      if (url && url.startsWith('https://')) {
+      if (url) {
         window.location.href = url;
       } else {
         alert('❌ Error: No se pudo generar la URL de pago');
@@ -149,35 +149,35 @@ export default function DashboardOmega() {
   };
 
   const handleCreatePatient = async (patientData: any) => {
-  try {
-    const response = await dashboardAPI.createPatient(patientData);
-    
-    if (response.success) {
-      state.setModalType(null);
-      state.refreshData();
-      alert('✅ Paciente creado exitosamente');
-    } else {
-      alert(`❌ Error: ${response.error || 'Error al crear paciente'}`);
-    }
-  } catch (error: any) {
-    console.error('Error creating patient:', error);
-    
-    // Extraer mensaje de error específico
-    let errorMessage = 'Error al crear paciente';
-    
-    if (error.response?.data?.error) {
-      errorMessage = error.response.data.error;
-    } else if (error.message) {
-      errorMessage = error.message;
-    } else if (typeof error === 'string') {
-      errorMessage = error;
-    }
-    
-    alert(`❌ Error: ${errorMessage}`);
-  }
-};
+    try {
+      const response = await dashboardAPI.createPatient(patientData);
 
-const handleBlockSchedule = async () => {
+      if (response.success) {
+        state.setModalType(null);
+        state.refreshData();
+        alert('✅ Paciente creado exitosamente');
+      } else {
+        alert(`❌ Error: ${response.error || 'Error al crear paciente'}`);
+      }
+    } catch (error: any) {
+      console.error('Error creating patient:', error);
+
+      // Extraer mensaje de error específico
+      let errorMessage = 'Error al crear paciente';
+
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+
+      alert(`❌ Error: ${errorMessage}`);
+    }
+  };
+
+  const handleBlockSchedule = async () => {
     try {
       await dashboardAPI.createBlock(blockData);
       state.setModalType(null);
@@ -247,19 +247,15 @@ const handleBlockSchedule = async () => {
       case 'bonos': return <BonosView clinicData={state.clinicData} bonos={state.bonos} onActivate={async () => { await dashboardAPI.activateBonos(); state.refreshData(); }} onDeactivate={async () => { await dashboardAPI.deactivateBonos(); state.refreshData(); }} onNewBono={() => state.setModalType('nuevo_bono')} />;
       case 'equipo': return <EquipoView currentUser={state.currentUser} equipo={state.equipo} onAddMember={() => state.setModalType('editar_perfil')} currentPlan={state.clinicData.plan} onViewCalendar={() => state.setActiveTab('agenda')} onEditMember={(m) => { state.setMemberToEdit(m); state.setModalType('editar_perfil'); }} onUpgrade={async () => { const url = await dashboardAPI.upgradePlan('team'); if (url) window.location.href = url; }} />;
       case 'sedes':
-        if (!hasMultiClinicPlan) {
-          return (
-            <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-8 max-w-md">
-              <Building2 size={32} className="text-blue-500 mb-4" />
-              <h2 className="text-xl font-bold text-white mb-2">Mis Clínicas</h2>
-              <p className="text-gray-400 text-sm mb-6">Para añadir y gestionar varias clínicas desde un solo panel necesitas el plan Multi-Sede (300€/mes). Al subir de plan, solo pagas la parte proporcional hasta tu próxima factura.</p>
-              <ActionButton onClick={handleUpgradeToMultiSede} disabled={upgradeLoading} style={{ background: '#0066ff', color: '#fff' }}>
-                {upgradeLoading ? 'Procesando...' : 'Subir a plan Multi-Sede (300€/mes)'}
-              </ActionButton>
-            </div>
-          );
-        }
-        return <SedesView clinicData={state.clinicData} onAddSede={() => state.setModalType('sede')} />;
+        return (
+          <SedesView
+            clinicData={state.clinicData}
+            onAddSede={() => state.setModalType('sede')}
+            isUpgradeRequired={!hasMultiClinicPlan}
+            onUpgrade={handleUpgradeToMultiSede}
+            upgradeLoading={upgradeLoading}
+          />
+        );
       case 'cobros': return <CobrosView hasStripe={state.configStatus.hasStripe} clinicData={state.clinicData} />;
       case 'asistente': return <AsistenteView />;
       case 'config_ana': return <AnaConfigView clinicData={state.clinicData} onUpdated={state.refreshData} />;
@@ -508,10 +504,10 @@ const handleBlockSchedule = async () => {
 
       <Modal isOpen={state.modalType === 'reactivacion'} onClose={() => state.setModalType(null)} title="Motor ASG"><div className="text-center p-4"><Zap size={48} className="text-yellow-500 mx-auto mb-4" /><ActionButton onClick={() => state.setModalType(null)} fullWidth style={{ background: '#facc15', color: '#000' }}>LANZAR CAMPAÑA</ActionButton></div></Modal>
 
-      <NewPatientModal 
-        isOpen={state.modalType === 'nuevo_paciente'} 
-        onClose={() => state.setModalType(null)} 
-        onSave={handleCreatePatient} 
+      <NewPatientModal
+        isOpen={state.modalType === 'nuevo_paciente'}
+        onClose={() => state.setModalType(null)}
+        onSave={handleCreatePatient}
       />
       <Modal isOpen={state.modalType === 'upgrade'} onClose={() => state.setModalType(null)} title="Mejorar Plan">
         <div className="text-center p-4">
