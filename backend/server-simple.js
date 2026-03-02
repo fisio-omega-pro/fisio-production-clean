@@ -57,6 +57,14 @@ const apiLimiter = rateLimit({
 
 app.use('/api', apiLimiter);
 
+// Logging detallado de todas las peticiones
+app.use((req, res, next) => {
+  const timestamp = new Date().toISOString();
+  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  console.log(`📋 [${timestamp}] ${req.method} ${req.originalUrl} - IP: ${ip}`);
+  next();
+});
+
 // Health check SIEMPRE disponible
 app.get('/api/health', (req, res) => {
   res.json({ 
@@ -131,6 +139,29 @@ const initialize = async () => {
 setTimeout(() => {
   initialize().catch(e => console.error('🔥 Error crítico:', e));
 }, 1000);
+
+// 1. Catch-all para 404 - SIEMPRE devuelve JSON
+app.use((req, res, next) => {
+  console.log(`🔍 Ruta no encontrada: ${req.method} ${req.originalUrl}`);
+  res.status(404).json({
+    status: 'error',
+    message: `Ruta no encontrada: ${req.originalUrl}`,
+    method: req.method,
+    url: req.originalUrl,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// 2. Manejador de errores global - SIEMPRE devuelve JSON
+app.use((err, req, res, next) => {
+  console.error('🔥 Error global:', err.stack);
+  res.status(500).json({
+    status: 'error',
+    message: 'Error interno del servidor',
+    error: err.message,
+    timestamp: new Date().toISOString()
+  });
+});
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, '0.0.0.0', () => {
