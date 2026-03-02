@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Users, Plus, Crown, ShieldCheck, Settings, Calendar, ArrowUpRight, UserCheck } from 'lucide-react';
+import { Users, Plus, Crown, ShieldCheck, Settings, Calendar, ArrowUpRight, UserCheck, Building2 } from 'lucide-react';
 import { Especialista } from '../types';
+import { getSubscriptionStatus } from '@/lib/subscriptionStatus';
 
 interface EquipoProps {
   currentUser?: { specialistId: string | null; isOwner: boolean };
@@ -12,12 +13,63 @@ interface EquipoProps {
   onViewCalendar: (id: string) => void;
   onEditMember: (member: Especialista) => void;
   onUpgrade: () => void;
+  clinicData?: any;
+  upgradeLoading?: boolean;
 }
 
-export const EquipoView: React.FC<EquipoProps> = ({ currentUser, equipo, onAddMember, currentPlan, onViewCalendar, onEditMember, onUpgrade }) => {
+export const EquipoView: React.FC<EquipoProps> = ({ 
+  currentUser, 
+  equipo, 
+  onAddMember, 
+  currentPlan, 
+  onViewCalendar, 
+  onEditMember, 
+  onUpgrade,
+  clinicData,
+  upgradeLoading
+}) => {
+  // Aplicar la misma lógica que SedesView
+  const subscriptionStatus = getSubscriptionStatus(clinicData);
+  
   const isSolo = currentPlan === 'solo';
   const isStaff = !!(currentUser?.specialistId);
   const membersToShow = isStaff ? equipo.filter((m) => m.id === currentUser!.specialistId) : equipo;
+
+  // Si no tiene permisos de plan, mostrar upgrade tradicional
+  if (!subscriptionStatus.canAccessMultiSede) {
+    return (
+      <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-8 max-w-md">
+        <Building2 size={32} className="text-blue-500 mb-4" />
+        <h2 className="text-xl font-bold text-white mb-2">Equipo</h2>
+        <p className="text-gray-400 text-sm mb-6">Para añadir y gestionar varios fisioterapeutas en tu equipo necesitas el plan Multi-Sede (300€/mes). Al subir de plan, solo pagas la parte proporcional hasta tu próxima factura.</p>
+        <button 
+          onClick={onUpgrade} 
+          disabled={upgradeLoading}
+          style={{ background: '#0066ff', color: '#fff', padding: '12px 24px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '16px' }}
+        >
+          {upgradeLoading ? 'Procesando...' : 'Subir a plan Multi-Sede (300€/mes)'}
+        </button>
+      </div>
+    );
+  }
+
+  // Si necesita pagar, mostrar solo el botón de pago
+  if (subscriptionStatus.needsToPay) {
+    return (
+      <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-8 max-w-md">
+        <Building2 size={32} className="text-blue-500 mb-4" />
+        <h2 className="text-xl font-bold text-white mb-2">Equipo</h2>
+        <p className="text-gray-400 text-sm mb-6">Para añadir y gestionar varios fisioterapeutas en tu equipo necesitas activar tu suscripción al plan Multi-Sede (300€/mes).</p>
+        <button 
+          onClick={onUpgrade} 
+          disabled={upgradeLoading}
+          style={{ background: '#0066ff', color: '#fff', padding: '12px 24px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '16px' }}
+        >
+          {upgradeLoading ? 'Procesando...' : 'Activar Suscripción (300€/mes)'}
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-12 max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">

@@ -264,7 +264,7 @@ export default function DashboardOmega() {
           return result;
         }}
       />;
-      case 'equipo': return <EquipoView currentUser={state.currentUser} equipo={state.equipo} onAddMember={() => state.setModalType('editar_perfil')} currentPlan={state.clinicData.plan} onViewCalendar={() => state.setActiveTab('agenda')} onEditMember={(m) => { state.setMemberToEdit(m); state.setModalType('editar_perfil'); }} onUpgrade={async () => { const url = await dashboardAPI.upgradePlan('team'); if (url) window.location.href = url; }} />;
+      case 'equipo': return <EquipoView currentUser={state.currentUser} equipo={state.equipo} onAddMember={() => state.setModalType('editar_perfil')} currentPlan={state.clinicData.plan} onViewCalendar={() => state.setActiveTab('agenda')} onEditMember={(m) => { state.setMemberToEdit(m); state.setModalType('editar_perfil'); }} onUpgrade={async () => { const url = await dashboardAPI.upgradePlan('team'); if (url) window.location.href = url; }} clinicData={state.clinicData} upgradeLoading={upgradeLoading} />;
       case 'sedes':
         return (
           <SedesView
