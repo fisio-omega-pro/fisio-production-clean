@@ -74,10 +74,18 @@ const setupCriticalRoutes = () => {
     // Endpoint de login (CRÍTICO - debe estar disponible desde el inicio)
     app.post('/api/login', async (req, res) => {
       try {
+        console.log('🔐 LOGIN REQUEST DETALLADO:');
+        console.log('✅ Headers:', req.headers);
+        console.log('✅ Body completo:', req.body);
+        console.log('✅ Content-Type:', req.headers['content-type']);
+        
         const { email, password } = req.body;
         console.log(`🔐 Intento de login: ${email}`);
+        console.log(`🔐 Password length: ${password ? password.length : 'null'}`);
+        console.log(`🔐 Password type: ${typeof password}`);
         
         if (!email || !password) {
+          console.log('❌ Email o password faltantes');
           return res.status(400).json({ 
             success: false, 
             error: 'Email y contraseña requeridos' 
@@ -91,6 +99,7 @@ const setupCriticalRoutes = () => {
           .get();
         
         if (clinicSnapshot.empty) {
+          console.log('❌ Clínica no encontrada');
           return res.status(401).json({ 
             success: false, 
             error: 'Credenciales incorrectas' 
@@ -98,6 +107,7 @@ const setupCriticalRoutes = () => {
         }
         
         const clinic = clinicSnapshot.docs[0].data();
+        console.log('✅ Clínica encontrada:', clinic.nombre_clinica);
         
         // Validación con hash (usando bcrypt si está disponible, si no comparación directa)
         let passwordValid = false;
@@ -107,22 +117,28 @@ const setupCriticalRoutes = () => {
           try {
             const bcrypt = require('bcrypt');
             passwordValid = await bcrypt.compare(password, clinic.password);
+            console.log('✅ bcrypt.compare result:', passwordValid);
           } catch (e) {
+            console.log('❌ Error bcrypt:', e.message);
             // Si bcrypt no está disponible, intentar comparación directa
             passwordValid = clinic.password === password;
+            console.log('✅ Comparación directa result:', passwordValid);
           }
         } else {
           // Password en texto plano (fallback)
           passwordValid = clinic.password === password;
+          console.log('✅ Password plano, comparación result:', passwordValid);
         }
         
         if (!passwordValid) {
+          console.log('❌ Password inválido');
           return res.status(401).json({ 
             success: false, 
             error: 'Credenciales incorrectas' 
           });
         }
         
+        console.log('🎉 LOGIN EXITOSO');
         // Login exitoso
         res.json({
           success: true,
