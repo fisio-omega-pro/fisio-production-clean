@@ -1048,29 +1048,50 @@ const createBono = async (req, res, next) => {
     if (generarPago) {
       try {
         const paymentService = require('../services/paymentService');
-        const pagoSession = await paymentService.createOneTimePaymentSession({
-          amount: precioBono,
-          currency: 'eur',
-          concepto: `Bono de ${sesionesTotales} sesiones - ${paciente.nombre}`,
-          cliente_email: paciente.email,
-          success_url: `https://fisiotool.com/dashboard/bonos?bono_id=${bonoRef.id}&pago=exitoso`,
-          cancel_url: `https://fisiotool.com/dashboard/bonos?bono_id=${bonoRef.id}&pago=cancelado`,
-          metadata: {
-            bono_id: bonoRef.id,
-            paciente_id: pacienteId,
-            clinic_id: req.clinicId,
-            tipo: 'bono_sesiones'
-          }
-        });
-        pagoUrl = pagoSession.url;
+        
+        // Obtener el stripe_account_id de la clínica
+        const clinicDoc = await db.collection('clinicas').doc(req.clinicId).get();
+        const clinicData = clinicDoc.data();
+        const stripeAccountId = clinicData?.stripe_account_id;
+        
+        if (!stripeAccountId) {
+          console.error('❌ La clínica no tiene stripe_account_id configurado');
+          throw new Error('Stripe no configurado para esta clínica');
+        }
+        
+        // Convertir precio a céntimos
+        const amountCents = Math.round(precioBono * 100);
+        const concepto = `Bono de ${sesionesTotales} sesiones - ${paciente.nombre}`;
+        
+        const pagoResult = await paymentService.createOneTimePaymentSession(
+          amountCents,
+          stripeAccountId,
+          concepto,
+          req
+        );
+        
+        if (pagoResult.url) {
+          pagoUrl = pagoResult.url;
+          console.log('✅ Enlace de pago generado:', pagoUrl);
+          
+          // Actualizar el bono con la URL de pago
+          await bonoRef.update({
+            pago_url: pagoUrl
+          });
+        } else {
+          console.error('❌ Error generando pago:', pagoResult.error);
+          throw new Error(pagoResult.error || 'Error al generar enlace de pago');
+        }
+        
       } catch (pagoError) {
-        console.error('Error generando pago:', pagoError);
+        console.error('❌ Error generando pago:', pagoError.message);
         // Si falla el pago, crear el bono como activo
         await bonoRef.update({
           status: 'ACTIVO',
           sesiones_restantes: sesionesTotales,
           pago_generado: false
         });
+        console.log('⚠️ Bono activado sin pago debido a error');
       }
     } else {
       // Si no se genera pago, activar el bono inmediatamente
