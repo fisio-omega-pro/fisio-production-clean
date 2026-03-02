@@ -19,21 +19,17 @@ const sendEmail = async (arg1, arg2, arg3, arg4) => {
 
   const env = await initEnv();
   
-  // ESTRATEGIA HÍBRIDA PARA EMAIL DE ANA
-  let credentials;
+  // SISTEMA HÍBRIDO INTELIGENTE
+  let credentials, fromName;
   if (type === 'ANA') {
-    // Si el clinic tiene email personalizado, usarlo
-    if (arg1 && arg1.clinicEmail) {
-      credentials = {
-        user: arg1.clinicEmail,
-        pass: env.ANA_MAIL.pass // Usar misma contraseña pero con email personalizado
-      };
-    } else {
-      // Sino usar el genérico de Ana
-      credentials = env.ANA_MAIL;
-    }
+    // Usar ana@fisiotool.com (configurado) con nombre híbrido
+    credentials = env.ANA_MAIL; // Ya configurado y funciona
+    fromName = arg1 && arg1.clinicName ? 
+      `${arg1.clinicName} via FisioTool` : 
+      'FisioTool Pro';
   } else {
     credentials = env.INFO_MAIL;
+    fromName = 'FisioTool Pro';
   }
 
   const splitRecipients = (value) => {
@@ -84,7 +80,7 @@ const sendEmail = async (arg1, arg2, arg3, arg4) => {
 
   try {
     const info = await transporter.sendMail({ 
-      from: `"${type === 'ANA' ? 'Ana · FisioTool Pro' : 'FisioTool Info'}" <${credentials.user}>`, 
+      from: `"${fromName}" <${credentials.user}>`, 
       to, 
       subject, 
       ...(html ? { html } : {}),

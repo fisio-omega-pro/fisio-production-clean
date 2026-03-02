@@ -136,20 +136,19 @@ export const AnaConfigView = ({ clinicData, onUpdated }: AnaConfigProps) => {
                             </div>
 
                             <div className="group">
-                                <label className="text-[10px] text-orange-500 uppercase tracking-widest mb-2 block font-bold transition-colors group-focus-within:text-orange-400">
-                                    📧 Email para Prospección de Pacientes <span className="text-red-500">*</span>
+                                <label className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 block font-bold transition-colors group-focus-within:text-blue-400">
+                                    📧 Email Personalizado (Opcional)
                                 </label>
                                 <input
                                     type="email"
                                     value={config.prospectionEmail}
                                     onChange={(e) => setConfig({ ...config, prospectionEmail: e.target.value })}
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm focus:outline-none focus:border-orange-500/50 focus:bg-white/[0.08] transition-all"
-                                    placeholder="ana@tuclinica.com"
-                                    required
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm focus:outline-none focus:border-blue-500/50 focus:bg-white/[0.08] transition-all"
+                                    placeholder="deja@tuclinica.com (opcional)"
                                 />
                                 <p className="text-[10px] text-gray-400 mt-2">
-                                    ⚠️ Email obligatorio para enviar comunicaciones de recuperación y seguimiento a pacientes. 
-                                    Los pacientes recibirán los mensajes desde esta dirección.
+                                    💡 Email opcional para remitente personalizado. Si no configuras nada, usaremos nuestro sistema 
+                                    inteligente "[Tu Clínica] via FisioTool" para máxima profesionalidad y deliverabilidad.
                                 </p>
                             </div>
 

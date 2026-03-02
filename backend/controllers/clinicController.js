@@ -1568,18 +1568,13 @@ const updateAnaConfig = async (req, res, next) => {
   try {
     const { name, color, welcome, photo, useClinicLogo, prospectionEmail } = req.body;
     
-    // Validar que el email de prospección sea obligatorio
-    if (!prospectionEmail || !prospectionEmail.includes('@')) {
-      return res.status(400).json({ success: false, error: 'El email de prospección es obligatorio y debe ser válido' });
-    }
-    
     await db.collection('clinicas').doc(req.clinicId).update({
       ana_name: String(name || 'Ana').trim(),
       ana_color: String(color || '#075E54').trim(),
       ana_welcome: String(welcome || '').trim(),
       ana_photo: photo || null,
       ana_use_clinic_logo: !!useClinicLogo,
-      email_contacto: String(prospectionEmail).trim().toLowerCase(), // Guardar email de prospección
+      email_contacto: prospectionEmail ? String(prospectionEmail).trim().toLowerCase() : null, // Email opcional
       updated_at: Timestamp.now()
     });
     await createAuditLog(req.clinicId, req.userId || req.clinicId, 'UPDATE_ANA_CONFIG', req.clinicId);

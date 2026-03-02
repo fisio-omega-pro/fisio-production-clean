@@ -99,15 +99,16 @@ async function runRecaptacionForClinic(clinicId, options = {}) {
     const subject = `Hola ${nombre}, ¿cómo estás? Te extrañamos en ${clinicName}`;
     const text =
       `Hola ${nombre},\n\n` +
-      `Soy ${assistantName} de ${clinicName}. Ha pasado tiempo desde tu última visita y nos gustaría saber cómo estás.\n\n` +
+      `Somos ${clinicName} y te contactamos a través de FisioTool, nuestra plataforma inteligente de gestión.\n\n` +
+      `Hemos visto que hace tiempo que no reservas y nos gustaría saber cómo estás.\n\n` +
       `💡 **Novedad**: Ahora puedes gestionar tus citas desde nuestra app móvil:\n` +
       `• 📅 Reserva tus citas cuando quieras\n` +
       `• 🔔 Recibe recordatorios automáticos\n` +
-      `• 💬 Habla directamente con nosotros\n\n` +
-      `¿Te gustaría retomar tus tratamientos? Puedes responder este email o descargar la app:\n` +
+      `• 💬 Comunicación directa con nosotros\n\n` +
+      `¿Te gustaría retomar tus tratamientos? Responde este email o descarga la app:\n` +
       `[URL DE TU APP PWA]\n\n` +
-      `Un saludo,\n${assistantName}\n` +
-      `${clinicName}\n` +
+      `Un saludo,\n${assistantName} - ${clinicName}\n` +
+      `🤖 Powered by FisioTool\n` +
       `📞 [Teléfono de la clínica]`;
 
     try {
@@ -116,7 +117,7 @@ async function runRecaptacionForClinic(clinicId, options = {}) {
         subject, 
         text, 
         type: 'ANA',
-        clinicEmail: clinic.email_contacto || clinic.email || null // Email personalizado de la clínica
+        clinicName: clinicName // Pasar nombre de clínica para el remitente
       });
       if (!r || r.ok !== true) {
         await finalizePatient(locked.id, {
