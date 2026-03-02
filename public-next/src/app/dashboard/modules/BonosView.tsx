@@ -47,7 +47,48 @@ export const BonosView: React.FC<BonosProps> = ({
   const [isDeactivating, setIsDeactivating] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [filtroActual, setFiltroActual] = useState('todos'); // 'todos', 'activos', 'pendientes'
+  const [busqueda, setBusqueda] = useState(''); // búsqueda por paciente
   const isActivated = clinicData?.config_ia?.acepta_bonos;
+
+  // Lógica de filtrado
+  const bonosFiltrados = bonos.filter(bono => {
+    // Filtrar por búsqueda
+    if (busqueda.trim() !== '') {
+      const busquedaLower = busqueda.toLowerCase();
+      if (!bono.paciente_nombre?.toLowerCase().includes(busquedaLower) &&
+          !bono.paciente_email?.toLowerCase().includes(busquedaLower)) {
+        return false;
+      }
+    }
+    
+    // Filtrar por estado
+    switch (filtroActual) {
+      case 'activos':
+        return bono.status === 'ACTIVO';
+      case 'pendientes':
+        return bono.status === 'PENDIENTE_DE_PAGO';
+      default:
+        return true; // 'todos'
+    }
+  });
+
+  // Funciones para compartir enlace
+  const copiarEnlace = (pagoUrl: string) => {
+    navigator.clipboard.writeText(pagoUrl);
+    alert('✅ Enlace copiado al portapapeles');
+  };
+
+  const compartirWhatsApp = (pacienteNombre: string, pagoUrl: string) => {
+    const mensaje = `Hola ${pacienteNombre}! 🏥 Tu bono de fisioterapia está listo. Paga aquí: ${pagoUrl}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(mensaje)}`, '_blank');
+  };
+
+  const compartirEmail = (pacienteNombre: string, pacienteEmail: string, pagoUrl: string) => {
+    const asunto = `Tu bono de fisioterapia está listo`;
+    const cuerpo = `Hola ${pacienteNombre},\n\nTu bono de fisioterapia ha sido creado y está listo para pagar.\n\nEnlace de pago: ${pagoUrl}\n\nPuedes pagar directamente haciendo clic en el enlace de arriba.\n\n¡Nos vemos pronto!\nFisioTool Pro`;
+    window.open(`mailto:${pacienteEmail}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`, '_blank');
+  };
 
   const handleActivate = async () => {
     setIsActivating(true);
@@ -184,90 +225,150 @@ export const BonosView: React.FC<BonosProps> = ({
       {/* Lista Detallada de Bonos */}
       <div className="bg-white/[0.02] border border-white/10 rounded-[32px] p-8">
         <div className="flex justify-between items-center mb-8">
-          <h3 className="text-2xl font-black text-white">Bonos Activos</h3>
+          <h3 className="text-2xl font-black text-white">Bonos ({bonosFiltrados.length})</h3>
           <div className="flex gap-3">
-            <button className="px-4 py-2 bg-gray-700 text-white rounded-xl text-sm font-medium hover:bg-gray-600 transition-colors">
-              Todos
+            <button 
+              onClick={() => setFiltroActual('todos')}
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                filtroActual === 'todos' 
+                  ? 'bg-blue-600 text-white' 
+                  : 'bg-gray-700 text-white hover:bg-gray-600'
+              }`}
+            >
+              Todos ({bonos.length})
             </button>
-            <button className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors">
-              Activos
+            <button 
+              onClick={() => setFiltroActual('activos')}
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                filtroActual === 'activos' 
+                  ? 'bg-blue-600 text-white' 
+                  : 'bg-gray-700 text-white hover:bg-gray-600'
+              }`}
+            >
+              Activos ({bonos.filter(b => b.status === 'ACTIVO').length})
             </button>
-            <button className="px-4 py-2 bg-gray-700 text-white rounded-xl text-sm font-medium hover:bg-gray-600 transition-colors">
-              Pendientes
+            <button 
+              onClick={() => setFiltroActual('pendientes')}
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                filtroActual === 'pendientes' 
+                  ? 'bg-blue-600 text-white' 
+                  : 'bg-gray-700 text-white hover:bg-gray-600'
+              }`}
+            >
+              Pendientes ({bonos.filter(b => b.status === 'PENDIENTE_DE_PAGO').length})
             </button>
           </div>
-        </div>
         </div>
 
-      {/* Lista de Bonos */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {bonos.length === 0 ? (
-          <div className="col-span-full py-20 text-center text-gray-600 italic">
-            No hay bonos emitidos. {pacientes.length > 0 ? 'Crea tu primer bono para comenzar.' : 'Primero registra pacientes para poder crear bonos.'}
-          </div>
-        ) : (
-          bonos.map((bono) => (
-            <div key={bono.id} className="bg-white/[0.02] border border-white/5 rounded-[32px] p-8">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-xl font-black text-white uppercase">{bono.paciente_nombre}</h3>
-                  {bono.paciente_email && (
-                    <p className="text-sm text-gray-400">{bono.paciente_email}</p>
-                  )}
-                </div>
-                <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-                  bono.status === 'ACTIVO' 
-                    ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                    : bono.status === 'PENDIENTE_DE_PAGO'
-                    ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-                    : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
-                }`}>
-                  {bono.status === 'ACTIVO' ? 'Activo' : 
-                   bono.status === 'PENDIENTE_DE_PAGO' ? 'Pendiente de pago' : 
-                   bono.status}
-                </div>
-              </div>
-              
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400 text-sm">Sesiones</span>
-                  <span className="text-2xl font-black text-blue-500">
-                    {bono.sesiones_restantes} / {bono.sesiones_totales}
-                  </span>
-                </div>
-                
-                {bono.precio && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400 text-sm">Precio</span>
-                    <span className="text-white font-medium">€{bono.precio}</span>
+        {/* Campo de búsqueda */}
+        <div className="mb-6">
+          <input
+            type="text"
+            placeholder="🔍 Buscar por nombre o email del paciente..."
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-colors"
+          />
+        </div>
+
+        {/* Lista de Bonos */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {bonosFiltrados.length === 0 ? (
+            <div className="col-span-full py-20 text-center text-gray-600 italic">
+              {busqueda.trim() !== '' 
+                ? 'No hay bonos que coincidan con tu búsqueda.'
+                : 'No hay bonos emitidos. ' + (pacientes.length > 0 ? 'Crea tu primer bono para comenzar.' : 'Primero registra pacientes para poder crear bonos.')
+              }
+            </div>
+          ) : (
+            bonosFiltrados.map((bono) => (
+              <div key={bono.id} className="bg-white/[0.02] border border-white/5 rounded-[32px] p-8">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="text-xl font-black text-white uppercase">{bono.paciente_nombre}</h3>
+                    {bono.paciente_email && (
+                      <p className="text-sm text-gray-400">{bono.paciente_email}</p>
+                    )}
                   </div>
-                )}
+                  <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    bono.status === 'ACTIVO' 
+                      ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                      : bono.status === 'PENDIENTE_DE_PAGO'
+                      ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                      : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+                  }`}>
+                    {bono.status === 'ACTIVO' ? 'Activo' : 
+                     bono.status === 'PENDIENTE_DE_PAGO' ? 'Pendiente de pago' : 
+                     bono.status}
+                  </div>
+                </div>
                 
-                {bono.fecha_vencimiento && (
+                <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-400 text-sm">Vence</span>
-                    <span className="text-white text-sm">
-                      {new Date(bono.fecha_vencimiento).toLocaleDateString()}
+                    <span className="text-gray-400 text-sm">Sesiones</span>
+                    <span className="text-2xl font-black text-blue-500">
+                      {bono.sesiones_restantes} / {bono.sesiones_totales}
                     </span>
                   </div>
-                )}
+                  
+                  {bono.precio && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-400 text-sm">Precio</span>
+                      <span className="text-white font-medium">€{bono.precio}</span>
+                    </div>
+                  )}
+                  
+                  {bono.fecha_vencimiento && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-400 text-sm">Vence</span>
+                      <span className="text-white text-sm">
+                        {new Date(bono.fecha_vencimiento).toLocaleDateString()}
+                      </span>
+                    </div>
+                  )}
 
-                {bono.pago_url && bono.status === 'PENDIENTE_DE_PAGO' && (
-                  <div className="pt-3">
-                    <a
-                      href={bono.pago_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full block text-center px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
-                    >
-                      Ver Enlace de Pago
-                    </a>
-                  </div>
-                )}
+                  {bono.pago_url && bono.status === 'PENDIENTE_DE_PAGO' && (
+                    <div className="pt-3 space-y-2">
+                      {/* Botones de compartir */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => copiarEnlace(bono.pago_url)}
+                          className="px-3 py-2 bg-gray-700 text-white rounded-xl text-xs font-medium hover:bg-gray-600 transition-colors flex items-center justify-center gap-1"
+                        >
+                          📋 Copiar
+                        </button>
+                        <button
+                          onClick={() => compartirWhatsApp(bono.paciente_nombre, bono.pago_url)}
+                          className="px-3 py-2 bg-green-600 text-white rounded-xl text-xs font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-1"
+                        >
+                          💬 WhatsApp
+                        </button>
+                      </div>
+                      
+                      {bono.paciente_email && (
+                        <button
+                          onClick={() => compartirEmail(bono.paciente_nombre, bono.paciente_email, bono.pago_url)}
+                          className="w-full px-3 py-2 bg-blue-600 text-white rounded-xl text-xs font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-1"
+                        >
+                          📧 Enviar Email
+                        </button>
+                      )}
+                      
+                      <a
+                        href={bono.pago_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full block text-center px-4 py-2 bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-purple-700 transition-colors"
+                      >
+                        🔗 Ver Enlace de Pago
+                      </a>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))
-        )}
+            ))
+          )}
+        </div>
       </div>
 
       {/* Modal de Creación */}
