@@ -235,7 +235,7 @@ export default function DashboardOmega() {
   const needsStripe = !state.configStatus?.hasStripe || (!state.clinicData?.stripe_account_id && state.configStatus?.hasSubscription);
   const needsLogo = !state.clinicData?.logo_url || state.clinicData?.logo_url.includes('placeholder');
   const needsPatients = state.pacientes.length === 0;
-  const needsSetup = !state.isLoading && (needsStripe || needsLogo || needsPatients || needsSubscription);
+  const needsSetup = false; // TEMPORAL: Desactivar bloqueo para debugging
   const isBlocked = needsSetup; // Bloqueo real del dashboard
 
   const renderContent = () => {
