@@ -1078,6 +1078,35 @@ const createBono = async (req, res, next) => {
           await bonoRef.update({
             pago_url: pagoUrl
           });
+          
+          // ENVIAR EMAIL REAL SI SE SOLICITA
+          if (enviarEmail && paciente.email) {
+            try {
+              console.log(`📧 [BONO] Enviando email real a ${paciente.email}`);
+              
+              // Importar servicio de email real
+              const { sendBonoEmailPRUEBA } = require('../services/emailServicePRUEBA');
+              
+              const emailResult = await sendBonoEmailPRUEBA({
+                to: paciente.email,
+                pacienteNombre: paciente.nombre,
+                sesiones: sesionesTotales,
+                precio: precioBono,
+                pagoUrl: pagoUrl
+              });
+              
+              if (emailResult.success) {
+                console.log('✅ Email real enviado exitosamente');
+                console.log(`   Message ID: ${emailResult.messageId}`);
+              } else {
+                console.error('❌ Error enviando email real:', emailResult.error);
+              }
+              
+            } catch (emailError) {
+              console.error('❌ Error en servicio de email:', emailError.message);
+              // No fallar la creación del bono si falla el email
+            }
+          }
         } else {
           console.error('❌ Error generando pago:', pagoResult.error);
           throw new Error(pagoResult.error || 'Error al generar enlace de pago');
