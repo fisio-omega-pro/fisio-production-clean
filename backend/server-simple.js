@@ -150,7 +150,6 @@ const setupCriticalRoutes = () => {
         // Login exitoso
         res.json({
           success: true,
-          token: 'temp_token_' + Date.now(), // Token temporal simple
           clinic: {
             id: clinicSnapshot.docs[0].id,
             email: clinic.email,
@@ -237,14 +236,7 @@ const initialize = async () => {
     app.post('/api/dashboard/deactivate-bonos', ensureAuth, ensureHandler(clinicController.deactivateBonos, 'deactivateBonos'));
     app.post('/api/dashboard/create-bono', ensureAuth, ensureHandler(clinicController.createBono, 'createBono'));
     app.post('/api/dashboard/cobrar-cita-bono', ensureAuth, ensureHandler(clinicController.createCitaBonoCheckout, 'createCitaBonoCheckout'));
-    
-    // Endpoint de login (sin autenticación previa)
-    app.post('/api/login', async (req, res) => {
-      try {
-        const { email, password } = req.body;
-        console.log(`🔐 Intento de login: ${email}`);
-        
-        if (!email || !password) {
+    app.get('/api/dashboard/data', ensureAuth, ensureHandler(clinicController.getClinicData, 'getClinicData'));
           return res.status(400).json({ 
             success: false, 
             error: 'Email y contraseña requeridos' 
