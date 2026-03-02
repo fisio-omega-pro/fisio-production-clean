@@ -10,4 +10,4 @@ RUN npm install --omit=dev --no-audit --no-fund --force
 COPY backend ./backend
 ENV PORT 8080
 EXPOSE 8080
-CMD [ "node", "backend/server-test.js" ]
+CMD [ "node", "backend/server.js" ]
