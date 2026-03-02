@@ -27,8 +27,8 @@ const shouldRecap = (patient, recentSet, nowMs) => {
   if (recentSet.has(email) || (phone && recentSet.has(phone))) return false;
   const last = patient.last_recap_at;
   const lastMs = toMs(last);
-  // No repetir en 14 días
-  if (lastMs && (nowMs - lastMs) < 14 * 24 * 60 * 60 * 1000) return false;
+  // No repetir en 30 días (frecuencia mensual)
+  if (lastMs && (nowMs - lastMs) < 30 * 24 * 60 * 60 * 1000) return false;
   return true;
 };
 
@@ -95,15 +95,29 @@ async function runRecaptacionForClinic(clinicId, options = {}) {
     const to = String(locked.email || '').trim().toLowerCase();
     const nombre = String(locked.nombre || 'paciente').trim();
     const clinicName = String(clinic.nombre_clinica || 'tu clínica').trim();
-    const subject = `Hola ${nombre}, ¿te viene bien retomar tu tratamiento?`;
+    const assistantName = String(clinic.config_ia?.nombre_asistente || 'Ana').trim(); // Personalizado
+    const subject = `Hola ${nombre}, ¿cómo estás? Te extrañamos en ${clinicName}`;
     const text =
       `Hola ${nombre},\n\n` +
-      `Soy Ana de ${clinicName}. Hemos visto que hace tiempo que no reservas.\n` +
-      `Si te apetece retomar, puedes responder a este email y te ayudamos a encontrar hueco en agenda.\n\n` +
-      `Un saludo,\nAna`;
+      `Soy ${assistantName} de ${clinicName}. Ha pasado tiempo desde tu última visita y nos gustaría saber cómo estás.\n\n` +
+      `💡 **Novedad**: Ahora puedes gestionar tus citas desde nuestra app móvil:\n` +
+      `• 📅 Reserva tus citas cuando quieras\n` +
+      `• 🔔 Recibe recordatorios automáticos\n` +
+      `• 💬 Habla directamente con nosotros\n\n` +
+      `¿Te gustaría retomar tus tratamientos? Puedes responder este email o descargar la app:\n` +
+      `[URL DE TU APP PWA]\n\n` +
+      `Un saludo,\n${assistantName}\n` +
+      `${clinicName}\n` +
+      `📞 [Teléfono de la clínica]`;
 
     try {
-      const r = await sendEmail({ to, subject, text, type: 'ANA' });
+      const r = await sendEmail({ 
+        to, 
+        subject, 
+        text, 
+        type: 'ANA',
+        clinicEmail: clinic.email_contacto || clinic.email || null // Email personalizado de la clínica
+      });
       if (!r || r.ok !== true) {
         await finalizePatient(locked.id, {
           do_not_email: r?.reason === 'BLOQUEADO_PLUS_FISIOTOOL' ? true : (locked.do_not_email || false),

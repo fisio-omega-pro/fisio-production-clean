@@ -18,7 +18,23 @@ const sendEmail = async (arg1, arg2, arg3, arg4) => {
   }
 
   const env = await initEnv();
-  const credentials = type === 'ANA' ? env.ANA_MAIL : env.INFO_MAIL;
+  
+  // ESTRATEGIA HÍBRIDA PARA EMAIL DE ANA
+  let credentials;
+  if (type === 'ANA') {
+    // Si el clinic tiene email personalizado, usarlo
+    if (arg1 && arg1.clinicEmail) {
+      credentials = {
+        user: arg1.clinicEmail,
+        pass: env.ANA_MAIL.pass // Usar misma contraseña pero con email personalizado
+      };
+    } else {
+      // Sino usar el genérico de Ana
+      credentials = env.ANA_MAIL;
+    }
+  } else {
+    credentials = env.INFO_MAIL;
+  }
 
   const splitRecipients = (value) => {
     if (!value) return [];
