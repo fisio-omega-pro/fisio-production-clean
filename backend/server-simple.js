@@ -150,6 +150,7 @@ const setupCriticalRoutes = () => {
         // Login exitoso
         res.json({
           success: true,
+          token: 'temp_token_' + Date.now(), // Token temporal simple
           clinic: {
             id: clinicSnapshot.docs[0].id,
             email: clinic.email,
