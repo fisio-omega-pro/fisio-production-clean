@@ -124,6 +124,80 @@ const initialize = async () => {
     app.post('/api/dashboard/create-bono', ensureAuth, ensureHandler(clinicController.createBono, 'createBono'));
     app.post('/api/dashboard/cobrar-cita-bono', ensureAuth, ensureHandler(clinicController.createCitaBonoCheckout, 'createCitaBonoCheckout'));
     
+    // Endpoint de login (sin autenticación previa)
+    app.post('/api/login', async (req, res) => {
+      try {
+        const { email, password } = req.body;
+        console.log(`🔐 Intento de login: ${email}`);
+        
+        if (!email || !password) {
+          return res.status(400).json({ 
+            success: false, 
+            error: 'Email y contraseña requeridos' 
+          });
+        }
+        
+        // Buscar clínica por email
+        const clinicSnapshot = await db.collection('clinicas')
+          .where('email', '==', email.toLowerCase())
+          .limit(1)
+          .get();
+        
+        if (clinicSnapshot.empty) {
+          return res.status(401).json({ 
+            success: false, 
+            error: 'Credenciales incorrectas' 
+          });
+        }
+        
+        const clinic = clinicSnapshot.docs[0].data();
+        
+        // Validación con hash (usando bcrypt si está disponible, si no comparación directa)
+        let passwordValid = false;
+        
+        if (clinic.password && clinic.password.length === 60) {
+          // Password hasheado con bcrypt
+          try {
+            const bcrypt = require('bcrypt');
+            passwordValid = await bcrypt.compare(password, clinic.password);
+          } catch (e) {
+            // Si bcrypt no está disponible, intentar comparación directa
+            passwordValid = clinic.password === password;
+          }
+        } else {
+          // Password en texto plano (fallback)
+          passwordValid = clinic.password === password;
+        }
+        
+        if (!passwordValid) {
+          return res.status(401).json({ 
+            success: false, 
+            error: 'Credenciales incorrectas' 
+          });
+        }
+        
+        // Login exitoso
+        res.json({
+          success: true,
+          clinic: {
+            id: clinicSnapshot.docs[0].id,
+            email: clinic.email,
+            nombre_clinica: clinic.nombre_clinica,
+            config_ia: clinic.config_ia,
+            stripe_account_id: clinic.stripe_account_id,
+            subscription_active: clinic.subscription_active
+          }
+        });
+        
+      } catch (error) {
+        console.error('🔥 Error en login:', error);
+        res.status(500).json({ 
+          success: false, 
+          error: 'Error interno del servidor' 
+        });
+      }
+    });
+    
     console.log('✅ Rutas del dashboard cargadas');
     
     serverReady = true;
