@@ -35,8 +35,94 @@ export const EquipoView: React.FC<EquipoProps> = ({
   const isStaff = !!(currentUser?.specialistId);
   const membersToShow = isStaff ? equipo.filter((m) => m.id === currentUser!.specialistId) : equipo;
 
-  // Si no tiene permisos de plan, mostrar upgrade tradicional
+  // Si no tiene permisos de plan, mostrar upgrade para añadir más fisios
+  // PERO permitir ver y editar su propio perfil
   if (!subscriptionStatus.canAccessMultiSede) {
+    // Si es staff (fisio), mostrar su perfil
+    if (isStaff && currentUser?.specialistId) {
+      const miPerfil = equipo.find(m => m.id === currentUser.specialistId);
+      if (miPerfil) {
+        return (
+          <div className="flex flex-col gap-12 max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
+            {/* HEADER */}
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-8 border-b border-white/5 pb-10">
+              <div className="max-w-xl">
+                <div className="flex items-center gap-2 text-blue-500 mb-4">
+                  <UserCheck size={20} />
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em]">Mi perfil</span>
+                </div>
+                <h2 className="text-4xl font-black text-white tracking-tight mb-4 uppercase italic">Mi ficha</h2>
+                <p className="text-gray-400 text-sm leading-relaxed">
+                  Tu ficha en la clínica. Solo el administrador puede ver y gestionar el resto del equipo.
+                </p>
+              </div>
+            </div>
+
+            {/* TARJETA DE PERFIL */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+              <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="group relative bg-white/[0.02] border border-white/5 rounded-[40px] p-8 hover:border-white/10 transition-all">
+                  <div className="flex flex-col items-center text-center">
+                    <div className="relative w-24 h-24 mb-6">
+                      <div className="w-full h-full rounded-full bg-blue-600/20 border-2 border-white/10 overflow-hidden flex items-center justify-center">
+                        {miPerfil.avatarUrl ? (
+                          <img src={miPerfil.avatarUrl} className="w-full h-full object-cover" alt={miPerfil.nombre} />
+                        ) : (
+                          <span className="text-2xl font-black text-blue-500">{miPerfil.nombre.charAt(0)}</span>
+                        )}
+                      </div>
+                      <div className="absolute bottom-1 right-1 w-5 h-5 bg-green-500 border-4 border-[#05070a] rounded-full" />
+                    </div>
+
+                    <h3 className="text-lg font-black text-white uppercase tracking-tighter mb-1">{miPerfil.nombre}</h3>
+                    <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-6 px-3 py-1 bg-blue-400/5 rounded-full border border-blue-400/10">
+                      {miPerfil.especialidad}
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-2 w-full">
+                      <button onClick={() => onViewCalendar(miPerfil.id)} className="flex items-center justify-center gap-2 py-3 bg-white text-black rounded-xl font-bold text-[10px] hover:bg-blue-600 hover:text-white transition-all">
+                        <Calendar size={12} /> AGENDA
+                      </button>
+                      <button onClick={() => onEditMember(miPerfil)} className="flex items-center justify-center gap-2 py-3 bg-white/5 text-gray-400 rounded-xl font-bold text-[10px] hover:text-white transition-all">
+                        <Settings size={12} /> EDITAR
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* COLUMNA DERECHA: UPGRADE */}
+              <div className="space-y-6">
+                <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-[40px] p-8 text-black relative overflow-hidden shadow-2xl">
+                  <Crown className="absolute -right-4 -top-4 w-32 h-32 opacity-20 rotate-12" />
+                  <h3 className="text-xl font-black mb-2 uppercase italic leading-tight">Plan Solo Activo</h3>
+                  <p className="text-black/70 text-xs font-bold leading-relaxed mb-8">
+                    Actualmente gestionas tu clínica de forma individual. Actualiza para añadir hasta 5 especialistas y desbloquear el cálculo de comisiones automático de Ana.
+                  </p>
+                  <button
+                    onClick={onUpgrade}
+                    className="w-full py-4 bg-black text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-transform flex items-center justify-center gap-2"
+                  >
+                    DESBLOQUEAR EQUIPO <ArrowUpRight size={14} />
+                  </button>
+                </div>
+
+                <div className="bg-white/5 border border-white/10 rounded-[40px] p-8">
+                  <h4 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-6 flex items-center gap-2">
+                    <ShieldCheck size={14} className="text-blue-500" /> Seguridad de Datos
+                  </h4>
+                  <p className="text-[11px] text-gray-500 leading-relaxed">
+                    Cada miembro del equipo recibirá sus propias credenciales. Ana registra cada acceso a las fichas clínicas para garantizar el cumplimiento de la ley de protección de datos.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+    }
+    
+    // Si no es staff o no tiene perfil, mostrar upgrade tradicional
     return (
       <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-8 max-w-md">
         <Building2 size={32} className="text-blue-500 mb-4" />
