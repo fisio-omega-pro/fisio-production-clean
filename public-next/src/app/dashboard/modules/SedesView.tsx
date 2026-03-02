@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Plus, Home, Navigation, Building2, ShieldCheck, Zap, Layers, Crown } from 'lucide-react';
+import { getSubscriptionStatus } from '@/lib/subscriptionStatus';
 
 interface SedesViewProps {
   clinicData: any;
@@ -18,11 +19,51 @@ export const SedesView: React.FC<SedesViewProps> = ({
   onUpgrade,
   upgradeLoading
 }) => {
+  // Aplicar la Solución Maestra
+  const subscriptionStatus = getSubscriptionStatus(clinicData);
+  
   const sedes = clinicData?.direcciones || [];
   const clinicName = clinicData?.nombre_clinica || 'tu centro';
 
+  // Si no tiene permisos de plan, mostrar upgrade tradicional
+  if (!subscriptionStatus.canAccessMultiSede) {
+    return (
+      <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-8 max-w-md">
+        <Building2 size={32} className="text-blue-500 mb-4" />
+        <h2 className="text-xl font-bold text-white mb-2">Mis Clínicas</h2>
+        <p className="text-gray-400 text-sm mb-6">Para añadir y gestionar varias clínicas desde un solo panel necesitas el plan Multi-Sede (300€/mes). Al subir de plan, solo pagas la parte proporcional hasta tu próxima factura.</p>
+        <button 
+          onClick={onUpgrade} 
+          disabled={upgradeLoading}
+          style={{ background: '#0066ff', color: '#fff', padding: '12px 24px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '16px' }}
+        >
+          {upgradeLoading ? 'Procesando...' : 'Subir a plan Multi-Sede (300€/mes)'}
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-12 max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
+
+      {/* BANNER DE PAGO - SOLUCIÓN MAESTRA */}
+      {subscriptionStatus.needsToPay && (
+        <div className="bg-yellow-100 p-4 border-l-4 border-yellow-500 rounded-lg">
+          <p className="text-yellow-800 font-medium">
+            🎯 Estás usando el plan Business de cortesía.
+          </p>
+          <p className="text-yellow-700 text-sm mt-1">
+            Para continuar sin interrupciones, activa tu suscripción real.
+          </p>
+          <button 
+            onClick={onUpgrade} 
+            disabled={upgradeLoading}
+            style={{ background: '#f59e0b', color: '#fff', padding: '8px 16px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', marginTop: '8px' }}
+          >
+            {upgradeLoading ? 'Procesando...' : '💳 Activar Suscripción Real (300€/mes)'}
+          </button>
+        </div>
+      )}
 
       {/* SECCIÓN 1: CABECERA ESTRATÉGICA (CORREGIDA) */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-8 border-b border-white/5 pb-10">

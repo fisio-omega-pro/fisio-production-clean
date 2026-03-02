@@ -5,6 +5,8 @@ import { NAV_ITEMS } from './config/navigation';
 import { DashboardLayout } from './components/Layout';
 import { Modal } from './components/Modal';
 import { ActionButton, InputField } from './components/Atoms';
+import { getSubscriptionStatus } from '@/lib/subscriptionStatus';
+import { API_BASE_URL } from '@/lib/apiBase';
 import { dashboardAPI } from './services';
 import { SetupWizard } from './components/SetupWizard'; // Importado
 

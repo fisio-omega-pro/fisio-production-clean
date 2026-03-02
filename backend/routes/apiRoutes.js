@@ -97,7 +97,10 @@ router.post('/dashboard/launch-campaign', ensureHandler(clinicController.launchC
 router.post('/dashboard/run-recaptacion', ensureHandler(clinicController.runRecaptacionNow, 'runRecaptacionNow'));
 router.post('/dashboard/stripe-connect', ensureHandler(clinicController.startStripeConnect, 'startStripeConnect'));
 router.post('/dashboard/stripe-verify', ensureHandler(clinicController.finalizeStripeConnect, 'finalizeStripeConnect'));
-router.post('/dashboard/upgrade-plan', ensureHandler(clinicController.createUpgradeSession, 'createUpgradeSession'));
+router.post('/dashboard/upgrade-plan', (req, res, next) => {
+  console.log('[ROUTE] upgrade-plan llamado');
+  ensureHandler(clinicController.createUpgradeSession, 'createUpgradeSession')(req, res, next);
+});
 router.post('/dashboard/cancel-subscription', ensureHandler(clinicController.cancelSubscription, 'cancelSubscription'));
 router.delete('/dashboard/delete-account', ensureHandler(clinicController.deleteAccount, 'deleteAccount'));
 router.post('/dashboard/cobrar-cita-bono', ensureHandler(clinicController.createCitaBonoCheckout, 'createCitaBonoCheckout'));

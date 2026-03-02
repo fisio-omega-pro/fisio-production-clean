@@ -1,0 +1,74 @@
+// PÁGINA DE PAGO DIRECTA - COPIAR Y PEGAR EN EL NAVEGADOR
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pago Plan Multi-Sede - FisioTool</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 50px; background: #f5f5f5; }
+        .container { max-width: 500px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #0066ff; text-align: center; }
+        .price { font-size: 24px; text-align: center; margin: 20px 0; color: #333; }
+        button { width: 100%; padding: 15px; background: #0066ff; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; }
+        button:hover { background: #0052cc; }
+        .features { margin: 20px 0; }
+        .features li { margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Plan Multi-Sede</h1>
+        <div class="price">300€/mes</div>
+        
+        <div class="features">
+            <h3>✅ Incluye:</h3>
+            <ul>
+                <li>Gestión de múltiples clínicas</li>
+                <li>Panel centralizado</li>
+                <li>Acceso para todo tu equipo</li>
+                <li>Soporte prioritario</li>
+            </ul>
+        </div>
+        
+        <button onclick="payNow()">🚀 Pagar Ahora</button>
+        <p style="text-align: center; margin-top: 20px; color: #666; font-size: 14px;">
+            Pago seguro a través de Stripe
+        </p>
+    </div>
+
+    <script>
+        async function payNow() {
+            const button = document.querySelector('button');
+            button.textContent = '⏳ Procesando...';
+            button.disabled = true;
+            
+            try {
+                const response = await fetch('https://fisio-backend-omega-740657183492.europe-west1.run.app/api/dashboard/upgrade-plan', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + (localStorage.getItem('fisio_token') || '')
+                    },
+                    body: JSON.stringify({ plan: 'business' })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.url) {
+                        window.location.href = data.url;
+                    } else {
+                        alert('Error: No se pudo generar la URL de pago');
+                    }
+                } else {
+                    alert('Error del servidor: ' + response.status);
+                }
+            } catch (error) {
+                alert('Error de conexión: ' + error.message);
+            }
+            
+            button.textContent = '🚀 Pagar Ahora';
+            button.disabled = false;
+        }
+    </script>
+</body>
+</html>
