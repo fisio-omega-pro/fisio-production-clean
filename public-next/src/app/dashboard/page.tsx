@@ -253,6 +253,11 @@ export default function DashboardOmega() {
         onActivate={async () => { await dashboardAPI.activateBonos(); state.refreshData(); }} 
         onDeactivate={async () => { await dashboardAPI.deactivateBonos(); state.refreshData(); }} 
         onCreateBono={async (bono) => { await dashboardAPI.createBono(bono); state.refreshData(); }}
+        onCreatePaciente={async (paciente) => { 
+          const result = await dashboardAPI.savePaciente(paciente); 
+          state.refreshData(); 
+          return result;
+        }}
       />;
       case 'equipo': return <EquipoView currentUser={state.currentUser} equipo={state.equipo} onAddMember={() => state.setModalType('editar_perfil')} currentPlan={state.clinicData.plan} onViewCalendar={() => state.setActiveTab('agenda')} onEditMember={(m) => { state.setMemberToEdit(m); state.setModalType('editar_perfil'); }} onUpgrade={async () => { const url = await dashboardAPI.upgradePlan('team'); if (url) window.location.href = url; }} />;
       case 'sedes':

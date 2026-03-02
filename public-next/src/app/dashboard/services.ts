@@ -105,6 +105,13 @@ class DashboardService {
     });
   }
 
+  public async savePaciente(paciente: any): Promise<{success: boolean, id?: string, error?: string}> {
+    return await this.request('/api/dashboard/save-paciente', {
+      method: 'POST',
+      body: JSON.stringify({ paciente })
+    });
+  }
+
   // --- RESTO DE FUNCIONES (Integridad Total) ---
   public async importPatients(patients: any[]): Promise<number> {
     const res = await this.request<{ success: boolean, count: number }>('/api/dashboard/import-patients', { method: 'POST', body: JSON.stringify({ patients }) });

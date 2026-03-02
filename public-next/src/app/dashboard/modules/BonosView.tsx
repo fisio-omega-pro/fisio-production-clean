@@ -10,6 +10,7 @@ interface BonosProps {
   onActivate: () => Promise<void>;
   onDeactivate?: () => Promise<void>;
   onCreateBono: (bono: any) => Promise<void>;
+  onCreatePaciente: (paciente: any) => Promise<{success: boolean, id?: string, error?: string}>;
 }
 
 export const BonosView: React.FC<BonosProps> = ({ 
@@ -18,7 +19,8 @@ export const BonosView: React.FC<BonosProps> = ({
   pacientes, 
   onActivate, 
   onDeactivate, 
-  onCreateBono 
+  onCreateBono,
+  onCreatePaciente
 }) => {
   const [isActivating, setIsActivating] = useState(false);
   const [isDeactivating, setIsDeactivating] = useState(false);
@@ -185,6 +187,7 @@ export const BonosView: React.FC<BonosProps> = ({
         onClose={() => setShowCreateModal(false)}
         pacientes={pacientes}
         onCreateBono={handleCreateBono}
+        onCreatePaciente={onCreatePaciente}
         clinicData={clinicData}
       />
     </div>
