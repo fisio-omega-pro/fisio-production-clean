@@ -282,24 +282,25 @@ async function initialize(options = {}) {
 
 // Arranque: escuchar ANTES de initEnv() para que OPTIONS (CORS) responda aunque Secret Manager falle o tarde
 const PORT = process.env.PORT || 8080;
-if (require.main === module) {
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 MOTOR OMEGA ESCUCHANDO | PUERTO: ${PORT} (CORS listo para todas las respuestas)`);
-    initialize({ listen: false })
-      .then(() => {
-        serverReady = true;
-        console.log(`📋 Rutas y middleware cargados`);
-      })
-      .catch(e => {
-        console.error("🔥 FALLO AL CARGAR RUTAS:", e.message);
-        console.error("🔄 Reintentando en 5s... (el servidor sigue escuchando para CORS y health)");
-        setTimeout(() => {
-          initialize({ listen: false })
-            .then(() => { serverReady = true; console.log('📋 Rutas cargadas en segundo intento'); })
-            .catch(e2 => console.error('🔥 Segundo intento fallido:', e2.message));
-        }, 5000);
-      });
-  });
-} else {
-  module.exports = { app, initialize };
-}
+
+// Forzar arranque siempre en producción
+console.log('🚀 INICIANDO SERVIDOR FORZADO');
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 MOTOR OMEGA ESCUCHANDO | PUERTO: ${PORT} (CORS listo para todas las respuestas)`);
+  initialize({ listen: false })
+    .then(() => {
+      serverReady = true;
+      console.log(`📋 Rutas y middleware cargados`);
+    })
+    .catch(e => {
+      console.error("🔥 FALLO AL CARGAR RUTAS:", e.message);
+      console.error("🔄 Reintentando en 5s... (el servidor sigue escuchando para CORS y health)");
+      setTimeout(() => {
+        initialize({ listen: false })
+          .then(() => { serverReady = true; console.log('📋 Rutas cargadas en segundo intento'); })
+          .catch(e2 => console.error('🔥 Segundo intento fallido:', e2.message));
+      }, 5000);
+    });
+});
+
+module.exports = { app, initialize };
