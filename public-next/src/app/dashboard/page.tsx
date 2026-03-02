@@ -252,7 +252,12 @@ export default function DashboardOmega() {
         pacientes={state.pacientes}
         onActivate={async () => { await dashboardAPI.activateBonos(); state.refreshData(); }} 
         onDeactivate={async () => { await dashboardAPI.deactivateBonos(); state.refreshData(); }} 
-        onCreateBono={async (bono) => { await dashboardAPI.createBono(bono); state.refreshData(); }}
+        onCreateBono={async (bono) => { 
+          await dashboardAPI.createBono(bono); 
+          // Pequeño delay para asegurar que el backend procese
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          state.refreshData(); 
+        }}
         onCreatePaciente={async (paciente) => { 
           const result = await dashboardAPI.savePaciente(paciente); 
           state.refreshData(); 
