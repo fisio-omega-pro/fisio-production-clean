@@ -76,16 +76,24 @@ const setupCriticalRoutes = () => {
       try {
         console.log('🔐 LOGIN REQUEST DETALLADO:');
         console.log('✅ Headers:', req.headers);
-        console.log('✅ Body completo:', req.body);
+        console.log('✅ Body crudo (JSON.stringify):', JSON.stringify(req.body));
+        console.log('✅ Body como objeto:', req.body);
+        console.log('✅ Body keys:', Object.keys(req.body));
         console.log('✅ Content-Type:', req.headers['content-type']);
         
         const { email, password } = req.body;
-        console.log(`🔐 Intento de login: ${email}`);
+        console.log(`🔐 Email extraído: ${email}`);
+        console.log(`🔐 Password extraído: ${password}`);
         console.log(`🔐 Password length: ${password ? password.length : 'null'}`);
         console.log(`🔐 Password type: ${typeof password}`);
+        console.log(`🔐 Password es undefined?: ${password === undefined}`);
+        console.log(`🔐 Password es null?: ${password === null}`);
+        console.log(`🔐 Password es string?: ${typeof password === 'string'}`);
         
         if (!email || !password) {
           console.log('❌ Email o password faltantes');
+          console.log('❌ Email existe?', !!email);
+          console.log('❌ Password existe?', !!password);
           return res.status(400).json({ 
             success: false, 
             error: 'Email y contraseña requeridos' 
