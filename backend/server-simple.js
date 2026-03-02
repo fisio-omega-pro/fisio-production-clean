@@ -88,10 +88,35 @@ const initialize = async () => {
     await initEnv();
     console.log('✅ Variables de entorno cargadas');
     
-    // Rutas
-    const apiRoutes = require('./routes/apiRoutes');
-    app.use('/api', apiRoutes);
-    console.log('✅ Rutas API cargadas');
+    // Controllers específicos para dashboard
+    const clinicController = require('./controllers/clinicController');
+    const auth = require('./middleware/auth');
+    const multer = require('multer');
+    const upload = multer({ storage: multer.memoryStorage() });
+    
+    // Middleware de autenticación
+    const ensureAuth = (req, res, next) => {
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (!token) return res.status(401).json({ error: 'No autorizado' });
+      // Aquí iría la validación del token
+      req.clinicId = 'Bx1kJ81WL8JI04wvjrUM'; // Temporal para prueba
+      req.userId = 'Bx1kJ81WL8JI04wvjrUM';
+      next();
+    };
+    
+    const ensureHandler = (handler, name) => (req, res, next) => {
+      Promise.resolve(handler(req, res, next)).catch(next);
+    };
+    
+    // Rutas específicas para dashboard
+    app.get('/api/dashboard/clinica', ensureAuth, ensureHandler(clinicController.getClinicData, 'getClinicData'));
+    app.get('/api/dashboard/bonos', ensureAuth, ensureHandler(clinicController.getBonos, 'getBonos'));
+    app.post('/api/dashboard/activate-bonos', ensureAuth, ensureHandler(clinicController.activateBonos, 'activateBonos'));
+    app.post('/api/dashboard/deactivate-bonos', ensureAuth, ensureHandler(clinicController.deactivateBonos, 'deactivateBonos'));
+    app.post('/api/dashboard/create-bono', ensureAuth, ensureHandler(clinicController.createBono, 'createBono'));
+    app.post('/api/dashboard/cobrar-cita-bono', ensureAuth, ensureHandler(clinicController.createCitaBonoCheckout, 'createCitaBonoCheckout'));
+    
+    console.log('✅ Rutas del dashboard cargadas');
     
     serverReady = true;
     console.log('🚀 Servidor completamente inicializado');
