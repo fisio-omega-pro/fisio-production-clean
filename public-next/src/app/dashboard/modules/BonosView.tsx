@@ -1,7 +1,28 @@
 'use client';
 import React, { useState } from 'react';
-import { Ticket, Loader2, CheckCircle2, Zap, Star } from 'lucide-react';
+import { Ticket, Loader2, CheckCircle2, Zap, Star, Clock, Euro, Calendar, Phone, Mail, User, AlertCircle, TrendingUp } from 'lucide-react';
 import { CreateBonoModal } from '../components/CreateBonoModal';
+
+// Componentes auxiliares
+const StatCard = ({ icon, title, value, subtitle }: any) => (
+  <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+    <div className="flex items-center justify-between mb-4">
+      <div className="p-3 bg-white/10 rounded-xl">{icon}</div>
+      <div className="text-right">
+        <div className="text-2xl font-black text-white">{value}</div>
+        <div className="text-xs text-gray-400 uppercase tracking-widest">{subtitle}</div>
+      </div>
+    </div>
+    <div className="text-sm font-medium text-gray-300">{title}</div>
+  </div>
+);
+
+const FeatureBox = ({ icon, text }: any) => (
+  <div className="flex items-center gap-3 bg-white/5 p-4 rounded-2xl border border-white/5">
+    <div className="text-blue-500">{icon}</div>
+    <span className="text-[10px] font-bold text-gray-300 uppercase">{text}</span>
+  </div>
+);
 
 interface BonosProps {
   clinicData: any;
@@ -82,33 +103,101 @@ export const BonosView: React.FC<BonosProps> = ({
 
   return (
     <div className="flex flex-col gap-10 animate-in fade-in duration-700">
-      <div className="flex justify-between items-end border-b border-white/5 pb-8">
-        <div>
-          <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">Monedero Virtual</h2>
-          <p className="text-gray-500 text-sm">Control de bonos activos.</p>
-        </div>
-        <div className="flex items-center gap-4">
-          {onDeactivate && (
-            <button
-              type="button"
-              onClick={handleDeactivate}
-              disabled={isDeactivating}
-              className="flex items-center gap-2 text-[10px] font-bold text-gray-500 hover:text-gray-300 uppercase tracking-widest disabled:opacity-50"
+      {/* Panel de Control Superior */}
+      <div className="bg-white/[0.02] border border-white/10 rounded-[32px] p-8">
+        <div className="flex justify-between items-start mb-8">
+          <div>
+            <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">Panel de Control de Bonos</h2>
+            <p className="text-gray-500 text-sm mt-2">Gestión inteligente de sesiones prepagadas</p>
+          </div>
+          <div className="flex items-center gap-4">
+            {onDeactivate && (
+              <button
+                type="button"
+                onClick={handleDeactivate}
+                disabled={isDeactivating}
+                className="flex items-center gap-2 text-[10px] font-bold text-gray-500 hover:text-gray-300 uppercase tracking-widest disabled:opacity-50"
+              >
+                {isDeactivating ? <Loader2 className="animate-spin w-3.5 h-3.5" /> : null}
+                Desactivar módulo
+              </button>
+            )}
+            <button 
+              onClick={() => setShowCreateModal(true)}
+              disabled={isCreating}
+              className="flex items-center gap-3 px-8 py-4 bg-white text-black hover:bg-blue-600 hover:text-white rounded-2xl font-black text-xs transition-all shadow-2xl disabled:opacity-50"
             >
-              {isDeactivating ? <Loader2 className="animate-spin w-3.5 h-3.5" /> : null}
-              Desactivar módulo
+              {isCreating ? <Loader2 className="animate-spin w-4 h-4" /> : null}
+              EMITIR NUEVO BONO
             </button>
-          )}
-          <button 
-            onClick={() => setShowCreateModal(true)}
-            disabled={isCreating}
-            className="flex items-center gap-3 px-8 py-4 bg-white text-black hover:bg-blue-600 hover:text-white rounded-2xl font-black text-xs transition-all shadow-2xl disabled:opacity-50"
-          >
-            {isCreating ? <Loader2 className="animate-spin w-4 h-4" /> : null}
-            EMITIR NUEVO BONO
-          </button>
+          </div>
+        </div>
+
+        {/* Estadísticas Rápidas */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <StatCard 
+            icon={<Ticket className="w-6 h-6 text-blue-500" />}
+            title="Bonos Activos"
+            value={bonos.filter(b => b.status === 'ACTIVO').length}
+            subtitle="Listos para usar"
+          />
+          <StatCard 
+            icon={<Clock className="w-6 h-6 text-yellow-500" />}
+            title="Pendientes de Pago"
+            value={bonos.filter(b => b.status === 'PENDIENTE_DE_PAGO').length}
+            subtitle="Esperando pago"
+          />
+          <StatCard 
+            icon={<CheckCircle className="w-6 h-6 text-green-500" />}
+            title="Sesiones Disponibles"
+            value={bonos.reduce((acc, b) => acc + (b.sesiones_restantes || 0), 0)}
+            subtitle="Para usar ahora"
+          />
+          <StatCard 
+            icon={<Euro className="w-6 h-6 text-purple-500" />}
+            title="Valor Total"
+            value={`€${bonos.reduce((acc, b) => acc + (b.precio || 0), 0).toFixed(2)}`}
+            subtitle="En bonos activos"
+          />
+        </div>
+
+        {/* Acciones Inteligentes con Ana */}
+        <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-2xl p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                <Star className="w-5 h-5 text-yellow-500" />
+                Asistente IA - Ana
+              </h3>
+              <p className="text-gray-300 text-sm">
+                Ana puede contactar a pacientes con bonos para agendar citas automáticamente
+              </p>
+            </div>
+            <button className="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors flex items-center gap-2">
+              <Zap className="w-4 h-4" />
+              Activar Ana
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Lista Detallada de Bonos */}
+      <div className="bg-white/[0.02] border border-white/10 rounded-[32px] p-8">
+        <div className="flex justify-between items-center mb-8">
+          <h3 className="text-2xl font-black text-white">Bonos Activos</h3>
+          <div className="flex gap-3">
+            <button className="px-4 py-2 bg-gray-700 text-white rounded-xl text-sm font-medium hover:bg-gray-600 transition-colors">
+              Todos
+            </button>
+            <button className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors">
+              Activos
+            </button>
+            <button className="px-4 py-2 bg-gray-700 text-white rounded-xl text-sm font-medium hover:bg-gray-600 transition-colors">
+              Pendientes
+            </button>
+          </div>
+        </div>
+        </div>
 
       {/* Lista de Bonos */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -193,10 +282,3 @@ export const BonosView: React.FC<BonosProps> = ({
     </div>
   );
 };
-
-const FeatureBox = ({ icon, text }: any) => (
-  <div className="flex items-center gap-3 bg-white/5 p-4 rounded-2xl border border-white/5">
-    <div className="text-blue-500">{icon}</div>
-    <span className="text-[10px] font-bold text-gray-300 uppercase">{text}</span>
-  </div>
-);
