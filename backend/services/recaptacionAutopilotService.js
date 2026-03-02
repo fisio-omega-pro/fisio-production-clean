@@ -1,6 +1,7 @@
 const admin = require('firebase-admin');
 const { db, Timestamp } = require('../config/firebase');
 const { sendEmail } = require('./emailSenderService');
+const { generateRecaptacionEmail } = require('./recaptacionEmailTemplate');
 
 const daysAgoIso = (days) => {
   const d = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
@@ -95,27 +96,45 @@ async function runRecaptacionForClinic(clinicId, options = {}) {
     const to = String(locked.email || '').trim().toLowerCase();
     const nombre = String(locked.nombre || 'paciente').trim();
     const clinicName = String(clinic.nombre_clinica || 'tu clínica').trim();
-    const assistantName = String(clinic.config_ia?.nombre_asistente || 'Ana').trim(); // Personalizado
+    const assistantName = String(clinic.config_ia?.nombre_asistente || 'Ana').trim();
     const subject = `Hola ${nombre}, ¿cómo estás? Te extrañamos en ${clinicName}`;
-    const text =
-      `Hola ${nombre},\n\n` +
-      `Somos ${clinicName} y te contactamos a través de FisioTool, nuestra plataforma inteligente de gestión.\n\n` +
-      `Hemos visto que hace tiempo que no reservas y nos gustaría saber cómo estás.\n\n` +
-      `💡 **Novedad**: Ahora puedes gestionar tus citas desde nuestra app móvil:\n` +
-      `• 📅 Reserva tus citas cuando quieras\n` +
-      `• 🔔 Recibe recordatorios automáticos\n` +
-      `• 💬 Comunicación directa con nosotros\n\n` +
-      `¿Te gustaría retomar tus tratamientos? Responde este email o descarga la app:\n` +
-      `[URL DE TU APP PWA]\n\n` +
-      `Un saludo,\n${assistantName} - ${clinicName}\n` +
-      `🤖 Powered by FisioTool\n` +
-      `📞 [Teléfono de la clínica]`;
+    
+    // Generar email HTML profesional
+    const html = generateRecaptacionEmail({
+      patientName: nombre,
+      clinicName: clinicName,
+      assistantName: assistantName,
+      appUrl: 'https://app.fisiotool.com', // URL de la app
+      clinicPhone: clinic.telefono || '+34 900 000 000',
+      clinicEmail: clinic.email || 'info@fisiotool.com'
+    });
+    
+    // Texto plano para fallback
+    const text = `Hola ${nombre},
+
+Somos ${clinicName} y te contactamos a través de FisioTool, nuestra plataforma inteligente de gestión.
+
+Hemos visto que hace tiempo que no reservas y nos gustaría saber cómo estás.
+
+💡 **Novedad**: Ahora puedes gestionar tus citas desde nuestra app móvil:
+• 📅 Reserva tus citas cuando quieras
+• 🔔 Recibe recordatorios automáticos
+• 💬 Comunicación directa con nosotros
+
+¿Te gustaría retomar tus tratamientos? Responde este email o descarga la app:
+https://app.fisiotool.com
+
+Un saludo,
+${assistantName} - ${clinicName}
+🤖 Powered by FisioTool
+📞 ${clinic.telefono || '+34 900 000 000'}`;
 
     try {
       const r = await sendEmail({ 
         to, 
         subject, 
-        text, 
+        text,
+        html, // Añadir HTML profesional
         type: 'ANA',
         clinicName: clinicName // Pasar nombre de clínica para el remitente
       });
