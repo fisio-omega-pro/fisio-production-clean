@@ -406,6 +406,64 @@ const savePatientNote = async (req, res) => {
   } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 };
 
+// 3c. GUARDAR PACIENTE NUEVO (para creación desde bonos)
+const savePaciente = async (req, res, next) => {
+  try {
+    const paciente = req.body?.paciente || {};
+    const nombre = String(paciente.nombre || '').trim();
+    const email = String(paciente.email || '').trim();
+    const telefono = String(paciente.telefono || '').trim();
+    
+    if (!nombre || !email || !telefono) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'nombre, email y teléfono son requeridos' 
+      });
+    }
+    
+    // Verificar si ya existe un paciente con ese email o teléfono
+    const existingSnapshot = await db.collection('pacientes')
+      .where('clinic_id', '==', req.clinicId)
+      .where('email', '==', email.toLowerCase())
+      .limit(1)
+      .get();
+    
+    if (!existingSnapshot.empty) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Ya existe un paciente con este email' 
+      });
+    }
+    
+    // Crear el nuevo paciente
+    const pacienteRef = await db.collection('pacientes').add({
+      clinic_id: req.clinicId,
+      nombre: nombre,
+      email: email.toLowerCase(),
+      telefono: telefono,
+      created_at: Timestamp.now(),
+      updated_at: Timestamp.now(),
+      status: 'ACTIVE'
+    });
+    
+    await createAuditLog(req.clinicId, req.userId || req.clinicId, 'CREATE_PATIENTE', pacienteRef.id);
+    
+    return res.json({ 
+      success: true, 
+      id: pacienteRef.id,
+      paciente: {
+        id: pacienteRef.id,
+        nombre: nombre,
+        email: email,
+        telefono: telefono
+      }
+    });
+  } catch (e) { 
+    console.error('Error en savePaciente:', e);
+    next(e); 
+  }
+};
+
 // 3b. HISTORIAL CLÍNICO (para el modal de Agenda)
 const getPatientHistory = async (req, res, next) => {
   try {
@@ -1719,6 +1777,7 @@ module.exports = {
   resetPassword,
   getDashboardData,
   savePatientNote,
+  savePaciente,
   getPatientHistory,
   createAppointment,
   saveLogo,
