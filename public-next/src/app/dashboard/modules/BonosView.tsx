@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import { Ticket, Loader2, CheckCircle2, Zap, Star, Clock, Euro, Calendar, Phone, Mail, User, AlertCircle, TrendingUp } from 'lucide-react';
+import { Ticket, Loader2, CheckCircle2, Zap, Star, Clock, Euro, Calendar, Phone, Mail, User, AlertCircle, TrendingUp, CheckCircle } from 'lucide-react';
 import { CreateBonoModal } from '../components/CreateBonoModal';
 
 // Componentes auxiliares

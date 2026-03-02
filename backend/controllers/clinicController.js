@@ -528,10 +528,10 @@ const getDashboardData = async (req, res, next) => {
     const [clinicDoc, equipoSnap, pacientesSnap, citasSnap, bonosSnap, bloqueosSnap] = await Promise.all([
       db.collection('clinicas').doc(req.clinicId).get(),
       db.collection('clinicas').doc(req.clinicId).collection('equipo').get(),
-      db.collection('pacientes').where('clinicId', '==', req.clinicId).get(),
+      db.collection('pacientes').where('clinic_id', '==', req.clinicId).get(),
       db.collection('citas').where('clinic_id', '==', req.clinicId).get(),
-      db.collection('bonos').where('clinicId', '==', req.clinicId).get(),
-      db.collection('bloqueos').where('clinicId', '==', req.clinicId).get()
+      db.collection('bonos').where('clinic_id', '==', req.clinicId).get(),
+      db.collection('bloqueos').where('clinic_id', '==', req.clinicId).get()
     ]);
     console.log('🔍 [DASHBOARD] ClinicDoc exists:', clinicDoc.exists);
     console.log('🔍 [DASHBOARD] ClinicId:', req.clinicId);
