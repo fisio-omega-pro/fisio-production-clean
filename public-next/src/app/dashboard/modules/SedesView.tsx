@@ -43,27 +43,27 @@ export const SedesView: React.FC<SedesViewProps> = ({
     );
   }
 
+  // Si necesita pagar, mostrar solo el botón de pago (sin acceso a multi-clínicas)
+  if (subscriptionStatus.needsToPay) {
+    return (
+      <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-8 max-w-md">
+        <Building2 size={32} className="text-blue-500 mb-4" />
+        <h2 className="text-xl font-bold text-white mb-2">Mis Clínicas</h2>
+        <p className="text-gray-400 text-sm mb-6">Para añadir y gestionar varias clínicas desde un solo panel necesitas activar tu suscripción al plan Multi-Sede (300€/mes).</p>
+        <button 
+          onClick={onUpgrade} 
+          disabled={upgradeLoading}
+          style={{ background: '#0066ff', color: '#fff', padding: '12px 24px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '16px' }}
+        >
+          {upgradeLoading ? 'Procesando...' : 'Activar Suscripción (300€/mes)'}
+        </button>
+      </div>
+    );
+  }
+
+  // Si todo está pagado y funcional, mostrar vista completa de multi-clínicas
   return (
     <div className="flex flex-col gap-12 max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
-
-      {/* BANNER DE PAGO - SOLUCIÓN MAESTRA */}
-      {subscriptionStatus.needsToPay && (
-        <div className="bg-yellow-100 p-4 border-l-4 border-yellow-500 rounded-lg">
-          <p className="text-yellow-800 font-medium">
-            🎯 Estás usando el plan Business de cortesía.
-          </p>
-          <p className="text-yellow-700 text-sm mt-1">
-            Para continuar sin interrupciones, activa tu suscripción real.
-          </p>
-          <button 
-            onClick={onUpgrade} 
-            disabled={upgradeLoading}
-            style={{ background: '#f59e0b', color: '#fff', padding: '8px 16px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', marginTop: '8px' }}
-          >
-            {upgradeLoading ? 'Procesando...' : '💳 Activar Suscripción Real (300€/mes)'}
-          </button>
-        </div>
-      )}
 
       {/* SECCIÓN 1: CABECERA ESTRATÉGICA (CORREGIDA) */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-8 border-b border-white/5 pb-10">
