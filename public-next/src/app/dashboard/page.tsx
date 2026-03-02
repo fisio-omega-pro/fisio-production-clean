@@ -246,7 +246,14 @@ export default function DashboardOmega() {
       case 'agenda': return <AgendaView currentUser={state.currentUser} equipo={state.equipo} agenda={state.agenda} bloqueos={state.bloqueos} horario={state.clinicData.horario || { apertura: '08:00', cierre: '14:00', reapertura: '16:00', cierre_final: '21:00' }} onBlockSchedule={() => state.setModalType('bloqueo')} onNewAppointment={(d: any) => { setApptData({ ...apptData, fecha: d.date, hora: d.time, docId: d.specialistId || '' }); state.setModalType('cita'); }} onEventClick={state.setSelectedEvent} />;
       case 'pacientes': return <PacientesView pacientes={state.pacientes} onDictate={() => state.setModalType('voz')} onImport={() => state.setModalType('importar')} onNewPatient={() => state.setModalType('nuevo_paciente')} />;
       case 'finanzas': return <FinanzasView balance={state.balance} pacientes={state.pacientes} onActivateCampaign={async () => { await dashboardAPI.launchCampaign(); state.refreshData(); }} clinicData={state.clinicData} onGoToImport={() => { state.setActiveTab('pacientes'); state.setModalType('importar'); }} />;
-      case 'bonos': return <BonosView clinicData={state.clinicData} bonos={state.bonos} onActivate={async () => { await dashboardAPI.activateBonos(); state.refreshData(); }} onDeactivate={async () => { await dashboardAPI.deactivateBonos(); state.refreshData(); }} onNewBono={() => state.setModalType('nuevo_bono')} />;
+      case 'bonos': return <BonosView 
+        clinicData={state.clinicData} 
+        bonos={state.bonos} 
+        pacientes={state.pacientes}
+        onActivate={async () => { await dashboardAPI.activateBonos(); state.refreshData(); }} 
+        onDeactivate={async () => { await dashboardAPI.deactivateBonos(); state.refreshData(); }} 
+        onCreateBono={async (bono) => { await dashboardAPI.createBono(bono); state.refreshData(); }}
+      />;
       case 'equipo': return <EquipoView currentUser={state.currentUser} equipo={state.equipo} onAddMember={() => state.setModalType('editar_perfil')} currentPlan={state.clinicData.plan} onViewCalendar={() => state.setActiveTab('agenda')} onEditMember={(m) => { state.setMemberToEdit(m); state.setModalType('editar_perfil'); }} onUpgrade={async () => { const url = await dashboardAPI.upgradePlan('team'); if (url) window.location.href = url; }} />;
       case 'sedes':
         return (

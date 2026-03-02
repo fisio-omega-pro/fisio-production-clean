@@ -1,18 +1,29 @@
 'use client';
 import React, { useState } from 'react';
 import { Ticket, Loader2, CheckCircle2, Zap, Star } from 'lucide-react';
+import { CreateBonoModal } from '../components/CreateBonoModal';
 
 interface BonosProps {
   clinicData: any;
   bonos: any[];
+  pacientes: any[];
   onActivate: () => Promise<void>;
   onDeactivate?: () => Promise<void>;
-  onNewBono: () => void;
+  onCreateBono: (bono: any) => Promise<void>;
 }
 
-export const BonosView: React.FC<BonosProps> = ({ clinicData, bonos, onActivate, onDeactivate, onNewBono }) => {
+export const BonosView: React.FC<BonosProps> = ({ 
+  clinicData, 
+  bonos, 
+  pacientes, 
+  onActivate, 
+  onDeactivate, 
+  onCreateBono 
+}) => {
   const [isActivating, setIsActivating] = useState(false);
   const [isDeactivating, setIsDeactivating] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const isActivated = clinicData?.config_ia?.acepta_bonos;
 
   const handleActivate = async () => {
@@ -27,6 +38,15 @@ export const BonosView: React.FC<BonosProps> = ({ clinicData, bonos, onActivate,
     setIsDeactivating(true);
     await onDeactivate();
     setIsDeactivating(false);
+  };
+
+  const handleCreateBono = async (bono: any) => {
+    setIsCreating(true);
+    try {
+      await onCreateBono(bono);
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   if (!isActivated) {
@@ -77,23 +97,96 @@ export const BonosView: React.FC<BonosProps> = ({ clinicData, bonos, onActivate,
               Desactivar módulo
             </button>
           )}
-          <button onClick={onNewBono} className="flex items-center gap-3 px-8 py-4 bg-white text-black hover:bg-blue-600 hover:text-white rounded-2xl font-black text-xs transition-all shadow-2xl">
-             EMITIR NUEVO BONO
+          <button 
+            onClick={() => setShowCreateModal(true)}
+            disabled={isCreating}
+            className="flex items-center gap-3 px-8 py-4 bg-white text-black hover:bg-blue-600 hover:text-white rounded-2xl font-black text-xs transition-all shadow-2xl disabled:opacity-50"
+          >
+            {isCreating ? <Loader2 className="animate-spin w-4 h-4" /> : null}
+            EMITIR NUEVO BONO
           </button>
         </div>
       </div>
+
+      {/* Lista de Bonos */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {bonos.length === 0 ? (
-          <div className="col-span-full py-20 text-center text-gray-600 italic">No hay bonos emitidos.</div>
+          <div className="col-span-full py-20 text-center text-gray-600 italic">
+            No hay bonos emitidos. {pacientes.length > 0 ? 'Crea tu primer bono para comenzar.' : 'Primero registra pacientes para poder crear bonos.'}
+          </div>
         ) : (
           bonos.map((bono) => (
             <div key={bono.id} className="bg-white/[0.02] border border-white/5 rounded-[32px] p-8">
-              <h3 className="text-xl font-black text-white uppercase">{bono.paciente_nombre}</h3>
-              <p className="text-2xl font-black text-blue-500 mt-4">{bono.sesiones_restantes} / {bono.sesiones_totales}</p>
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h3 className="text-xl font-black text-white uppercase">{bono.paciente_nombre}</h3>
+                  {bono.paciente_email && (
+                    <p className="text-sm text-gray-400">{bono.paciente_email}</p>
+                  )}
+                </div>
+                <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+                  bono.status === 'ACTIVO' 
+                    ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                    : bono.status === 'PENDIENTE_DE_PAGO'
+                    ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                    : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+                }`}>
+                  {bono.status === 'ACTIVO' ? 'Activo' : 
+                   bono.status === 'PENDIENTE_DE_PAGO' ? 'Pendiente de pago' : 
+                   bono.status}
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400 text-sm">Sesiones</span>
+                  <span className="text-2xl font-black text-blue-500">
+                    {bono.sesiones_restantes} / {bono.sesiones_totales}
+                  </span>
+                </div>
+                
+                {bono.precio && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400 text-sm">Precio</span>
+                    <span className="text-white font-medium">€{bono.precio}</span>
+                  </div>
+                )}
+                
+                {bono.fecha_vencimiento && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400 text-sm">Vence</span>
+                    <span className="text-white text-sm">
+                      {new Date(bono.fecha_vencimiento).toLocaleDateString()}
+                    </span>
+                  </div>
+                )}
+
+                {bono.pago_url && bono.status === 'PENDIENTE_DE_PAGO' && (
+                  <div className="pt-3">
+                    <a
+                      href={bono.pago_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full block text-center px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
+                    >
+                      Ver Enlace de Pago
+                    </a>
+                  </div>
+                )}
+              </div>
             </div>
           ))
         )}
       </div>
+
+      {/* Modal de Creación */}
+      <CreateBonoModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        pacientes={pacientes}
+        onCreateBono={handleCreateBono}
+        clinicData={clinicData}
+      />
     </div>
   );
 };

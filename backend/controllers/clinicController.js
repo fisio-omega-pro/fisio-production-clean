@@ -943,23 +943,105 @@ const deactivateBonos = async (req, res, next) => {
 const createBono = async (req, res, next) => {
   try {
     const bono = req.body?.bono || {};
-    const pacienteNombre = String(bono.paciente_nombre || '').trim();
+    const pacienteId = String(bono.paciente_id || '').trim();
     const sesionesTotales = Number(bono.sesiones_totales || 0);
     const fechaVencimiento = String(bono.fecha_vencimiento || '').trim() || null;
-    if (!pacienteNombre || !sesionesTotales) return res.status(400).json({ success: false, error: 'bono inválido' });
-    const ref = await db.collection('bonos').add({
+    const generarPago = bono.generar_pago !== false; // Por defecto generar pago
+    
+    if (!pacienteId || !sesionesTotales) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'paciente_id y sesiones_totales son requeridos' 
+      });
+    }
+    
+    // Verificar que el paciente existe
+    const pacienteDoc = await db.collection('pacientes').doc(pacienteId).get();
+    if (!pacienteDoc.exists) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Paciente no encontrado' 
+      });
+    }
+    
+    const paciente = pacienteDoc.data();
+    const precioBono = Number(req.clinicData?.config_ia?.precio_bono_5 || 225);
+    
+    // Crear el bono asociado al paciente
+    const bonoRef = await db.collection('bonos').add({
       clinic_id: req.clinicId,
-      paciente_nombre: pacienteNombre,
+      paciente_id: pacienteId,
+      paciente_nombre: paciente.nombre,
+      paciente_email: paciente.email,
+      paciente_telefono: paciente.telefono,
       sesiones_totales: sesionesTotales,
-      sesiones_restantes: sesionesTotales,
+      sesiones_restantes: 0, // Se activarán cuando pague
+      sesiones_usadas: 0,
       fecha_vencimiento: fechaVencimiento,
-      status: 'ACTIVO',
+      status: generarPago ? 'PENDIENTE_DE_PAGO' : 'ACTIVO',
+      precio: precioBono,
+      pago_generado: generarPago,
       created_at: Timestamp.now(),
       updated_at: Timestamp.now()
     });
-    await createAuditLog(req.clinicId, req.userId || req.clinicId, 'CREATE_BONO', ref.id);
-    return res.json({ success: true, id: ref.id });
-  } catch (e) { next(e); }
+    
+    // Generar enlace de pago si se solicita
+    let pagoUrl = null;
+    if (generarPago) {
+      try {
+        const paymentService = require('../services/paymentService');
+        const pagoSession = await paymentService.createOneTimePaymentSession({
+          amount: precioBono,
+          currency: 'eur',
+          concepto: `Bono de ${sesionesTotales} sesiones - ${paciente.nombre}`,
+          cliente_email: paciente.email,
+          success_url: `https://fisiotool.com/dashboard/bonos?bono_id=${bonoRef.id}&pago=exitoso`,
+          cancel_url: `https://fisiotool.com/dashboard/bonos?bono_id=${bonoRef.id}&pago=cancelado`,
+          metadata: {
+            bono_id: bonoRef.id,
+            paciente_id: pacienteId,
+            clinic_id: req.clinicId,
+            tipo: 'bono_sesiones'
+          }
+        });
+        pagoUrl = pagoSession.url;
+      } catch (pagoError) {
+        console.error('Error generando pago:', pagoError);
+        // Si falla el pago, crear el bono como activo
+        await bonoRef.update({
+          status: 'ACTIVO',
+          sesiones_restantes: sesionesTotales,
+          pago_generado: false
+        });
+      }
+    } else {
+      // Si no se genera pago, activar el bono inmediatamente
+      await bonoRef.update({
+        status: 'ACTIVO',
+        sesiones_restantes: sesionesTotales
+      });
+    }
+    
+    await createAuditLog(req.clinicId, req.userId || req.clinicId, 'CREATE_BONO', bonoRef.id);
+    
+    return res.json({ 
+      success: true, 
+      id: bonoRef.id,
+      bono: {
+        id: bonoRef.id,
+        paciente_nombre: paciente.nombre,
+        paciente_email: paciente.email,
+        sesiones_totales: sesionesTotales,
+        sesiones_restantes: generarPago ? 0 : sesionesTotales,
+        status: generarPago ? 'PENDIENTE_DE_PAGO' : 'ACTIVO',
+        precio: precioBono,
+        pago_url: pagoUrl
+      }
+    });
+  } catch (e) { 
+    console.error('Error en createBono:', e);
+    next(e); 
+  }
 };
 
 const launchCampaign = async (req, res, next) => {
