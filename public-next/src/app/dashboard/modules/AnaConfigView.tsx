@@ -53,7 +53,7 @@ export const AnaConfigView = ({ clinicData, onUpdated }: AnaConfigProps) => {
             await dashboardAPI.updateAsistenteConfig(config);
             await onUpdated();
             setSaved(true);
-            setTimeout(() => setSaved(false), 3000);
+            setTimeout(() => setSaved(false), 6000); // 6 segundos para que el usuario vea bien el mensaje
         } catch (e: any) {
             setError(e.message || 'Error al guardar la configuración');
         } finally {
@@ -283,9 +283,16 @@ export const AnaConfigView = ({ clinicData, onUpdated }: AnaConfigProps) => {
                     )}
 
                     {saved && (
-                        <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-4 text-green-400 text-xs flex items-center gap-3 animate-in fade-in zoom-in duration-300">
-                            <CheckCircle2 size={16} />
-                            ¡Configuración actualizada con éxito!
+                        <div className="bg-green-500/20 border border-green-500/30 rounded-2xl p-6 text-green-300 text-sm flex items-center gap-4 animate-in fade-in zoom-in duration-300 shadow-lg shadow-green-500/10">
+                            <CheckCircle2 size={24} className="flex-shrink-0" />
+                            <div>
+                                <div className="font-bold text-green-200">✅ ¡CONFIGURACIÓN GUARDADA CORRECTAMENTE!</div>
+                                <div className="text-green-300/80 text-xs mt-1">
+                                    • Nombre: {config.name}<br/>
+                                    • Email de prospección: {config.prospectionEmail}<br/>
+                                    • Sistema de recuperación activo
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>
