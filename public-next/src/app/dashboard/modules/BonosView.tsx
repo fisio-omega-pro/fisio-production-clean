@@ -329,19 +329,13 @@ export const BonosView: React.FC<BonosProps> = ({
 
                   {bono.pago_url && bono.status === 'PENDIENTE_DE_PAGO' && (
                     <div className="pt-3 space-y-2">
-                      {/* Botones de compartir */}
-                      <div className="grid grid-cols-2 gap-2">
+                      {/* Botones de compartir - SOLO Copiar y Email */}
+                      <div className="grid grid-cols-1 gap-2">
                         <button
                           onClick={() => copiarEnlace(bono.pago_url)}
-                          className="px-3 py-2 bg-gray-700 text-white rounded-xl text-xs font-medium hover:bg-gray-600 transition-colors flex items-center justify-center gap-1"
+                          className="w-full px-3 py-2 bg-gray-700 text-white rounded-xl text-xs font-medium hover:bg-gray-600 transition-colors flex items-center justify-center gap-1"
                         >
-                          📋 Copiar
-                        </button>
-                        <button
-                          onClick={() => compartirWhatsApp(bono.paciente_nombre, bono.pago_url)}
-                          className="px-3 py-2 bg-green-600 text-white rounded-xl text-xs font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-1"
-                        >
-                          💬 WhatsApp
+                          📋 Copiar Enlace de Pago
                         </button>
                       </div>
                       
@@ -350,7 +344,7 @@ export const BonosView: React.FC<BonosProps> = ({
                           onClick={() => compartirEmail(bono.paciente_nombre, bono.paciente_email, bono.pago_url)}
                           className="w-full px-3 py-2 bg-blue-600 text-white rounded-xl text-xs font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-1"
                         >
-                          📧 Enviar Email
+                          📧 Enviar por Email
                         </button>
                       )}
                       
