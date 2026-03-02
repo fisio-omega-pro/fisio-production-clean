@@ -184,19 +184,19 @@ async function initialize(options = {}) {
     }
   });
 
-  app.use('/api', apiRoutes);
-
-  app.get('/', (req, res) => res.status(200).send('FISIOTOOL PRO ONLINE'));
-  
-  // Health check básico que funciona siempre
+  // Health check (sin autenticación)
   app.get('/api/health', (req, res) => {
     res.json({ 
       status: 'OK', 
       timestamp: new Date().toISOString(),
-      serverReady: serverReady 
+      message: 'Backend funcionando correctamente'
     });
   });
 
+  app.get('/', (req, res) => res.status(200).send('FISIOTOOL PRO ONLINE'));
+
+  app.use('/api', apiRoutes);
+  
   if (startCron) {
     // 📧 CRON JOB: Ana revisa su inbox cada 5 minutos
     const { readEmails } = require('./services/emailReaderService');
