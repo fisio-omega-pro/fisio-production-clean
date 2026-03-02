@@ -110,4 +110,9 @@ router.post('/dashboard/create-patient', ensureHandler(clinicController.createPa
 router.post('/dashboard/payment-verify', ensureHandler(clinicController.verifyPayment, 'verifyPayment'));
 router.post('/chat/dashboard', ensureHandler(chatController.handleChat, 'handleChat'));
 
+// Health check endpoint
+router.get('/health', (req, res) => {
+  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
 module.exports = router;
