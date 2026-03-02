@@ -38,9 +38,11 @@ export const EquipoView: React.FC<EquipoProps> = ({
   // Si no tiene permisos de plan, mostrar upgrade para añadir más fisios
   // PERO permitir ver y editar su propio perfil
   if (!subscriptionStatus.canAccessMultiSede) {
-    // Si es staff (fisio), mostrar su perfil
+    // Si es staff (fisio), mostrar su perfil o formulario para crearlo
     if (isStaff && currentUser?.specialistId) {
       const miPerfil = equipo.find(m => m.id === currentUser.specialistId);
+      
+      // Si tiene perfil, mostrarlo
       if (miPerfil) {
         return (
           <div className="flex flex-col gap-12 max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -120,6 +122,78 @@ export const EquipoView: React.FC<EquipoProps> = ({
           </div>
         );
       }
+      
+      // Si NO tiene perfil, mostrar formulario para crearlo
+      return (
+        <div className="flex flex-col gap-12 max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
+          {/* HEADER */}
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-8 border-b border-white/5 pb-10">
+            <div className="max-w-xl">
+              <div className="flex items-center gap-2 text-blue-500 mb-4">
+                <UserCheck size={20} />
+                <span className="text-[10px] font-black uppercase tracking-[0.2em]">Mi perfil</span>
+              </div>
+              <h2 className="text-4xl font-black text-white tracking-tight mb-4 uppercase italic">Completa tu ficha</h2>
+              <p className="text-gray-400 text-sm leading-relaxed">
+                Aún no tienes tu perfil de fisioterapeuta. Completa tus datos para que aparezcas en el sistema de la clínica.
+              </p>
+            </div>
+          </div>
+
+          {/* TARJETA DE CREACIÓN DE PERFIL */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+            <div className="lg:col-span-2">
+              <div className="bg-white/[0.02] border border-white/5 rounded-[40px] p-8">
+                <div className="text-center mb-8">
+                  <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-blue-600/20 border-2 border-white/10 flex items-center justify-center">
+                    <span className="text-3xl font-black text-blue-500">?</span>
+                  </div>
+                  <h3 className="text-xl font-black text-white mb-2">Crea tu perfil de fisioterapeuta</h3>
+                  <p className="text-gray-400 text-sm">
+                    Registra tus datos profesionales para poder gestionar tus citas y pacientes.
+                  </p>
+                </div>
+                
+                <div className="text-center">
+                  <button
+                    onClick={onAddMember}
+                    className="px-8 py-4 bg-white text-black rounded-2xl font-black text-xs hover:bg-blue-600 hover:text-white transition-all shadow-2xl"
+                  >
+                    <Plus size={18} className="inline mr-2" />
+                    CREAR MI PERFIL
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* COLUMNA DERECHA: INFO */}
+            <div className="space-y-6">
+              <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-[40px] p-8 text-black relative overflow-hidden shadow-2xl">
+                <Crown className="absolute -right-4 -top-4 w-32 h-32 opacity-20 rotate-12" />
+                <h3 className="text-xl font-black mb-2 uppercase italic leading-tight">Plan Solo Activo</h3>
+                <p className="text-black/70 text-xs font-bold leading-relaxed mb-8">
+                  Actualmente gestionas tu clínica de forma individual. Actualiza para añadir hasta 5 especialistas y desbloquear el cálculo de comisiones automático de Ana.
+                </p>
+                <button
+                  onClick={onUpgrade}
+                  className="w-full py-4 bg-black text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-transform flex items-center justify-center gap-2"
+                >
+                  DESBLOQUEAR EQUIPO <ArrowUpRight size={14} />
+                </button>
+              </div>
+
+              <div className="bg-white/5 border border-white/10 rounded-[40px] p-8">
+                <h4 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-6 flex items-center gap-2">
+                  <ShieldCheck size={14} className="text-blue-500" /> Seguridad de Datos
+                </h4>
+                <p className="text-[11px] text-gray-500 leading-relaxed">
+                  Tu perfil profesional estará protegido y solo será visible para el administrador de la clínica y para ti mismo.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
     }
     
     // Si no es staff o no tiene perfil, mostrar upgrade tradicional
