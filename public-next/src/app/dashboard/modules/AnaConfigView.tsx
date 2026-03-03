@@ -21,7 +21,7 @@ export const AnaConfigView = ({ clinicData, onUpdated }: AnaConfigProps) => {
     const [config, setConfig] = useState({
         name: clinicData?.ana_name || 'Ana',
         color: clinicData?.ana_color || '#075E54',
-        welcome: clinicData?.ana_welcome || '¡Hola! Estoy aquí para ayudarte con tus citas y dudas. ¿En qué puedo apoyarte hoy?',
+        welcome: clinicData?.ana_welcome || '¡Hola! Soy Ana, tu asistente virtual de FisioTool Pro. Estoy aquí para ayudarte con tus citas, dudas y gestionar tu salud. ¿En qué puedo apoyarte hoy?',
         photo: clinicData?.ana_photo || '',
         useClinicLogo: clinicData?.ana_use_clinic_logo || false,
         prospectionEmail: clinicData?.email_contacto || ''
@@ -33,12 +33,36 @@ export const AnaConfigView = ({ clinicData, onUpdated }: AnaConfigProps) => {
     const [uploadingPhoto, setUploadingPhoto] = useState(false);
     const photoInputRef = useRef<HTMLInputElement>(null);
 
+    // Mensaje optimizado para WhatsApp
+    const whatsappOptimizedMessage = `🏥 *${clinicData?.nombre_clinica || 'Tu Clínica'}* 
+
+🤖 *Presentamos a Ana - Tu Asistente Virtual*
+
+¡Hola! Soy Ana, tu asistente inteligente de FisioTool Pro. Estoy disponible 24/7 para ayudarte con:
+
+✅ Agendar tus citas de fisioterapia
+✅ Resolver tus dudas sobre tratamientos
+✅ Gestionar tu recuperación y bienestar
+✅ Coordinar tus sesiones y seguimiento
+
+🎯 *Personalización Total*
+• Nombre: Puedes llamarme como prefieras
+• Color: Adapta mi imagen a tu marca
+• Foto: Usa tu logo o mi avatar
+
+💬 *Háblame ahora mismo* en nuestro chat: fisiotool.com/ana
+
+📞 *¿Necesitas ayuda humana?* Estamos aquí para ti
+📧 Contacto: ${clinicData?.email_contacto || 'tu-clinica@fisiotool.com'}
+
+🚀 *FisioTool Pro - Tecnología para tu salud*`;
+
     useEffect(() => {
         if (clinicData) {
             setConfig({
                 name: clinicData.ana_name || 'Ana',
                 color: clinicData.ana_color || '#075E54',
-                welcome: clinicData.ana_welcome || '¡Hola! Estoy aquí para ayudarte con tus citas y dudas. ¿En qué puedo apoyarte hoy?',
+                welcome: clinicData.ana_welcome || '¡Hola! Soy Ana, tu asistente virtual de FisioTool Pro. Estoy aquí para ayudarte con tus citas, dudas y gestionar tu salud. ¿En qué puedo apoyarte hoy?',
                 photo: clinicData.ana_photo || '',
                 useClinicLogo: !!clinicData.ana_use_clinic_logo,
                 prospectionEmail: clinicData.email_contacto || ''
@@ -112,6 +136,74 @@ export const AnaConfigView = ({ clinicData, onUpdated }: AnaConfigProps) => {
                     {saving ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle2 size={16} />}
                     {saving ? 'GUARDANDO...' : 'GUARDAR CAMBIOS'}
                 </button>
+            </div>
+
+            {/* ALERTA DE PERSONALIZACIÓN */}
+            <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 rounded-2xl p-6 backdrop-blur-sm">
+                <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                        <MessageSquare className="text-blue-400" size={20} />
+                    </div>
+                    <div className="flex-1">
+                        <h3 className="text-white font-semibold mb-2">🤖 Tu Asistente por Defecto: Ana</h3>
+                        <p className="text-gray-300 text-sm mb-4">
+                            Ana viene preconfigurada con identidad profesional, pero puedes personalizarla completamente para que refleje la imagen de tu clínica.
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                            <div className="flex items-center gap-2 text-gray-400">
+                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                <span>Nombre personalizable</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-gray-400">
+                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                <span>Color empresarial</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-gray-400">
+                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                <span>Logo o avatar propio</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* MENSAJE WHATSAPP OPTIMIZADO */}
+            <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-2xl p-6 backdrop-blur-sm">
+                <div className="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 className="text-white font-semibold flex items-center gap-2">
+                            💬 Mensaje Optimizado para WhatsApp
+                        </h3>
+                        <p className="text-gray-400 text-sm mt-1">
+                            Copia y pega este mensaje para presentar Ana en tus canales de comunicación
+                        </p>
+                    </div>
+                    <button
+                        onClick={(e) => {
+                            navigator.clipboard.writeText(whatsappOptimizedMessage);
+                            // Mostrar notificación de copiado
+                            const button = e.currentTarget;
+                            const originalText = button.innerHTML;
+                            button.innerHTML = '✅ Copiado';
+                            setTimeout(() => {
+                                button.innerHTML = originalText;
+                            }, 2000);
+                        }}
+                        className="bg-green-600 hover:bg-green-500 text-white font-black px-4 py-2 rounded-xl text-xs transition-all flex items-center gap-2"
+                    >
+                        <MessageSquare size={14} />
+                        Copiar Mensaje
+                    </button>
+                </div>
+                
+                <div className="bg-black/30 rounded-xl p-4 font-mono text-xs text-gray-300 max-h-40 overflow-y-auto">
+                    {whatsappOptimizedMessage}
+                </div>
+                
+                <div className="mt-3 flex items-center gap-2 text-xs text-gray-400">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span>Optimizado para WhatsApp con emojis y formato profesional</span>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
