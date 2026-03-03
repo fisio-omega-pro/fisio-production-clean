@@ -23,7 +23,7 @@ export const AnaConfigView = ({ clinicData, onUpdated }: AnaConfigProps) => {
         color: clinicData?.ana_color || '#075E54',
         welcome: clinicData?.ana_welcome || '¡Hola! Soy Ana, tu asistente virtual de FisioTool Pro. Estoy aquí para ayudarte con tus citas, dudas y gestionar tu salud. ¿En qué puedo apoyarte hoy?',
         photo: clinicData?.ana_photo || '',
-        useClinicLogo: clinicData?.ana_use_clinic_logo || false,
+        useClinicLogo: clinicData?.ana_use_clinic_logo !== undefined ? clinicData.ana_use_clinic_logo : !!clinicData?.logo_url, // Activar por defecto si hay logo
         prospectionEmail: clinicData?.email_contacto || ''
     });
 
@@ -64,7 +64,7 @@ export const AnaConfigView = ({ clinicData, onUpdated }: AnaConfigProps) => {
                 color: clinicData.ana_color || '#075E54',
                 welcome: clinicData.ana_welcome || '¡Hola! Soy Ana, tu asistente virtual de FisioTool Pro. Estoy aquí para ayudarte con tus citas, dudas y gestionar tu salud. ¿En qué puedo apoyarte hoy?',
                 photo: clinicData.ana_photo || '',
-                useClinicLogo: !!clinicData.ana_use_clinic_logo,
+                useClinicLogo: clinicData.ana_use_clinic_logo !== undefined ? clinicData.ana_use_clinic_logo : !!clinicData.logo_url,
                 prospectionEmail: clinicData.email_contacto || ''
             });
         }
@@ -354,8 +354,20 @@ export const AnaConfigView = ({ clinicData, onUpdated }: AnaConfigProps) => {
                                             {config.useClinicLogo && (
                                                 <div className="mt-4 flex items-center justify-between p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl">
                                                     <span className="text-xs text-blue-300">✅ Logo de clínica activo</span>
-                                                    {clinicData?.logo_url && (
-                                                        <img src={clinicData.logo_url} alt="Logo" className="w-8 h-8 object-contain" />
+                                                    {clinicData?.logo_url ? (
+                                                        <img 
+                                                            src={clinicData.logo_url.startsWith('/') ? `https://www.fisiotool.com${clinicData.logo_url}` : clinicData.logo_url} 
+                                                            alt="Logo" 
+                                                            className="w-8 h-8 object-contain" 
+                                                            onError={(e) => {
+                                                                console.error('Error cargando logo:', clinicData.logo_url);
+                                                                e.currentTarget.style.display = 'none';
+                                                            }}
+                                                        />
+                                                    ) : (
+                                                        <div className="w-8 h-8 bg-blue-500/20 rounded flex items-center justify-center">
+                                                            <Camera size={16} className="text-blue-400" />
+                                                        </div>
                                                     )}
                                                 </div>
                                             )}
@@ -408,7 +420,15 @@ export const AnaConfigView = ({ clinicData, onUpdated }: AnaConfigProps) => {
                                 >
                                     <div className="w-10 h-10 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center overflow-hidden">
                                         {config.useClinicLogo && clinicData?.logo_url ? (
-                                            <img src={clinicData.logo_url} alt="Logo" className="w-full h-full object-cover" />
+                                            <img 
+                                                src={clinicData.logo_url.startsWith('/') ? `https://www.fisiotool.com${clinicData.logo_url}` : clinicData.logo_url} 
+                                                alt="Logo" 
+                                                className="w-full h-full object-cover" 
+                                                onError={(e) => {
+                                                    console.error('Error cargando logo en preview:', clinicData.logo_url);
+                                                    e.currentTarget.style.display = 'none';
+                                                }}
+                                            />
                                         ) : config.photo ? (
                                             <img src={config.photo} alt="Asistente" className="w-full h-full object-cover" />
                                         ) : (
