@@ -617,67 +617,63 @@ const createAppointmentWithReminders = async (clinicId, patientData, appointment
   }
 };
 
-// 📧 Procesar emails entrantes. Si leadContext existe, es un lead de CAZA: respuesta alineada (sin precio, 30 días, tono CAZA).
+// 📧 Procesar emails entrantes con sistema infalible. Si leadContext existe, es un lead de CAZA: respuesta alineada (sin precio, 30 días, tono CAZA).
 const processIncomingEmail = async (from, subject, body, leadContext = null) => {
-  const cazaBlock = leadContext
-    ? `
-CONTEXTO MODO CAZA: El remitente es un lead de prospección (${leadContext.nombre || '—'}, ${leadContext.clinica || '—'}).
-Tu respuesta DEBE seguir la estrategia CAZA:
-- Tono cercano y humano. Firma siempre "Ana · FisioTool".
-- NUNCA menciones el precio (100€) en la respuesta.
-- Si muestra interés: recuerda "30 días de prueba gratis; si no te convence, cancelas y no pagas."
-- Da un próximo paso claro (entrar al enlace, probar la demo, responder una duda concreta).
-- Si dice NO o no le interesa: responde breve, agradece y ofrécele opt-out ("no te escribo más").
-- Si es duda u objeción: responde la duda y vuelve a invitar a probar sin compromiso.`
-    : '';
-
-  const prompt = `Eres Ana, asistente IA de FisioTool Pro. Clasifica este email y decide qué hacer.
-${cazaBlock}
-
-EMAIL RECIBIDO:
-De: ${from}
-Asunto: ${subject}
-Cuerpo: ${body}
-
-INSTRUCCIONES:
-1. Clasifica como: URGENTE | IMPORTANTE | NORMAL | SPAM
-2. Determina el tipo: LEAD_PROSPECTO | SUGERENCIA | QUEJA | SOPORTE | SPAM
-3. Genera una respuesta profesional (si procede): MÁXIMO 2-4 frases cortas. Sin párrafos largos. ${leadContext ? 'Si es lead de prospección, aplica las reglas CAZA de arriba.' : ''}
-4. Indica si notificar al admin (true/false)
-5. resumen: una línea breve para el admin.
-
-Responde SOLO en formato JSON:
-{
-  "clasificacion": "URGENTE|IMPORTANTE|NORMAL|SPAM",
-  "tipo": "LEAD_PROSPECTO|SUGERENCIA|QUEJA|SOPORTE|SPAM",
-  "respuesta": "texto corto (2-4 frases) o null si no procede",
-  "notificar_admin": true/false,
-  "resumen": "una línea"
-}`;
-
+  const { trainAna } = require('./anaCapabilitiesService');
+  
   try {
-    const reply = await callAnaEngine(prompt, { maxOutputTokens: 500 });
-    // Intentar parsear JSON (Gemini puede devolver markdown)
-    const jsonMatch = reply.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+    // 🧠 USAR SISTEMA INFALIBLE DE ANA
+    const result = await trainAna(leadContext ? 'prospeccion' : 'soporte', body, leadContext);
+    
+    // 📧 Construir respuesta según el resultado
+    let responseText = result.response;
+    let shouldRespond = result.type !== 'RECHAZO' && result.type !== 'ERROR';
+    
+    // 🎯 Añadir firma profesional
+    if (shouldRespond && !responseText.includes('Ana')) {
+      responseText += '\n\nAna · FisioTool Pro';
     }
-    // Si no se puede parsear, respuesta por defecto
-    return {
-      clasificacion: "NORMAL",
-      tipo: "SOPORTE",
-      respuesta: null,
-      notificar_admin: true,
-      resumen: `Email de ${from}: ${subject}`
+    
+    // 📊 Construir análisis completo
+    const analysis = {
+      clasificacion: result.classification.priority === 'ALTA' ? 'URGENTE' : 
+                    result.classification.priority === 'MEDIA' ? 'IMPORTANTE' : 'NORMAL',
+      tipo: result.classification.type === 'LEAD_CALIENTE' ? 'LEAD_PROSPECTO' :
+            result.classification.type === 'OBJECIÓN_PRECIO' ? 'LEAD_PROSPECTO' :
+            result.classification.type === 'INDECISIÓN' ? 'LEAD_PROSPECTO' :
+            result.classification.type === 'CONSULTA' ? 'SOPORTE' :
+            result.classification.type === 'RECHAZO' ? 'SOPORTE' : 'SOPORTE',
+      respuesta: shouldRespond ? responseText : null,
+      notificar_admin: result.classification.priority === 'ALTA' || result.type === 'ERROR',
+      resumen: `${result.classification.type}: ${result.followUp}`,
+      followUpAction: result.followUp,
+      urgency: result.urgency,
+      anaCapabilities: {
+        detectedType: result.classification.type,
+        techniqueUsed: result.cta,
+        restrictionsApplied: result.type === 'RESTRICCIÓN'
+      }
     };
+    
+    console.log(`🧠 [ANA] Procesado con capacidades infalibles: ${result.classification.type} → ${result.followUp}`);
+    
+    return analysis;
+    
   } catch (e) {
-    console.error("🔥 Error procesando email con Ana:", e);
+    console.error("🔥 Error procesando email con Ana infalible:", e);
     return {
       clasificacion: "NORMAL",
       tipo: "SOPORTE",
       respuesta: null,
       notificar_admin: true,
-      resumen: `Email de ${from}: ${subject}`
+      resumen: `Email de ${from}: ${subject}`,
+      followUpAction: 'SEGUIMIENTO_ESTÁNDAR',
+      urgency: 'Media',
+      anaCapabilities: {
+        detectedType: 'ERROR',
+        techniqueUsed: 'FALLBACK',
+        restrictionsApplied: false
+      }
     };
   }
 };
