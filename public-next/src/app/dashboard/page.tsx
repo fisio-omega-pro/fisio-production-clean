@@ -230,12 +230,10 @@ export default function DashboardOmega() {
     }
   };
 
-  const needsSubscription = !state.configStatus?.hasSubscription;
-  // Siempre requerir Stripe Connect después del pago, hasta que esté configurado
-  const needsStripe = !state.configStatus?.hasStripe || (!state.clinicData?.stripe_account_id && state.configStatus?.hasSubscription);
   const needsLogo = !state.clinicData?.logo_url || state.clinicData?.logo_url.includes('placeholder');
-  const needsPatients = state.pacientes.length === 0;
-  const needsSetup = false; // TEMPORAL: Desactivar bloqueo para debugging
+  const needsSubscription = !state.clinicData?.subscription_active;
+  const needsStripe = !state.clinicData?.stripe_account_id;
+  const needsSetup = needsLogo || needsSubscription || needsStripe; // Activar onboarding si falta algo
   const isBlocked = needsSetup; // Bloqueo real del dashboard
 
   const renderContent = () => {
@@ -522,12 +520,12 @@ export default function DashboardOmega() {
         isUploading={isUploadingLogo}
       />
 
-      {/* SetupWizard para usuarios invidentes */}
-      {isBlocked && state.clinicData?.is_blind && (
+      {/* SetupWizard para todos los usuarios cuando el dashboard está bloqueado */}
+      {isBlocked && (
         <SetupWizard
           status={state.configStatus}
           onRefresh={state.refreshData}
-          isBlind={true}
+          isBlind={state.clinicData?.is_blind || false}
         />
       )}
       <StripeModal
