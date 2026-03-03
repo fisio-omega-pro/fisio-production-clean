@@ -23,7 +23,7 @@ import { BonosView } from './modules/BonosView';
 import { ReferidosView } from './modules/ReferidosView';
 import { AjustesView } from './modules/AjustesView';
 import { AnaConfigView } from './modules/AnaConfigView';
-import { SugerenciasView } from './modules/SugerenciasView';
+import { SoporteView } from './modules/SoporteView';
 import { VoiceModal } from './components/modals/VoiceModal';
 import { AppointmentModal } from './components/modals/AppointmentModal';
 import { BlockModal } from './components/modals/BlockModal';
@@ -280,7 +280,7 @@ export default function DashboardOmega() {
       case 'config_ana': return <AnaConfigView clinicData={state.clinicData} onUpdated={state.refreshData} />;
       case 'referidos': return <ReferidosView />;
       case 'ajustes': return <AjustesView clinicData={state.clinicData} onUpdated={state.refreshData} />;
-      case 'sugerencias': return <SugerenciasView />;
+      case 'sugerencias': return <SoporteView />;
       default: return <div className="p-20 text-center text-gray-500">Módulo en construcción</div>;
     }
   };
