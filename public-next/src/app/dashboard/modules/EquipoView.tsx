@@ -52,23 +52,12 @@ export const EquipoView: React.FC<EquipoProps> = ({
     equipoCount,
     puedeAgregarMas,
     estaEnLimite,
-    membersToShow,
-    shouldShowMultiSedeView: subscriptionStatus.canAccessMultiSede && !subscriptionStatus.needsToPay
+    membersToShow
   });
 
   // Si no tiene permisos de plan, mostrar upgrade para añadir más fisios
   // PERO permitir ver y editar su propio perfil (tanto staff como owner)
-  
-  // 🚨 TEMPORALMENTE FORZAR VISTA MULTI-CLÍNICAS PARA VER PERFILES
-  console.log('🔍 CONDICIONES:', {
-    canAccessMultiSede: subscriptionStatus.canAccessMultiSede,
-    needsToPay: subscriptionStatus.needsToPay,
-    shouldShowLimited: !subscriptionStatus.canAccessMultiSede || subscriptionStatus.needsToPay
-  });
-  
-  // Comentar temporalmente la condición limitante
-  // if (!subscriptionStatus.canAccessMultiSede || subscriptionStatus.needsToPay) {
-  if (false) { // FORZAR A FALSE PARA VER MULTI-CLÍNICAS
+  if (!subscriptionStatus.canAccessMultiSede || subscriptionStatus.needsToPay) {
     console.log('🚫 Entrando en vista de upgrade/plan limitado');
     
     // Si es staff (fisio) o owner (admin), mostrar su perfil o formulario para crearlo
@@ -260,9 +249,7 @@ export const EquipoView: React.FC<EquipoProps> = ({
   console.log('👥 Mostrando', membersToShow.length, 'perfiles de', equipoCount, 'totales');
 
   // Si necesita pagar, mostrar solo el botón de pago
-  console.log('🔍 ¿NEEDS TO PAY?', subscriptionStatus.needsToPay);
-  if (subscriptionStatus.needsToPay && false) { // FORZAR A FALSE PARA VER PERFILES
-    console.log('🚫 BLOQUEADO POR needsToPay');
+  if (subscriptionStatus.needsToPay) {
     return (
       <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-8 max-w-md">
         <Building2 size={32} className="text-blue-500 mb-4" />
@@ -281,15 +268,6 @@ export const EquipoView: React.FC<EquipoProps> = ({
 
   return (
     <div className="flex flex-col gap-12 max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* DEBUG VISUAL */}
-      <div style={{background: '#1a1a1a', padding: '20px', margin: '20px', borderRadius: '10px', border: '2px solid #333'}}>
-        <h2 style={{color: '#fff', fontSize: '16px'}}>� Estado del Sistema</h2>
-        <p style={{color: '#ccc'}}>Perfiles registrados: {membersToShow.length}</p>
-        <p style={{color: '#ccc'}}>Estado suscripción: {subscriptionStatus.needsToPay ? 'Pendiente de pago' : 'Activa'}</p>
-        <p style={{color: '#ccc'}}>Acceso multi-sede: {subscriptionStatus.canAccessMultiSede ? 'Habilitado' : 'Bloqueado'}</p>
-        <p style={{color: '#ccc'}}>👥 {equipoCount}/{limiteFisios} fisios</p>
-      </div>
-
       {/* HEADER DINÁMICO (solo jefe ve botón añadir / upgrade) */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-8 border-b border-white/5 pb-10">
         <div className="max-w-xl">
