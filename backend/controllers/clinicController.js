@@ -957,6 +957,35 @@ const saveSpecialist = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
+const uploadAvatar = async (req, res, next) => {
+  try {
+    const { specialistId } = req.body;
+    
+    if (!specialistId) {
+      return res.status(400).json({ success: false, error: 'specialistId requerido' });
+    }
+    
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'Archivo no proporcionado' });
+    }
+    
+    // Aquí deberías subir el archivo a un servicio de almacenamiento (Cloud Storage, S3, etc.)
+    // Por ahora, simularemos la subida y devolveremos una URL ficticia
+    const avatarUrl = `https://storage.googleapis.com/fisio-avatars/${specialistId}-${Date.now()}.jpg`;
+    
+    // Actualizar el especialista con la nueva URL del avatar
+    const equipoRef = db.collection('clinicas').doc(req.clinicId).collection('equipo');
+    await equipoRef.doc(specialistId).update({
+      avatarUrl,
+      updated_at: Timestamp.now()
+    });
+    
+    await createAuditLog(req.clinicId, req.userId || req.clinicId, 'UPLOAD_AVATAR', specialistId);
+    
+    res.json({ success: true, avatarUrl });
+  } catch (e) { next(e); }
+};
+
 const importPatients = async (req, res, next) => {
   try {
     const patients = Array.isArray(req.body?.patients) ? req.body.patients : [];
@@ -1853,6 +1882,7 @@ module.exports = {
   saveCobrosConfig,
   addSede,
   saveSpecialist,
+  uploadAvatar,
   importPatients,
   activateBonos,
   deactivateBonos,

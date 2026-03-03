@@ -444,11 +444,26 @@ export default function DashboardOmega() {
             await dashboardAPI.saveSpecialist({ ...state.memberToEdit, login_email: state.memberToEdit.login_email ?? '' });
             
             // Éxito normal
+            const isNew = !state.memberToEdit.id;
             state.setModalType(null);
             state.refreshData();
             
-            // Mostrar feedback de éxito
-            alert('✅ Fisioterapeuta guardado correctamente');
+            // Mostrar feedback de éxito mejorado
+            if (isNew) {
+              alert('✅ Fisioterapeuta creado correctamente\n\nAhora puedes verlo en la sección Equipo con su foto y todos sus datos.');
+            } else {
+              alert('✅ Fisioterapeuta actualizado correctamente\n\nLos cambios han sido guardados y son visibles inmediatamente.');
+            }
+            
+            // Pequeña pausa para que los datos se actualicen
+            setTimeout(() => {
+              // Opcional: hacer scroll a la sección de equipo
+              const equipoSection = document.querySelector('[data-tab="equipo"]');
+              if (equipoSection) {
+                equipoSection.scrollIntoView({ behavior: 'smooth' });
+              }
+            }, 500);
+            
           } catch (e: any) {
             console.error('Error saving specialist:', e);
             
@@ -463,7 +478,41 @@ export default function DashboardOmega() {
             }
           }
         }}
-        onUpload={async () => { }}
+        onUpload={async (file: File) => {
+          try {
+            // Crear FormData para subir archivo
+            const formData = new FormData();
+            formData.append('avatar', file);
+            formData.append('specialistId', state.memberToEdit?.id || '');
+            
+            // Subir al backend
+            const response = await fetch('/api/dashboard/upload-avatar', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem('fisio_token')}`,
+              },
+              body: formData
+            });
+            
+            if (!response.ok) {
+              throw new Error('Error al subir la foto');
+            }
+            
+            const result = await response.json();
+            
+            // Actualizar el miembro con la URL de la foto
+            if (result.avatarUrl && state.memberToEdit) {
+              state.setMemberToEdit({
+                ...state.memberToEdit,
+                avatarUrl: result.avatarUrl
+              });
+            }
+            
+          } catch (error) {
+            console.error('Error uploading avatar:', error);
+            alert('❌ Error al subir la foto. Por favor, inténtalo de nuevo.');
+          }
+        }}
         uploading={state.loading}
       />
       <ImportModal isOpen={state.modalType === 'importar'} onClose={() => state.setModalType(null)} fileInputRef={fileInputRef} onFileSelect={(e) => e.target.files && state.handleImportFile(e.target.files[0])} isImporting={state.importing} />

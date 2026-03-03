@@ -1,5 +1,5 @@
 'use client'
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { Camera, Loader2, Save, Mail, Briefcase, Phone, User, Info } from 'lucide-react';
 import { Modal } from '../Modal';
 import { ActionButton, InputField } from '../Atoms';
@@ -19,10 +19,25 @@ interface EditProfileProps {
 
 export const EditProfileModal = ({ isOpen, onClose, member, setMember, onSave, onUpload, uploading, canEditLoginEmail = true }: EditProfileProps) => {
   const fileRef = useRef<HTMLInputElement>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>('');
+
+  // Resetear preview cuando cambia el miembro
+  React.useEffect(() => {
+    setPreviewUrl(member?.avatarUrl || '');
+  }, [member]);
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    
+    // 📸 Preview instantáneo
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setPreviewUrl(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+    
+    // Subir al servidor
     await onUpload(file);
   };
 
@@ -33,8 +48,8 @@ export const EditProfileModal = ({ isOpen, onClose, member, setMember, onSave, o
         {/* AVATAR Y ESTADO */}
         <div className="flex items-center gap-6 bg-blue-600/5 p-6 rounded-[32px] border border-blue-500/10">
           <div className="relative w-20 h-20">
-            {member?.avatarUrl ? (
-              <img src={member.avatarUrl} className="w-full h-full rounded-full object-cover border-2 border-white/20" />
+            {previewUrl ? (
+              <img src={previewUrl} className="w-full h-full rounded-full object-cover border-2 border-white/20" alt="Avatar" />
             ) : (
               <div className="w-full h-full rounded-full bg-blue-600 flex items-center justify-center text-2xl font-black text-white">
                 {member?.nombre?.charAt(0) || 'E'}
@@ -43,14 +58,23 @@ export const EditProfileModal = ({ isOpen, onClose, member, setMember, onSave, o
             <button 
               onClick={() => fileRef.current?.click()}
               className="absolute -bottom-1 -right-1 w-8 h-8 bg-white text-black rounded-full flex items-center justify-center shadow-lg hover:bg-blue-600 hover:text-white transition-all"
+              disabled={uploading}
             >
-              <Camera size={14} />
+              {uploading ? <Loader2 className="animate-spin" size={14} /> : <Camera size={14} />}
             </button>
+            {uploading && (
+              <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
+                <Loader2 className="animate-spin text-white" size={16} />
+              </div>
+            )}
           </div>
           <div className="flex-1">
              <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">Estado Operativo</p>
              <h4 className="text-white font-bold uppercase tracking-tighter">Disponible para Citas</h4>
              <p className="text-[10px] text-gray-500 mt-1">Este perfil es visible para tu asistente en la recepción inteligente.</p>
+             {previewUrl && (
+               <p className="text-[10px] text-green-400 mt-2">✅ Foto cargada correctamente</p>
+             )}
           </div>
           <input type="file" ref={fileRef} onChange={handleFile} accept="image/*" className="hidden" />
         </div>
