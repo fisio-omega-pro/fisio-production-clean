@@ -617,6 +617,55 @@ export default function DashboardOmega() {
       </Modal>
 
       {state.selectedEvent && <HistoryModal event={state.selectedEvent} onClose={() => state.setSelectedEvent(null)} />}
+      
+      {/* 🚀 LOADING GLOBAL PARA FEEDBACK INMEDIATO */}
+      <div 
+        id="global-loading" 
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.8)',
+          display: 'none',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          backdropFilter: 'blur(4px)'
+        }}
+      >
+        <div style={{
+          background: '#1a1a1a',
+          padding: '24px 32px',
+          borderRadius: '16px',
+          border: '1px solid #333',
+          textAlign: 'center',
+          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)'
+        }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            border: '3px solid #333',
+            borderTop: '3px solid #3b82f6',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 16px'
+          }} />
+          <div style={{ color: '#fff', fontSize: '14px', fontWeight: '600' }}>
+            Procesando...
+          </div>
+          <div style={{ color: '#666', fontSize: '12px', marginTop: '8px' }}>
+            Por favor, espera un momento
+          </div>
+        </div>
+        <style jsx>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
     </DashboardLayout>
   );
 }

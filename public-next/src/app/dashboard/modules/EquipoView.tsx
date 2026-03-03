@@ -294,8 +294,19 @@ export const EquipoView: React.FC<EquipoProps> = ({
 
         {!isStaff && (
           <button
-            onClick={isSolo ? onUpgrade : puedeAgregarMas ? onAddMember : onUpgrade}
-            disabled={!puedeAgregarMas && !isSolo}
+            onClick={async () => {
+              // Loading inmediato
+              if (isSolo || upgradeLoading) {
+                // Mostrar loading instantáneo
+                const button = event?.currentTarget;
+                if (button) {
+                  button.textContent = 'Conectando con Stripe...';
+                  button.disabled = true;
+                }
+              }
+              onUpgrade();
+            }}
+            disabled={isSolo ? upgradeLoading : puedeAgregarMas ? false : !isSolo}
             className={`group flex items-center gap-3 px-8 py-4 rounded-2xl font-black text-xs transition-all duration-300 ${
               isSolo 
                 ? 'bg-amber-500 text-black shadow-xl shadow-amber-500/10' 
@@ -304,8 +315,8 @@ export const EquipoView: React.FC<EquipoProps> = ({
                   : 'bg-gray-600 text-gray-400 cursor-not-allowed'
             }`}
           >
-            {isSolo ? <Crown size={16} /> : puedeAgregarMas ? <Plus size={18} /> : <Crown size={16} />}
-            {isSolo ? 'MEJORAR A PLAN TEAM' : puedeAgregarMas ? 'REGISTRAR ESPECIALISTA' : 'LÍMITE ALCANZADO'}
+            {isSolo ? (upgradeLoading ? '⏳ Conectando...' : <Crown size={16} />) : puedeAgregarMas ? <Plus size={18} /> : <Crown size={16} />}
+            {isSolo ? (upgradeLoading ? 'Conectando con Stripe...' : 'MEJORAR A PLAN TEAM') : puedeAgregarMas ? 'REGISTRAR ESPECIALISTA' : 'LÍMITE ALCANZADO'}
           </button>
         )}
       </div>

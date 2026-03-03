@@ -22,6 +22,14 @@ class DashboardService {
 
     console.log(`[DEBUG] Enviando petición a ${endpoint} con token: ${token ? 'SÍ' : 'NO'}`);
 
+    // 🚀 LOADING GLOBAL INMEDIATO
+    if (!options.headers?.['X-No-Loading']) {
+      const loadingEl = document.getElementById('global-loading');
+      if (loadingEl) {
+        loadingEl.style.display = 'flex';
+      }
+    }
+
     const headers: any = {
       'Content-Type': 'application/json',
       ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
