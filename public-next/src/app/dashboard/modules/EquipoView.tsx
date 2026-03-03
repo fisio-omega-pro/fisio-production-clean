@@ -35,12 +35,24 @@ export const EquipoView: React.FC<EquipoProps> = ({
   const isStaff = !!(currentUser?.specialistId);
   const membersToShow = isStaff ? equipo.filter((m) => m.id === currentUser!.specialistId) : equipo;
 
+  // DEBUG: Log para ver qué está pasando
+  console.log('🔍 DEBUG EquipoView:', {
+    currentUser,
+    equipo,
+    isStaff,
+    isSolo,
+    subscriptionStatus,
+    specialistId: currentUser?.specialistId
+  });
+
   // Si no tiene permisos de plan, mostrar upgrade para añadir más fisios
   // PERO permitir ver y editar su propio perfil
   if (!subscriptionStatus.canAccessMultiSede) {
     // Si es staff (fisio), mostrar su perfil o formulario para crearlo
     if (isStaff && currentUser?.specialistId) {
       const miPerfil = equipo.find(m => m.id === currentUser.specialistId);
+      
+      console.log('👤 Es staff, perfil encontrado:', miPerfil);
       
       // Si tiene perfil, mostrarlo
       if (miPerfil) {
@@ -124,6 +136,7 @@ export const EquipoView: React.FC<EquipoProps> = ({
       }
       
       // Si NO tiene perfil, mostrar formulario para crearlo
+      console.log('📝 Es staff pero no tiene perfil, mostrando formulario');
       return (
         <div className="flex flex-col gap-12 max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
           {/* HEADER */}
@@ -196,7 +209,8 @@ export const EquipoView: React.FC<EquipoProps> = ({
       );
     }
     
-    // Si no es staff o no tiene perfil, mostrar upgrade tradicional
+    // Si no es staff, mostrar upgrade tradicional
+    console.log('🚫 No es staff, mostrando upgrade tradicional');
     return (
       <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-8 max-w-md">
         <Building2 size={32} className="text-blue-500 mb-4" />
