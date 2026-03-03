@@ -233,6 +233,7 @@ export default function DashboardOmega() {
   const needsLogo = !state.clinicData?.logo_url || state.clinicData?.logo_url.includes('placeholder');
   const needsSubscription = !state.clinicData?.subscription_active;
   const needsStripe = !state.clinicData?.stripe_account_id;
+  const needsPatients = state.pacientes.length === 0; // Añadir esta variable
   const needsSetup = needsLogo || needsSubscription || needsStripe; // Activar onboarding si falta algo
   const isBlocked = needsSetup; // Bloqueo real del dashboard
 
