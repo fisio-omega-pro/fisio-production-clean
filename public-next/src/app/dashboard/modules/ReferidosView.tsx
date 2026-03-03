@@ -19,10 +19,23 @@ export const ReferidosView = () => {
     setLoading(true);
     setErr(null);
     try {
+      console.log('[REFERIDOS] Cargando datos de referidos...');
       const r = await dashboardAPI.getReferrals();
+      console.log('[REFERIDOS] Datos recibidos:', r);
       setData(r);
     } catch (e: any) {
-      setErr(e?.message || 'Error cargando referidos');
+      console.error('[REFERIDOS] Error:', e);
+      const errorMsg = e?.message || 'Error cargando referidos';
+      
+      if (errorMsg.includes('Sesión expirada') || errorMsg.includes('No autenticado')) {
+        setErr('Tu sesión ha expirado. Por favor, inicia sesión de nuevo.');
+        // Redirigir al login después de un breve retraso
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 2000);
+      } else {
+        setErr(errorMsg);
+      }
     }
     setLoading(false);
   };
