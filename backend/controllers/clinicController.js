@@ -1853,7 +1853,16 @@ const uploadAnaPhoto = async (req, res, next) => {
 
     const publicUrl = `https://storage.googleapis.com/${bucketName}/${fileName}`;
 
+    // Actualizar configuración de Ana en la base de datos
+    await db.collection('clinicas').doc(req.clinicId).update({
+      ana_photo: publicUrl,
+      ana_use_clinic_logo: false,
+      updated_at: new Date()
+    });
+
     await createAuditLog(req.clinicId, req.userId || req.clinicId, 'UPLOAD_ANA_PHOTO', fileName);
+
+    console.log('✅ Foto de Ana subida y guardada:', publicUrl);
 
     res.json({
       success: true,
