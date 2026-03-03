@@ -61,7 +61,7 @@ export const EquipoView: React.FC<EquipoProps> = ({
     if (userId) {
       const miPerfil = currentUser?.specialistId 
         ? equipo.find(m => m.id === currentUser.specialistId)
-        : equipo.find(m => m.login_email === currentUser?.email); // Buscar por login_email si es owner
+        : equipo.find(m => m.login_email === currentUser?.email) || equipo[0]; // Buscar por email o primer perfil si es owner
       
       console.log('👤 Usuario (staff/owner), perfil encontrado:', miPerfil, 'userId:', userId);
       

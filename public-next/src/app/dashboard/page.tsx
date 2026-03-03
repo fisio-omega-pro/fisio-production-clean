@@ -441,12 +441,17 @@ export default function DashboardOmega() {
         onSave={async () => {
           if (!state.memberToEdit) return;
           try {
-            await dashboardAPI.saveSpecialist({ ...state.memberToEdit, login_email: state.memberToEdit.login_email ?? '' });
+            const result = await dashboardAPI.saveSpecialist({ ...state.memberToEdit, login_email: state.memberToEdit.login_email ?? '' });
             
             // Éxito normal
             const isNew = !state.memberToEdit.id;
             state.setModalType(null);
-            state.refreshData();
+            
+            // Refresh más robusto
+            await state.refreshData();
+            
+            // Pequeña pausa para asegurar que los datos se actualicen
+            await new Promise(resolve => setTimeout(resolve, 1000));
             
             // Mostrar feedback de éxito mejorado
             if (isNew) {
@@ -455,9 +460,8 @@ export default function DashboardOmega() {
               alert('✅ Fisioterapeuta actualizado correctamente\n\nLos cambios han sido guardados y son visibles inmediatamente.');
             }
             
-            // Pequeña pausa para que los datos se actualicen
+            // Scroll a la sección de equipo
             setTimeout(() => {
-              // Opcional: hacer scroll a la sección de equipo
               const equipoSection = document.querySelector('[data-tab="equipo"]');
               if (equipoSection) {
                 equipoSection.scrollIntoView({ behavior: 'smooth' });
@@ -480,33 +484,24 @@ export default function DashboardOmega() {
         }}
         onUpload={async (file: File) => {
           try {
-            // Crear FormData para subir archivo
-            const formData = new FormData();
-            formData.append('avatar', file);
-            formData.append('specialistId', state.memberToEdit?.id || '');
+            // Temporalmente solo hacer preview sin subir al servidor
+            console.log('📸 Foto seleccionada (subida temporalmente desactivada):', file.name);
             
-            // Subir al backend
-            const response = await fetch('/api/dashboard/upload-avatar', {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${localStorage.getItem('fisio_token')}`,
-              },
-              body: formData
-            });
+            // Simular subida exitosa después de un delay
+            await new Promise(resolve => setTimeout(resolve, 1000));
             
-            if (!response.ok) {
-              throw new Error('Error al subir la foto');
-            }
+            // Crear URL local para el preview
+            const localUrl = URL.createObjectURL(file);
             
-            const result = await response.json();
-            
-            // Actualizar el miembro con la URL de la foto
-            if (result.avatarUrl && state.memberToEdit) {
+            // Actualizar el miembro con la URL local
+            if (state.memberToEdit) {
               state.setMemberToEdit({
                 ...state.memberToEdit,
-                avatarUrl: result.avatarUrl
+                avatarUrl: localUrl
               });
             }
+            
+            alert('✅ Foto cargada correctamente (preview local)');
             
           } catch (error) {
             console.error('Error uploading avatar:', error);

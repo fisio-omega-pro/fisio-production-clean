@@ -90,7 +90,7 @@ router.post('/dashboard/update-settings', ensureHandler(adminController.updateSe
 router.post('/dashboard/update-ana-config', ensureHandler(clinicController.updateAnaConfig, 'updateAnaConfig'));
 router.post('/dashboard/add-sede', ensureHandler(clinicController.addSede, 'addSede'));
 router.post('/dashboard/save-specialist', ensureHandler(clinicController.saveSpecialist, 'saveSpecialist'));
-router.post('/dashboard/upload-avatar', upload.single('avatar'), ensureHandler(clinicController.uploadAvatar, 'uploadAvatar'));
+router.post('/dashboard/upload-avatar', auth, upload.single('avatar'), ensureHandler(clinicController.uploadAvatar, 'uploadAvatar'));
 router.post('/dashboard/import-patients', ensureHandler(clinicController.importPatients, 'importPatients'));
 router.post('/dashboard/activate-bonos', ensureHandler(clinicController.activateBonos, 'activateBonos'));
 router.post('/dashboard/deactivate-bonos', ensureHandler(clinicController.deactivateBonos, 'deactivateBonos'));
