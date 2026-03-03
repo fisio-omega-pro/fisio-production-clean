@@ -617,6 +617,71 @@ const createAppointmentWithReminders = async (clinicId, patientData, appointment
   }
 };
 
+// 📧 Procesar emails entrantes. Si leadContext existe, es un lead de CAZA: respuesta alineada (sin precio, 30 días, tono CAZA).
+const processIncomingEmail = async (from, subject, body, leadContext = null) => {
+  const cazaBlock = leadContext
+    ? `
+CONTEXTO MODO CAZA: El remitente es un lead de prospección (${leadContext.nombre || '—'}, ${leadContext.clinica || '—'}).
+Tu respuesta DEBE seguir la estrategia CAZA:
+- Tono cercano y humano. Firma siempre "Ana · FisioTool".
+- NUNCA menciones el precio (100€) en la respuesta.
+- Si muestra interés: recuerda "30 días de prueba gratis; si no te convence, cancelas y no pagas."
+- Da un próximo paso claro (entrar al enlace, probar la demo, responder una duda concreta).
+- Si dice NO o no le interesa: responde breve, agradece y ofrécele opt-out ("no te escribo más").
+- Si es duda u objeción: responde la duda y vuelve a invitar a probar sin compromiso.`
+    : '';
+
+  const prompt = `Eres Ana, asistente IA de FisioTool Pro. Clasifica este email y decide qué hacer.
+${cazaBlock}
+
+EMAIL RECIBIDO:
+De: ${from}
+Asunto: ${subject}
+Cuerpo: ${body}
+
+INSTRUCCIONES:
+1. Clasifica como: URGENTE | IMPORTANTE | NORMAL | SPAM
+2. Determina el tipo: LEAD_PROSPECTO | SUGERENCIA | QUEJA | SOPORTE | SPAM
+3. Genera una respuesta profesional (si procede): MÁXIMO 2-4 frases cortas. Sin párrafos largos. ${leadContext ? 'Si es lead de prospección, aplica las reglas CAZA de arriba.' : ''}
+4. Indica si notificar al admin (true/false)
+5. resumen: una línea breve para el admin.
+
+Responde SOLO en formato JSON:
+{
+  "clasificacion": "URGENTE|IMPORTANTE|NORMAL|SPAM",
+  "tipo": "LEAD_PROSPECTO|SUGERENCIA|QUEJA|SOPORTE|SPAM",
+  "respuesta": "texto corto (2-4 frases) o null si no procede",
+  "notificar_admin": true/false,
+  "resumen": "una línea"
+}`;
+
+  try {
+    const reply = await callAnaEngine(prompt, { maxOutputTokens: 500 });
+    // Intentar parsear JSON (Gemini puede devolver markdown)
+    const jsonMatch = reply.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+    // Si no se puede parsear, respuesta por defecto
+    return {
+      clasificacion: "NORMAL",
+      tipo: "SOPORTE",
+      respuesta: null,
+      notificar_admin: true,
+      resumen: `Email de ${from}: ${subject}`
+    };
+  } catch (e) {
+    console.error("🔥 Error procesando email con Ana:", e);
+    return {
+      clasificacion: "NORMAL",
+      tipo: "SOPORTE",
+      respuesta: null,
+      notificar_admin: true,
+      resumen: `Email de ${from}: ${subject}`
+    };
+  }
+};
+
 module.exports = {
   callAnaEngine,
   getClinicConfiguration,
@@ -624,6 +689,7 @@ module.exports = {
   getAvailableTimeSlots,
   generatePaymentLink,
   createAppointmentWithReminders,
+  processIncomingEmail,
 
   consultLex: async (userMessage) => {
     const fullPrompt = `${LEX_SYSTEM_PROMPT}\n\nCONSULTA DEL USUARIO: "${String(userMessage || '').trim()}"\n\nTu respuesta (pauta técnica, sin consejo vinculante):`;
