@@ -36,8 +36,81 @@ const callAnaEngine = async (prompt, options = {}) => {
   }
 };
 
+const getTeamInfo = async (clinicId) => {
+  try {
+    const teamSnapshot = await db.collection('clinicas')
+      .doc(clinicId)
+      .collection('equipo')
+      .where('isOwner', '==', false)
+      .get();
+    
+    if (teamSnapshot.empty) {
+      return { specialists: [], count: 0 };
+    }
+
+    const specialists = teamSnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        name: data.nombre || 'Especialista',
+        specialty: data.especialidad || 'Fisioterapia',
+        avatar: data.avatarUrl || null
+      };
+    });
+
+    return { specialists, count: specialists.length };
+  } catch (e) {
+    console.error('🔥 [ANA] Error getting team info:', e);
+    return { specialists: [], count: 0 };
+  }
+};
+
+const getPatientHistory = async (clinicId, patientEmail) => {
+  try {
+    const patientSnapshot = await db.collection('clinicas')
+      .doc(clinicId)
+      .collection('pacientes')
+      .where('email', '==', patientEmail)
+      .limit(1)
+      .get();
+    
+    if (patientSnapshot.empty) {
+      return { isRecurrent: false, history: [] };
+    }
+
+    const patient = patientSnapshot.docs[0].data();
+    
+    // Get appointment history
+    const appointmentsSnapshot = await db.collection('clinicas')
+      .doc(clinicId)
+      .collection('agenda')
+      .where('paciente_email', '==', patientEmail)
+      .orderBy('fecha', 'desc')
+      .limit(5)
+      .get();
+
+    const history = appointmentsSnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        date: data.fecha,
+        time: data.hora,
+        specialist: data.especialista || 'Especialista',
+        status: data.estado
+      };
+    });
+
+    return {
+      isRecurrent: history.length > 0,
+      history,
+      patientName: patient.nombre
+    };
+  } catch (e) {
+    console.error('🔥 [ANA] Error getting patient history:', e);
+    return { isRecurrent: false, history: [] };
+  }
+};
+
 const DASHBOARD_KNOWLEDGE = `
-CONOCIMIENTO DEL DASHBOARD (usa esto para explicar al detalle cuando pregunten cómo funciona algo):
 - Inicio: resumen del panel, enlace para pacientes, QR, opción "Abrir en PC". Si falta setup (logo/Stripe/suscripción) se avisa.
 - Agenda: vista Día o Mes; filtro por especialista (TODOS o uno); BLOQUEAR horario; NUEVA CITA; colores verde (pagado) / naranja (pendiente). Cada cita puede ir a un especialista.
 - Pacientes: añadir, editar, ver historial. Importar CSV.
@@ -577,8 +650,49 @@ REGLAS:
   },
 
   // --- 🤖 ANA CHAT PÚBLICO (para pacientes) ---
-  generatePatientResponse: async ({ message, clinicName, clinicId, history = [] }) => {
+  generatePatientResponse: async ({ message, clinicName, clinicId, history = [], patientEmail }) => {
     const lowerMessage = String(message || '').toLowerCase();
+
+    // 🚀 PRIMERO: Obtener información del equipo y paciente
+    const teamInfo = await getTeamInfo(clinicId);
+    const patientHistory = patientEmail ? await getPatientHistory(clinicId, patientEmail) : { isRecurrent: false, history: [] };
+
+    // 🎯 SALUDO INTELIGENTE PARA MULTI-CLÍNICAS
+    if (lowerMessage.includes('hola') || lowerMessage.includes('buenos') || lowerMessage.includes('saludo') || history.length === 0) {
+      const anaName = (await getClinicConfiguration(clinicId))?.ana_profile?.name || 'Ana';
+      
+      if (teamInfo.count > 0) {
+        const specialistsList = teamInfo.specialists.slice(0, 3).map(s => `- ${s.name} (${s.specialty})`).join('\n');
+        const moreText = teamInfo.count > 3 ? `\n- Y ${teamInfo.count - 3} especialistas más` : '';
+        
+        if (patientHistory.isRecurrent) {
+          return `¡Hola ${patientHistory.patientName}! Te veo en nuestro sistema. 
+          
+En ${clinicName} tenemos ${teamInfo.count} especialistas:
+${specialistsList}${moreText}
+
+Tu última cita fue con ${patientHistory.history[0]?.specialist || 'tu especialista'} el ${patientHistory.history[0]?.date}.
+¿Te gustaría continuar con el mismo especialista o prefieres conocer a otro?
+
+${anaName} - ${clinicName}`;
+        } else {
+          return `Hola, soy ${anaName} de ${clinicName}. 
+
+En nuestra clínica tenemos ${teamInfo.count} especialistas:
+${specialistsList}${moreText}
+
+¿Con qué especialista te gustaría tu cita? O si prefieres, dime qué tratamiento necesitas y te recomiendo el mejor especialista para ti.
+
+${anaName} - ${clinicName}`;
+        }
+      }
+      
+      return `Hola, soy ${anaName} de ${clinicName}. 
+
+¿En qué puedo ayudarte hoy? Puedo gestionar citas, pagos y responder tus dudas.
+
+${anaName} - ${clinicName}`;
+    }
 
     // 🚀 PRIMERO: Sistema híbrido inteligente
     try {
