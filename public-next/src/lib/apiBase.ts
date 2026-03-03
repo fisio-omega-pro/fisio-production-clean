@@ -1,4 +1,4 @@
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
-  'https://fisio-backend-omega-27rnwsehcq-ew.a.run.app';
+  'https://fisio-backend-omega-740657183492.europe-west1.run.app';
 
