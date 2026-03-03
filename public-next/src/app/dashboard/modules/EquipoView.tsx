@@ -58,7 +58,17 @@ export const EquipoView: React.FC<EquipoProps> = ({
 
   // Si no tiene permisos de plan, mostrar upgrade para añadir más fisios
   // PERO permitir ver y editar su propio perfil (tanto staff como owner)
-  if (!subscriptionStatus.canAccessMultiSede || subscriptionStatus.needsToPay) {
+  
+  // 🚨 TEMPORALMENTE FORZAR VISTA MULTI-CLÍNICAS PARA VER PERFILES
+  console.log('🔍 CONDICIONES:', {
+    canAccessMultiSede: subscriptionStatus.canAccessMultiSede,
+    needsToPay: subscriptionStatus.needsToPay,
+    shouldShowLimited: !subscriptionStatus.canAccessMultiSede || subscriptionStatus.needsToPay
+  });
+  
+  // Comentar temporalmente la condición limitante
+  // if (!subscriptionStatus.canAccessMultiSede || subscriptionStatus.needsToPay) {
+  if (false) { // FORZAR A FALSE PARA VER MULTI-CLÍNICAS
     console.log('🚫 Entrando en vista de upgrade/plan limitado');
     
     // Si es staff (fisio) o owner (admin), mostrar su perfil o formulario para crearlo
