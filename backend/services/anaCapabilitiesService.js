@@ -12,7 +12,15 @@ const ANA_RESTRICTIONS = {
     "Técnicas médicas específicas",
     "Diagnósticos o recomendaciones clínicas",
     "Críticas a otros sistemas o métodos",
-    "Promesas de éxito garantizado"
+    "Promesas de éxito garantizado",
+    "Mensajes por WhatsApp",
+    "Envío de SMS",
+    "Llamadas telefónicas",
+    "Soporte por teléfono",
+    "Atención telefónica",
+    "Número de teléfono",
+    "WhatsApp Business",
+    "SMS automáticos"
   ],
   
   // ⚠️ COSAS QUE REQUIEREN AUTORIZACIÓN
@@ -62,7 +70,8 @@ const ANA_SELLING_CAPABILITIES = {
     "ya uso otro sistema": "Perfecto. Muchos de nuestros mejores clientes venían de otros sistemas. Te ofrezco una migración gratuita y 30 días para comparar. Sin coste si no te convence.",
     "soy muy pequeño": "De hecho, las clínicas pequeñas son las que más beneficios obtienen. Recuperar 2-3 citas semanales representa un impacto enorme en tu negocio.",
     "no sé usar tecnología": "No te preocupes. Nuestro sistema es diseñado para fisioterapeutas, no para técnicos. Te acompaño personalmente en todo el proceso y estarás operativo en menos de 1 hora.",
-    "mis pacientes prefieren WhatsApp": "Perfecto. Nuestro sistema integra WhatsApp automáticamente para recordatorios y confirmaciones. Tus pacientes seguirán usando WhatsApp, pero tú tendrás todo centralizado."
+    "mis pacientes prefieren whatsapp": "Entiendo. Nuestro sistema envía recordatorios automáticos por email y notificaciones en la app PWA. Tus pacientes recibirán las notificaciones en su móvil, igual que con WhatsApp, pero tú tendrás todo centralizado.",
+    "quiero soporte telefónico": "Entiendo tu preferencia. Te ofrezco algo mejor: soporte instantáneo 24/7 a través de nuestro chat con Ana en fisiotool.com/ana. Obtendrás respuestas inmediatas sin esperar en línea. ¿Te gustaría probarlo?"
   }
 };
 
@@ -114,6 +123,16 @@ const ANA_RESPONSE_SYSTEM = {
         priority: 'MEDIA',
         action: 'INFORMAR_CLARO',
         tone: 'EDUCATIVO_PROFESIONAL'
+      };
+    }
+    
+    // 📞 DETECCIÓN ESPECÍFICA DE SOPORTE TELEFÓNICO
+    if (msg.includes('teléfono') || msg.includes('llamar') || msg.includes('llamada') || msg.includes('soporte telefónico')) {
+      return {
+        type: 'SOPORTE_TELEFONICO',
+        priority: 'MEDIA',
+        action: 'REDIRIGIR_CHAT',
+        tone: 'SOLUCIONADOR'
       };
     }
     
@@ -182,15 +201,21 @@ Un saludo cordial,`,
         template: `Excelente pregunta, ${leadInfo?.nombre || ''}. 
 
 FisioTool Pro es un sistema integral que centraliza:
-📅 Agenda digital con confirmaciones automáticas
+📅 Agenda digital con confirmaciones automáticas por email
 👥 Gestión de pacientes y fichas clínicas
 💰 Cobros automatizados y recordatorios
 📊 Informes en tiempo real
+📱 Notificaciones en app PWA (sin WhatsApp ni SMS)
 
 Todo diseñado específicamente para clínicas de fisioterapia como la tuya.
 
+Para resolver cualquier duda técnica o específica, te recomiendo hablar directamente conmigo a través de nuestro chat en:
+🔗 fisiotool.com/ana
+
+Allí podré responder todas tus preguntas en tiempo real, 24/7.
+
 ¿Te gustaría verlo en acción con una demostración de 15 minutos?`,
-        cta: 'Educar y convertir',
+        cta: 'Educar y redirigir al chat',
         urgency: 'Media'
       },
       
@@ -201,6 +226,19 @@ Quiero asegurarme de entender bien tu situación. ¿Podrías contarme un poco m�
 
 Estoy aquí para ayudarte a tomar la mejor decisión para tu clínica.`,
         cta: 'Clarificar y entender',
+        urgency: 'Media'
+      },
+      
+      'SOPORTE_TELEFONICO': {
+        template: `Entiendo perfectamente tu preferencia por el soporte telefónico, ${leadInfo?.nombre || ''}.
+
+Te ofrezco algo aún mejor: soporte instantáneo 24/7 a través de nuestro chat con Ana en:
+🔗 fisiotool.com/ana
+
+Allí obtendrás respuestas inmediatas sin esperar en línea, disponible a cualquier hora. Podrás resolver todas tus dudas técnicas y preguntas específicas en tiempo real.
+
+¿Te gustaría probarlo ahora? Es como hablar conmigo por teléfono, pero instantáneo y disponible 24/7.`,
+        cta: 'Redirigir al chat 24/7',
         urgency: 'Media'
       }
     };
@@ -272,6 +310,7 @@ const generateFollowUpAction = (classification) => {
     'INDECISIÓN': 'PROGRAMAR_RECORDATORIO',
     'RECHAZO': 'MARCAR_BAJA_RESPECTUOSA',
     'CONSULTA': 'PROGRAMAR_SEGUIMIENTO_INFORMATIVO',
+    'SOPORTE_TELEFONICO': 'REDIRIGIR_CHAT_ANA',
     'GENERAL': 'CLARIFICAR NECESIDADES'
   };
   
