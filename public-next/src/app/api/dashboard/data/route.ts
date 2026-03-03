@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://fisio-backend-omega-740657183492.europe-west1.run.app';
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://fisio-backend-omega-27rnwsehcq-ew.a.run.app';
 
 export async function GET(request: NextRequest) {
   try {
