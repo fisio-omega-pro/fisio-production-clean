@@ -46,13 +46,17 @@ export const EquipoView: React.FC<EquipoProps> = ({
   });
 
   // Si no tiene permisos de plan, mostrar upgrade para añadir más fisios
-  // PERO permitir ver y editar su propio perfil
-  if (!subscriptionStatus.canAccessMultiSede) {
-    // Si es staff (fisio), mostrar su perfil o formulario para crearlo
-    if (isStaff && currentUser?.specialistId) {
-      const miPerfil = equipo.find(m => m.id === currentUser.specialistId);
+  // PERO permitir ver y editar su propio perfil (tanto staff como owner)
+  if (!subscriptionStatus.canAccessMultiSede || subscriptionStatus.needsToPay) {
+    // Si es staff (fisio) o owner (admin), mostrar su perfil o formulario para crearlo
+    const userId = currentUser?.specialistId || (currentUser?.isOwner ? 'owner' : null);
+    
+    if (userId) {
+      const miPerfil = currentUser?.specialistId 
+        ? equipo.find(m => m.id === currentUser.specialistId)
+        : equipo.find(m => m.email === currentUser?.email); // Buscar por email si es owner
       
-      console.log('👤 Es staff, perfil encontrado:', miPerfil);
+      console.log('👤 Usuario (staff/owner), perfil encontrado:', miPerfil, 'userId:', userId);
       
       // Si tiene perfil, mostrarlo
       if (miPerfil) {
@@ -136,7 +140,7 @@ export const EquipoView: React.FC<EquipoProps> = ({
       }
       
       // Si NO tiene perfil, mostrar formulario para crearlo
-      console.log('📝 Es staff pero no tiene perfil, mostrando formulario');
+      console.log('📝 Usuario (staff/owner) pero no tiene perfil, mostrando formulario');
       return (
         <div className="flex flex-col gap-12 max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
           {/* HEADER */}
