@@ -51,12 +51,16 @@ export const EquipoView: React.FC<EquipoProps> = ({
     specialistId: currentUser?.specialistId,
     equipoCount,
     puedeAgregarMas,
-    estaEnLimite
+    estaEnLimite,
+    membersToShow,
+    shouldShowMultiSedeView: subscriptionStatus.canAccessMultiSede && !subscriptionStatus.needsToPay
   });
 
   // Si no tiene permisos de plan, mostrar upgrade para añadir más fisios
   // PERO permitir ver y editar su propio perfil (tanto staff como owner)
   if (!subscriptionStatus.canAccessMultiSede || subscriptionStatus.needsToPay) {
+    console.log('🚫 Entrando en vista de upgrade/plan limitado');
+    
     // Si es staff (fisio) o owner (admin), mostrar su perfil o formulario para crearlo
     const userId = currentUser?.specialistId || (currentUser?.isOwner ? 'owner' : null);
     
@@ -69,6 +73,7 @@ export const EquipoView: React.FC<EquipoProps> = ({
       
       // Si tiene perfil, mostrarlo
       if (miPerfil) {
+        console.log('✅ Mostrando perfil existente');
         return (
           <div className="flex flex-col gap-12 max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* HEADER */}
@@ -239,6 +244,10 @@ export const EquipoView: React.FC<EquipoProps> = ({
       </div>
     );
   }
+
+  // 🎯 VISTA MULTI-CLÍNICAS (PLAN TEAM O CORPORATE)
+  console.log('✅ Entrando en vista multi-clínicas completa');
+  console.log('👥 Mostrando', membersToShow.length, 'perfiles de', equipoCount, 'totales');
 
   // Si necesita pagar, mostrar solo el botón de pago
   if (subscriptionStatus.needsToPay) {
