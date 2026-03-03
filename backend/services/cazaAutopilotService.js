@@ -3,6 +3,7 @@ const { db, Timestamp } = require('../config/firebase');
 const anaService = require('./anaService');
 const { sendEmail } = require('./emailSenderService');
 const { getZonedParts, zonedTimeToUtc, DEFAULT_TZ } = require('./depositReminderService');
+const { registerHiveExperience, getCollectivePrediction } = require('./hiveMindService');
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -174,6 +175,15 @@ async function runCazaAutopilot(options = {}) {
     const subject = attempts === 0 ? 'FisioTool: menos caos en tu agenda' : 'Seguimiento rápido — FisioTool';
     const angle = pickAngle(locked);
     let body = '';
+    
+    // 🧠 HIVE MIND: Obtener predicción colectiva para este lead
+    const collectivePrediction = await getCollectivePrediction({
+      keywords: ['prospeccion', 'lead', locked.tipo || locked.lead_type, angle],
+      scenario: 'prospecting',
+      attempts: attempts,
+      lead_type: locked.tipo || locked.lead_type
+    }, 'fisiotool_system');
+    
     try {
       body = await anaService.generateProspectEmail({
         nombre: locked.nombre,
@@ -184,6 +194,7 @@ async function runCazaAutopilot(options = {}) {
         link: 'https://fisiotool.com',
         attempts,
         cadence_attempts: attempts,
+        hiveInsight: collectivePrediction?.prediction // Añadir insight colectivo
       });
     } catch {
       body = '';
@@ -235,6 +246,12 @@ async function runCazaAutopilot(options = {}) {
         prospect_segment: locked.prospect_segment || 'unknown',
         landing_url: 'https://fisiotool.com',
       });
+
+      // 🧠 HIVE MIND: Registrar experiencia de prospección
+      await registerHiveExperience('fisiotool_system', 'prospecting', 
+        ['lead_capturing', locked.tipo || locked.lead_type, angle, `intento_${attempts}`], 
+        `email_prospeccion_${angle}`, 
+        'success', 0.7);
 
       sent++;
       await sleep(throttleMs);

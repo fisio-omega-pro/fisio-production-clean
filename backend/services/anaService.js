@@ -5,6 +5,7 @@ const { schedulePaymentReminder } = require('./paymentReminderService');
 const { scheduleAppointmentReminders } = require('./appointmentReminderService');
 const claudeService = require('./claudeService');
 const hybridAnaService = require('./hybridAnaService');
+const { hiveMindService, registerCollectiveExperience, getCollectiveWisdom, predictOptimalAction } = require('./hiveMindService');
 
 const callAnaEngine = async (prompt, options = {}) => {
   try {
@@ -62,6 +63,37 @@ const getTeamInfo = async (clinicId) => {
   } catch (e) {
     console.error('🔥 [ANA] Error getting team info:', e);
     return { specialists: [], count: 0 };
+  }
+};
+
+// 🧠 HIVE MIND INTEGRATION - Aprendizaje Colectivo
+const registerHiveExperience = async (clinicId, type, context, solution, outcome, confidence = 0.7) => {
+  try {
+    await registerCollectiveExperience(clinicId, {
+      type,
+      context: Array.isArray(context) ? context : [context],
+      solution,
+      outcome,
+      confidence,
+      impact_score: confidence > 0.8 ? 8 : 5
+    });
+    console.log(`🧠 [HIVE] Experiencia colectiva registrada: ${type}`);
+  } catch (error) {
+    console.error('🔥 [HIVE] Error registrando experiencia colectiva:', error);
+  }
+};
+
+const getCollectivePrediction = async (context, clinicId) => {
+  try {
+    const prediction = await predictOptimalAction(context, clinicId);
+    if (prediction.prediction && prediction.confidence > 0.7) {
+      console.log(`🧠 [HIVE] Predicción colectiva: ${prediction.confidence}% confianza`);
+      return prediction;
+    }
+    return null;
+  } catch (error) {
+    console.error('🔥 [HIVE] Error en predicción colectiva:', error);
+    return null;
   }
 };
 
@@ -657,34 +689,59 @@ REGLAS:
     const teamInfo = await getTeamInfo(clinicId);
     const patientHistory = patientEmail ? await getPatientHistory(clinicId, patientEmail) : { isRecurrent: false, history: [] };
 
-    // 🎯 SALUDO INTELIGENTE PARA MULTI-CLÍNICAS
+    // 🎯 SALUDO INTELIGENTE PARA MULTI-CLÍNICAS CON HIVE MIND
     if (lowerMessage.includes('hola') || lowerMessage.includes('buenos') || lowerMessage.includes('saludo') || history.length === 0) {
       const anaName = (await getClinicConfiguration(clinicId))?.ana_profile?.name || 'Ana';
+      
+      // 🧠 HIVE MIND: Obtener predicción colectiva para este contexto
+      const collectivePrediction = await getCollectivePrediction({
+        keywords: ['saludo', 'bienvenida', 'nuevo_paciente'],
+        scenario: 'patient_greeting',
+        clinic_size: teamInfo.count
+      }, clinicId);
+      
+      let baseResponse = '';
       
       if (teamInfo.count > 0) {
         const specialistsList = teamInfo.specialists.slice(0, 3).map(s => `- ${s.name} (${s.specialty})`).join('\n');
         const moreText = teamInfo.count > 3 ? `\n- Y ${teamInfo.count - 3} especialistas más` : '';
         
         if (patientHistory.isRecurrent) {
-          return `¡Hola ${patientHistory.patientName}! Te veo en nuestro sistema. 
+          baseResponse = `¡Hola ${patientHistory.patientName}! Te veo en nuestro sistema. 
           
 En ${clinicName} tenemos ${teamInfo.count} especialistas:
 ${specialistsList}${moreText}
 
 Tu última cita fue con ${patientHistory.history[0]?.specialist || 'tu especialista'} el ${patientHistory.history[0]?.date}.
-¿Te gustaría continuar con el mismo especialista o prefieres conocer a otro?
-
-${anaName} - ${clinicName}`;
+¿Te gustaría continuar con el mismo especialista o prefieres conocer a otro?`;
+          
+          // 🧠 HIVE MIND: Registrar experiencia de paciente recurrente
+          await registerHiveExperience(clinicId, 'patient_greeting', 
+            ['paciente_recurrente', 'historial_disponible'], 
+            'saludo_personalizado_con_historial', 
+            'success', 0.9);
         } else {
-          return `Hola, soy ${anaName} de ${clinicName}. 
+          baseResponse = `Hola, soy ${anaName} de ${clinicName}. 
 
 En nuestra clínica tenemos ${teamInfo.count} especialistas:
 ${specialistsList}${moreText}
 
-¿Con qué especialista te gustaría tu cita? O si prefieres, dime qué tratamiento necesitas y te recomiendo el mejor especialista para ti.
-
-${anaName} - ${clinicName}`;
+¿Con qué especialista te gustaría tu cita? O si prefieres, dime qué tratamiento necesitas y te recomiendo el mejor especialista para ti.`;
+          
+          // 🧠 HIVE MIND: Registrar experiencia de nuevo paciente
+          await registerHiveExperience(clinicId, 'patient_greeting', 
+            ['nuevo_paciente', 'presentacion_equipo'], 
+            'saludo_con_presentacion_equipo', 
+            'success', 0.8);
         }
+        
+        // 🧠 HIVE MIND: Si hay predicción colectiva, mejorar respuesta
+        if (collectivePrediction && collectivePrediction.prediction) {
+          baseResponse += `\n\n💡 ${collectivePrediction.prediction}`;
+        }
+        
+        baseResponse += `\n\n${anaName} - ${clinicName}`;
+        return baseResponse;
       }
       
       return `Hola, soy ${anaName} de ${clinicName}. 
