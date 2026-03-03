@@ -37,7 +37,27 @@ class DashboardService {
     };
     if (options.body instanceof FormData) delete headers['Content-Type'];
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, { ...options, headers });
+    let response: Response;
+    try {
+      response = await fetch(`${API_BASE_URL}${endpoint}`, { ...options, headers });
+    } catch (error) {
+      // 🚀 OCULTAR LOADING GLOBAL EN CASO DE ERROR DE RED
+      if (!options.headers?.['X-No-Loading']) {
+        const loadingEl = document.getElementById('global-loading');
+        if (loadingEl) {
+          loadingEl.style.display = 'none';
+        }
+      }
+      throw new Error('Error de conexión. Verifica tu internet.');
+    }
+
+    // 🚀 OCULTAR LOADING GLOBAL
+    if (!options.headers?.['X-No-Loading']) {
+      const loadingEl = document.getElementById('global-loading');
+      if (loadingEl) {
+        loadingEl.style.display = 'none';
+      }
+    }
 
     // 🛡️ Si el servidor devuelve 401, la sesión expiró
     // Disparamos un evento global en lugar de redirigir inmediatamente para evitar
