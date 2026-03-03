@@ -20,6 +20,8 @@ class DashboardService {
       throw new Error('No autenticado');
     }
 
+    console.log(`[DEBUG] Enviando petición a ${endpoint} con token: ${token ? 'SÍ' : 'NO'}`);
+
     const headers: any = {
       'Content-Type': 'application/json',
       ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
