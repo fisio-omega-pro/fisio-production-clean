@@ -282,12 +282,12 @@ export const EquipoView: React.FC<EquipoProps> = ({
   return (
     <div className="flex flex-col gap-12 max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
       {/* DEBUG VISUAL */}
-      <div style={{background: 'red', padding: '20px', margin: '20px', borderRadius: '10px', border: '2px solid white'}}>
-        <h2 style={{color: 'white', fontSize: '20px'}}>🚨 DEBUG: Vista multi-clínicas cargada</h2>
-        <p style={{color: 'white'}}>Perfiles: {membersToShow.length}</p>
-        <p style={{color: 'white'}}>Equipo total: {equipoCount}</p>
-        <p style={{color: 'white'}}>needsToPay: {subscriptionStatus.needsToPay?.toString()}</p>
-        <p style={{color: 'white'}}>canAccessMultiSede: {subscriptionStatus.canAccessMultiSede?.toString()}</p>
+      <div style={{background: '#1a1a1a', padding: '20px', margin: '20px', borderRadius: '10px', border: '2px solid #333'}}>
+        <h2 style={{color: '#fff', fontSize: '16px'}}>� Estado del Sistema</h2>
+        <p style={{color: '#ccc'}}>Perfiles registrados: {membersToShow.length}</p>
+        <p style={{color: '#ccc'}}>Estado suscripción: {subscriptionStatus.needsToPay ? 'Pendiente de pago' : 'Activa'}</p>
+        <p style={{color: '#ccc'}}>Acceso multi-sede: {subscriptionStatus.canAccessMultiSede ? 'Habilitado' : 'Bloqueado'}</p>
+        <p style={{color: '#ccc'}}>👥 {equipoCount}/{limiteFisios} fisios</p>
       </div>
 
       {/* HEADER DINÁMICO (solo jefe ve botón añadir / upgrade) */}
