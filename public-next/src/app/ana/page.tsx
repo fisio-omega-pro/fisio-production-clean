@@ -108,13 +108,13 @@ function AnaChatContent() {
     // 🔋 Registrar Service Worker para PWA (necesario para botón instalar)
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
-        .then(reg => console.log('✅ SW registrado:', reg.scope))
+// .then(reg => console.log('✅ SW registrado:', reg.scope)) // ELIMINADO PARA PRODUCCIÓN
         .catch(err => console.error('🔥 Error SW:', err));
     }
 
     // PWA install prompt listener
     const handleBeforeInstallPrompt = (e: any) => {
-      console.log('📥 beforeinstallprompt detectado');
+// console.log('📥 beforeinstallprompt detectado'); // ELIMINADO PARA PRODUCCIÓN
       e.preventDefault();
       window.deferredPrompt = e;
     };
@@ -145,7 +145,7 @@ function AnaChatContent() {
             // Update theme color and icons dynamically
             if (manifestData.icons && manifestData.icons.length > 0) {
               // Update PWA icons if needed
-              console.log('🎨 Updated PWA manifest with clinic logo:', manifestData.name);
+// console.log('🎨 Updated PWA manifest with clinic logo:', manifestData.name); // ELIMINADO PARA PRODUCCIÓN
             }
           }
         } catch (error) {
@@ -218,8 +218,8 @@ function AnaChatContent() {
   const sendMessage = async () => {
     if (!input.trim() || isTyping || !userRegistered) return;
 
-    console.log('🔍 [ANA] clinicId value:', clinicId);
-    console.log('🔍 [ANA] input value:', input);
+// console.log('🔍 [ANA] clinicId value:', clinicId); // ELIMINADO PARA PRODUCCIÓN
+// console.log('🔍 [ANA] input value:', input); // ELIMINADO PARA PRODUCCIÓN
 
     if (!clinicId) {
       console.error('🔥 [ANA] No clinicId found!');
@@ -239,8 +239,8 @@ function AnaChatContent() {
 
     try {
       const apiUrl = '/api/public/ana-chat';
-      console.log('🔍 [ANA] API URL:', apiUrl);
-      console.log('🔍 [ANA] Sending payload:', JSON.stringify({ message: messageToSend, clinicId, history: messages }, null, 2));
+// console.log('🔍 [ANA] API URL:', apiUrl); // ELIMINADO PARA PRODUCCIÓN
+// console.log('🔍 [ANA] Sending payload:', JSON.stringify({ message: messageToSend, clinicId, history: messages }, null, 2)); // ELIMINADO PARA PRODUCCIÓN
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -248,9 +248,9 @@ function AnaChatContent() {
         body: JSON.stringify({ message: messageToSend, clinicId, history: messages })
       });
 
-      console.log('🔍 [ANA] Response status:', response.status);
+// console.log('🔍 [ANA] Response status:', response.status); // ELIMINADO PARA PRODUCCIÓN
       const data = await response.json();
-      console.log('🔍 [ANA] Response data:', data);
+// console.log('🔍 [ANA] Response data:', data); // ELIMINADO PARA PRODUCCIÓN
 
       if (data.success) {
         setMessages(prev => [...prev, {

@@ -19,9 +19,9 @@ export const ReferidosView = () => {
     setLoading(true);
     setErr(null);
     try {
-      console.log('[REFERIDOS] Cargando datos de referidos...');
+// console.log('[REFERIDOS] Cargando datos de referidos...'); // ELIMINADO PARA PRODUCCIÓN
       const r = await dashboardAPI.getReferrals();
-      console.log('[REFERIDOS] Datos recibidos:', r);
+// console.log('[REFERIDOS] Datos recibidos:', r); // ELIMINADO PARA PRODUCCIÓN
       setData(r);
     } catch (e: any) {
       console.error('[REFERIDOS] Error:', e);

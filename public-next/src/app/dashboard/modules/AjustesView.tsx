@@ -47,9 +47,9 @@ export const AjustesView = ({ clinicData, onUpdated }: { clinicData: any; onUpda
     setDone(false);
     setSaving(true);
     try {
-      console.log('[AJUSTES] Guardando configuración...');
+// console.log('[AJUSTES] Guardando configuración...'); // ELIMINADO PARA PRODUCCIÓN
       await dashboardAPI.updateSettings(nombre.trim(), email.trim());
-      console.log('[AJUSTES] Configuración guardada correctamente');
+// console.log('[AJUSTES] Configuración guardada correctamente'); // ELIMINADO PARA PRODUCCIÓN
       await onUpdated();
       setDone(true);
       setTimeout(() => setDone(false), 2000);
@@ -133,9 +133,9 @@ export const AjustesView = ({ clinicData, onUpdated }: { clinicData: any; onUpda
                     setSubscriptionError(null);
                     setCancelLoading(true);
                     try {
-                      console.log('[AJUSTES] Cancelando suscripción...');
+// console.log('[AJUSTES] Cancelando suscripción...'); // ELIMINADO PARA PRODUCCIÓN
                       await dashboardAPI.cancelSubscription();
-                      console.log('[AJUSTES] Suscripción cancelada correctamente');
+// console.log('[AJUSTES] Suscripción cancelada correctamente'); // ELIMINADO PARA PRODUCCIÓN
                       await onUpdated();
                     } catch (e: any) {
                       console.error('[AJUSTES] Error cancelando suscripción:', e);
@@ -200,10 +200,10 @@ export const AjustesView = ({ clinicData, onUpdated }: { clinicData: any; onUpda
                 if (bonosSaving) return;
                 setBonosSaving(true);
                 try {
-                  console.log(`[AJUSTES] ${bonosActive ? 'Desactivando' : 'Activando'} bonos...`);
+// console.log(`[AJUSTES] ${bonosActive ? 'Desactivando' : 'Activando'} bonos...`); // ELIMINADO PARA PRODUCCIÓN
                   if (bonosActive) await dashboardAPI.deactivateBonos();
                   else await dashboardAPI.activateBonos();
-                  console.log(`[AJUSTES] Bonos ${bonosActive ? 'desactivados' : 'activados'} correctamente`);
+// console.log(`[AJUSTES] Bonos ${bonosActive ? 'desactivados' : 'activados'} correctamente`); // ELIMINADO PARA PRODUCCIÓN
                   await onUpdated();
                 } catch (e: any) {
                   console.error('[AJUSTES] Error cambiando bonos:', e);

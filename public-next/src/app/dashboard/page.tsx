@@ -484,7 +484,7 @@ export default function DashboardOmega() {
         onUpload={async (file: File) => {
           try {
             // Temporalmente solo hacer preview sin subir al servidor
-            console.log('📸 Foto seleccionada (subida temporalmente desactivada):', file.name);
+// console.log('📸 Foto seleccionada (subida temporalmente desactivada):', file.name); // ELIMINADO PARA PRODUCCIÓN
             
             // Simular subida exitosa después de un delay
             await new Promise(resolve => setTimeout(resolve, 1000));

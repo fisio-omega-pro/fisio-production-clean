@@ -20,7 +20,7 @@ class DashboardService {
       throw new Error('No autenticado');
     }
 
-    console.log(`[DEBUG] Enviando petición a ${endpoint} con token: ${token ? 'SÍ' : 'NO'}`);
+// console.log(`[DEBUG] Enviando petición a ${endpoint} con token: ${token ? 'SÍ' : 'NO'}`); // ELIMINADO PARA PRODUCCIÓN
 
     // 🚀 LOADING GLOBAL INMEDIATO
     if (!options.headers?.['X-No-Loading']) {

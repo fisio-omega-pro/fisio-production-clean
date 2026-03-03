@@ -96,7 +96,7 @@ export const SetupWizard: React.FC<SetupProps> = ({ status, onRefresh, isBlind }
     }
     
     try { 
-      console.log("Activando logo provisional...");
+// console.log("Activando logo provisional..."); // ELIMINADO PARA PRODUCCIÓN
       await dashboardAPI.useDefaultLogo(); 
       await onRefresh(); 
       

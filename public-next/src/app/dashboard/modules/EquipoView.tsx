@@ -42,7 +42,7 @@ export const EquipoView: React.FC<EquipoProps> = ({
   const estaEnLimite = equipoCount >= limiteFisios;
 
   // DEBUG: Log para ver qué está pasando
-  console.log('🔍 DEBUG EquipoView:', {
+// console.log('🔍 DEBUG EquipoView:', { // ELIMINADO PARA PRODUCCIÓN
     currentUser,
     equipo,
     isStaff,
@@ -58,7 +58,7 @@ export const EquipoView: React.FC<EquipoProps> = ({
   // Si no tiene permisos de plan, mostrar upgrade para añadir más fisios
   // PERO permitir ver y editar su propio perfil (tanto staff como owner)
   if (!subscriptionStatus.canAccessMultiSede || subscriptionStatus.needsToPay) {
-    console.log('🚫 Entrando en vista de upgrade/plan limitado');
+// console.log('🚫 Entrando en vista de upgrade/plan limitado'); // ELIMINADO PARA PRODUCCIÓN
     
     // Si es staff (fisio) o owner (admin), mostrar su perfil o formulario para crearlo
     const userId = currentUser?.specialistId || (currentUser?.isOwner ? 'owner' : null);
@@ -68,11 +68,11 @@ export const EquipoView: React.FC<EquipoProps> = ({
         ? equipo.find(m => m.id === currentUser.specialistId)
         : equipo.find(m => m.login_email === currentUser?.email) || equipo[0]; // Buscar por email o primer perfil si es owner
       
-      console.log('👤 Usuario (staff/owner), perfil encontrado:', miPerfil, 'userId:', userId);
+// console.log('👤 Usuario (staff/owner), perfil encontrado:', miPerfil, 'userId:', userId); // ELIMINADO PARA PRODUCCIÓN
       
       // Si tiene perfil, mostrarlo
       if (miPerfil) {
-        console.log('✅ Mostrando perfil existente');
+// console.log('✅ Mostrando perfil existente'); // ELIMINADO PARA PRODUCCIÓN
         return (
           <div className="flex flex-col gap-12 max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* HEADER */}
@@ -153,7 +153,7 @@ export const EquipoView: React.FC<EquipoProps> = ({
       }
       
       // Si NO tiene perfil, mostrar formulario para crearlo
-      console.log('📝 Usuario (staff/owner) pero no tiene perfil, mostrando formulario');
+// console.log('📝 Usuario (staff/owner) pero no tiene perfil, mostrando formulario'); // ELIMINADO PARA PRODUCCIÓN
       return (
         <div className="flex flex-col gap-12 max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
           {/* HEADER */}
@@ -227,7 +227,7 @@ export const EquipoView: React.FC<EquipoProps> = ({
     }
     
     // Si no es staff, mostrar upgrade tradicional
-    console.log('🚫 No es staff, mostrando upgrade tradicional');
+// console.log('🚫 No es staff, mostrando upgrade tradicional'); // ELIMINADO PARA PRODUCCIÓN
     return (
       <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-8 max-w-md">
         <Building2 size={32} className="text-blue-500 mb-4" />
@@ -245,8 +245,8 @@ export const EquipoView: React.FC<EquipoProps> = ({
   }
 
   // 🎯 VISTA MULTI-CLÍNICAS (PLAN TEAM O CORPORATE)
-  console.log('✅ Entrando en vista multi-clínicas completa');
-  console.log('👥 Mostrando', membersToShow.length, 'perfiles de', equipoCount, 'totales');
+// console.log('✅ Entrando en vista multi-clínicas completa'); // ELIMINADO PARA PRODUCCIÓN
+// console.log('👥 Mostrando', membersToShow.length, 'perfiles de', equipoCount, 'totales'); // ELIMINADO PARA PRODUCCIÓN
 
   // Si necesita pagar, mostrar solo el botón de pago
   if (subscriptionStatus.needsToPay) {

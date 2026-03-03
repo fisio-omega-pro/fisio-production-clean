@@ -19,10 +19,10 @@ export const StripeModal = ({ isOpen, onClose, clinicId, configStatus, userEmail
     setIsConnecting(true);
     try {
       const token = localStorage.getItem('fisio_token');
-      console.log('🔍 [STRIPE] Token:', token ? 'exists' : 'missing');
-      console.log('🔍 [STRIPE] ClinicId:', clinicId);
-      console.log('🔍 [STRIPE] ClinicId type:', typeof clinicId);
-      console.log('🔍 [STRIPE] API URL:', `${process.env.NEXT_PUBLIC_API_BASE_URL}/vincular-banco-profesional`);
+// console.log('🔍 [STRIPE] Token:', token ? 'exists' : 'missing'); // ELIMINADO PARA PRODUCCIÓN
+// console.log('🔍 [STRIPE] ClinicId:', clinicId); // ELIMINADO PARA PRODUCCIÓN
+// console.log('🔍 [STRIPE] ClinicId type:', typeof clinicId); // ELIMINADO PARA PRODUCCIÓN
+// console.log('🔍 [STRIPE] API URL:', `${process.env.NEXT_PUBLIC_API_BASE_URL}/vincular-banco-profesional`); // ELIMINADO PARA PRODUCCIÓN
 
       // Validar clinicId
       if (!clinicId || clinicId.trim() === '') {
@@ -36,7 +36,7 @@ export const StripeModal = ({ isOpen, onClose, clinicId, configStatus, userEmail
       const userEmailFinal = userEmail || 'fisio@app.fisiotool.com';
 
       // Forzar uso de ruta existente mientras se resuelve Connect
-      console.log('🔄 [STRIPE] Usando ruta existente mientras se configura Connect...');
+// console.log('🔄 [STRIPE] Usando ruta existente mientras se configura Connect...'); // ELIMINADO PARA PRODUCCIÓN
       const response = await fetch('/api/dashboard/stripe-connect', {
         method: 'POST',
         headers: {
@@ -46,9 +46,9 @@ export const StripeModal = ({ isOpen, onClose, clinicId, configStatus, userEmail
         body: JSON.stringify({ clinicId: clinicId.trim() })
       });
 
-      console.log('🔍 [STRIPE] Response status:', response.status);
+// console.log('🔍 [STRIPE] Response status:', response.status); // ELIMINADO PARA PRODUCCIÓN
       const data = await response.json();
-      console.log('🔍 [STRIPE] Response data:', data);
+// console.log('🔍 [STRIPE] Response data:', data); // ELIMINADO PARA PRODUCCIÓN
 
       if (data.success && data.url) {
         // Redirigir a Stripe Connect

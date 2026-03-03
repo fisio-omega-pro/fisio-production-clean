@@ -22,9 +22,9 @@ export const SoporteView = () => {
     setError(null);
     setLoading(true);
     try {
-      console.log('[SOPORTE] Enviando sugerencia...');
+// console.log('[SOPORTE] Enviando sugerencia...'); // ELIMINADO PARA PRODUCCIÓN
       await dashboardAPI.saveSuggestion(t);
-      console.log('[SOPORTE] Sugerencia enviada correctamente');
+// console.log('[SOPORTE] Sugerencia enviada correctamente'); // ELIMINADO PARA PRODUCCIÓN
       setDone(true);
       setText('');
       setTimeout(() => setDone(false), 3000);
@@ -51,9 +51,9 @@ export const SoporteView = () => {
     setTicketError(null);
     setTicketLoading(true);
     try {
-      console.log(`[SOPORTE] Enviando ticket ${ticketType}...`);
+// console.log(`[SOPORTE] Enviando ticket ${ticketType}...`); // ELIMINADO PARA PRODUCCIÓN
       await dashboardAPI.createTicket(ticketType, msg);
-      console.log(`[SOPORTE] Ticket ${ticketType} enviado correctamente`);
+// console.log(`[SOPORTE] Ticket ${ticketType} enviado correctamente`); // ELIMINADO PARA PRODUCCIÓN
       setTicketDone(true);
       setTicketMessage('');
       setTimeout(() => setTicketDone(false), 4000);

@@ -21,7 +21,7 @@ const registerServiceWorker = () => {
   if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
     navigator.serviceWorker
       .register('/service-worker.js')
-      .then((registration) => console.log('Service Worker registrado con éxito:', registration.scope))
+// .then((registration) => console.log('Service Worker registrado con éxito:', registration.scope)) // ELIMINADO PARA PRODUCCIÓN
       .catch((err) => console.error('Fallo en registro de Service Worker:', err));
   }
 };

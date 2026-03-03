@@ -11,14 +11,14 @@ export default function LoginFerrari() {
 
   const acceder = async () => {
     try {
-      console.log('Login attempt:', { email, passwordLength: pass.length });
+// console.log('Login attempt:', { email, passwordLength: pass.length }); // ELIMINADO PARA PRODUCCIÓN
       const res = await fetch(`${API_BASE_URL}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password: pass })
       });
       const data = await res.json();
-      console.log('Login response:', { status: res.status, data });
+// console.log('Login response:', { status: res.status, data }); // ELIMINADO PARA PRODUCCIÓN
       if (data.success) {
         if (data.token) localStorage.setItem('fisio_token', data.token);
         window.location.href = `/dashboard`;
