@@ -260,7 +260,9 @@ export const EquipoView: React.FC<EquipoProps> = ({
   console.log('👥 Mostrando', membersToShow.length, 'perfiles de', equipoCount, 'totales');
 
   // Si necesita pagar, mostrar solo el botón de pago
-  if (subscriptionStatus.needsToPay) {
+  console.log('🔍 ¿NEEDS TO PAY?', subscriptionStatus.needsToPay);
+  if (subscriptionStatus.needsToPay && false) { // FORZAR A FALSE PARA VER PERFILES
+    console.log('🚫 BLOQUEADO POR needsToPay');
     return (
       <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-8 max-w-md">
         <Building2 size={32} className="text-blue-500 mb-4" />
@@ -279,6 +281,14 @@ export const EquipoView: React.FC<EquipoProps> = ({
 
   return (
     <div className="flex flex-col gap-12 max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* DEBUG VISUAL */}
+      <div style={{background: 'red', padding: '20px', margin: '20px', borderRadius: '10px', border: '2px solid white'}}>
+        <h2 style={{color: 'white', fontSize: '20px'}}>🚨 DEBUG: Vista multi-clínicas cargada</h2>
+        <p style={{color: 'white'}}>Perfiles: {membersToShow.length}</p>
+        <p style={{color: 'white'}}>Equipo total: {equipoCount}</p>
+        <p style={{color: 'white'}}>needsToPay: {subscriptionStatus.needsToPay?.toString()}</p>
+        <p style={{color: 'white'}}>canAccessMultiSede: {subscriptionStatus.canAccessMultiSede?.toString()}</p>
+      </div>
 
       {/* HEADER DINÁMICO (solo jefe ve botón añadir / upgrade) */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-8 border-b border-white/5 pb-10">
