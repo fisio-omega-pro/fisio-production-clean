@@ -28,7 +28,8 @@ const sendEmail = async (arg1, arg2, arg3, arg4) => {
       `${arg1.clinicName} via FisioTool` : 
       'FisioTool Pro';
   } else {
-    credentials = env.INFO_MAIL;
+    // TEMPORAL: Usar ANA_MAIL para INFO también hasta solucionar credenciales
+    credentials = env.ANA_MAIL; // Usar ANA_MAIL que sí funciona
     fromName = 'FisioTool Pro';
   }
 
