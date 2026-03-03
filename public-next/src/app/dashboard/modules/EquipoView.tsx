@@ -39,6 +39,7 @@ export const EquipoView: React.FC<EquipoProps> = ({
   const equipoCount = equipo.length;
   const limiteFisios = 5;
   const puedeAgregarMas = equipoCount < limiteFisios;
+  const estaEnLimite = equipoCount >= limiteFisios;
 
   // DEBUG: Log para ver qué está pasando
   console.log('🔍 DEBUG EquipoView:', {
@@ -49,7 +50,8 @@ export const EquipoView: React.FC<EquipoProps> = ({
     subscriptionStatus,
     specialistId: currentUser?.specialistId,
     equipoCount,
-    puedeAgregarMas
+    puedeAgregarMas,
+    estaEnLimite
   });
 
   // Si no tiene permisos de plan, mostrar upgrade para añadir más fisios
@@ -270,15 +272,33 @@ export const EquipoView: React.FC<EquipoProps> = ({
           <p className="text-gray-400 text-sm leading-relaxed">
             {isStaff ? 'Tu ficha en la clínica. Solo el administrador puede ver y gestionar el resto del equipo.' : 'Organiza a tu equipo médico, supervisa sus agendas y define su impacto en la clínica. Un equipo bien gestionado multiplica por 3 la retención de pacientes.'}
           </p>
+          {/* 🎯 CONTADOR PARA ADMIN */}
+          {!isStaff && (
+            <div className="mt-4 flex items-center gap-2">
+              <div className={`px-3 py-1 rounded-full text-[10px] font-black ${estaEnLimite ? 'bg-red-500/20 text-red-400 border border-red-500/20' : 'bg-green-500/20 text-green-400 border border-green-500/20'}`}>
+                👥 {equipoCount}/{limiteFisios} fisios
+              </div>
+              {estaEnLimite && (
+                <span className="text-[10px] text-amber-400 font-black">⚠️ Límite alcanzado</span>
+              )}
+            </div>
+          )}
         </div>
 
         {!isStaff && (
           <button
-            onClick={isSolo ? onUpgrade : onAddMember}
-            className={`group flex items-center gap-3 px-8 py-4 rounded-2xl font-black text-xs transition-all duration-300 ${isSolo ? 'bg-amber-500 text-black shadow-xl shadow-amber-500/10' : 'bg-white text-black hover:bg-blue-600 hover:text-white'}`}
+            onClick={isSolo ? onUpgrade : puedeAgregarMas ? onAddMember : onUpgrade}
+            disabled={!puedeAgregarMas && !isSolo}
+            className={`group flex items-center gap-3 px-8 py-4 rounded-2xl font-black text-xs transition-all duration-300 ${
+              isSolo 
+                ? 'bg-amber-500 text-black shadow-xl shadow-amber-500/10' 
+                : puedeAgregarMas 
+                  ? 'bg-white text-black hover:bg-blue-600 hover:text-white'
+                  : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+            }`}
           >
-            {isSolo ? <Crown size={16} /> : <Plus size={18} />}
-            {isSolo ? 'MEJORAR A PLAN TEAM' : 'REGISTRAR ESPECIALISTA'}
+            {isSolo ? <Crown size={16} /> : puedeAgregarMas ? <Plus size={18} /> : <Crown size={16} />}
+            {isSolo ? 'MEJORAR A PLAN TEAM' : puedeAgregarMas ? 'REGISTRAR ESPECIALISTA' : 'LÍMITE ALCANZADO'}
           </button>
         )}
       </div>
