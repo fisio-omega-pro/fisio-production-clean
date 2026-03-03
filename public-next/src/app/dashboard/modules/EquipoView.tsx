@@ -6,7 +6,7 @@ import { Especialista } from '../types';
 import { getSubscriptionStatus } from '@/lib/subscriptionStatus';
 
 interface EquipoProps {
-  currentUser?: { specialistId: string | null; isOwner: boolean };
+  currentUser?: { specialistId: string | null; isOwner: boolean; email?: string };
   equipo: Especialista[];
   onAddMember: () => void;
   currentPlan: string;
@@ -35,6 +35,11 @@ export const EquipoView: React.FC<EquipoProps> = ({
   const isStaff = !!(currentUser?.specialistId);
   const membersToShow = isStaff ? equipo.filter((m) => m.id === currentUser!.specialistId) : equipo;
 
+  // 🎯 CONTADOR DE FISIOS Y LÍMITE
+  const equipoCount = equipo.length;
+  const limiteFisios = 5;
+  const puedeAgregarMas = equipoCount < limiteFisios;
+
   // DEBUG: Log para ver qué está pasando
   console.log('🔍 DEBUG EquipoView:', {
     currentUser,
@@ -42,7 +47,9 @@ export const EquipoView: React.FC<EquipoProps> = ({
     isStaff,
     isSolo,
     subscriptionStatus,
-    specialistId: currentUser?.specialistId
+    specialistId: currentUser?.specialistId,
+    equipoCount,
+    puedeAgregarMas
   });
 
   // Si no tiene permisos de plan, mostrar upgrade para añadir más fisios
@@ -54,7 +61,7 @@ export const EquipoView: React.FC<EquipoProps> = ({
     if (userId) {
       const miPerfil = currentUser?.specialistId 
         ? equipo.find(m => m.id === currentUser.specialistId)
-        : equipo.find(m => m.email === currentUser?.email); // Buscar por email si es owner
+        : equipo.find(m => m.login_email === currentUser?.email); // Buscar por login_email si es owner
       
       console.log('👤 Usuario (staff/owner), perfil encontrado:', miPerfil, 'userId:', userId);
       

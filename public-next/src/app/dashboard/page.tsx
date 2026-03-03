@@ -442,10 +442,25 @@ export default function DashboardOmega() {
           if (!state.memberToEdit) return;
           try {
             await dashboardAPI.saveSpecialist({ ...state.memberToEdit, login_email: state.memberToEdit.login_email ?? '' });
+            
+            // Éxito normal
             state.setModalType(null);
             state.refreshData();
+            
+            // Mostrar feedback de éxito
+            alert('✅ Fisioterapeuta guardado correctamente');
           } catch (e: any) {
-            alert(e?.message || 'Error al guardar el especialista.');
+            console.error('Error saving specialist:', e);
+            
+            // Verificar si es error de límite alcanzado
+            if (e.message && e.message.includes('LÍMITE_ALCANZADO')) {
+              if (confirm('Has alcanzado el límite de 5 fisioterapeutas. Para añadir más, necesitas actualizar al plan Corporate (500€/mes).\n\n¿Deseas actualizar al plan Corporate ahora?')) {
+                const url = await dashboardAPI.upgradePlan('corporate');
+                if (url) window.location.href = url;
+              }
+            } else {
+              alert(`❌ Error: ${e.message || 'Error al guardar el fisioterapeuta'}`);
+            }
           }
         }}
         onUpload={async () => { }}

@@ -880,10 +880,28 @@ const saveSpecialist = async (req, res, next) => {
     const isOwner = !req.specialistId;
     let sendPasswordSetupEmail = false;
 
+    // 🚨 CONTROL DE LÍMITE DE 5 FISIOS
+    if (!id) { // Solo para nuevos especialistas
+      const equipoRef = db.collection('clinicas').doc(req.clinicId).collection('equipo');
+      const snapshot = await equipoRef.get();
+      const currentCount = snapshot.size;
+      
+      if (currentCount >= 5) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'LÍMITE_ALCANZADO',
+          message: 'Has alcanzado el límite de 5 fisioterapeutas. Para añadir más, necesitas actualizar al plan Corporate (500€/mes).',
+          upgradeRequired: true,
+          upgradePlan: 'corporate'
+        });
+      }
+    }
+
     const payload = {
       nombre: String(specialist.nombre || '').trim(),
       especialidad: String(specialist.especialidad || '').trim(),
       avatarUrl: String(specialist.avatarUrl || '').trim() || null,
+      telefono: String(specialist.telefono || '').trim() || null,
       isOwner: !!specialist.isOwner,
       updated_at: Timestamp.now()
     };
@@ -935,7 +953,7 @@ const saveSpecialist = async (req, res, next) => {
     }
 
     await createAuditLog(req.clinicId, req.userId || req.clinicId, 'UPSERT_SPECIALIST', finalId || 'new');
-    return res.json({ success: true });
+    return res.json({ success: true, specialistId: finalId });
   } catch (e) { next(e); }
 };
 
