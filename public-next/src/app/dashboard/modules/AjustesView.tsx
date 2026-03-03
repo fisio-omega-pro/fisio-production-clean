@@ -47,12 +47,24 @@ export const AjustesView = ({ clinicData, onUpdated }: { clinicData: any; onUpda
     setDone(false);
     setSaving(true);
     try {
+      console.log('[AJUSTES] Guardando configuración...');
       await dashboardAPI.updateSettings(nombre.trim(), email.trim());
+      console.log('[AJUSTES] Configuración guardada correctamente');
       await onUpdated();
       setDone(true);
       setTimeout(() => setDone(false), 2000);
     } catch (e: any) {
-      setError(e?.message || 'No se pudo guardar.');
+      console.error('[AJUSTES] Error guardando configuración:', e);
+      const errorMsg = e?.message || 'No se pudo guardar.';
+      
+      if (errorMsg.includes('Sesión expirada') || errorMsg.includes('No autenticado')) {
+        setError('Tu sesión ha expirado. Por favor, inicia sesión de nuevo.');
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 2000);
+      } else {
+        setError(errorMsg);
+      }
     } finally {
       setSaving(false);
     }
@@ -121,10 +133,22 @@ export const AjustesView = ({ clinicData, onUpdated }: { clinicData: any; onUpda
                     setSubscriptionError(null);
                     setCancelLoading(true);
                     try {
+                      console.log('[AJUSTES] Cancelando suscripción...');
                       await dashboardAPI.cancelSubscription();
+                      console.log('[AJUSTES] Suscripción cancelada correctamente');
                       await onUpdated();
                     } catch (e: any) {
-                      setSubscriptionError(e?.message || 'No se pudo programar la cancelación.');
+                      console.error('[AJUSTES] Error cancelando suscripción:', e);
+                      const errorMsg = e?.message || 'No se pudo programar la cancelación.';
+                      
+                      if (errorMsg.includes('Sesión expirada') || errorMsg.includes('No autenticado')) {
+                        setSubscriptionError('Tu sesión ha expirado. Por favor, inicia sesión de nuevo.');
+                        setTimeout(() => {
+                          window.location.href = '/login';
+                        }, 2000);
+                      } else {
+                        setSubscriptionError(errorMsg);
+                      }
                     } finally {
                       setCancelLoading(false);
                     }
@@ -176,11 +200,23 @@ export const AjustesView = ({ clinicData, onUpdated }: { clinicData: any; onUpda
                 if (bonosSaving) return;
                 setBonosSaving(true);
                 try {
+                  console.log(`[AJUSTES] ${bonosActive ? 'Desactivando' : 'Activando'} bonos...`);
                   if (bonosActive) await dashboardAPI.deactivateBonos();
                   else await dashboardAPI.activateBonos();
+                  console.log(`[AJUSTES] Bonos ${bonosActive ? 'desactivados' : 'activados'} correctamente`);
                   await onUpdated();
                 } catch (e: any) {
-                  setError(e?.message || 'No se pudo cambiar.');
+                  console.error('[AJUSTES] Error cambiando bonos:', e);
+                  const errorMsg = e?.message || 'No se pudo cambiar.';
+                  
+                  if (errorMsg.includes('Sesión expirada') || errorMsg.includes('No autenticado')) {
+                    setError('Tu sesión ha expirado. Por favor, inicia sesión de nuevo.');
+                    setTimeout(() => {
+                      window.location.href = '/login';
+                    }, 2000);
+                  } else {
+                    setError(errorMsg);
+                  }
                 } finally {
                   setBonosSaving(false);
                 }
