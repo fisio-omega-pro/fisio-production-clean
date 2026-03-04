@@ -18,6 +18,9 @@ const PRESET_COLORS = [
 ];
 
 export const AnaConfigView = ({ clinicData, onUpdated }: AnaConfigProps) => {
+    console.log('🔍 DEBUG AnaConfigView clinicData:', clinicData);
+    console.log('🔍 DEBUG AnaConfigView logo_url:', clinicData?.logo_url);
+
     const [config, setConfig] = useState({
         name: clinicData?.ana_name || 'Ana',
         color: clinicData?.ana_color || '#075E54',
@@ -92,20 +95,29 @@ export const AnaConfigView = ({ clinicData, onUpdated }: AnaConfigProps) => {
             const formData = new FormData();
             formData.append('file', file);
             formData.append('type', 'ana_photo');
-            
-            const response = await fetch('/api/dashboard/upload-ana-photo', {
+
+            // Obtener token del localStorage
+            const token = localStorage.getItem('fisio_token');
+
+            // Usar el endpoint real del backend (ahora con GCS configurado)
+            const response = await fetch('/api/dashboard/upload-ana-photo/', {
                 method: 'POST',
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : ''
+                },
                 body: formData
             });
-            
+
             const result = await response.json();
             if (result.success) {
                 setConfig({ ...config, photo: result.url, useClinicLogo: false });
+                console.log('✅ Foto de Ana subida exitosamente a Google Cloud Storage:', result.url);
             } else {
                 throw new Error(result.error || 'Error al subir la foto');
             }
         } catch (e: any) {
             setError(e.message || 'Error al subir la foto');
+            console.error('❌ Error subiendo foto de Ana:', e);
         } finally {
             setUploadingPhoto(false);
         }
@@ -195,11 +207,11 @@ export const AnaConfigView = ({ clinicData, onUpdated }: AnaConfigProps) => {
                         Copiar Mensaje
                     </button>
                 </div>
-                
+
                 <div className="bg-black/30 rounded-xl p-4 font-mono text-xs text-gray-300 max-h-40 overflow-y-auto">
                     {whatsappOptimizedMessage}
                 </div>
-                
+
                 <div className="mt-3 flex items-center gap-2 text-xs text-gray-400">
                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                     <span>Optimizado para WhatsApp con emojis y formato profesional</span>
@@ -239,7 +251,7 @@ export const AnaConfigView = ({ clinicData, onUpdated }: AnaConfigProps) => {
                                     placeholder="deja@tuclinica.com (opcional)"
                                 />
                                 <p className="text-[10px] text-gray-400 mt-2">
-                                    💡 Email opcional para remitente personalizado. Si no configuras nada, usaremos nuestro sistema 
+                                    💡 Email opcional para remitente personalizado. Si no configuras nada, usaremos nuestro sistema
                                     inteligente "[Tu Clínica] via FisioTool" para máxima profesionalidad y deliverabilidad.
                                 </p>
                             </div>
@@ -285,7 +297,7 @@ export const AnaConfigView = ({ clinicData, onUpdated }: AnaConfigProps) => {
                                 {/* Foto del Asistente */}
                                 <div>
                                     <label className="text-[10px] text-gray-500 uppercase tracking-widest mb-4 block font-bold">Foto del Asistente</label>
-                                    
+
                                     <div className="space-y-4">
                                         {/* Opción 1: Foto Personalizada */}
                                         <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
@@ -317,7 +329,7 @@ export const AnaConfigView = ({ clinicData, onUpdated }: AnaConfigProps) => {
                                                     {uploadingPhoto ? 'SUBIENDO...' : 'SUBIR FOTO'}
                                                 </button>
                                             </div>
-                                            
+
                                             {config.photo && (
                                                 <div className="flex items-center justify-between p-3 bg-purple-500/10 border border-purple-500/20 rounded-xl">
                                                     <span className="text-xs text-purple-300">✅ Foto personalizada activa</span>
@@ -350,17 +362,21 @@ export const AnaConfigView = ({ clinicData, onUpdated }: AnaConfigProps) => {
                                                     <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${config.useClinicLogo ? 'left-7' : 'left-1'}`} />
                                                 </button>
                                             </div>
-                                            
+
                                             {config.useClinicLogo && (
                                                 <div className="mt-4 flex items-center justify-between p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl">
                                                     <span className="text-xs text-blue-300">✅ Logo de clínica activo</span>
                                                     {clinicData?.logo_url ? (
-                                                        <img 
-                                                            src={clinicData.logo_url.startsWith('/') ? `https://www.fisiotool.com${clinicData.logo_url}` : clinicData.logo_url} 
-                                                            alt="Logo" 
-                                                            className="w-8 h-8 object-contain" 
+                                                        <img
+                                                            src={`/api/public/logo/${clinicData?.id}/`}
+                                                            alt="Logo"
+                                                            className="w-8 h-8 object-contain"
+                                                            onLoad={() => {
+                                                                console.log('✅ Logo cargado exitosamente desde proxy');
+                                                            }}
                                                             onError={(e) => {
-                                                                console.error('Error cargando logo:', clinicData.logo_url);
+                                                                console.error('❌ Error cargando logo desde proxy');
+                                                                console.error('❌ Error details:', e);
                                                                 e.currentTarget.style.display = 'none';
                                                             }}
                                                         />
@@ -391,8 +407,8 @@ export const AnaConfigView = ({ clinicData, onUpdated }: AnaConfigProps) => {
                             <div>
                                 <div className="font-bold text-green-200">✅ ¡CONFIGURACIÓN GUARDADA CORRECTAMENTE!</div>
                                 <div className="text-green-300/80 text-xs mt-1">
-                                    • Nombre: {config.name}<br/>
-                                    • Email de prospección: {config.prospectionEmail}<br/>
+                                    • Nombre: {config.name}<br />
+                                    • Email de prospección: {config.prospectionEmail}<br />
                                     • Sistema de recuperación activo
                                 </div>
                             </div>
@@ -420,12 +436,12 @@ export const AnaConfigView = ({ clinicData, onUpdated }: AnaConfigProps) => {
                                 >
                                     <div className="w-10 h-10 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center overflow-hidden">
                                         {config.useClinicLogo && clinicData?.logo_url ? (
-                                            <img 
-                                                src={clinicData.logo_url.startsWith('/') ? `https://www.fisiotool.com${clinicData.logo_url}` : clinicData.logo_url} 
-                                                alt="Logo" 
-                                                className="w-full h-full object-cover" 
+                                            <img
+                                                src={`/api/public/logo/${clinicData?.id}/`}
+                                                alt="Logo"
+                                                className="w-full h-full object-cover"
                                                 onError={(e) => {
-                                                    console.error('Error cargando logo en preview:', clinicData.logo_url);
+                                                    console.error('Error cargando logo en preview desde proxy');
                                                     e.currentTarget.style.display = 'none';
                                                 }}
                                             />

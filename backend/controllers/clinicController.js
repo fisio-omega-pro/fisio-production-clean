@@ -413,28 +413,28 @@ const savePaciente = async (req, res, next) => {
     const nombre = String(paciente.nombre || '').trim();
     const email = String(paciente.email || '').trim();
     const telefono = String(paciente.telefono || '').trim();
-    
+
     if (!nombre || !email || !telefono) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'nombre, email y teléfono son requeridos' 
+      return res.status(400).json({
+        success: false,
+        error: 'nombre, email y teléfono son requeridos'
       });
     }
-    
+
     // Verificar si ya existe un paciente con ese email o teléfono
     const existingSnapshot = await db.collection('pacientes')
       .where('clinic_id', '==', req.clinicId)
       .where('email', '==', email.toLowerCase())
       .limit(1)
       .get();
-    
+
     if (!existingSnapshot.empty) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Ya existe un paciente con este email' 
+      return res.status(400).json({
+        success: false,
+        error: 'Ya existe un paciente con este email'
       });
     }
-    
+
     // Crear el nuevo paciente
     const pacienteRef = await db.collection('pacientes').add({
       clinic_id: req.clinicId,
@@ -445,11 +445,11 @@ const savePaciente = async (req, res, next) => {
       updated_at: Timestamp.now(),
       status: 'ACTIVE'
     });
-    
+
     await createAuditLog(req.clinicId, req.userId || req.clinicId, 'CREATE_PATIENTE', pacienteRef.id);
-    
-    return res.json({ 
-      success: true, 
+
+    return res.json({
+      success: true,
       id: pacienteRef.id,
       paciente: {
         id: pacienteRef.id,
@@ -458,9 +458,9 @@ const savePaciente = async (req, res, next) => {
         telefono: telefono
       }
     });
-  } catch (e) { 
+  } catch (e) {
     console.error('Error en savePaciente:', e);
-    next(e); 
+    next(e);
   }
 };
 
@@ -885,10 +885,10 @@ const saveSpecialist = async (req, res, next) => {
       const equipoRef = db.collection('clinicas').doc(req.clinicId).collection('equipo');
       const snapshot = await equipoRef.get();
       const currentCount = snapshot.size;
-      
+
       if (currentCount >= 5) {
-        return res.status(400).json({ 
-          success: false, 
+        return res.status(400).json({
+          success: false,
           error: 'LÍMITE_ALCANZADO',
           message: 'Has alcanzado el límite de 5 fisioterapeutas. Para añadir más, necesitas actualizar al plan Corporate (500€/mes).',
           upgradeRequired: true,
@@ -960,28 +960,28 @@ const saveSpecialist = async (req, res, next) => {
 const uploadAvatar = async (req, res, next) => {
   try {
     const { specialistId } = req.body;
-    
+
     if (!specialistId) {
       return res.status(400).json({ success: false, error: 'specialistId requerido' });
     }
-    
+
     if (!req.file) {
       return res.status(400).json({ success: false, error: 'Archivo no proporcionado' });
     }
-    
+
     // Aquí deberías subir el archivo a un servicio de almacenamiento (Cloud Storage, S3, etc.)
     // Por ahora, simularemos la subida y devolveremos una URL ficticia
     const avatarUrl = `https://storage.googleapis.com/fisio-avatars/${specialistId}-${Date.now()}.jpg`;
-    
+
     // Actualizar el especialista con la nueva URL del avatar
     const equipoRef = db.collection('clinicas').doc(req.clinicId).collection('equipo');
     await equipoRef.doc(specialistId).update({
       avatarUrl,
       updated_at: Timestamp.now()
     });
-    
+
     await createAuditLog(req.clinicId, req.userId || req.clinicId, 'UPLOAD_AVATAR', specialistId);
-    
+
     res.json({ success: true, avatarUrl });
   } catch (e) { next(e); }
 };
@@ -1052,26 +1052,26 @@ const createBono = async (req, res, next) => {
     const sesionesTotales = Number(bono.sesiones_totales || 0);
     const fechaVencimiento = String(bono.fecha_vencimiento || '').trim() || null;
     const generarPago = bono.generar_pago !== false; // Por defecto generar pago
-    
+
     if (!pacienteId || !sesionesTotales) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'paciente_id y sesiones_totales son requeridos' 
+      return res.status(400).json({
+        success: false,
+        error: 'paciente_id y sesiones_totales son requeridos'
       });
     }
-    
+
     // Verificar que el paciente existe
     const pacienteDoc = await db.collection('pacientes').doc(pacienteId).get();
     if (!pacienteDoc.exists) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'Paciente no encontrado' 
+      return res.status(404).json({
+        success: false,
+        error: 'Paciente no encontrado'
       });
     }
-    
+
     const paciente = pacienteDoc.data();
     const precioBono = Number(req.clinicData?.config_ia?.precio_bono_5 || 225);
-    
+
     // Crear el bono asociado al paciente
     const bonoRef = await db.collection('bonos').add({
       clinic_id: req.clinicId,
@@ -1089,51 +1089,51 @@ const createBono = async (req, res, next) => {
       created_at: Timestamp.now(),
       updated_at: Timestamp.now()
     });
-    
+
     // Generar enlace de pago si se solicita
     let pagoUrl = null;
     if (generarPago) {
       try {
         const paymentService = require('../services/paymentService');
-        
+
         // Obtener el stripe_account_id de la clínica
         const clinicDoc = await db.collection('clinicas').doc(req.clinicId).get();
         const clinicData = clinicDoc.data();
         const stripeAccountId = clinicData?.stripe_account_id;
-        
+
         if (!stripeAccountId) {
           console.error('❌ La clínica no tiene stripe_account_id configurado');
           throw new Error('Stripe no configurado para esta clínica');
         }
-        
+
         // Convertir precio a céntimos
         const amountCents = Math.round(precioBono * 100);
         const concepto = `Bono de ${sesionesTotales} sesiones - ${paciente.nombre}`;
-        
+
         const pagoResult = await paymentService.createOneTimePaymentSession(
           amountCents,
           stripeAccountId,
           concepto,
           req
         );
-        
+
         if (pagoResult.url) {
           pagoUrl = pagoResult.url;
           console.log('✅ Enlace de pago generado:', pagoUrl);
-          
+
           // Actualizar el bono con la URL de pago
           await bonoRef.update({
             pago_url: pagoUrl
           });
-          
+
           // ENVIAR EMAIL REAL SI SE SOLICITA
           if (enviarEmail && paciente.email) {
             try {
               console.log(`📧 [BONO] Enviando email real a ${paciente.email}`);
-              
+
               // Importar servicio de email real
               const { sendBonoEmailPRUEBA } = require('../services/emailServicePRUEBA');
-              
+
               const emailResult = await sendBonoEmailPRUEBA({
                 to: paciente.email,
                 pacienteNombre: paciente.nombre,
@@ -1141,14 +1141,14 @@ const createBono = async (req, res, next) => {
                 precio: precioBono,
                 pagoUrl: pagoUrl
               });
-              
+
               if (emailResult.success) {
                 console.log('✅ Email real enviado exitosamente');
                 console.log(`   Message ID: ${emailResult.messageId}`);
               } else {
                 console.error('❌ Error enviando email real:', emailResult.error);
               }
-              
+
             } catch (emailError) {
               console.error('❌ Error en servicio de email:', emailError.message);
               // No fallar la creación del bono si falla el email
@@ -1158,7 +1158,7 @@ const createBono = async (req, res, next) => {
           console.error('❌ Error generando pago:', pagoResult.error);
           throw new Error(pagoResult.error || 'Error al generar enlace de pago');
         }
-        
+
       } catch (pagoError) {
         console.error('❌ Error generando pago:', pagoError.message);
         // Si falla el pago, crear el bono como activo
@@ -1176,11 +1176,11 @@ const createBono = async (req, res, next) => {
         sesiones_restantes: sesionesTotales
       });
     }
-    
+
     await createAuditLog(req.clinicId, req.userId || req.clinicId, 'CREATE_BONO', bonoRef.id);
-    
-    return res.json({ 
-      success: true, 
+
+    return res.json({
+      success: true,
       id: bonoRef.id,
       bono: {
         id: bonoRef.id,
@@ -1193,9 +1193,9 @@ const createBono = async (req, res, next) => {
         pago_url: pagoUrl
       }
     });
-  } catch (e) { 
+  } catch (e) {
     console.error('Error en createBono:', e);
-    next(e); 
+    next(e);
   }
 };
 
@@ -1804,7 +1804,7 @@ const processAppointmentReminders = async (req, res) => {
 const updateAnaConfig = async (req, res, next) => {
   try {
     const { name, color, welcome, photo, useClinicLogo, prospectionEmail } = req.body;
-    
+
     await db.collection('clinicas').doc(req.clinicId).update({
       ana_name: String(name || 'Ana').trim(),
       ana_color: String(color || '#075E54').trim(),
@@ -1821,58 +1821,63 @@ const updateAnaConfig = async (req, res, next) => {
 
 const uploadAnaPhoto = async (req, res, next) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ success: false, error: 'No se proporcionó ningún archivo' });
-    }
+    const file = req.file;
+    if (!file) return res.status(400).json({ success: false, error: 'No se proporcionó ningún archivo' });
 
-    const { initEnv } = require('../config/env');
-    const env = await initEnv();
-    const bucketName = env.GCS_BUCKET_NAME;
+    const ct = String(file.mimetype || '').toLowerCase();
+    const allowed = new Set(['image/png', 'image/jpeg', 'image/webp']);
+    if (!allowed.has(ct)) return res.status(400).json({ success: false, error: 'Formato no soportado (png/jpg/webp)' });
 
-    if (!bucketName) {
-      return res.status(503).json({ success: false, error: 'Storage no configurado' });
-    }
+    const ext = ct === 'image/png' ? 'png' : ct === 'image/webp' ? 'webp' : 'jpg';
+    const filename = `ana-photos/${req.clinicId}/${Date.now()}.${ext}`;
 
-    const { Storage } = require('@google-cloud/storage');
-    const storage = new Storage();
-    const bucket = storage.bucket(bucketName);
-
-    // Generar nombre único para el archivo
-    const fileName = `ana-photos/${req.clinicId}/${Date.now()}-${req.file.originalname}`;
-    const file = bucket.file(fileName);
-
-    // Subir archivo
-    await file.save(req.file.buffer, {
-      metadata: {
-        contentType: req.file.mimetype,
-      },
+    const { uploadBuffer } = require('../services/storageService');
+    await uploadBuffer({
+      filename,
+      buffer: file.buffer,
+      contentType: ct,
+      cacheControl: 'public, max-age=3600'
     });
 
-    // Hacer archivo público
-    await file.makePublic();
+    const publicUrl = `/api/public/logo/${req.clinicId}?photo=true`;
+    // Nota: Aunque el endpoint se llame getClinicLogo, lo adaptaremos para servir la foto de Ana si se pide
+    // O mejor, guardamos la URL pública directa si el bucket es público, pero getClinicLogo es más seguro.
+    // Viendo la implementación de getClinicLogo, usa data.logo_path.
 
-    const publicUrl = `https://storage.googleapis.com/${bucketName}/${fileName}`;
+    // Si queremos servirlo igual que el logo, deberíamos guardar el path.
+    // Pero Ana Config usa 'ana_photo' como URL completa usualmente.
 
-    // Actualizar configuración de Ana en la base de datos
+    // Vamos a ver cómo está implementado getClinicLogo en publicController...
+    // Se basa en data.logo_path. Podríamos añadir ana_photo_path.
+
+    // Sin embargo, para no complicar el esquema de DB si no es necesario:
+    // La implementación actual de uploadAnaPhoto guardaba una URL de storage.googleapis.com.
+    // Pero si el bucket no es público (que parece que hicieron `makePublic`), funcionaba.
+
+    // Vamos a mantener la lógica de URL de storage para Ana Photo por ahora, pero usando el bucket correcto de storageService.
+    const { BUCKET_NAME } = require('../services/storageService');
+    const storageUrl = `https://storage.googleapis.com/${BUCKET_NAME}/${filename}`;
+
     await db.collection('clinicas').doc(req.clinicId).update({
-      ana_photo: publicUrl,
+      ana_photo: storageUrl,
       ana_use_clinic_logo: false,
-      updated_at: new Date()
+      updated_at: Timestamp.now()
     });
 
-    await createAuditLog(req.clinicId, req.userId || req.clinicId, 'UPLOAD_ANA_PHOTO', fileName);
-
-    console.log('✅ Foto de Ana subida y guardada:', publicUrl);
+    await createAuditLog(req.clinicId, req.userId || req.clinicId, 'UPLOAD_ANA_PHOTO', filename);
+    console.log('✅ Foto de Ana subida y guardada:', storageUrl);
 
     res.json({
       success: true,
-      url: publicUrl
+      url: storageUrl
     });
+  } catch (e) { next(e); }
+};
 
   } catch (e) {
-    console.error('🔥 Error uploading Ana photo:', e);
-    next(e);
-  }
+  console.error('🔥 Error uploading Ana photo:', e);
+  next(e);
+}
 };
 
 // 🚨 EXPORTACIÓN DE FUNCIONES CONSOLIDADAS

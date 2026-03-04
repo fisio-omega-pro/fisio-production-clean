@@ -20,7 +20,7 @@ class DashboardService {
       throw new Error('No autenticado');
     }
 
-// console.log(`[DEBUG] Enviando petición a ${endpoint} con token: ${token ? 'SÍ' : 'NO'}`); // ELIMINADO PARA PRODUCCIÓN
+    // console.log(`[DEBUG] Enviando petición a ${endpoint} con token: ${token ? 'SÍ' : 'NO'}`); // ELIMINADO PARA PRODUCCIÓN
 
     // 🚀 LOADING GLOBAL INMEDIATO
     if (!options.headers?.['X-No-Loading']) {
@@ -75,7 +75,7 @@ class DashboardService {
     if (!response.ok) {
       const errorText = await response.text();
       let errorMessage = `Error ${response.status}: ${errorText}`;
-      
+
       // Intentar parsear JSON para obtener mensaje específico
       try {
         const errorJson = JSON.parse(errorText);
@@ -85,14 +85,14 @@ class DashboardService {
       } catch (e) {
         // Si no es JSON, usar el texto original
       }
-      
+
       throw new Error(errorMessage);
     }
     return await response.json();
   }
 
   public async getDashboardData(): Promise<any> {
-    const res = await this.request<{ success: boolean, data: any }>('/api/dashboard/data');
+    const res = await this.request<{ success: boolean, data: any }>('/api/dashboard/data/');
     return res.data;
   }
 
@@ -135,7 +135,7 @@ class DashboardService {
     });
   }
 
-  public async savePaciente(paciente: any): Promise<{success: boolean, id?: string, error?: string}> {
+  public async savePaciente(paciente: any): Promise<{ success: boolean, id?: string, error?: string }> {
     return await this.request('/api/dashboard/save-paciente', {
       method: 'POST',
       body: JSON.stringify({ paciente })
@@ -161,7 +161,7 @@ class DashboardService {
     if (!res?.success) throw new Error('No se pudo subir el logo.');
   }
   public async useDefaultLogo(): Promise<void> { await this.request('/api/dashboard/save-logo', { method: 'POST', body: JSON.stringify({ publicUrl: 'https://via.placeholder.com/150' }) }); }
-  public async connectStripe(): Promise<string> { const res = await this.request<{ url: string }>('/api/dashboard/stripe-connect', { method: 'POST' }); return res.url; }
+  public async connectStripe(): Promise<string> { const res = await this.request<{ url: string }>('/api/dashboard/stripe-connect/', { method: 'POST' }); return res.url; }
   public async verifyStripe(): Promise<void> { await this.request('/api/dashboard/stripe-verify', { method: 'POST' }); }
   public async verifySubscription(sessionId?: string): Promise<void> {
     await this.request('/api/dashboard/payment-verify', {
@@ -186,9 +186,9 @@ class DashboardService {
     return { cancel_at: res.cancel_at ?? null };
   }
   public async createAppointment(d: any): Promise<{ success: boolean; conflict?: boolean; error?: string }> {
-    return this.request<{ success: boolean; conflict?: boolean; error?: string }>('/api/dashboard/appointment', { 
-      method: 'POST', 
-      body: JSON.stringify(d) 
+    return this.request<{ success: boolean; conflict?: boolean; error?: string }>('/api/dashboard/appointment', {
+      method: 'POST',
+      body: JSON.stringify(d)
     });
   }
   public async getPatientHistory(phone: string): Promise<{ paciente: any; historial: any[] }> {
