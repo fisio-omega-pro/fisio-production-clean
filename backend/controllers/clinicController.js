@@ -1859,17 +1859,21 @@ const uploadAnaPhoto = async (req, res, next) => {
     const storageUrl = `https://storage.googleapis.com/${BUCKET_NAME}/${filename}`;
 
     await db.collection('clinicas').doc(req.clinicId).update({
-      ana_photo: storageUrl,
+      ana_photo_path: filename,        // path en GCS (para servirlo vía proxy)
+      ana_photo: null,                 // limpiar URL antigua
       ana_use_clinic_logo: false,
       updated_at: Timestamp.now()
     });
 
     await createAuditLog(req.clinicId, req.userId || req.clinicId, 'UPLOAD_ANA_PHOTO', filename);
-    console.log('✅ Foto de Ana subida y guardada:', storageUrl);
+
+    // La foto se sirve a través del proxy del frontend (mismo mecanismo que el logo)
+    const proxyUrl = `/api/public/ana-photo/${req.clinicId}`;
+    console.log('✅ Foto de Ana subida y guardada:', filename, '→', proxyUrl);
 
     res.json({
       success: true,
-      url: storageUrl
+      url: proxyUrl
     });
   } catch (e) { next(e); }
 };
