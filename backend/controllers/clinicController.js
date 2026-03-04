@@ -286,20 +286,38 @@ const createAppointment = async (req, res) => {
 
     if (!fecha || !hora) return res.status(400).json({ success: false, error: 'fecha y hora requeridos' });
 
+    // 🕒 VALIDACIÓN: No permitir citas en el pasado
+    const now = new Date();
+    // Ajustar a horario de Madrid (UTC+1/UTC+2) - aproximación simple o usar luxon si estuviera disponible
+    // Aquí usamos la fecha del servidor que suele estar en UTC. 
+    // Comparamos el string de fecha y hora directamente con el objeto Date
+    const appointmentDate = new Date(`${fecha}T${hora}:00`);
+
+    // Si la fecha de la cita es menor que "ahora" (permitimos un margen de 5 min por retrasos de red)
+    if (appointmentDate.getTime() < (now.getTime() - 5 * 60 * 1000)) {
+      console.log(`🚫 [PAST_DATE] Intento de cita en el pasado: ${fecha} ${hora}`);
+      return res.status(400).json({
+        success: false,
+        error: 'No puedes agendar una cita en una fecha u hora que ya ha pasado.'
+      });
+    }
+
     // 🔥 VALIDACIÓN CRÍTICA: Verificar si ya existe una cita para la misma fecha, hora y especialista
-    const existingCitaQuery = await db.collection('citas')
+    // Firestore no permite consultas con != null fácilmente en queries compuestas de este tipo sin índices complejos
+    // así que normalizamos specialistId para la búsqueda.
+    let query = db.collection('citas')
       .where('clinic_id', '==', req.clinicId)
       .where('fecha', '==', fecha)
       .where('hora', '==', hora)
-      .where('specialist_id', '==', specialistId)
-      .limit(1)
-      .get();
+      .where('specialist_id', '==', specialistId);
+
+    const existingCitaQuery = await query.limit(1).get();
 
     if (!existingCitaQuery.empty) {
       console.log(`🚨 [DUPLICATE] Intento de cita duplicada: ${fecha} ${hora} para especialista ${specialistId}`);
       return res.status(409).json({
         success: false,
-        error: 'Ya existe una cita agendada para esta fecha y hora',
+        error: 'Ya existe una cita agendada para este especialista en esta fecha y hora',
         conflict: true
       });
     }

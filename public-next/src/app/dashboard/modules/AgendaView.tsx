@@ -76,19 +76,19 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
     const cierre = parseInt(horario?.cierre?.split(':')[0] || '14');
     const reapertura = parseInt(horario?.reapertura?.split(':')[0] || '16');
     const cierreFinal = parseInt(horario?.cierre_final?.split(':')[0] || '21');
-    
+
     const hArray = [];
-    
+
     // 🚫 PRECISIÓN DE RELOJERO: Mañana hasta cierre - 1 hora
     for (let i = apertura; i < cierre; i++) {
       hArray.push(`${String(i).padStart(2, '0')}:00`);
     }
-    
+
     // 🚫 PRECISIÓN DE RELOJERO: Tarde hasta cierre final - 1 hora
     for (let i = reapertura; i < cierreFinal; i++) {
       hArray.push(`${String(i).padStart(2, '0')}:00`);
     }
-    
+
     return hArray;
   }, [horario]);
 
@@ -159,7 +159,7 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
 
   const dayDots = useMemo(() => {
     const map: Record<string, { paid: boolean; pending: boolean; blocked: boolean }> = {};
-    
+
     // Procesar citas
     agendaForMonth.forEach((a) => {
       const f = String(a.fecha || '');
@@ -168,7 +168,7 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
       if (a.pagado) map[f].paid = true;
       if (String(a.estado || '') === 'pendiente') map[f].pending = true;
     });
-    
+
     // Procesar bloqueos
     bloqueosForMonth.forEach((b) => {
       const f = String(b.date || '');
@@ -176,17 +176,27 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
       if (!map[f]) map[f] = { paid: false, pending: false, blocked: false };
       map[f].blocked = true;
     });
-    
+
     return map;
   }, [agendaForMonth, bloqueosForMonth]);
 
   const findApptForSlot = (specId: string, hour: string) => {
-    // Lógica simple: buscar cita para la hora específica
+    // 🔍 PRECISIÓN: Buscar cita para la hora Y el especialista específico
     return agendaForDate.find((a) => {
       const appointmentHour = String(a.hora || '').split(':')[0];
       const targetHour = String(hour || '').split(':')[0];
-      return appointmentHour === targetHour;
+      const apptSpecId = String(a.specialist_id || '').trim();
+      const targetSpecId = String(specId || '').trim();
+
+      return appointmentHour === targetHour && apptSpecId === targetSpecId;
     }) || null;
+  };
+
+  const isPastSlot = (dateStr: string, hourStr: string) => {
+    const now = new Date();
+    const slotDate = new Date(`${dateStr}T${hourStr}:00`);
+    // Margen de 5 minutos
+    return slotDate.getTime() < (now.getTime() - 5 * 60 * 1000);
   };
 
   const isHourBlocked = (hour: string) => {
@@ -194,7 +204,7 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
     return bloqueosForDate.some((b) => {
       const startHour = Number(String(b.startTime || '').split(':')[0] || '0');
       const endHour = Number(String(b.endTime || '').split(':')[0] || '0');
-      
+
       if (b.allDay) return true; // Todo el día bloqueado
       return hourNum >= startHour && hourNum < endHour;
     });
@@ -214,8 +224,8 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
         {/* NAVEGACIÓN DE DÍAS (solo para vista día) */}
         {viewMode === 'dia' && (
           <div className="flex items-center gap-3 bg-black/40 p-2 rounded-2xl border border-white/10">
-            <button 
-              onClick={() => navigateDay('prev')} 
+            <button
+              onClick={() => navigateDay('prev')}
               className="p-2 hover:bg-white/10 rounded-xl transition-all"
               aria-label="Día anterior"
             >
@@ -229,8 +239,8 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
                 {new Date(selectedDate).getDate()}
               </span>
             </div>
-            <button 
-              onClick={() => navigateDay('next')} 
+            <button
+              onClick={() => navigateDay('next')}
               className="p-2 hover:bg-white/10 rounded-xl transition-all"
               aria-label="Día siguiente"
             >
@@ -299,12 +309,12 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
               {['LUN', 'MAR', 'MIE', 'JUE', 'VIE', 'SAB', 'DOM'].map((d, index) => (
                 <div key={d} className={`text-center text-[10px] font-black tracking-[0.3em] pb-4 ${index === 6 ? 'text-red-500' : 'text-gray-700'}`}>{d}</div>
               ))}
-              
+
               {/* Celdas vacías antes del primer día del mes */}
               {Array.from({ length: firstDayOfMonth }).map((_, i) => (
                 <div key={`empty-${i}`} className="min-h-[100px]" />
               ))}
-              
+
               {/* Días del mes */}
               {Array.from({ length: daysInMonth }).map((_, i) => {
                 const dayNum = i + 1;
@@ -317,28 +327,25 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
                   <div
                     key={dayNum}
                     onClick={() => { setSelectedDate(dateStr); setViewMode('dia'); }}
-                    className={`min-h-[100px] border transition-all rounded-3xl p-4 flex flex-col justify-between group cursor-pointer ${
-                      isToday 
-                        ? 'bg-blue-600/10 border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.1)]' 
+                    className={`min-h-[100px] border transition-all rounded-3xl p-4 flex flex-col justify-between group cursor-pointer ${isToday
+                        ? 'bg-blue-600/10 border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.1)]'
                         : isSundayDay
                           ? 'bg-red-500/5 border-red-500/20 hover:border-red-500/40'
                           : 'bg-white/[0.01] border-white/5 hover:border-blue-500/30'
-                    }`}
+                      }`}
                   >
-                    <span className={`text-lg font-black ${
-                      isToday 
-                        ? 'text-blue-500' 
+                    <span className={`text-lg font-black ${isToday
+                        ? 'text-blue-500'
                         : isSundayDay
                           ? 'text-red-400 group-hover:text-red-300'
                           : 'text-gray-600 group-hover:text-white'
-                    }`}>{dayNum}</span>
+                      }`}>{dayNum}</span>
 
                     {/* Nombre del día de la semana */}
-                    <span className={`text-[8px] font-medium ${
-                      isSundayDay 
-                        ? 'text-red-500/70' 
+                    <span className={`text-[8px] font-medium ${isSundayDay
+                        ? 'text-red-500/70'
                         : 'text-gray-500/70'
-                    }`}>
+                      }`}>
                       {getDayName(dateStr).slice(0, 3)}
                     </span>
 
@@ -363,7 +370,7 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
                   Agenda Semanal
                 </h4>
               </div>
-              
+
               {/* Días de la semana */}
               <div className="grid grid-cols-7 gap-2">
                 {getWeekDays().map((dayDate, index) => {
@@ -371,31 +378,28 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
                   const dayNum = new Date(dayDate).getDate();
                   const isCurrentDay = dayDate === selectedDate;
                   const isSundayDay = isSunday(dayDate);
-                  
+
                   return (
                     <div
                       key={dayDate}
                       onClick={() => setSelectedDate(dayDate)}
-                      className={`p-3 rounded-xl border text-center cursor-pointer transition-all ${
-                        isCurrentDay
+                      className={`p-3 rounded-xl border text-center cursor-pointer transition-all ${isCurrentDay
                           ? 'bg-blue-600/20 border-blue-500/50'
                           : isSundayDay
                             ? 'bg-red-500/10 border-red-500/30'
                             : 'bg-white/[0.02] border-white/10 hover:border-blue-500/30'
-                      }`}
+                        }`}
                     >
-                      <div className={`text-[9px] font-black uppercase tracking-wider mb-1 ${
-                        isSundayDay ? 'text-red-400' : 'text-gray-400'
-                      }`}>
+                      <div className={`text-[9px] font-black uppercase tracking-wider mb-1 ${isSundayDay ? 'text-red-400' : 'text-gray-400'
+                        }`}>
                         {dayName.slice(0, 3)}
                       </div>
-                      <div className={`text-lg font-bold ${
-                        isCurrentDay 
-                          ? 'text-blue-400' 
+                      <div className={`text-lg font-bold ${isCurrentDay
+                          ? 'text-blue-400'
                           : isSundayDay
                             ? 'text-red-400'
                             : 'text-white'
-                      }`}>
+                        }`}>
                         {dayNum}
                       </div>
                     </div>
@@ -403,7 +407,7 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
                 })}
               </div>
             </div>
-            
+
             {/* Vista compacta de la semana */}
             <div className="flex-1 overflow-x-auto custom-scrollbar p-4">
               <div className="grid grid-cols-7 gap-2 min-w-[800px]">
@@ -412,30 +416,29 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
                   const dayBloqueos = bloqueos.filter(b => b.date === dayDate);
                   const isCurrentDay = dayDate === selectedDate;
                   const isSundayDay = isSunday(dayDate);
-                  
+
                   return (
-                    <div 
-                      key={dayDate} 
+                    <div
+                      key={dayDate}
                       onClick={() => {
                         setSelectedDate(dayDate);
                         setViewMode('dia');
                       }}
-                      className={`border rounded-xl p-2 cursor-pointer transition-all ${
-                        isCurrentDay
+                      className={`border rounded-xl p-2 cursor-pointer transition-all ${isCurrentDay
                           ? 'bg-blue-600/10 border-blue-500/50'
                           : isSundayDay
                             ? 'bg-red-500/5 border-red-500/20 hover:border-red-500/40'
                             : 'bg-white/[0.01] border-white/5 hover:border-blue-500/30'
-                      }`}
+                        }`}
                     >
                       <div className="text-[8px] text-gray-500 mb-2">
                         {dayCitas.length} cita{dayCitas.length !== 1 ? 's' : ''}
                         {dayBloqueos.length > 0 && ` • ${dayBloqueos.length} bloqueo${dayBloqueos.length !== 1 ? 's' : ''}`}
                       </div>
-                      
+
                       {/* Citas del día - CLICABLES */}
                       {dayCitas.slice(0, 3).map(cita => (
-                        <div 
+                        <div
                           key={cita.id}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -449,22 +452,21 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
                               email: cita.email || '',
                             });
                           }}
-                          className={`text-[7px] p-1 rounded mb-1 cursor-pointer transition-all ${
-                            cita.pagado 
-                              ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' 
+                          className={`text-[7px] p-1 rounded mb-1 cursor-pointer transition-all ${cita.pagado
+                              ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
                               : 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30'
-                          }`}
+                            }`}
                         >
                           {cita.hora} • {cita.nombre.slice(0, 8)}
                         </div>
                       ))}
-                      
+
                       {dayCitas.length > 3 && (
                         <div className="text-[7px] text-gray-500">
                           +{dayCitas.length - 3} más
                         </div>
                       )}
-                      
+
                       {/* Bloqueos del día */}
                       {dayBloqueos.map(bloqueo => (
                         <div key={bloqueo.id} className="text-[7px] p-1 rounded mb-1 bg-red-500/20 text-red-500">
@@ -483,8 +485,8 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
             {/* ENCABEZADO DIARIO */}
             <div className="flex justify-between items-center p-6 border-b border-white/5 flex-shrink-0">
               <div className="flex items-center gap-4">
-                <button 
-                  onClick={() => navigateDay('prev')} 
+                <button
+                  onClick={() => navigateDay('prev')}
                   className="p-2 hover:bg-white/10 rounded-xl transition-all"
                   aria-label="Día anterior"
                 >
@@ -498,8 +500,8 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
                     {new Date(selectedDate).getDate()}
                   </span>
                 </div>
-                <button 
-                  onClick={() => navigateDay('next')} 
+                <button
+                  onClick={() => navigateDay('next')}
                   className="p-2 hover:bg-white/10 rounded-xl transition-all"
                   aria-label="Día siguiente"
                 >
@@ -537,7 +539,7 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
                     <div key={h} className="h-24 border-b border-white/5 flex items-center justify-center text-[10px] font-black text-gray-700 font-mono flex-shrink-0">{h}</div>
                   ))}
                 </div>
-                
+
                 {/* COLUMNAS POR ESPECIALISTA */}
                 <div className="flex flex-1">
                   {displayTeam.map(spec => (
@@ -551,6 +553,8 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
                         const isBooked = !!appt;
                         const isPaid = !!appt?.pagado;
                         const isBlocked = isHourBlocked(h);
+
+                        const isPast = isPastSlot(selectedDate, h);
 
                         return (
                           <div
@@ -566,17 +570,18 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
                                   telefono: appt.telefono || '',
                                   email: appt.email || '',
                                 });
-                              } else if (!isBlocked) {
+                              } else if (!isBlocked && !isPast) {
                                 onNewAppointment({ date: selectedDate, time: h, specialistId: spec.id });
                               }
                             }}
-                            className={`h-24 border-b border-white/5 transition-all relative flex items-center justify-center group flex-shrink-0 ${
-                              isBlocked 
-                                ? 'bg-red-500/10 cursor-not-allowed border-red-500/20' 
-                                : isBooked 
+                            className={`h-24 border-b border-white/5 transition-all relative flex items-center justify-center group flex-shrink-0 ${isBlocked
+                                ? 'bg-red-500/10 cursor-not-allowed border-red-500/20'
+                                : isBooked
                                   ? (isPaid ? 'bg-green-500/5 cursor-default' : 'bg-orange-500/5 cursor-default')
-                                  : 'hover:bg-blue-600/[0.03] cursor-crosshair'
-                            }`}
+                                  : isPast
+                                    ? 'bg-black/40 cursor-not-allowed opacity-40'
+                                    : 'hover:bg-blue-600/[0.03] cursor-crosshair'
+                              }`}
                           >
                             {isBlocked ? (
                               <div className="flex items-center gap-2 px-4 py-2 rounded-2xl border border-red-500/30 bg-red-500/10 text-red-500">
@@ -590,6 +595,13 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
                                 {isPaid ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
                                 <span className="text-[9px] font-black uppercase tracking-tighter">
                                   {(appt?.nombre || 'CITA').toString().slice(0, 12)} · {appt?.hora || h}
+                                </span>
+                              </div>
+                            ) : isPast ? (
+                              <div className="flex items-center gap-2 px-4 py-2 rounded-2xl border border-white/5 bg-white/5 text-gray-500">
+                                <Clock size={12} className="opacity-50" />
+                                <span className="text-[9px] font-black uppercase tracking-tighter italic">
+                                  CONCLUIDO
                                 </span>
                               </div>
                             ) : (
