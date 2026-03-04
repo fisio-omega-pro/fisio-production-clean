@@ -54,6 +54,7 @@ async function initEnv() {
         STRIPE_REFERRAL_COUPON: await getSecret('STRIPE_REFERRAL_COUPON') || process.env.STRIPE_REFERRAL_COUPON || 'REFERRAL50',
         FREE_TRIAL_CAP: parseInt((await getSecret('FREE_TRIAL_CAP')) || process.env.FREE_TRIAL_CAP || '50', 10) || 50,
         CORS_ORIGINS: await getSecret('CORS_ORIGINS') || process.env.CORS_ORIGINS || '',
+        GCS_BUCKET_NAME: await getSecret('GCS_BUCKET_NAME') || process.env.GCS_BUCKET_NAME || 'fisiotool-backend-uploads',
         ADMIN_FOUNDRY_KEY: secrets.ADMIN_FOUNDRY_KEY || process.env.ADMIN_FOUNDRY_KEY,
 
         // 📧 Configuración de emails

@@ -1874,11 +1874,7 @@ const uploadAnaPhoto = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
-  } catch (e) {
-  console.error('🔥 Error uploading Ana photo:', e);
-  next(e);
-}
-};
+
 
 // 🚨 EXPORTACIÓN DE FUNCIONES CONSOLIDADAS
 module.exports = {

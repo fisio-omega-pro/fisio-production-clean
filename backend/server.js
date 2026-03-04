@@ -69,13 +69,18 @@ async function initialize(options = {}) {
   // 🔒 CORS para el resto de peticiones: lista fija + env (CORS_ORIGINS / FRONTEND_URL)
   const defaultProdOrigins = ['https://www.fisiotool.com', 'https://fisiotool.com'];
   let corsOriginsRaw = String(env.CORS_ORIGINS || process.env.CORS_ORIGINS || '').trim();
-  if (!corsOriginsRaw && env.FRONTEND_URL) {
+  
+  // En desarrollo, siempre permitir localhost
+  if (process.env.NODE_ENV !== 'production') {
+    corsOriginsRaw = '*';
+  } else if (!corsOriginsRaw && env.FRONTEND_URL) {
     const base = String(env.FRONTEND_URL).replace(/\/+$/, '');
     const withWww = base.includes('www.') ? base : base.replace(/^(https?:\/\/)/, '$1www.');
     const withoutWww = base.replace(/^(https?:\/\/)www\./, '$1');
     corsOriginsRaw = [base, withWww, withoutWww].filter((u, i, a) => a.indexOf(u) === i).join(',');
   }
   if (!corsOriginsRaw) corsOriginsRaw = '*';
+  
   const allowList = corsOriginsRaw === '*'
     ? null
     : [...defaultProdOrigins, ...corsOriginsRaw.split(',').map((s) => s.trim()).filter(Boolean)].filter((u, i, a) => a.indexOf(u) === i);

@@ -42,18 +42,17 @@ export const EquipoView: React.FC<EquipoProps> = ({
   const estaEnLimite = equipoCount >= limiteFisios;
 
   // DEBUG: Log para ver qué está pasando
-// console.log('🔍 DEBUG EquipoView:', { // ELIMINADO PARA PRODUCCIÓN
-    currentUser,
-    equipo,
-    isStaff,
-    isSolo,
-    subscriptionStatus,
-    specialistId: currentUser?.specialistId,
-    equipoCount,
-    puedeAgregarMas,
-    estaEnLimite,
-    membersToShow
-  });
+  // console.log('🔍 DEBUG EquipoView:', {
+  //   currentUser,
+  //   equipo,
+  //   isStaff,
+  //   isSolo,
+  //   subscriptionStatus,
+  //   specialistId: currentUser?.specialistId,
+  //   equipoCount,
+  //   puedeAgregarMas,
+  //   estaEnLimite,
+  // });
 
   // Si no tiene permisos de plan, mostrar upgrade para añadir más fisios
   // PERO permitir ver y editar su propio perfil (tanto staff como owner)
