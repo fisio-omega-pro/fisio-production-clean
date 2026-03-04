@@ -13,13 +13,15 @@ interface AgendaProps {
   onBlockSchedule: () => void;
   onNewAppointment: (data: any) => void;
   onEventClick: (event: any) => void;
+  clinicData: { es_multiclinica?: boolean }; // Added clinicData
 }
 
-export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda, bloqueos, horario, onBlockSchedule, onNewAppointment, onEventClick }) => {
+export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda, bloqueos, horario, onBlockSchedule, onNewAppointment, onEventClick, clinicData }) => {
   const isStaff = !!(currentUser?.specialistId);
   const staffSpecId = currentUser?.specialistId || '';
   const [viewMode, setViewMode] = useState<'dia' | 'semana' | 'mes'>('dia');
   const [selectedSpec, setSelectedSpec] = useState<string>('all');
+  const isMultiClinic = !!clinicData?.es_multiclinica; // Defined isMultiClinic
   useEffect(() => {
     if (isStaff && staffSpecId) setSelectedSpec(staffSpecId);
   }, [isStaff, staffSpecId]);
@@ -95,11 +97,21 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
   const effectiveSpec = isStaff ? staffSpecId : selectedSpec;
   // 2. EQUIPO A MOSTRAR (si es staff solo ve su columna)
   const displayTeam = useMemo(() => {
+    // Si NO es multiclínica, solo mostramos una columna (la agenda global)
+    if (!isMultiClinic) {
+      if (!equipo || equipo.length === 0) {
+        return [{ id: 'admin', nombre: 'Agenda Principal', especialidad: 'SaaS' }];
+      }
+      // En modo básico, usamos el primer especialista como "la agenda"
+      return [equipo[0]];
+    }
+
+    // Modo Multiclínica: lógica estándar de filtrado
     if (!equipo || equipo.length === 0) {
-      return [{ id: 'admin', nombre: 'Agenda Principal', especialidad: 'Clínica' }];
+      return [{ id: 'admin', nombre: 'Agenda Principal', especialidad: 'Dirección' }];
     }
     return equipo.filter(e => effectiveSpec === 'all' || e.id === effectiveSpec);
-  }, [equipo, effectiveSpec]);
+  }, [equipo, effectiveSpec, isMultiClinic]);
 
   // 3. LÓGICA DE COLORES (Semáforo Financiero)
   const getApptStatus = (appt: any) => {
@@ -185,10 +197,16 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
     return agendaForDate.find((a) => {
       const appointmentHour = String(a.hora || '').split(':')[0];
       const targetHour = String(hour || '').split(':')[0];
+
+      if (appointmentHour !== targetHour) return false;
+
+      // Si NO es multiclínica, cualquier cita a esta hora bloquea el slot para todos
+      if (!isMultiClinic) return true;
+
       const apptSpecId = String(a.specialist_id || '').trim();
       const targetSpecId = String(specId || '').trim();
 
-      return appointmentHour === targetHour && apptSpecId === targetSpecId;
+      return apptSpecId === targetSpecId;
     }) || null;
   };
 
@@ -249,24 +267,26 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
           </div>
         )}
 
-        {/* SELECTOR DE ESPECIALISTAS (solo jefe ve TODOS y puede cambiar; staff solo ve su agenda) */}
-        <div className="flex items-center gap-2 overflow-x-auto max-w-sm no-scrollbar px-2">
-          {!isStaff && (
-            <>
-              <button onClick={() => setSelectedSpec('all')} className={`px-4 py-2 rounded-full border text-[9px] font-black transition-all ${selectedSpec === 'all' ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white/5 border-white/10 text-gray-500'}`}>TODOS</button>
-              {equipo.map(s => (
-                <button key={s.id} onClick={() => setSelectedSpec(s.id)} className={`px-4 py-2 rounded-full border text-[9px] font-black whitespace-nowrap transition-all ${selectedSpec === s.id ? 'bg-white border-white text-black' : 'bg-white/5 border-white/10 text-gray-500'}`}>
-                  {s.nombre.toUpperCase()}
-                </button>
-              ))}
-            </>
-          )}
-          {isStaff && equipo.length > 0 && (
-            <span className="px-4 py-2 rounded-full border border-blue-500/30 bg-blue-600/10 text-[9px] font-black text-blue-400 uppercase">
-              {equipo[0]?.nombre || 'Mi agenda'}
-            </span>
-          )}
-        </div>
+        {/* SELECTOR DE ESPECIALISTAS (solo en modo MULTICLÍNICA) */}
+        {isMultiClinic && (
+          <div className="flex items-center gap-2 overflow-x-auto max-w-sm no-scrollbar px-2">
+            {!isStaff && (
+              <>
+                <button onClick={() => setSelectedSpec('all')} className={`px-4 py-2 rounded-full border text-[9px] font-black transition-all ${selectedSpec === 'all' ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white/5 border-white/10 text-gray-500'}`}>TODOS</button>
+                {equipo.map(s => (
+                  <button key={s.id} onClick={() => setSelectedSpec(s.id)} className={`px-4 py-2 rounded-full border text-[9px] font-black whitespace-nowrap transition-all ${selectedSpec === s.id ? 'bg-white border-white text-black' : 'bg-white/5 border-white/10 text-gray-500'}`}>
+                    {s.nombre.toUpperCase()}
+                  </button>
+                ))}
+              </>
+            )}
+            {isStaff && equipo.length > 0 && (
+              <span className="px-4 py-2 rounded-full border border-blue-500/30 bg-blue-600/10 text-[9px] font-black text-blue-400 uppercase">
+                {equipo[0]?.nombre || 'Mi agenda'}
+              </span>
+            )}
+          </div>
+        )}
 
         <div className="flex gap-2">
           <button onClick={onBlockSchedule} className="px-5 py-2.5 bg-red-500/10 text-red-500 rounded-2xl text-[10px] font-black border border-red-500/20 hover:bg-red-500 hover:text-white transition-all">BLOQUEAR</button>
@@ -328,23 +348,23 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
                     key={dayNum}
                     onClick={() => { setSelectedDate(dateStr); setViewMode('dia'); }}
                     className={`min-h-[100px] border transition-all rounded-3xl p-4 flex flex-col justify-between group cursor-pointer ${isToday
-                        ? 'bg-blue-600/10 border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.1)]'
-                        : isSundayDay
-                          ? 'bg-red-500/5 border-red-500/20 hover:border-red-500/40'
-                          : 'bg-white/[0.01] border-white/5 hover:border-blue-500/30'
+                      ? 'bg-blue-600/10 border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.1)]'
+                      : isSundayDay
+                        ? 'bg-red-500/5 border-red-500/20 hover:border-red-500/40'
+                        : 'bg-white/[0.01] border-white/5 hover:border-blue-500/30'
                       }`}
                   >
                     <span className={`text-lg font-black ${isToday
-                        ? 'text-blue-500'
-                        : isSundayDay
-                          ? 'text-red-400 group-hover:text-red-300'
-                          : 'text-gray-600 group-hover:text-white'
+                      ? 'text-blue-500'
+                      : isSundayDay
+                        ? 'text-red-400 group-hover:text-red-300'
+                        : 'text-gray-600 group-hover:text-white'
                       }`}>{dayNum}</span>
 
                     {/* Nombre del día de la semana */}
                     <span className={`text-[8px] font-medium ${isSundayDay
-                        ? 'text-red-500/70'
-                        : 'text-gray-500/70'
+                      ? 'text-red-500/70'
+                      : 'text-gray-500/70'
                       }`}>
                       {getDayName(dateStr).slice(0, 3)}
                     </span>
@@ -384,10 +404,10 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
                       key={dayDate}
                       onClick={() => setSelectedDate(dayDate)}
                       className={`p-3 rounded-xl border text-center cursor-pointer transition-all ${isCurrentDay
-                          ? 'bg-blue-600/20 border-blue-500/50'
-                          : isSundayDay
-                            ? 'bg-red-500/10 border-red-500/30'
-                            : 'bg-white/[0.02] border-white/10 hover:border-blue-500/30'
+                        ? 'bg-blue-600/20 border-blue-500/50'
+                        : isSundayDay
+                          ? 'bg-red-500/10 border-red-500/30'
+                          : 'bg-white/[0.02] border-white/10 hover:border-blue-500/30'
                         }`}
                     >
                       <div className={`text-[9px] font-black uppercase tracking-wider mb-1 ${isSundayDay ? 'text-red-400' : 'text-gray-400'
@@ -395,10 +415,10 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
                         {dayName.slice(0, 3)}
                       </div>
                       <div className={`text-lg font-bold ${isCurrentDay
-                          ? 'text-blue-400'
-                          : isSundayDay
-                            ? 'text-red-400'
-                            : 'text-white'
+                        ? 'text-blue-400'
+                        : isSundayDay
+                          ? 'text-red-400'
+                          : 'text-white'
                         }`}>
                         {dayNum}
                       </div>
@@ -425,10 +445,10 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
                         setViewMode('dia');
                       }}
                       className={`border rounded-xl p-2 cursor-pointer transition-all ${isCurrentDay
-                          ? 'bg-blue-600/10 border-blue-500/50'
-                          : isSundayDay
-                            ? 'bg-red-500/5 border-red-500/20 hover:border-red-500/40'
-                            : 'bg-white/[0.01] border-white/5 hover:border-blue-500/30'
+                        ? 'bg-blue-600/10 border-blue-500/50'
+                        : isSundayDay
+                          ? 'bg-red-500/5 border-red-500/20 hover:border-red-500/40'
+                          : 'bg-white/[0.01] border-white/5 hover:border-blue-500/30'
                         }`}
                     >
                       <div className="text-[8px] text-gray-500 mb-2">
@@ -453,8 +473,8 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
                             });
                           }}
                           className={`text-[7px] p-1 rounded mb-1 cursor-pointer transition-all ${cita.pagado
-                              ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
-                              : 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30'
+                            ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                            : 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30'
                             }`}
                         >
                           {cita.hora} • {cita.nombre.slice(0, 8)}
@@ -510,24 +530,26 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
               </div>
             </div>
 
-            {/* SELECTOR DE ESPECIALISTAS - SIN BOTONES DUPLICADOS */}
-            <div className="flex items-center gap-2 overflow-x-auto max-w-sm no-scrollbar p-6 border-b border-white/5 flex-shrink-0">
-              {!isStaff && (
-                <>
-                  <button onClick={() => setSelectedSpec('all')} className={`px-4 py-2 rounded-full border text-[9px] font-black transition-all ${selectedSpec === 'all' ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white/5 border-white/10 text-gray-500'}`}>TODOS</button>
-                  {equipo.map(s => (
-                    <button key={s.id} onClick={() => setSelectedSpec(s.id)} className={`px-4 py-2 rounded-full border text-[9px] font-black whitespace-nowrap transition-all ${selectedSpec === s.id ? 'bg-white border-white text-black' : 'bg-white/5 border-white/10 text-gray-500'}`}>
-                      {s.nombre}
-                    </button>
-                  ))}
-                </>
-              )}
-              {isStaff && equipo.length > 0 && (
-                <span className="px-4 py-2 rounded-full border border-blue-500/30 bg-blue-600/10 text-[9px] font-black text-blue-400 uppercase">
-                  {equipo[0]?.nombre || 'Mi agenda'}
-                </span>
-              )}
-            </div>
+            {/* SELECTOR DE ESPECIALISTAS - SOLO EN MULTICLÍNICA */}
+            {isMultiClinic && (
+              <div className="flex items-center gap-2 overflow-x-auto max-w-sm no-scrollbar p-6 border-b border-white/5 flex-shrink-0">
+                {!isStaff && (
+                  <>
+                    <button onClick={() => setSelectedSpec('all')} className={`px-4 py-2 rounded-full border text-[9px] font-black transition-all ${selectedSpec === 'all' ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white/5 border-white/10 text-gray-500'}`}>TODOS</button>
+                    {equipo.map(s => (
+                      <button key={s.id} onClick={() => setSelectedSpec(s.id)} className={`px-4 py-2 rounded-full border text-[9px] font-black whitespace-nowrap transition-all ${selectedSpec === s.id ? 'bg-white border-white text-black' : 'bg-white/5 border-white/10 text-gray-500'}`}>
+                        {s.nombre}
+                      </button>
+                    ))}
+                  </>
+                )}
+                {isStaff && equipo.length > 0 && (
+                  <span className="px-4 py-2 rounded-full border border-blue-500/30 bg-blue-600/10 text-[9px] font-black text-blue-400 uppercase">
+                    {equipo[0]?.nombre || 'Mi agenda'}
+                  </span>
+                )}
+              </div>
+            )}
 
             {/* GRID DIARIO - CON ALTURA FIJA Y SCROLL */}
             <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
@@ -575,12 +597,12 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
                               }
                             }}
                             className={`h-24 border-b border-white/5 transition-all relative flex items-center justify-center group flex-shrink-0 ${isBlocked
-                                ? 'bg-red-500/10 cursor-not-allowed border-red-500/20'
-                                : isBooked
-                                  ? (isPaid ? 'bg-green-500/5 cursor-default' : 'bg-orange-500/5 cursor-default')
-                                  : isPast
-                                    ? 'bg-black/40 cursor-not-allowed opacity-40'
-                                    : 'hover:bg-blue-600/[0.03] cursor-crosshair'
+                              ? 'bg-red-500/10 cursor-not-allowed border-red-500/20'
+                              : isBooked
+                                ? (isPaid ? 'bg-green-500/5 cursor-default' : 'bg-orange-500/5 cursor-default')
+                                : isPast
+                                  ? 'bg-black/40 cursor-not-allowed opacity-40'
+                                  : 'hover:bg-blue-600/[0.03] cursor-crosshair'
                               }`}
                           >
                             {isBlocked ? (

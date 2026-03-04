@@ -242,24 +242,24 @@ export default function DashboardOmega() {
 
     switch (state.activeTab) {
       case 'home': return <HomeView clinicId={state.clinicId} configStatus={state.configStatus} clinicData={state.clinicData} onRefresh={state.refreshData} onGoToAsistente={() => state.setActiveTab('config_ana')} />;
-      case 'agenda': return <AgendaView currentUser={state.currentUser} equipo={state.equipo} agenda={state.agenda} bloqueos={state.bloqueos} horario={state.clinicData.horario || { apertura: '08:00', cierre: '14:00', reapertura: '16:00', cierre_final: '21:00' }} onBlockSchedule={() => state.setModalType('bloqueo')} onNewAppointment={(d: any) => { setApptData({ ...apptData, fecha: d.date, hora: d.time, docId: d.specialistId || '' }); state.setModalType('cita'); }} onEventClick={state.setSelectedEvent} />;
+      case 'agenda': return <AgendaView clinicData={state.clinicData} currentUser={state.currentUser} equipo={state.equipo} agenda={state.agenda} bloqueos={state.bloqueos} horario={state.clinicData.horario || { apertura: '08:00', cierre: '14:00', reapertura: '16:00', cierre_final: '21:00' }} onBlockSchedule={() => state.setModalType('bloqueo')} onNewAppointment={(d: any) => { setApptData({ ...apptData, fecha: d.date, hora: d.time, docId: d.specialistId || '' }); state.setModalType('cita'); }} onEventClick={state.setSelectedEvent} />;
       case 'pacientes': return <PacientesView pacientes={state.pacientes} onDictate={() => state.setModalType('voz')} onImport={() => state.setModalType('importar')} onNewPatient={() => state.setModalType('nuevo_paciente')} />;
       case 'finanzas': return <FinanzasView balance={state.balance} pacientes={state.pacientes} onActivateCampaign={async () => { await dashboardAPI.launchCampaign(); state.refreshData(); }} clinicData={state.clinicData} onGoToImport={() => { state.setActiveTab('pacientes'); state.setModalType('importar'); }} />;
-      case 'bonos': return <BonosView 
-        clinicData={state.clinicData} 
-        bonos={state.bonos} 
+      case 'bonos': return <BonosView
+        clinicData={state.clinicData}
+        bonos={state.bonos}
         pacientes={state.pacientes}
-        onActivate={async () => { await dashboardAPI.activateBonos(); state.refreshData(); }} 
-        onDeactivate={async () => { await dashboardAPI.deactivateBonos(); state.refreshData(); }} 
-        onCreateBono={async (bono) => { 
-          await dashboardAPI.createBono(bono); 
+        onActivate={async () => { await dashboardAPI.activateBonos(); state.refreshData(); }}
+        onDeactivate={async () => { await dashboardAPI.deactivateBonos(); state.refreshData(); }}
+        onCreateBono={async (bono) => {
+          await dashboardAPI.createBono(bono);
           // Pequeño delay para asegurar que el backend procese
           await new Promise(resolve => setTimeout(resolve, 1000));
-          state.refreshData(); 
+          state.refreshData();
         }}
-        onCreatePaciente={async (paciente) => { 
-          const result = await dashboardAPI.savePaciente(paciente); 
-          state.refreshData(); 
+        onCreatePaciente={async (paciente) => {
+          const result = await dashboardAPI.savePaciente(paciente);
+          state.refreshData();
           return result;
         }}
       />;
@@ -441,24 +441,24 @@ export default function DashboardOmega() {
           if (!state.memberToEdit) return;
           try {
             const result = await dashboardAPI.saveSpecialist({ ...state.memberToEdit, login_email: state.memberToEdit.login_email ?? '' });
-            
+
             // Éxito normal
             const isNew = !state.memberToEdit.id;
             state.setModalType(null);
-            
+
             // Refresh más robusto
             await state.refreshData();
-            
+
             // Pequeña pausa para asegurar que los datos se actualicen
             await new Promise(resolve => setTimeout(resolve, 1000));
-            
+
             // Mostrar feedback de éxito mejorado
             if (isNew) {
               alert('✅ Fisioterapeuta creado correctamente\n\nAhora puedes verlo en la sección Equipo con su foto y todos sus datos.');
             } else {
               alert('✅ Fisioterapeuta actualizado correctamente\n\nLos cambios han sido guardados y son visibles inmediatamente.');
             }
-            
+
             // Scroll a la sección de equipo
             setTimeout(() => {
               const equipoSection = document.querySelector('[data-tab="equipo"]');
@@ -466,10 +466,10 @@ export default function DashboardOmega() {
                 equipoSection.scrollIntoView({ behavior: 'smooth' });
               }
             }, 500);
-            
+
           } catch (e: any) {
             console.error('Error saving specialist:', e);
-            
+
             // Verificar si es error de límite alcanzado
             if (e.message && e.message.includes('LÍMITE_ALCANZADO')) {
               if (confirm('Has alcanzado el límite de 5 fisioterapeutas. Para añadir más, necesitas actualizar al plan Corporate (500€/mes).\n\n¿Deseas actualizar al plan Corporate ahora?')) {
@@ -484,14 +484,14 @@ export default function DashboardOmega() {
         onUpload={async (file: File) => {
           try {
             // Temporalmente solo hacer preview sin subir al servidor
-// console.log('📸 Foto seleccionada (subida temporalmente desactivada):', file.name); // ELIMINADO PARA PRODUCCIÓN
-            
+            // console.log('📸 Foto seleccionada (subida temporalmente desactivada):', file.name); // ELIMINADO PARA PRODUCCIÓN
+
             // Simular subida exitosa después de un delay
             await new Promise(resolve => setTimeout(resolve, 1000));
-            
+
             // Crear URL local para el preview
             const localUrl = URL.createObjectURL(file);
-            
+
             // Actualizar el miembro con la URL local
             if (state.memberToEdit) {
               state.setMemberToEdit({
@@ -499,9 +499,9 @@ export default function DashboardOmega() {
                 avatarUrl: localUrl
               });
             }
-            
+
             alert('✅ Foto cargada correctamente (preview local)');
-            
+
           } catch (error) {
             console.error('Error uploading avatar:', error);
             alert('❌ Error al subir la foto. Por favor, inténtalo de nuevo.');
@@ -616,10 +616,10 @@ export default function DashboardOmega() {
       </Modal>
 
       {state.selectedEvent && <HistoryModal event={state.selectedEvent} onClose={() => state.setSelectedEvent(null)} />}
-      
+
       {/* 🚀 LOADING GLOBAL PARA FEEDBACK INMEDIATO */}
-      <div 
-        id="global-loading" 
+      <div
+        id="global-loading"
         style={{
           position: 'fixed',
           top: 0,

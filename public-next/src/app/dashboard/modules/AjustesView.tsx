@@ -13,6 +13,7 @@ export const AjustesView = ({ clinicData, onUpdated }: { clinicData: any; onUpda
   const initialEmail = String(clinicData?.email || '').trim();
   const [nombre, setNombre] = useState(initialName);
   const [email, setEmail] = useState(initialEmail);
+  const [esMulticlinica, setEsMulticlinica] = useState(!!clinicData?.es_multiclinica);
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +33,8 @@ export const AjustesView = ({ clinicData, onUpdated }: { clinicData: any; onUpda
     // Mantener sincronía si llega clinicData después
     setNombre(initialName);
     setEmail(initialEmail);
-  }, [initialName, initialEmail]);
+    setEsMulticlinica(!!clinicData?.es_multiclinica);
+  }, [initialName, initialEmail, clinicData?.es_multiclinica]);
 
 
   const canSave = useMemo(() => {
@@ -47,16 +49,16 @@ export const AjustesView = ({ clinicData, onUpdated }: { clinicData: any; onUpda
     setDone(false);
     setSaving(true);
     try {
-// console.log('[AJUSTES] Guardando configuración...'); // ELIMINADO PARA PRODUCCIÓN
-      await dashboardAPI.updateSettings(nombre.trim(), email.trim());
-// console.log('[AJUSTES] Configuración guardada correctamente'); // ELIMINADO PARA PRODUCCIÓN
+      // console.log('[AJUSTES] Guardando configuración...'); // ELIMINADO PARA PRODUCCIÓN
+      await dashboardAPI.updateSettings(nombre.trim(), email.trim(), esMulticlinica);
+      // console.log('[AJUSTES] Configuración guardada correctamente'); // ELIMINADO PARA PRODUCCIÓN
       await onUpdated();
       setDone(true);
       setTimeout(() => setDone(false), 2000);
     } catch (e: any) {
       console.error('[AJUSTES] Error guardando configuración:', e);
       const errorMsg = e?.message || 'No se pudo guardar.';
-      
+
       if (errorMsg.includes('Sesión expirada') || errorMsg.includes('No autenticado')) {
         setError('Tu sesión ha expirado. Por favor, inicia sesión de nuevo.');
         setTimeout(() => {
@@ -86,6 +88,21 @@ export const AjustesView = ({ clinicData, onUpdated }: { clinicData: any; onUpda
           </div>
           {error && <div className="mt-4 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-2xl p-4">{error}</div>}
           {done && <div className="mt-4 text-xs text-green-400 bg-green-500/10 border border-green-500/20 rounded-2xl p-4 flex items-center gap-2"><CheckCircle2 size={16} /> Guardado.</div>}
+          <div className="mt-8 border-t border-white/5 pt-6 flex items-center justify-between">
+            <div className="flex flex-col gap-1">
+              <span className="text-sm font-black text-white uppercase italic tracking-tighter">Modo Multiclínica</span>
+              <span className="text-[10px] text-gray-500 max-w-[280px]">Permite citas simultáneas de diferentes especialistas. Si se desactiva, solo puede haber una cita por hora en todo el centro.</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setEsMulticlinica(!esMulticlinica)}
+              className={`relative w-12 h-6 rounded-full transition-colors flex-shrink-0 ${esMulticlinica ? 'bg-blue-600' : 'bg-gray-700'}`}
+              aria-checked={esMulticlinica}
+              role="switch"
+            >
+              <span className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${esMulticlinica ? 'left-7' : 'left-1'}`} />
+            </button>
+          </div>
           <div className="mt-6">
             <ActionButton onClick={save} disabled={!canSave} fullWidth>
               {saving ? <Loader2 className="animate-spin mx-auto" /> : 'GUARDAR CAMBIOS'}
@@ -133,14 +150,14 @@ export const AjustesView = ({ clinicData, onUpdated }: { clinicData: any; onUpda
                     setSubscriptionError(null);
                     setCancelLoading(true);
                     try {
-// console.log('[AJUSTES] Cancelando suscripción...'); // ELIMINADO PARA PRODUCCIÓN
+                      // console.log('[AJUSTES] Cancelando suscripción...'); // ELIMINADO PARA PRODUCCIÓN
                       await dashboardAPI.cancelSubscription();
-// console.log('[AJUSTES] Suscripción cancelada correctamente'); // ELIMINADO PARA PRODUCCIÓN
+                      // console.log('[AJUSTES] Suscripción cancelada correctamente'); // ELIMINADO PARA PRODUCCIÓN
                       await onUpdated();
                     } catch (e: any) {
                       console.error('[AJUSTES] Error cancelando suscripción:', e);
                       const errorMsg = e?.message || 'No se pudo programar la cancelación.';
-                      
+
                       if (errorMsg.includes('Sesión expirada') || errorMsg.includes('No autenticado')) {
                         setSubscriptionError('Tu sesión ha expirado. Por favor, inicia sesión de nuevo.');
                         setTimeout(() => {
@@ -200,15 +217,15 @@ export const AjustesView = ({ clinicData, onUpdated }: { clinicData: any; onUpda
                 if (bonosSaving) return;
                 setBonosSaving(true);
                 try {
-// console.log(`[AJUSTES] ${bonosActive ? 'Desactivando' : 'Activando'} bonos...`); // ELIMINADO PARA PRODUCCIÓN
+                  // console.log(`[AJUSTES] ${bonosActive ? 'Desactivando' : 'Activando'} bonos...`); // ELIMINADO PARA PRODUCCIÓN
                   if (bonosActive) await dashboardAPI.deactivateBonos();
                   else await dashboardAPI.activateBonos();
-// console.log(`[AJUSTES] Bonos ${bonosActive ? 'desactivados' : 'activados'} correctamente`); // ELIMINADO PARA PRODUCCIÓN
+                  // console.log(`[AJUSTES] Bonos ${bonosActive ? 'desactivados' : 'activados'} correctamente`); // ELIMINADO PARA PRODUCCIÓN
                   await onUpdated();
                 } catch (e: any) {
                   console.error('[AJUSTES] Error cambiando bonos:', e);
                   const errorMsg = e?.message || 'No se pudo cambiar.';
-                  
+
                   if (errorMsg.includes('Sesión expirada') || errorMsg.includes('No autenticado')) {
                     setError('Tu sesión ha expirado. Por favor, inicia sesión de nuevo.');
                     setTimeout(() => {

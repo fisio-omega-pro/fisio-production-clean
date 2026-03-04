@@ -303,22 +303,32 @@ const createAppointment = async (req, res) => {
       });
     }
 
-    // 🔥 VALIDACIÓN CRÍTICA: Verificar si ya existe una cita para la misma fecha, hora y especialista
-    // Firestore no permite consultas con != null fácilmente en queries compuestas de este tipo sin índices complejos
-    // así que normalizamos specialistId para la búsqueda.
+    // 🔥 VALIDACIÓN CRÍTICA: Verificar si ya existe una cita para la misma fecha, hora (y especialista si es multiclínica)
+    const clinicDoc = await db.collection('clinicas').doc(req.clinicId).get();
+    const isMultiClinic = !!clinicDoc.data()?.es_multiclinica;
+
     let query = db.collection('citas')
       .where('clinic_id', '==', req.clinicId)
       .where('fecha', '==', fecha)
-      .where('hora', '==', hora)
-      .where('specialist_id', '==', specialistId);
+      .where('hora', '==', hora);
+
+    if (isMultiClinic) {
+      // En modo multiclínica, filtramos también por el especialista
+      query = query.where('specialist_id', '==', specialistId);
+    }
+    // Si NO es multiclínica, cualquier cita a esa hora en la clínica es un conflicto
 
     const existingCitaQuery = await query.limit(1).get();
 
     if (!existingCitaQuery.empty) {
-      console.log(`🚨 [DUPLICATE] Intento de cita duplicada: ${fecha} ${hora} para especialista ${specialistId}`);
+      const msg = isMultiClinic
+        ? 'Ya existe una cita agendada para este especialista en esta fecha y hora'
+        : 'Ya existe una cita agendada en esta fecha y hora (Modo Clínica Básica)';
+
+      console.log(`🚨 [CONFLICT] ${msg}: ${fecha} ${hora}`);
       return res.status(409).json({
         success: false,
-        error: 'Ya existe una cita agendada para este especialista en esta fecha y hora',
+        error: msg,
         conflict: true
       });
     }

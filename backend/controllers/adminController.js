@@ -138,7 +138,7 @@ const getGlobalStats = async (req, res, next) => {
       byPlan[plan] = (byPlan[plan] || 0) + 1;
       mrrByPlan[plan] = (mrrByPlan[plan] || 0) + price;
     });
-    
+
     let totalExp = 0;
     expenses.forEach(d => totalExp += (d.data().importe_detectado || 0));
 
@@ -183,9 +183,9 @@ const getGlobalStats = async (req, res, next) => {
 
     res.json({
       success: true,
-      stats: { 
-        totalClinicas: clinics.size, 
-        mrr: `${mrr}€`, 
+      stats: {
+        totalClinicas: clinics.size,
+        mrr: `${mrr}€`,
         beneficioNeto: `${(mrr - totalExp).toFixed(2)}€`,
         totalExpenses: `${totalExp.toFixed(2)}€`,
         pendingSuggestions: suggestions.size,
@@ -224,7 +224,7 @@ const getGlobalStats = async (req, res, next) => {
           fecha: raw.createdAt || raw.acceptedAt || null
         };
       }),
-      alerts: alerts.docs.map(d => ({id:d.id, ...d.data()})),
+      alerts: alerts.docs.map(d => ({ id: d.id, ...d.data() })),
       facturas,
       leads
     });
@@ -319,12 +319,15 @@ const createTicket = async (req, res) => {
 // --- ⚙️ AJUSTES DE PERFIL (Punto 12) ---
 const updateSettings = async (req, res) => {
   try {
-    const { nombre, email } = req.body;
-    await db.collection('clinicas').doc(req.clinicId).update({
+    const { nombre, email, es_multiclinica } = req.body;
+    const upd = {
       nombre_clinica: nombre,
-      email: email.toLowerCase().trim(),
+      email: String(email || '').toLowerCase().trim(),
       updated_at: Timestamp.now()
-    });
+    };
+    if (es_multiclinica !== undefined) upd.es_multiclinica = !!es_multiclinica;
+
+    await db.collection('clinicas').doc(req.clinicId).update(upd);
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 };
@@ -620,7 +623,7 @@ const getAnaInbox = async (req, res) => {
       .orderBy('fecha', 'desc')
       .limit(50)
       .get();
-    
+
     const emails = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     res.json({ success: true, emails });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -630,7 +633,7 @@ const sendProspectEmail = async (req, res) => {
   try {
     const { to, leadInfo, leadId, angle } = req.body;
     const { sendEmail } = require('../services/emailSenderService');
-    
+
     // Generar email con IA
     const emailBody = await anaService.generateProspectEmail({
       ...(leadInfo || {}),
@@ -638,13 +641,13 @@ const sendProspectEmail = async (req, res) => {
       link: 'https://fisiotool.com',
       contexto: (leadInfo && leadInfo.contexto) ? leadInfo.contexto : 'Prospección manual (Foundry)',
     });
-    
+
     // Enviar
     const sendResult = await sendEmail({ to, subject: 'Te presento FisioTool Pro', text: emailBody, type: 'ANA' });
     if (!sendResult || sendResult.ok !== true) {
       return res.status(400).json({ success: false, error: sendResult?.reason || sendResult?.error || 'No se pudo enviar el email' });
     }
-    
+
     // Guardar en historial
     await db.collection('ana_sent_emails').add({
       to,
@@ -668,8 +671,8 @@ const sendProspectEmail = async (req, res) => {
           updated_at: Timestamp.now(),
         }, { merge: true });
       }
-    } catch (_) {}
-    
+    } catch (_) { }
+
     res.json({ success: true, preview: emailBody });
   } catch (e) { res.status(500).json({ error: e.message }); }
 };
@@ -742,7 +745,7 @@ const getContrato = async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 };
 
-module.exports = { 
+module.exports = {
   getGlobalStats, handleAdminChat, diagnoseAna, saveAlert, deleteAlert, processInvoice, saveSuggestion, createTicket, updateSettings,
   getAnaInbox, sendProspectEmail, triggerEmailCheck, getContrato,
   importLeads,
@@ -768,7 +771,7 @@ module.exports = {
           }, { merge: true });
         }
       }
-    } catch (_) {}
+    } catch (_) { }
     return res.json({ success: true });
   }
 };

@@ -213,8 +213,8 @@ class DashboardService {
     return { ticketId: res.ticketId || '' };
   }
 
-  public async updateSettings(nombre: string, email: string): Promise<void> {
-    await this.request('/api/dashboard/update-settings', { method: 'POST', body: JSON.stringify({ nombre, email }) });
+  public async updateSettings(nombre: string, email: string, es_multiclinica?: boolean): Promise<void> {
+    await this.request('/api/dashboard/update-settings', { method: 'POST', body: JSON.stringify({ nombre, email, es_multiclinica }) });
   }
 
   public async createBlock(blockData: { date: string; startTime: string; endTime: string; reason: string; allDay: boolean }): Promise<{ success: boolean }> {
