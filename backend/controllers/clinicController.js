@@ -282,7 +282,8 @@ const createAppointment = async (req, res) => {
     const d = req.body || {};
     const fecha = String(d.fecha || '').trim();
     const hora = String(d.hora || '').trim();
-    const specialistId = String(d.specialistId || d.docId || '').trim() || null;
+    let specialistId = String(d.specialistId || d.docId || '').trim();
+    if (!specialistId || specialistId === 'null') specialistId = 'admin';
 
     if (!fecha || !hora) return res.status(400).json({ success: false, error: 'fecha y hora requeridos' });
 
