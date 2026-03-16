@@ -545,90 +545,57 @@ ${alternatives}
   }
 };
 
-// --- 🕐 GET REAL AGENDA SLOTS (NEVER GENERATE) ---
+// --- 🕐 GET REAL AVAILABLE SLOTS: genera slots teóricos - slots ocupados en 'citas' ---
 const getAvailableTimeSlots = async (clinicId, requestedDate) => {
   try {
-    // CRITICAL: Get clinic config to filter break times and last hour
     const clinicConfig = await getClinicConfig(clinicId);
-    if (!clinicConfig || !clinicConfig.horario) {
-      console.log('🔍 [ANA] No clinic config found, returning all slots');
-    }
-
     const horario = clinicConfig?.horario;
-    const cierre = parseInt(horario?.cierre?.split(':')[0] || '14');  // Fin de mañana
-    const reapertura = parseInt(horario?.reapertura?.split(':')[0] || '16');  // Inicio de tarde
-    const cierreFinal = parseInt(horario?.cierre_final?.split(':')[0] || '21');  // Cierre definitivo
-
-    // 🚫 PRECISIÓN DE RELOJERO: Últimas horas válidas para citas
-    const ultimaHoraManana = cierre - 1;  // Si cierra a 14, última cita es 13
-    const ultimaHoraTarde = cierreFinal - 1;  // Si cierra a 21, última cita es 20
-
-    // Convert "hoy" and "mañana" to actual dates
-    let actualDate = requestedDate;
-    if (requestedDate === 'hoy') {
-      const today = new Date();
-      actualDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
-    } else if (requestedDate === 'mañana') {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      actualDate = `${tomorrow.getDate().toString().padStart(2, '0')}/${(tomorrow.getMonth() + 1).toString().padStart(2, '0')}/${tomorrow.getFullYear()}`;
+    if (!horario) {
+      console.log(`🔍 [ANA] No horario config for clinic ${clinicId}`);
+      return [];
     }
 
-    // CRITICAL: Only return slots that EXIST in the fisio's agenda
-    // NEVER generate theoretical slots based on opening hours
-    const existingAppointments = await db.collection('agenda')
+    const apertura    = horario.apertura    || '09:00';
+    const cierre      = horario.cierre      || '14:00';
+    const reapertura  = horario.reapertura  || '16:00';
+    const cierreFinal = horario.cierre_final || '20:00';
+    const duracion    = clinicConfig?.duracion_cita || 60;
+
+    // Genera todos los slots posibles en un rango horario dado la duración
+    const generateSlots = (start, end) => {
+      const slots = [];
+      let [h, m] = start.split(':').map(Number);
+      const [endH, endM] = end.split(':').map(Number);
+      const endMinutes = endH * 60 + endM;
+      while (true) {
+        const cur = h * 60 + m;
+        if (cur + duracion > endMinutes) break;
+        slots.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
+        m += duracion;
+        h += Math.floor(m / 60);
+        m = m % 60;
+      }
+      return slots;
+    };
+
+    const allSlots = [...generateSlots(apertura, cierre), ...generateSlots(reapertura, cierreFinal)];
+    if (allSlots.length === 0) return [];
+
+    // Consulta CITAS ya reservadas para ese día (colección real del dashboard)
+    const bookedSnap = await db.collection('citas')
       .where('clinic_id', '==', clinicId)
-      .where('fecha', '==', actualDate)
+      .where('fecha', '==', requestedDate)
       .get();
 
-    console.log(`🔍 [ANA] Checking REAL agenda for ${requestedDate}. Found ${existingAppointments.size} appointments.`);
+    const bookedHoras = new Set(bookedSnap.docs.map(doc => doc.data().hora).filter(Boolean));
+    console.log(`�️ [ANA] ${requestedDate}: ${allSlots.length} slots teóricos, ${bookedHoras.size} ocupados → ${allSlots.length - bookedHoras.size} libres`);
 
-    // Return ONLY the actual slots from the agenda
-    const agendaSlots = [];
+    return allSlots
+      .filter(hora => !bookedHoras.has(hora))
+      .map(hora => ({ hora, disponible: true, duracion, especialista: 'Disponible' }));
 
-    for (const doc of existingAppointments.docs) {
-      const appointment = doc.data();
-
-      // Only include slots that are marked as available in the agenda
-      if (appointment.estado === 'disponible' || appointment.tipo === 'disponible') {
-        // 🚫 VERIFICACIÓN EXQUISITA: Excluir horas de descanso y última hora
-        const slotHour = parseInt(appointment.hora?.split(':')[0] || '0');
-
-        // Si hay configuración de horario, verificar precision
-        if (horario) {
-          // 🚫 Excluir horas de descanso (14:00-16:00)
-          if (slotHour >= cierre && slotHour < reapertura) {
-            console.log(`🚫 [ANA] Excluding break time slot: ${appointment.hora}`);
-            continue; // Saltar esta hora, está en horario de descanso
-          }
-
-          // 🚫 Excluir última hora de mañana (14:00)
-          if (slotHour >= cierre) {
-            console.log(`🚫 [ANA] Excluding last morning hour slot: ${appointment.hora} (clinic closes at ${cierre}:00)`);
-            continue;
-          }
-
-          // 🚫 Excluir última hora de tarde (21:00)
-          if (slotHour >= cierreFinal) {
-            console.log(`🚫 [ANA] Excluding last evening hour slot: ${appointment.hora} (clinic closes at ${cierreFinal}:00)`);
-            continue;
-          }
-        }
-
-        agendaSlots.push({
-          hora: appointment.hora,
-          disponible: true,
-          duracion: appointment.duracion || 45,
-          especialista: appointment.especialista || 'Disponible'
-        });
-      }
-    }
-
-    console.log(`🗓️ [ANA] Found ${agendaSlots.length} REAL available slots in fisio's agenda`);
-
-    return agendaSlots;
   } catch (e) {
-    console.error('🔥 [ANA] Error reading REAL agenda:', e);
+    console.error('🔥 [ANA] Error reading agenda:', e);
     return [];
   }
 };
