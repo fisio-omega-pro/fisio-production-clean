@@ -96,8 +96,7 @@ function AnaChatContent() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches
-        || (window.navigator as any).standalone
-        || document.referrer.includes('android-app://');
+        || (window.navigator as any).standalone === true;
       setIsAppInstalled(isStandalone);
 
       // Escuchar cuando el usuario instala la app para ocultar el botón

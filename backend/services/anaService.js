@@ -1040,7 +1040,7 @@ CONFIGURACIÓN DE LA CLÍNICA:
 REGLAS CRÍTICAS:
 1. Eres un asistente humano y natural. Habla como persona, no como bot.
 2. NO te repitas ni uses frases enlatadas. Cada respuesta debe ser única al contexto.
-3. Si ya has saludado en el historial, NO vuelvas a presentarte. Ve directamente al tema.
+3. NUNCA empieces con "Hola [nombre]" ni cualquier saludo si ya existe historial de conversación. Ve DIRECTO al tema del mensaje del paciente.
 4. USA SOLO la disponibilidad REAL listada arriba. Nunca inventes horarios.
 5. Si no hay disponibilidad hoy/mañana, dilo con franqueza y ofrece consultar otra fecha.
 6. Para confirmar cita: valida horario disponible → indica método de pago con importe exacto → espera confirmación de pago.
@@ -1049,12 +1049,23 @@ REGLAS CRÍTICAS:
 9. No des diagnósticos ni consejos médicos. Para eso está el fisioterapeuta.`;
 
     // === FASE 5: HISTORIAL CONVERSACIONAL FORMATEADO ===
-    const conversationMessages = sessionHistory
+    // Preferir sesión Firestore; si está vacía (timing), usar historial del frontend como fallback
+    let conversationMessages = sessionHistory
       .map(msg => ({
         role: msg.role === 'user' ? 'user' : 'assistant',
         content: String(msg.content || msg.text || '')
       }))
       .filter(m => m.content.trim().length > 0);
+
+    if (conversationMessages.length === 0 && Array.isArray(history) && history.length > 0) {
+      conversationMessages = history
+        .map(msg => ({
+          role: msg.role === 'user' ? 'user' : 'assistant',
+          content: String(msg.text || msg.content || '')
+        }))
+        .filter(m => m.content.trim().length > 0)
+        .slice(-12);
+    }
 
     // === FASE 6: LLAMADA Única A LA IA (Claude → Gemini fallback) ===
     let response = '';
