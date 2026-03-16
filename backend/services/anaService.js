@@ -137,18 +137,140 @@ const getPatientHistory = async (clinicId, patientEmail) => {
 };
 
 const DASHBOARD_KNOWLEDGE = `
-- Inicio: Dashboard principal con resumen del estado de la clínica (logo, Stripe, suscripción), enlaces rápidos para pacientes y código QR.
-- Agenda: Gestión de citas diaria/mensual. Permite filtros por especialista, BLOQUEAR horarios y crear NUEVAS CITAS. Colores: Verde (Pagado), Naranja (Pendiente).
-- Pacientes: Base de datos completa. Añadir fichas, editar historial clínico e IMPORTAR pacientes desde CSV/Excel.
-- Mis Clínicas (Sedes): Gestión de múltiples centros para planes Plus/Corporate. Permite añadir nuevas infraestructuras.
-- Balance: Informes financieros avanzados, ROI, ingresos vs gastos y exportación a CSV para contabilidad.
-- Bonos: Gestión de bonos de sesiones (monederos). Control de uso, saldo y fechas de caducidad.
-- Equipo: Gestión de fisioterapeutas, asignación de roles y accesos de login individuales para el staff.
-- Pagos: Configuración de Stripe Connect para recibir cobros con tarjeta y gestión de IBAN/Bizum.
-- Referidos (Alianzas): Programa de recomendación. Si invitas a otra clínica, AMBAS recibís un 50% de descuento en la siguiente cuota mensual.
-- Configurar Asistente: Personalización de Ana (nombre, foto, color y mensaje de bienvenida).
-- Ajustes: Configuración global de la clínica (horarios, precios, fianza, duración de citas y Modo Multiclínica).
-- Sugerencias: Canal directo de soporte técnico y reporte de tickets para mejoras en la plataforma.
+════════════════════════════════
+📊 MÓDULO: INICIO (Dashboard Principal)
+════════════════════════════════
+Qué es: La pantalla de control central. Muestra el estado de la clínica de un vistazo.
+Qué contiene: Logo de la clínica, estado de suscripción, conexión Stripe, accesos rápidos a módulos clave, y código QR único para que los pacientes accedan a la app de la clínica.
+Cómo usarlo: El código QR se puede imprimir y poner en recepción — al escanearlo el paciente instala la PWA de la clínica en su móvil en 10 segundos.
+Tip clave: Si el fisio ve que Stripe aparece como "no conectado", debe ir a Pagos → Conectar Stripe para poder cobrar fianzas.
+
+════════════════════════════════
+📅 MÓDULO: AGENDA
+════════════════════════════════
+Qué es: El centro de operaciones diario. Gestión completa de citas.
+Funciones principales:
+- Vista diaria y mensual con filtro por especialista
+- Crear nueva cita: clic en cualquier hueco libre → seleccionar paciente → confirmar hora y especialista
+- Bloquear horarios: para vacaciones, formaciones o descansos — así Ana no ofrece esos huecos
+- Colores de estado: Verde = Pagado/Confirmado | Naranja = Pendiente de pago | Rojo = Cancelada | Gris = Bloqueado
+- Editar/cancelar cita: clic sobre la cita → opciones de edición
+Cómo configurar huecos disponibles: Los huecos que aparecen en la agenda son los que Ana puede ofrecer a los pacientes. Si un hueco no está en la agenda, Ana no lo ofrecerá.
+Tip clave: Añadir huecos disponibles a la agenda es lo primero que debe hacer el fisio para que Ana funcione correctamente.
+
+════════════════════════════════
+👥 MÓDULO: PACIENTES
+════════════════════════════════
+Qué es: La base de datos completa de pacientes de la clínica.
+Funciones principales:
+- Ver ficha completa: historial clínico, citas pasadas, notas, pagos, bonos
+- Añadir paciente nuevo manualmente
+- Editar historial clínico y notas de evolución
+- IMPORTAR BASE DE DATOS EXISTENTE: Subir fichero CSV/Excel con todos los pacientes anteriores. FisioTool los importa automáticamente. Esto es lo primero que debe hacer un fisio nuevo.
+- Ver estado de cada paciente: activo, inactivo, con bono, con deuda pendiente
+Cómo importar pacientes: Ir a Pacientes → Importar → subir CSV con columnas: nombre, email, teléfono. El sistema hace el match automáticamente.
+Tip clave: Una vez importados los pacientes, Ana puede detectar los inactivos y enviarles campañas de reactivación automáticas.
+
+════════════════════════════════
+🎯 MÓDULO: PROSPECCIÓN ACTIVA (Reactivación de Pacientes)
+════════════════════════════════
+Qué es: La funcionalidad más potente para llenar la agenda. Ana detecta pacientes inactivos y los reactiva automáticamente.
+Cómo funciona:
+1. Ana analiza la base de datos y detecta pacientes que llevan X semanas/meses sin cita
+2. Les envía emails personalizados automáticos con huecos disponibles
+3. Si tienen la app instalada (PWA), también reciben notificaciones push directas en el móvil
+4. El fisio puede configurar el umbral de inactividad (ej: 8 semanas sin cita = inactivo)
+5. También se pueden crear campañas manuales para toda la base de datos o segmentos
+Resultado típico: 15-25 pacientes reactivados en el primer mes.
+Tip clave: Cuantos más pacientes importados al sistema, más efectiva es la prospección activa.
+
+════════════════════════════════
+📱 MÓDULO: APP DE LA CLÍNICA (PWA)
+════════════════════════════════
+Qué es: Cada clínica tiene su propia app móvil personalizada con su nombre y logo. Sin App Store, sin coste extra.
+Cómo instalarla los pacientes: Escanear el QR del dashboard → se abre en el navegador → "Añadir a pantalla de inicio" → instalada en 10 segundos.
+Qué pueden hacer los pacientes desde la app: Reservar citas, pagar fianzas, ver bonos, recibir notificaciones push, chatear con Ana.
+Funciona offline: Sí, la app funciona sin conexión para consultar información básica.
+Cómo activar notificaciones: Ajustes → App → Notificaciones Push → activar. Las notificaciones llegan directamente al móvil del paciente sin WhatsApp.
+
+════════════════════════════════
+💰 MÓDULO: BALANCE
+════════════════════════════════
+Qué es: Centro de control financiero de la clínica.
+Qué muestra: Ingresos del mes, gastos, ROI, comparativa mensual, previsión, desglose por especialista.
+Exportar para contabilidad: Balance → Exportar CSV → compatible con cualquier software de contabilidad.
+Tip clave: El gráfico de ROI muestra exactamente cuánto dinero recupera el fisio gracias a las fianzas y a la reducción de no-shows.
+
+════════════════════════════════
+🎫 MÓDULO: BONOS
+════════════════════════════════
+Qué es: Sistema de monederos de sesiones. El paciente compra un bono (ej: 10 sesiones) y lo usa como prepago.
+Cómo crear un bono: Bonos → Nuevo bono → definir número de sesiones y precio.
+Cómo asignar a un paciente: Desde la ficha del paciente → Bonos → Asignar bono.
+Control de saldo: El sistema descuenta automáticamente una sesión con cada cita confirmada.
+Tip clave: Los bonos aumentan el LTV (valor de vida) del paciente y garantizan ingresos recurrentes.
+
+════════════════════════════════
+👨‍⚕️ MÓDULO: EQUIPO
+════════════════════════════════
+Qué es: Gestión del equipo de la clínica.
+Funciones: Añadir fisioterapeutas, asignar especialidades, crear credenciales de acceso individuales, definir qué puede ver/hacer cada uno.
+Cómo añadir un miembro: Equipo → Añadir miembro → nombre, email, especialidad → el sistema le envía credenciales automáticamente.
+Permisos: Cada miembro solo ve su propia agenda por defecto. El administrador ve todo.
+Tip clave: Una vez añadido el equipo, la agenda se puede filtrar por especialista y Ana puede asignar citas al especialista correcto.
+
+════════════════════════════════
+💳 MÓDULO: PAGOS
+════════════════════════════════
+Qué es: Configuración del sistema de cobros.
+Cómo conectar Stripe: Pagos → Conectar con Stripe → seguir el proceso de verificación (5-10 min). Necesario para cobrar fianzas con tarjeta.
+Bizum: Se puede configurar un número de Bizum para cobros manuales. Ana lo informará a los pacientes automáticamente.
+Fianzas automáticas: Una vez Stripe conectado, Ana cobra la fianza al confirmar la cita. Si el paciente no paga, la cita no se confirma.
+Impacto real: Las fianzas eliminan el 90% de los no-shows. Las clínicas recuperan 8-12 citas/mes.
+
+════════════════════════════════
+🤝 MÓDULO: REFERIDOS (Programa de Alianzas)
+════════════════════════════════
+Qué es: Programa de recomendación mutua entre clínicas.
+Cómo funciona: Si invitas a otra clínica a registrarse en FisioTool usando tu enlace de referido, AMBAS clínicas recibís un 50% de descuento en la siguiente cuota mensual.
+Sin límite: Puedes referir tantas clínicas como quieras. Cada referido activo genera descuento.
+Dónde está el enlace: Referidos → copiar enlace único.
+
+════════════════════════════════
+🤖 MÓDULO: CONFIGURAR ASISTENTE (Ana)
+════════════════════════════════
+Qué es: Personalización completa de la asistente IA de la clínica.
+Qué se puede configurar: Nombre de Ana (puede llamarse como quiera la clínica), foto de perfil, color corporativo, mensaje de bienvenida personalizado, tono de comunicación.
+Otros ajustes de Ana: Horario en que Ana responde, si cobra fianza automáticamente o no, umbral de pacientes inactivos para prospección.
+Tip clave: Darle un nombre y foto cercana a Ana aumenta la confianza del paciente y la tasa de respuesta.
+
+════════════════════════════════
+⚙️ MÓDULO: AJUSTES
+════════════════════════════════
+Qué es: Configuración global de la clínica que Ana usa para operar.
+Parámetros clave:
+- Horario de apertura y cierre (mañana y tarde)
+- Precio por sesión y precio de fianza
+- Duración de cada cita (en minutos)
+- Tiempo de descanso entre citas
+- Métodos de pago aceptados
+- Modo Multiclínica: si la clínica tiene varias sedes
+Importante: Estos ajustes son los que Ana usa para informar a los pacientes. Si el precio es incorrecto aquí, Ana dará información incorrecta.
+
+════════════════════════════════
+💡 MÓDULO: SUGERENCIAS
+════════════════════════════════
+Qué es: Canal directo de soporte técnico y reporte de incidencias.
+Para qué sirve: Reportar errores, pedir nuevas funcionalidades, consultar dudas técnicas al equipo de FisioTool.
+No confundir: Sugerencias es para hablar CON FisioTool Pro (soporte). No es para gestionar la clínica.
+Tiempo de respuesta: El equipo responde en menos de 24h en días laborables.
+
+════════════════════════════════
+🏢 MÓDULO: MIS CLÍNICAS (Multi-sede)
+════════════════════════════════
+Disponible en plan Professional y Enterprise. Permite gestionar varias sedes desde un único dashboard.
+Cómo añadir sede: Mis Clínicas → Nueva sede → configurar horarios y equipo independiente para cada una.
+Cada sede tiene su propia Ana, su propia agenda y su propio sistema de pagos.
 `;
 
 const LEX_SYSTEM_PROMPT = `
