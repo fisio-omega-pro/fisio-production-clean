@@ -290,30 +290,39 @@ const anaProspectoChat = async (req, res) => {
 
     console.log('🎯 [ANA PROSPECTO] Mensaje recibido:', message);
 
-    // Importar ProspectoSkill
+    // Importar ProspectoSkill y SkillEngine
     const ProspectoSkill = require('../services/skills/prospectoSkill');
+    const { SkillEngine } = require('../services/anaSkillEngine');
     const { getOrCreateSession, addMessage } = require('../services/conversationMemoryService');
     
+    // Crear engine y registrar skill
+    const engine = new SkillEngine();
     const prospectoSkill = new ProspectoSkill();
+    engine.registerSkill(prospectoSkill);
     
     // Crear sesión para el prospecto
     const userIdentifier = userEmail || `prospect_${Date.now()}`;
     const session = await getOrCreateSession('global_prospects', userIdentifier, 'web');
     
-    // Clasificar intent
-    const intent = prospectoSkill.classifyIntent(message);
+    // Clasificar intent usando el engine
+    const classification = await engine.classifyIntent(message, {
+      lastIntent: session.context?.lastIntent,
+      lastSkill: session.context?.lastSkill
+    });
+    
+    console.log('🎯 [ANA PROSPECTO] Intent clasificado:', classification.intentId, 'Confidence:', classification.confidence);
     
     // Ejecutar skill
-    const result = await prospectoSkill.execute(intent, { message }, {
+    const result = await prospectoSkill.execute(classification.intentId, classification.entities, {
       userName: userName || null,
       userEmail: userEmail || null
     });
     
     // Guardar en memoria
-    await addMessage(session.sessionId, 'user', message, { intent });
+    await addMessage(session.sessionId, 'user', message, { intent: classification.intentId });
     await addMessage(session.sessionId, 'assistant', result.text, {
       skill: 'prospecto',
-      intent,
+      intent: classification.intentId,
       confidence: result.confidence
     });
     
@@ -326,6 +335,7 @@ const anaProspectoChat = async (req, res) => {
     });
   } catch (e) {
     console.error('🔥 [ANA PROSPECTO] Error:', e);
+    console.error('🔥 [ANA PROSPECTO] Stack:', e.stack);
     return res.status(500).json({
       success: false,
       response: 'Lo siento, estoy teniendo problemas técnicos. Por favor, intenta de nuevo.'
