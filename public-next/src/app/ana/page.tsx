@@ -85,9 +85,12 @@ function AnaChatContent() {
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches
         || (window.navigator as any).standalone
         || document.referrer.includes('android-app://');
-      // TEMPORALMENTE FORZADO A FALSE PARA TEST
-      setIsAppInstalled(false);
-      console.log('🔍 [DEBUG] isStandalone:', isStandalone, '→ isAppInstalled: false (forzado)');
+      setIsAppInstalled(isStandalone);
+
+      // Escuchar cuando el usuario instala la app para ocultar el botón
+      const handleAppInstalled = () => setIsAppInstalled(true);
+      window.addEventListener('appinstalled', handleAppInstalled);
+      return () => window.removeEventListener('appinstalled', handleAppInstalled);
     }
   }, []);
 
@@ -453,7 +456,14 @@ function AnaChatContent() {
                 type="text"
                 value={userName}
                 onChange={(e) => setUserName(e.target.value)}
-                placeholder="Tu nombre"
+                placeholder="Tu nombre completo"
+                className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-gray-800 placeholder-gray-500 focus:outline-none focus:border-blue-400"
+              />
+              <input
+                type="email"
+                value={userEmail}
+                onChange={(e) => setUserEmail(e.target.value)}
+                placeholder="Tu email"
                 className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-gray-800 placeholder-gray-500 focus:outline-none focus:border-blue-400"
               />
               <input

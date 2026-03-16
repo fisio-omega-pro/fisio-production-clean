@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { message, clinicId } = body;
+    const { message, clinicId, userName, userEmail, userPhone, history } = body;
 
     if (!message || !clinicId) {
       return NextResponse.json(
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
         'X-Clinic-ID': clinicId
       },
-      body: JSON.stringify({ message, clinicId })
+      body: JSON.stringify({ message, clinicId, userName, userEmail, userPhone, history })
     });
 
     const data = await response.json();
