@@ -310,12 +310,27 @@ class ConversationMemoryService {
 
   /**
    * Genera ID de sesión único
+   * IMPORTANTE: Normaliza email/teléfono para que sea consistente entre canales
    */
   generateSessionId(clinicId, userIdentifier) {
-    // Sanitizar identificador
-    const cleanId = String(userIdentifier || 'unknown')
-      .replace(/[^a-zA-Z0-9_-]/g, '_')
-      .substring(0, 50);
+    if (!userIdentifier || userIdentifier === 'unknown' || userIdentifier === 'anonymous') {
+      return `${clinicId}_anonymous_${Date.now()}`;
+    }
+    
+    // Normalizar email: convertir a lowercase y sanitizar
+    let cleanId = String(userIdentifier).toLowerCase().trim();
+    
+    // Si es email, usar solo la parte antes del @ + dominio sin puntos
+    if (cleanId.includes('@')) {
+      const [local, domain] = cleanId.split('@');
+      cleanId = `${local}_at_${domain.replace(/\./g, '_')}`;
+    }
+    
+    // Si es teléfono, quitar espacios, guiones y paréntesis
+    cleanId = cleanId.replace(/[\s\-\(\)]/g, '');
+    
+    // Sanitizar caracteres especiales restantes
+    cleanId = cleanId.replace(/[^a-z0-9_]/g, '_').substring(0, 50);
     
     return `${clinicId}_${cleanId}`;
   }

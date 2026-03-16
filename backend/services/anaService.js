@@ -808,13 +808,51 @@ REGLAS:
   generatePatientResponse: async ({ message, clinicName, clinicId, history = [], patientEmail, userName, userEmail, userPhone }) => {
     const lowerMessage = String(message || '').toLowerCase();
     
-    // 🚀 IDENTIFICACIÓN Y REGISTRO AUTOMÁTICO
-    const emailToUse = userEmail || patientEmail;
-    if (userName || emailToUse || userPhone) {
+    // 🚀 IDENTIFICACIÓN MEJORADA - Buscar paciente existente primero
+    let emailToUse = userEmail || patientEmail;
+    let phoneToUse = userPhone;
+    let effectiveUserName = userName;
+    
+    // Si tenemos email o teléfono, buscar si ya existe el paciente en Firestore
+    if (emailToUse || phoneToUse) {
+      try {
+        const patientsRef = db.collection('clinicas').doc(clinicId).collection('pacientes');
+        let existingPatient = null;
+        
+        // Buscar por email primero
+        if (emailToUse) {
+          const emailQuery = await patientsRef.where('email', '==', emailToUse).limit(1).get();
+          if (!emailQuery.empty) {
+            existingPatient = emailQuery.docs[0].data();
+          }
+        }
+        
+        // Si no se encontró por email, buscar por teléfono
+        if (!existingPatient && phoneToUse) {
+          const phoneQuery = await patientsRef.where('telefono', '==', phoneToUse).limit(1).get();
+          if (!phoneQuery.empty) {
+            existingPatient = phoneQuery.docs[0].data();
+          }
+        }
+        
+        // Si encontramos el paciente, usar sus datos completos
+        if (existingPatient) {
+          emailToUse = existingPatient.email || emailToUse;
+          phoneToUse = existingPatient.telefono || phoneToUse;
+          effectiveUserName = existingPatient.nombre || userName;
+          console.log(`✅ [USER ID] Paciente encontrado: ${effectiveUserName} (${emailToUse})`);
+        }
+      } catch (error) {
+        console.error('🔥 [USER ID] Error buscando paciente:', error);
+      }
+    }
+    
+    // 🚀 REGISTRO AUTOMÁTICO (solo si tenemos datos nuevos)
+    if (userName || emailToUse || phoneToUse) {
       await ensurePatientExists(clinicId, {
-        nombre: userName,
+        nombre: effectiveUserName,
         email: emailToUse,
-        telefono: userPhone
+        telefono: phoneToUse
       });
     }
 
@@ -822,8 +860,10 @@ REGLAS:
     const teamInfo = await getTeamInfo(clinicId);
     const patientHistory = emailToUse ? await getPatientHistory(clinicId, emailToUse) : { isRecurrent: false, history: [] };
     
-    // Usar el nombre real del paciente si lo tenemos
-    const effectiveUserName = userName || patientHistory.patientName || '';
+    // Usar el nombre del historial si no lo tenemos
+    if (!effectiveUserName && patientHistory.patientName) {
+      effectiveUserName = patientHistory.patientName;
+    }
     
     // 🧠 NUEVO SISTEMA DE SKILLS (v2.0)
     // Intentar usar el sistema de skills primero
@@ -831,8 +871,11 @@ REGLAS:
       try {
         console.log('🤖 [SKILL SYSTEM] Procesando mensaje...');
         
-        // Obtener o crear sesión de memoria
-        const userIdentifier = emailToUse || userPhone || 'anonymous';
+        // Obtener o crear sesión de memoria - USAR EMAIL COMO IDENTIFICADOR PRINCIPAL
+        // Esto asegura que la misma persona tenga la misma sesión en WhatsApp y PWA
+        const userIdentifier = emailToUse || phoneToUse || 'anonymous';
+        console.log(`🔑 [SESSION] Identificador de usuario: ${userIdentifier}`);
+        
         const session = await getOrCreateSession(clinicId, userIdentifier, 'chat');
         
         // Preparar contexto enriquecido
