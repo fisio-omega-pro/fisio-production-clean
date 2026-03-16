@@ -614,17 +614,13 @@ const generatePaymentLink = async (clinicId, amount, concepto, patientEmail, app
     const clinicConfig = await getClinicConfiguration(clinicId);
     if (!clinicConfig) return null;
 
-    // Get Stripe account ID for this clinic
-    const stripeConnectDoc = await db.collection('stripe_connect_profesionales')
-      .where('clinic_id', '==', clinicId)
-      .limit(1)
-      .get();
-
-    if (stripeConnectDoc.empty) {
+    // stripe_account_id se guarda directamente en el doc de la clínica al conectar Stripe Connect
+    const stripeAccountId = clinicConfig.stripe_account_id;
+    const stripeStatus = clinicConfig.stripe_status;
+    if (!stripeAccountId || stripeStatus === 'pending' || stripeStatus === 'inactive') {
+      console.log(`⚠️ [ANA] Stripe no activo para clínica ${clinicId}: status=${stripeStatus || 'sin configurar'}`);
       return { error: 'Clinic not connected to Stripe' };
     }
-
-    const stripeAccountId = stripeConnectDoc.docs[0].data().stripe_account_id;
 
     // Create payment session
     const paymentResult = await createOneTimePaymentSession(
@@ -639,7 +635,7 @@ const generatePaymentLink = async (clinicId, amount, concepto, patientEmail, app
     }
 
     // Store payment link in database for tracking
-    const paymentDoc = await db.collection('payment_links').add({
+    const paymentLinkData = {
       clinic_id: clinicId,
       patient_email: patientEmail,
       amount: amount,
@@ -647,9 +643,12 @@ const generatePaymentLink = async (clinicId, amount, concepto, patientEmail, app
       payment_url: paymentResult.url,
       status: 'enviado',
       created_at: Timestamp.now(),
-      expires_at: Timestamp.fromDate(new Date(Date.now() + 12 * 60 * 60 * 1000)), // 12 hours
-      appointment_datetime: Timestamp.fromDate(appointmentDateTime)
-    });
+      expires_at: Timestamp.fromDate(new Date(Date.now() + 12 * 60 * 60 * 1000))
+    };
+    if (appointmentDateTime) {
+      paymentLinkData.appointment_datetime = Timestamp.fromDate(appointmentDateTime);
+    }
+    const paymentDoc = await db.collection('payment_links').add(paymentLinkData);
 
     // Schedule 1-hour reminder (8-21h window)
     if (appointmentDateTime) {
