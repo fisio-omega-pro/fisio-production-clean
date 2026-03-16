@@ -336,41 +336,14 @@ const getClinicConfiguration = async (clinicId) => {
   }
 };
 
-// --- 📅 OBTENER SLOTS DISPONIBLES (hoy / mañana) ---
-const getAvailableTimeSlots = async (clinicId, when = 'hoy') => {
+// --- 🏥 CLINIC CONFIG (alias corto usado internamente) ---
+const getClinicConfig = async (clinicId) => {
   try {
-    const d = new Date();
-    if (when === 'mañana') d.setDate(d.getDate() + 1);
-    const fecha = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
-
-    const snap = await db.collection('agenda')
-      .where('clinic_id', '==', clinicId)
-      .where('fecha', '==', fecha)
-      .where('estado', '==', 'disponible')
-      .orderBy('hora')
-      .get();
-
-    return snap.docs.map(doc => ({ hora: doc.data().hora, especialista: doc.data().especialista || 'Disponible' }));
+    const doc = await db.collection('clinicas').doc(clinicId).get();
+    return doc.exists ? doc.data() : null;
   } catch (e) {
-    console.error('🔥 [ANA] Error getAvailableTimeSlots:', e.message);
-    return [];
-  }
-};
-
-// --- 👥 OBTENER INFO DEL EQUIPO ---
-const getTeamInfo = async (clinicId) => {
-  try {
-    const snap = await db.collection('clinicas').doc(clinicId).collection('equipo')
-      .where('isOwner', '==', false)
-      .get();
-    const specialists = snap.docs.map(doc => ({
-      name: doc.data().nombre || doc.data().name || 'Especialista',
-      specialty: doc.data().especialidad || doc.data().specialty || ''
-    }));
-    return { count: specialists.length, specialists };
-  } catch (e) {
-    console.error('🔥 [ANA] Error getTeamInfo:', e.message);
-    return { count: 0, specialists: [] };
+    console.error('🔥 [ANA] Error getClinicConfig:', e.message);
+    return null;
   }
 };
 
