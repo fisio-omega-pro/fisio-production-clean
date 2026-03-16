@@ -277,10 +277,67 @@ const anaChat = async (req, res) => {
   }
 };
 
+/**
+ * 🎯 ANA PROSPECTO CHAT - Para leads que quieren conocer FisioTool
+ */
+const anaProspectoChat = async (req, res) => {
+  try {
+    const { message, userName, userEmail } = req.body || {};
+
+    if (!message) {
+      return res.status(400).json({ success: false, error: 'Mensaje requerido' });
+    }
+
+    console.log('🎯 [ANA PROSPECTO] Mensaje recibido:', message);
+
+    // Importar ProspectoSkill
+    const ProspectoSkill = require('../services/skills/prospectoSkill');
+    const { getOrCreateSession, addMessage } = require('../services/conversationMemoryService');
+    
+    const prospectoSkill = new ProspectoSkill();
+    
+    // Crear sesión para el prospecto
+    const userIdentifier = userEmail || `prospect_${Date.now()}`;
+    const session = await getOrCreateSession('global_prospects', userIdentifier, 'web');
+    
+    // Clasificar intent
+    const intent = prospectoSkill.classifyIntent(message);
+    
+    // Ejecutar skill
+    const result = await prospectoSkill.execute(intent, { message }, {
+      userName: userName || null,
+      userEmail: userEmail || null
+    });
+    
+    // Guardar en memoria
+    await addMessage(session.sessionId, 'user', message, { intent });
+    await addMessage(session.sessionId, 'assistant', result.text, {
+      skill: 'prospecto',
+      intent,
+      confidence: result.confidence
+    });
+    
+    console.log('🎯 [ANA PROSPECTO] Respuesta generada:', result.text.substring(0, 100));
+
+    return res.json({
+      success: true,
+      response: result.text,
+      metadata: result.metadata
+    });
+  } catch (e) {
+    console.error('🔥 [ANA PROSPECTO] Error:', e);
+    return res.status(500).json({
+      success: false,
+      response: 'Lo siento, estoy teniendo problemas técnicos. Por favor, intenta de nuevo.'
+    });
+  }
+};
+
 module.exports = {
   submitCorporateLead,
   getClinicInfo,
   anaChat,
+  anaProspectoChat,
   getClinicLogo: async (req, res) => {
     try {
       const clinicId = String(req.params.clinicId || '').trim();
