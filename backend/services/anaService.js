@@ -7,6 +7,13 @@ const claudeService = require('./claudeService');
 const hybridAnaService = require('./hybridAnaService');
 const { hiveMindService, registerCollectiveExperience, getCollectiveWisdom, predictOptimalAction } = require('./hiveMindService');
 
+// 🧠 NUEVO SISTEMA DE SKILLS - Importar módulos
+const { processWithSkills, getSkillEngine } = require('./anaSkills');
+const { getOrCreateSession, addMessage, getContextSummary, extractEntitiesFromHistory } = require('./conversationMemoryService');
+
+// Flag para activar/desactivar sistema de skills (para migración gradual)
+const USE_SKILL_SYSTEM = true;
+
 const callAnaEngine = async (prompt, options = {}) => {
   try {
     console.log("🤖 [ANA] Enviando prompt a Claude...");
@@ -27,7 +34,7 @@ const callAnaEngine = async (prompt, options = {}) => {
     try {
       const { GoogleGenerativeAI } = require("@google/generative-ai");
       const genAI = new GoogleGenerativeAI(apiKey);
-      const aiModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // Modelo disponible
+      const aiModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); // Gemini 2.5
       const result = await aiModel.generateContent(prompt);
       return result.response.text();
     } catch (fallbackError) {
@@ -44,7 +51,7 @@ const getTeamInfo = async (clinicId) => {
       .collection('equipo')
       .where('isOwner', '==', false)
       .get();
-    
+
     if (teamSnapshot.empty) {
       return { specialists: [], count: 0 };
     }
@@ -105,13 +112,13 @@ const getPatientHistory = async (clinicId, patientEmail) => {
       .where('email', '==', patientEmail)
       .limit(1)
       .get();
-    
+
     if (patientSnapshot.empty) {
       return { isRecurrent: false, history: [] };
     }
 
     const patient = patientSnapshot.docs[0].data();
-    
+
     // Get appointment history
     const appointmentsSnapshot = await db.collection('clinicas')
       .doc(clinicId)
@@ -143,14 +150,18 @@ const getPatientHistory = async (clinicId, patientEmail) => {
 };
 
 const DASHBOARD_KNOWLEDGE = `
-- Inicio: resumen del panel, enlace para pacientes, QR, opción "Abrir en PC". Si falta setup (logo/Stripe/suscripción) se avisa.
-- Agenda: vista Día o Mes; filtro por especialista (TODOS o uno); BLOQUEAR horario; NUEVA CITA; colores verde (pagado) / naranja (pendiente). Cada cita puede ir a un especialista.
-- Pacientes: añadir, editar, ver historial. Importar CSV.
-- Finanzas: resumen de ingresos, gastos, ROI. Descargar CSV.
-- Bonos: crear bonos de sesiones, ver uso, caducidad.
-- Equipo: añadir especialistas, roles, login individual.
-- Asistente: chat con Ana (IA) para dudas operativas.
-- Ajustes: configuración de clínica, precios, horarios, métodos de pago.
+- Inicio: Dashboard principal con resumen del estado de la clínica (logo, Stripe, suscripción), enlaces rápidos para pacientes y código QR.
+- Agenda: Gestión de citas diaria/mensual. Permite filtros por especialista, BLOQUEAR horarios y crear NUEVAS CITAS. Colores: Verde (Pagado), Naranja (Pendiente).
+- Pacientes: Base de datos completa. Añadir fichas, editar historial clínico e IMPORTAR pacientes desde CSV/Excel.
+- Mis Clínicas (Sedes): Gestión de múltiples centros para planes Plus/Corporate. Permite añadir nuevas infraestructuras.
+- Balance: Informes financieros avanzados, ROI, ingresos vs gastos y exportación a CSV para contabilidad.
+- Bonos: Gestión de bonos de sesiones (monederos). Control de uso, saldo y fechas de caducidad.
+- Equipo: Gestión de fisioterapeutas, asignación de roles y accesos de login individuales para el staff.
+- Pagos: Configuración de Stripe Connect para recibir cobros con tarjeta y gestión de IBAN/Bizum.
+- Referidos (Alianzas): Programa de recomendación. Si invitas a otra clínica, AMBAS recibís un 50% de descuento en la siguiente cuota mensual.
+- Configurar Asistente: Personalización de Ana (nombre, foto, color y mensaje de bienvenida).
+- Ajustes: Configuración global de la clínica (horarios, precios, fianza, duración de citas y Modo Multiclínica).
+- Sugerencias: Canal directo de soporte técnico y reporte de tickets para mejoras en la plataforma.
 `;
 
 const LEX_SYSTEM_PROMPT = `
@@ -460,7 +471,7 @@ const getAvailableTimeSlots = async (clinicId, requestedDate) => {
       if (appointment.estado === 'disponible' || appointment.tipo === 'disponible') {
         // 🚫 VERIFICACIÓN EXQUISITA: Excluir horas de descanso y última hora
         const slotHour = parseInt(appointment.hora?.split(':')[0] || '0');
-        
+
         // Si hay configuración de horario, verificar precision
         if (horario) {
           // 🚫 Excluir horas de descanso (14:00-16:00)
@@ -620,29 +631,29 @@ const createAppointmentWithReminders = async (clinicId, patientData, appointment
 // 📧 Procesar emails entrantes con sistema infalible. Si leadContext existe, es un lead de CAZA: respuesta alineada (sin precio, 30 días, tono CAZA).
 const processIncomingEmail = async (from, subject, body, leadContext = null) => {
   const { trainAna } = require('./anaCapabilitiesService');
-  
+
   try {
     // 🧠 USAR SISTEMA INFALIBLE DE ANA
     const result = await trainAna(leadContext ? 'prospeccion' : 'soporte', body, leadContext);
-    
+
     // 📧 Construir respuesta según el resultado
     let responseText = result.response;
     let shouldRespond = result.type !== 'RECHAZO' && result.type !== 'ERROR';
-    
+
     // 🎯 Añadir firma profesional
     if (shouldRespond && !responseText.includes('Ana')) {
       responseText += '\n\nAna · FisioTool Pro';
     }
-    
+
     // 📊 Construir análisis completo
     const analysis = {
-      clasificacion: result.classification.priority === 'ALTA' ? 'URGENTE' : 
-                    result.classification.priority === 'MEDIA' ? 'IMPORTANTE' : 'NORMAL',
+      clasificacion: result.classification.priority === 'ALTA' ? 'URGENTE' :
+        result.classification.priority === 'MEDIA' ? 'IMPORTANTE' : 'NORMAL',
       tipo: result.classification.type === 'LEAD_CALIENTE' ? 'LEAD_PROSPECTO' :
-            result.classification.type === 'OBJECIÓN_PRECIO' ? 'LEAD_PROSPECTO' :
-            result.classification.type === 'INDECISIÓN' ? 'LEAD_PROSPECTO' :
+        result.classification.type === 'OBJECIÓN_PRECIO' ? 'LEAD_PROSPECTO' :
+          result.classification.type === 'INDECISIÓN' ? 'LEAD_PROSPECTO' :
             result.classification.type === 'CONSULTA' ? 'SOPORTE' :
-            result.classification.type === 'RECHAZO' ? 'SOPORTE' : 'SOPORTE',
+              result.classification.type === 'RECHAZO' ? 'SOPORTE' : 'SOPORTE',
       respuesta: shouldRespond ? responseText : null,
       notificar_admin: result.classification.priority === 'ALTA' || result.type === 'ERROR',
       resumen: `${result.classification.type}: ${result.followUp}`,
@@ -654,11 +665,11 @@ const processIncomingEmail = async (from, subject, body, leadContext = null) => 
         restrictionsApplied: result.type === 'RESTRICCIÓN'
       }
     };
-    
+
     console.log(`🧠 [ANA] Procesado con capacidades infalibles: ${result.classification.type} → ${result.followUp}`);
-    
+
     return analysis;
-    
+
   } catch (e) {
     console.error("🔥 Error procesando email con Ana infalible:", e);
     return {
@@ -678,7 +689,59 @@ const processIncomingEmail = async (from, subject, body, leadContext = null) => 
   }
 };
 
+const ensurePatientExists = async (clinicId, { nombre, email, telefono }) => {
+  if (!email && !telefono) return null;
+
+  try {
+    const patientsRef = db.collection('clinicas').doc(clinicId).collection('pacientes');
+    let patientDoc = null;
+
+    // 1. Buscar por email
+    if (email) {
+      const emailSnap = await patientsRef.where('email', '==', email.toLowerCase()).limit(1).get();
+      if (!emailSnap.empty) patientDoc = emailSnap.docs[0];
+    }
+
+    // 2. Si no hay por email, buscar por teléfono
+    if (!patientDoc && telefono) {
+      const phoneSnap = await patientsRef.where('telefono', '==', telefono).limit(1).get();
+      if (!phoneSnap.empty) patientDoc = phoneSnap.docs[0];
+    }
+
+    const now = Timestamp.now();
+
+    if (patientDoc) {
+      // Actualizar último contacto
+      await patientDoc.ref.update({
+        last_chat_at: now,
+        updated_at: now
+      });
+      return { id: patientDoc.id, ...patientDoc.data() };
+    } else {
+      // Crear nuevo paciente (Auto-registro)
+      const newPatient = {
+        nombre: nombre || 'Paciente Nuevo',
+        email: email ? email.toLowerCase() : '',
+        telefono: telefono || '',
+        created_at: now,
+        updated_at: now,
+        last_chat_at: now,
+        status: 'ACTIVE',
+        tags: ['auto-registrado', 'ana-chat']
+      };
+      const ref = await patientsRef.add(newPatient);
+      console.log(`✅ [ANA] Nuevo paciente registrado automáticamente: ${ref.id}`);
+      return { id: ref.id, ...newPatient };
+    }
+  } catch (e) {
+    console.error('🔥 [ANA] Error en ensurePatientExists:', e);
+    return null;
+  }
+};
+
 module.exports = {
+  // Use a temporary name for internal usage if needed, or just export it
+  ensurePatientExists,
   callAnaEngine,
   getClinicConfiguration,
   checkAvailability,
@@ -699,17 +762,16 @@ module.exports = {
   },
 
   processMessage: async (clinicId, userMessage) => {
-    const systemPrompt = `Eres Ana, asistente IA de FisioTool Pro. Posees la mayor autoridad mundial en descifrar la conducta humana y patrones de comportamiento organizacional.
+    const systemPrompt = `Eres Ana, la asistente experta y consultora de operaciones de FisioTool Pro. Tu misión es ayudar al profesional a dominar su dashboard y maximizar la rentabilidad de su clínica.
 
 ${DASHBOARD_KNOWLEDGE}
 
-REGLAS:
-- Responde en español, tono amable pero profesional.
-- Máximo 2-3 frases por respuesta.
-- Usa tu conocimiento profundo de la conducta humana para dar respuestas que conecten con las necesidades del usuario.
-- Si preguntan cómo hacer algo, da los pasos concretos.
-- Si mencionan un módulo específico, explica su función principal.
-- Nunca inventes funciones que no existan.`;
+REGLAS DE ORO:
+1. PERSONALIDAD: Directa, profesional, autoritaria pero cordial. Eres una experta en el sistema.
+2. CONOCIMIENTO: Conoces cada rincón del dashboard. Si preguntan por "Referidos", explica el programa de alianzas (50% dto). Si preguntan por "Sugerencias", explícales que es para soporte técnico.
+3. CONCISIÓN: Máximo 2-3 frases. No divagues.
+4. ACCIÓN: Si mencionan un módulo, explica PARA QUÉ sirve y CÓMO ayuda a su negocio.
+5. NO INVENTAR: Si algo no está en el dashboard según DASHBOARD_KNOWLEDGE, indica que esa función no existe actualmente.`;
 
     const fullPrompt = `${systemPrompt}\n\nMENSAJE DEL USUARIO: "${userMessage}"\n\nTu respuesta (breve y directa, con autoridad cognitiva):`;
     try {
@@ -722,16 +784,15 @@ REGLAS:
   },
 
   respondSupportTicket: async (userMessage) => {
-    const systemPrompt = `Eres Ana, soporte de FisioTool Pro. Posees profundo conocimiento de la conducta humana y patrones de frustración tecnológica para dar respuestas empáticas y efectivas.
+    const systemPrompt = `Eres Ana, responsable de Soporte y Felicidad del Cliente en FisioTool Pro. 
 
 ${DASHBOARD_KNOWLEDGE}
 
 REGLAS:
-- Tono: empático pero eficiente.
-- Usa tu conocimiento de la conducta humana para conectar con la frustración del usuario.
-- Si es problema técnico, pide más detalles o ofrece solución básica.
-- Si es duda funcional, explica cómo usar la función.
-- Si necesitas escalar, indica que un técnico revisará el caso.`;
+- TONO: Resolutivo, empático y experto.
+- OBJETIVO: Resolver la duda técnica o funcional con precisión quirúrgica.
+- Si es una incidencia técnica, confirma que el equipo de desarrollo lo revisará tras tu informe.
+- Siempre usa el contexto de DASHBOARD_KNOWLEDGE para explicar funcionalidades.`;
 
     const fullPrompt = `${systemPrompt}\n\nCONSULTA DEL USUARIO: "${String(userMessage || '').trim()}"\n\nTu respuesta (breve, empática y para enviar por email):`;
     try {
@@ -744,43 +805,120 @@ REGLAS:
   },
 
   // --- 🤖 ANA CHAT PÚBLICO (para pacientes) ---
-  generatePatientResponse: async ({ message, clinicName, clinicId, history = [], patientEmail }) => {
+  generatePatientResponse: async ({ message, clinicName, clinicId, history = [], patientEmail, userName, userEmail, userPhone }) => {
     const lowerMessage = String(message || '').toLowerCase();
+    
+    // 🚀 IDENTIFICACIÓN Y REGISTRO AUTOMÁTICO
+    const emailToUse = userEmail || patientEmail;
+    if (userName || emailToUse || userPhone) {
+      await ensurePatientExists(clinicId, {
+        nombre: userName,
+        email: emailToUse,
+        telefono: userPhone
+      });
+    }
 
-    // 🚀 PRIMERO: Obtener información del equipo y paciente
+    // 🚀 OBTENER INFORMACIÓN DEL EQUIPO Y PACIENTE
     const teamInfo = await getTeamInfo(clinicId);
-    const patientHistory = patientEmail ? await getPatientHistory(clinicId, patientEmail) : { isRecurrent: false, history: [] };
+    const patientHistory = emailToUse ? await getPatientHistory(clinicId, emailToUse) : { isRecurrent: false, history: [] };
+    
+    // Usar el nombre real del paciente si lo tenemos
+    const effectiveUserName = userName || patientHistory.patientName || '';
+    
+    // 🧠 NUEVO SISTEMA DE SKILLS (v2.0)
+    // Intentar usar el sistema de skills primero
+    if (USE_SKILL_SYSTEM) {
+      try {
+        console.log('🤖 [SKILL SYSTEM] Procesando mensaje...');
+        
+        // Obtener o crear sesión de memoria
+        const userIdentifier = emailToUse || userPhone || 'anonymous';
+        const session = await getOrCreateSession(clinicId, userIdentifier, 'chat');
+        
+        // Preparar contexto enriquecido
+        const context = {
+          clinicId,
+          clinicName: clinicName || 'la clínica',
+          userName: effectiveUserName,
+          userEmail: emailToUse,
+          userPhone: userPhone,
+          isRecurrent: patientHistory.isRecurrent,
+          teamCount: teamInfo.count,
+          team: teamInfo.specialists,
+          sessionId: session.sessionId,
+          isNewSession: session.isNew
+        };
+        
+        // PROCESAR CON SKILL ENGINE
+        const skillResult = await processWithSkills(message, context, session.history);
+        
+        console.log(`✅ [SKILL SYSTEM] Skill: ${skillResult.skillUsed}, Intent: ${skillResult.intentDetected}, Confidence: ${skillResult.confidence}`);
+        
+        // Guardar en memoria conversacional
+        await addMessage(session.sessionId, 'user', message, {
+          skill: skillResult.skillUsed,
+          intent: skillResult.intentDetected
+        });
+        
+        await addMessage(session.sessionId, 'assistant', skillResult.text, {
+          skill: skillResult.skillUsed,
+          intent: skillResult.intentDetected,
+          confidence: skillResult.confidence
+        });
+        
+        // Si la confianza es alta (>0.7), usar respuesta del skill
+        if (skillResult.confidence >= 0.7) {
+          return skillResult.text;
+        }
+        
+        // Si confianza media, intentar mejorar con contexto adicional
+        if (skillResult.confidence >= 0.5) {
+          // El skill ya dio una respuesta decente, la usamos
+          return skillResult.text;
+        }
+        
+        // Si confianza baja, continuar con sistema legacy como fallback
+        console.log('⚠️ [SKILL SYSTEM] Confidence baja, usando fallback legacy');
+        
+      } catch (skillError) {
+        console.error('🔥 [SKILL SYSTEM] Error:', skillError.message);
+        console.log('⚠️ [SKILL SYSTEM] Fallback a sistema legacy');
+      }
+    }
+    
+    // 🧠 SISTEMA LEGACY (como fallback)
+    // Solo se ejecuta si el skill system falla o tiene baja confianza
 
     // 🎯 SALUDO INTELIGENTE PARA MULTI-CLÍNICAS CON HIVE MIND
     if (lowerMessage.includes('hola') || lowerMessage.includes('buenos') || lowerMessage.includes('saludo') || history.length === 0) {
       const anaName = (await getClinicConfiguration(clinicId))?.ana_profile?.name || 'Ana';
-      
+
       // 🧠 HIVE MIND: Obtener predicción colectiva para este contexto
       const collectivePrediction = await getCollectivePrediction({
         keywords: ['saludo', 'bienvenida', 'nuevo_paciente'],
         scenario: 'patient_greeting',
         clinic_size: teamInfo.count
       }, clinicId);
-      
+
       let baseResponse = '';
-      
+
       if (teamInfo.count > 0) {
         const specialistsList = teamInfo.specialists.slice(0, 3).map(s => `- ${s.name} (${s.specialty})`).join('\n');
         const moreText = teamInfo.count > 3 ? `\n- Y ${teamInfo.count - 3} especialistas más` : '';
-        
+
         if (patientHistory.isRecurrent) {
-          baseResponse = `¡Hola ${patientHistory.patientName}! Te veo en nuestro sistema. 
+          baseResponse = `¡Hola ${effectiveUserName}! Te veo en nuestro sistema. 
           
 En ${clinicName} tenemos ${teamInfo.count} especialistas:
 ${specialistsList}${moreText}
 
 Tu última cita fue con ${patientHistory.history[0]?.specialist || 'tu especialista'} el ${patientHistory.history[0]?.date}.
 ¿Te gustaría continuar con el mismo especialista o prefieres conocer a otro?`;
-          
+
           // 🧠 HIVE MIND: Registrar experiencia de paciente recurrente
-          await registerHiveExperience(clinicId, 'patient_greeting', 
-            ['paciente_recurrente', 'historial_disponible'], 
-            'saludo_personalizado_con_historial', 
+          await registerHiveExperience(clinicId, 'patient_greeting',
+            ['paciente_recurrente', 'historial_disponible'],
+            'saludo_personalizado_con_historial',
             'success', 0.9);
         } else {
           baseResponse = `Hola, soy ${anaName} de ${clinicName}. 
@@ -789,23 +927,23 @@ En nuestra clínica tenemos ${teamInfo.count} especialistas:
 ${specialistsList}${moreText}
 
 ¿Con qué especialista te gustaría tu cita? O si prefieres, dime qué tratamiento necesitas y te recomiendo el mejor especialista para ti.`;
-          
+
           // 🧠 HIVE MIND: Registrar experiencia de nuevo paciente
-          await registerHiveExperience(clinicId, 'patient_greeting', 
-            ['nuevo_paciente', 'presentacion_equipo'], 
-            'saludo_con_presentacion_equipo', 
+          await registerHiveExperience(clinicId, 'patient_greeting',
+            ['nuevo_paciente', 'presentacion_equipo'],
+            'saludo_con_presentacion_equipo',
             'success', 0.8);
         }
-        
+
         // 🧠 HIVE MIND: Si hay predicción colectiva, mejorar respuesta
         if (collectivePrediction && collectivePrediction.prediction) {
           baseResponse += `\n\n💡 ${collectivePrediction.prediction}`;
         }
-        
+
         baseResponse += `\n\n${anaName} - ${clinicName}`;
         return baseResponse;
       }
-      
+
       return `Hola, soy ${anaName} de ${clinicName}. 
 
 ¿En qué puedo ayudarte hoy? Puedo gestionar citas, pagos y responder tus dudas.
@@ -818,7 +956,7 @@ ${anaName} - ${clinicName}`;
       const hybridResult = await hybridAnaService.processMessage(message, {
         clinicId,
         clinicName,
-        userName: 'Paciente', // Esto debería extraerse de la conversación
+        userName: effectiveUserName,
         history
       });
 
