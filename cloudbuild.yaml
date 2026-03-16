@@ -2,11 +2,11 @@
 steps:
   # Build the container image
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '--no-cache', '-t', 'gcr.io/fisiotool-pro-2026/fisio-backend:$COMMIT_SHA', '.']
+    args: ['build', '--no-cache', '-t', 'gcr.io/fisiotool-pro-2026/fisio-backend:latest', '.']
   
   # Push the container image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/fisiotool-pro-2026/fisio-backend:$COMMIT_SHA']
+    args: ['push', 'gcr.io/fisiotool-pro-2026/fisio-backend:latest']
   
   # Deploy container image to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -16,14 +16,18 @@ steps:
       - 'deploy'
       - 'fisio-backend-omega'
       - '--image'
-      - 'gcr.io/fisiotool-pro-2026/fisio-backend:$COMMIT_SHA'
+      - 'gcr.io/fisiotool-pro-2026/fisio-backend:latest'
       - '--region'
       - 'europe-west1'
       - '--platform'
       - 'managed'
       - '--allow-unauthenticated'
+      - '--memory'
+      - '1Gi'
+      - '--timeout'
+      - '300s'
 
 images:
-  - 'gcr.io/fisiotool-pro-2026/fisio-backend:$COMMIT_SHA'
+  - 'gcr.io/fisiotool-pro-2026/fisio-backend:latest'
 
 timeout: '1200s'
