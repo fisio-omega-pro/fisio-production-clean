@@ -292,11 +292,7 @@ function AnaChatContent() {
     setIsTyping(true);
 
     try {
-      const apiUrl = 'https://fisiotool.com/api/public/ana-chat';
-      // console.log('🔍 [ANA] API URL:', apiUrl); // ELIMINADO PARA PRODUCCIÓN
-      // console.log('🔍 [ANA] Sending payload:', JSON.stringify({ message: messageToSend, clinicId, history: messages }, null, 2)); // ELIMINADO PARA PRODUCCIÓN
-
-      const response = await fetch(apiUrl, {
+      const response = await fetch('/api/public/ana-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
