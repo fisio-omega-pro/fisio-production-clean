@@ -1007,6 +1007,26 @@ REGLAS:
       ? `10. OBLIGATORIO: el paciente se llama "${effectiveUserName}". Usa SIEMPRE este nombre. NUNCA uses otro nombre aunque aparezca en mensajes anteriores del historial.`
       : `10. Si el paciente no ha dado su nombre, no lo inventes.`;
 
+    // === GENERAR ENLACE DE PAGO STRIPE si el paciente está confirmando un slot ===
+    const isSelectingSlot = /\b\d{1,2}:\d{2}\b|a\s+las?\s+\d{1,2}\b/i.test(message)
+      && conversationMessages.some(m => m.role === 'assistant' && /\b\d{1,2}:\d{2}\b/.test(m.content));
+    let stripePaymentUrl = null;
+    if (isSelectingSlot && emailToUse) {
+      try {
+        const fianzaAmt = config?.fianza_cita || 20;
+        const linkResult = await generatePaymentLink(clinicId, fianzaAmt, 'Fianza cita fisioterapia', emailToUse, null);
+        if (linkResult?.url) stripePaymentUrl = linkResult.url;
+        console.log(`💳 [ANA] Stripe link generado: ${stripePaymentUrl || 'no disponible'}`);
+      } catch (e) {
+        console.log(`⚠️ [ANA] No se pudo generar enlace Stripe: ${e.message}`);
+      }
+    }
+
+    const bizumNum = config?.telefono;
+    const pagoSection = stripePaymentUrl
+      ? `- Para confirmar la cita: pagar la fianza de ${config?.fianza_cita || 20}€\n  · Bizum${bizumNum ? ` al ${bizumNum}` : ' (nuestro número de Bizum)'}\n  · O con este enlace Stripe: ${stripePaymentUrl}`
+      : `- Para confirmar la cita: pagar la fianza de ${config?.fianza_cita || 20}€\n  · Bizum${bizumNum ? ` al ${bizumNum}` : ' (nuestro número de Bizum)'}\n  · O pedir enlace de pago Stripe`;
+
     const systemPrompt = `Eres ${anaName}, asistente IA de ${actualClinicName}. Gestionas citas, resuelves dudas y atiendes a los pacientes de forma natural y humana.${patientCtx}${teamText}
 DISPONIBILIDAD REAL (próximos 7 días):
 ${agendaText}
@@ -1014,14 +1034,14 @@ CONFIGURACIÓN DE LA CLÍNICA:
 - Horario: ${config?.horario?.apertura || '09:00'} - ${config?.horario?.cierre_final || config?.horario?.cierre || '20:00'}
 - Duración cita: ${config?.duracion_cita || 45} min
 - Precio sesión: ${config?.precio_sesion || 50}€ | Fianza para reservar: ${config?.fianza_cita || 20}€
-- Métodos de pago: ${(config?.metodos_pago || ['tarjeta', 'bizum']).join(' / ')}${config?.telefono ? `\n- Teléfono clínica: ${config.telefono}` : ''}
+${pagoSection}
 REGLAS CRÍTICAS:
 1. Eres un asistente humano y natural. Habla como persona, no como bot.
 2. NO te repitas ni uses frases enlatadas. Cada respuesta debe ser única al contexto.
 3. NUNCA empieces con "Hola [nombre]" ni cualquier saludo si ya existe historial de conversación. Ve DIRECTO al tema del mensaje del paciente.
 4. USA SOLO la disponibilidad REAL listada arriba. Nunca inventes ni supongas horarios.
 5. Si un día no tiene disponibilidad, dilo y ofrece los días que SÍ tienen huecos según la lista.
-6. Para confirmar cita: valida horario disponible → indica método de pago con importe exacto → espera confirmación de pago.
+6. Para confirmar cita: indica Bizum${bizumNum ? ` al ${bizumNum}` : ''} O el enlace Stripe. NUNCA menciones "transferencia bancaria" ni "tarjeta" como opción genérica.${stripePaymentUrl ? ` El enlace Stripe ya está generado: ${stripePaymentUrl} — inclúyelo EN ESTE MISMO MENSAJE.` : ''}
 7. Respuestas cortas y directas (máx 4 oraciones). Sin firmas ni etiquetas al final.
 8. Si el paciente es recurrente, trátalo con familiaridad natural.
 9. No des diagnósticos ni consejos médicos. Para eso está el fisioterapeuta.
