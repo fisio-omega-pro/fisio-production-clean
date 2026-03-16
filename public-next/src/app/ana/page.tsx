@@ -10,6 +10,20 @@ declare global {
   }
 }
 
+// 🍪 Cookie helpers - persisten entre browser y PWA instalada (localStorage no en iOS)
+const setCookie = (name: string, value: string, days = 365) => {
+  if (typeof document === 'undefined') return;
+  const expires = new Date(Date.now() + days * 864e5).toUTCString();
+  document.cookie = `${name}=${encodeURIComponent(value)};expires=${expires};path=/;SameSite=Lax`;
+};
+const getCookie = (name: string): string => {
+  if (typeof document === 'undefined') return '';
+  return document.cookie.split('; ').reduce((acc, part) => {
+    const [k, v] = part.split('=');
+    return k === name ? decodeURIComponent(v || '') : acc;
+  }, '');
+};
+
 function AnaChatContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -43,17 +57,17 @@ function AnaChatContent() {
   const [showForm, setShowForm] = useState(true);
   const [showiOSModal, setShowiOSModal] = useState(false);
 
-  // 🏪 Cargar persistencia de sesión
+  // � Cargar persistencia de sesión (localStorage + cookies para compatibilidad PWA iOS)
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const savedName = localStorage.getItem(`ana_user_name_${clinicId}`);
-      const savedEmail = localStorage.getItem(`ana_user_email_${clinicId}`);
-      const savedPhone = localStorage.getItem(`ana_user_phone_${clinicId}`);
-      
-      // TEMPORALMENTE FORZAR A MOSTRAR FORMULARIO PARA NUEVOS USUARIOS DEL EMAIL
+      // Intentar localStorage primero, luego cookies como fallback (PWA iOS tiene localStorage aislado)
+      const savedName  = localStorage.getItem(`ana_user_name_${clinicId}`)  || getCookie(`ana_name_${clinicId}`);
+      const savedEmail = localStorage.getItem(`ana_user_email_${clinicId}`) || getCookie(`ana_email_${clinicId}`);
+      const savedPhone = localStorage.getItem(`ana_user_phone_${clinicId}`) || getCookie(`ana_phone_${clinicId}`);
+
       const urlParams = new URLSearchParams(window.location.search);
       const fromEmail = urlParams.get('from') === 'email';
-      
+
       if (savedName && savedEmail && !fromEmail) {
         setUserName(savedName);
         setUserEmail(savedEmail);
@@ -61,7 +75,6 @@ function AnaChatContent() {
         setUserRegistered(true);
         setShowForm(false);
       } else {
-        // Si viene del email o no está registrado, mostrar formulario
         setShowForm(true);
         setUserRegistered(false);
       }
@@ -195,12 +208,15 @@ function AnaChatContent() {
     setUserRegistered(true);
     setShowForm(false);
 
-    // Guardar en persistencia local
+    // Guardar en localStorage Y cookies (cookies persisten en PWA iOS donde localStorage es aislado)
     if (typeof window !== 'undefined') {
       localStorage.setItem(`ana_user_name_${clinicId}`, userName);
       localStorage.setItem(`ana_user_email_${clinicId}`, userEmail);
       localStorage.setItem(`ana_user_phone_${clinicId}`, userPhone);
       localStorage.setItem(`ana_registered_${clinicId}`, 'true');
+      setCookie(`ana_name_${clinicId}`, userName);
+      setCookie(`ana_email_${clinicId}`, userEmail);
+      setCookie(`ana_phone_${clinicId}`, userPhone);
     }
 
     // Trigger initial welcome message from Ana via backend (SILENTLY)
