@@ -616,11 +616,11 @@ const generatePaymentLink = async (clinicId, amount, concepto, patientEmail, app
 
     // stripe_account_id se guarda directamente en el doc de la clínica al conectar Stripe Connect
     const stripeAccountId = clinicConfig.stripe_account_id;
-    const stripeStatus = clinicConfig.stripe_status;
-    if (!stripeAccountId || stripeStatus === 'pending' || stripeStatus === 'inactive') {
-      console.log(`⚠️ [ANA] Stripe no activo para clínica ${clinicId}: status=${stripeStatus || 'sin configurar'}`);
+    if (!stripeAccountId) {
+      console.log(`⚠️ [ANA] Clínica ${clinicId} sin stripe_account_id configurado`);
       return { error: 'Clinic not connected to Stripe' };
     }
+    console.log(`💳 [ANA] Generando enlace Stripe para cuenta ${stripeAccountId}`);
 
     // Create payment session
     const paymentResult = await createOneTimePaymentSession(
