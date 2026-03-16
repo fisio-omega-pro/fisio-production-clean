@@ -1065,6 +1065,56 @@ ${nameRule}`;
         : `${saludo}. Soy ${anaName} de ${actualClinicName}. Estoy teniendo dificultades técnicas. Por favor, inténtalo de nuevo en unos minutos.`;
     }
 
+    // === FASE 6.5: CREAR CITA EN FIRESTORE SI EL PACIENTE CONFIRMA PAGO ===
+    const paymentConfirmKeywords = /(?:ya\s+)?(?:hice|hizo|realic[eé]|envié?|mand[eé]|pagué?|pagado|abonado|transfer(?:ido|encia\s+hecha?)?|bizum(?:eé)?|he\s+pagado|hecho\s+el\s+pago|pago\s+(?:realizado|hecho|enviado))/i;
+    if (paymentConfirmKeywords.test(message)) {
+      try {
+        const MONTHS_ES = { enero:1,febrero:2,marzo:3,abril:4,mayo:5,junio:6,julio:7,agosto:8,septiembre:9,octubre:10,noviembre:11,diciembre:12 };
+        // Escanear todos los mensajes de Ana (historial + respuesta actual) buscando fecha+hora
+        const anaTexts = [
+          ...conversationMessages.filter(m => m.role === 'assistant').map(m => m.content),
+          response
+        ];
+        let bookingDate = null;
+        let bookingTime = null;
+        for (const text of [...anaTexts].reverse()) {
+          if (!bookingTime) {
+            const t = text.match(/\b(\d{1,2}:\d{2})\b/);
+            if (t) bookingTime = t[1].length === 4 ? '0' + t[1] : t[1];
+          }
+          if (!bookingDate) {
+            const d = text.match(/\b(\d{1,2})\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\b/i);
+            if (d) {
+              const day = d[1].padStart(2, '0');
+              const month = String(MONTHS_ES[d[2].toLowerCase()]).padStart(2, '0');
+              const year = new Date().getFullYear();
+              bookingDate = `${year}-${month}-${day}`;
+            }
+          }
+          if (bookingDate && bookingTime) break;
+        }
+        if (bookingDate && bookingTime) {
+          await db.collection('citas').add({
+            clinic_id: clinicId,
+            nombre: effectiveUserName || 'Paciente',
+            email: emailToUse || '',
+            telefono: phoneToUse || '',
+            fecha: bookingDate,
+            hora: bookingTime,
+            estado: 'pendiente',
+            created_by: 'ana',
+            created_at: Timestamp.now(),
+            updated_at: Timestamp.now()
+          });
+          console.log(`✅ [ANA] Cita creada en Firestore: ${bookingDate} ${bookingTime} → ${effectiveUserName || 'Paciente'}`);
+        } else {
+          console.log(`⚠️ [ANA] Pago confirmado pero no se extrajo fecha/hora del historial`);
+        }
+      } catch (e) {
+        console.error('🔥 [ANA] Error creando cita tras confirmación de pago:', e.message);
+      }
+    }
+
     // === FASE 7: GUARDAR EN SESIÓN CONVERSACIONAL ===
     try {
       await addMessage(session.sessionId, 'user', message, { clinicId });
