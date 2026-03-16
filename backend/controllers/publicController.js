@@ -196,7 +196,7 @@ const submitCorporateLead = async (req, res) => {
 // --- 🤖 ANA CHAT PÚBLICO (para pacientes) ---
 const getClinicInfo = async (req, res) => {
   try {
-    const ref = String(req.query.ref || '').trim();
+    const ref = String(req.query.ref || req.query.clinicId || '').trim();
     if (!ref) return res.status(400).json({ success: false, error: 'ref requerido' });
 
     const doc = await db.collection('clinicas').doc(ref).get();

@@ -256,10 +256,18 @@ function AnaChatContent() {
             }]);
           }, 3000);
         }
+      } else {
+        // Backend returned success:false — mostrar error claro
+        setMessages([{
+          role: 'ana',
+          text: data.error === 'Clínica no encontrada'
+            ? 'Lo siento, no he podido conectar con la clínica. Por favor, usa el enlace oficial o contacta directamente con la clínica.'
+            : `Lo siento, ha ocurrido un error. Por favor, inténtalo de nuevo.`,
+          timestamp: Date.now()
+        }]);
       }
     } catch (e) {
-      console.error('🔥 Error sending registration welcome:', e);
-      // Fallback if API fails
+      console.error('Error sending registration welcome:', e);
       setMessages([{
         role: 'ana',
         text: `¡Hola ${userName}! Ya te he registrado. ¿Cómo puedo ayudarte?`,
