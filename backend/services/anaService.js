@@ -328,7 +328,11 @@ const getClinicConfiguration = async (clinicId) => {
       // Información básica
       nombre_clinica: clinicData.nombre_clinica || clinicData.nombre || 'la clínica',
       email: clinicData.email || '',
-      telefono: clinicData.telefono || ''
+      telefono: clinicData.telefono || '',
+
+      // Stripe Connect
+      stripe_account_id: clinicData.stripe_account_id || null,
+      stripe_status: clinicData.stripe_status || null
     };
   } catch (e) {
     console.error('🔥 [ANA] Error reading clinic config:', e);
