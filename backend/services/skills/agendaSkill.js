@@ -8,9 +8,9 @@
  * - Manejar preferencias de especialista
  */
 
-const { Skill } = require('./anaSkillEngine');
-const { db } = require('../config/firebase');
-const { getCollectiveWisdom } = require('./hiveMindService');
+const { Skill } = require('../anaSkillEngine');
+const { db } = require('../../config/firebase');
+const { getCollectiveWisdom } = require('../hiveMindService');
 
 class AgendaSkill extends Skill {
   constructor() {
