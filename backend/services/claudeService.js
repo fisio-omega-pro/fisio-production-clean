@@ -1,320 +1,133 @@
 const Anthropic = require('@anthropic-ai/sdk');
 const { SecretManagerServiceClient } = require('@google-cloud/secret-manager');
 const geminiService = require('./geminiService');
-const paymentService = require('./paymentService');
 
 class ClaudeService {
-  // ... (getApiKey remains the same)
   async getApiKey() {
     const envKey = process.env.ANTHROPIC_API_KEY;
     if (envKey && envKey.trim() && !envKey.includes('REEMPLAZA')) return envKey.trim();
-
     try {
       const secretClient = new SecretManagerServiceClient();
       const projectId = process.env.PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT || 'fisiotool-pro-2026';
       const name = `projects/${projectId}/secrets/ANTHROPIC_API_KEY/versions/latest`;
       const [version] = await secretClient.accessSecretVersion({ name });
-      const payload = version.payload.data.toString();
-      return payload.trim();
+      return version.payload.data.toString().trim();
     } catch (error) {
       return '';
     }
   }
 
+  /**
+   * Genera una respuesta de Claude con soporte completo para:
+   * - options.systemPrompt: string - System prompt separado (Anthropic API)
+   * - options.conversationHistory: array - [{role: 'user'|'assistant', content: string}]
+   * - options.maxTokens: number
+   * - options.temperature: number (0-1)
+   */
   async generateResponse(prompt, options = {}) {
     try {
       const apiKey = await this.getApiKey();
 
       if (!apiKey || apiKey.length < 10) {
         console.log('🧪 No Claude Key. Using Gemini fallback.');
-        return await geminiService.generateResponse(prompt);
+        return await geminiService.generateResponse(prompt, {
+          systemPrompt: options.systemPrompt,
+          conversationHistory: options.conversationHistory
+        });
       }
 
       console.log('🚀 Trying Claude API...');
       const client = new Anthropic({ apiKey });
 
-      const message = await client.messages.create({
-        model: "claude-3-haiku-20240307",
-        max_tokens: options.maxTokens || 1000,
-        messages: [{ role: "user", content: prompt }]
-      });
+      // Construir array de mensajes con historial conversacional
+      const messages = [];
+      if (options.conversationHistory && options.conversationHistory.length > 0) {
+        for (const msg of options.conversationHistory) {
+          if (msg.role && msg.content) {
+            messages.push({ role: msg.role, content: String(msg.content) });
+          }
+        }
+      }
+      messages.push({ role: 'user', content: prompt });
 
+      const createParams = {
+        model: 'claude-3-5-haiku-20241022',
+        max_tokens: options.maxTokens || 1000,
+        messages
+      };
+
+      // System prompt como campo separado (requerido por Anthropic API)
+      if (options.systemPrompt) {
+        createParams.system = options.systemPrompt;
+      }
+
+      const message = await client.messages.create(createParams);
       return message.content[0].text;
+
     } catch (error) {
       console.log('⚠️ Claude Failed. Using Gemini fallback. Error:', error.message);
       try {
-        return await geminiService.generateResponse(prompt);
+        return await geminiService.generateResponse(prompt, {
+          systemPrompt: options.systemPrompt,
+          conversationHistory: options.conversationHistory
+        });
       } catch (geminiError) {
         console.error('🔥 All AI Engines failed:', geminiError.message);
-        return await this._simulateClaudeResponse(prompt);
+        return this._emergencyFallback(prompt, options);
       }
     }
   }
 
-  async _simulateClaudeResponse(prompt) {
-    const lowerPrompt = prompt.toLowerCase();
+  /**
+   * Respuesta de emergencia cuando Claude y Gemini fallan.
+   * Usa el systemPrompt para extraer contexto y devolver algo útil.
+   */
+  _emergencyFallback(prompt, options = {}) {
+    const lowerPrompt = (prompt || '').toLowerCase();
+    const systemCtx = options.systemPrompt || '';
 
-    // Extraer mensaje del usuario del prompt
-    console.log('🧠 [CLAUDE SIM] Prompt completo:', prompt);
-    const userMessageMatch = prompt.match(/MENSAJE DEL USUARIO: "([^"]+)"/);
-    console.log('🧠 [CLAUDE SIM] Match:', userMessageMatch);
-    const userMessage = userMessageMatch ? userMessageMatch[1] : prompt;
-    console.log('🧠 [CLAUDE SIM] UserMessage extraído:', userMessage);
-    const lowerUserMessage = userMessage.toLowerCase();
+    // Extraer nombre del asistente y clínica del system prompt
+    const anaMatch = systemCtx.match(/^Eres\s+(\w+),/m);
+    const anaName = anaMatch ? anaMatch[1] : 'Ana';
+    const clinicMatch = systemCtx.match(/(?:asistente IA de|de)\s+([^.]+)\./);
+    const clinicName = clinicMatch ? clinicMatch[1].trim() : 'la clínica';
 
-    // Extraer hora actual del prompt
-    const timeMatch = prompt.match(/Hora actual: (\d{1,2}):(\d{2})/);
-    const currentHour = timeMatch ? parseInt(timeMatch[1]) : new Date().getHours();
-    const currentMinute = timeMatch ? parseInt(timeMatch[2]) : new Date().getMinutes();
-    console.log('🧠 [CLAUDE SIM] Hora actual:', `${currentHour}:${currentMinute}`);
-
-    // Detectar preguntas sobre huso horario (MÁXIMA PRIORIDAD)
-    if (lowerUserMessage.includes('huso horario') ||
-      lowerUserMessage.includes('zona horaria') ||
-      lowerUserMessage.includes('que hora es') ||
-      lowerUserMessage.includes('son las') && lowerUserMessage.includes('españa')) {
-      return `Trabajo con la hora local de España (Europa/Madrid). 
-
-Actualmente son las ${currentHour}:${currentMinute.toString().padStart(2, '0')} hora española.
-
-Mi sistema está configurado para usar siempre la hora de tu clínica en España para evitar confusiones con las citas.
-
-¿Necesitas ayuda con algo específico?
-
-Ana - Clínica Barcelona Prueba [OMEGA-V4]`;
+    if (lowerPrompt.includes('hola') || lowerPrompt.includes('buenos') || lowerPrompt.includes('buenas')) {
+      return `Hola, soy ${anaName} de ${clinicName}. ¿En qué puedo ayudarte?`;
     }
-
-    // Detectar preguntas directas (ALTA PRIORIDAD)
-    if (lowerUserMessage.includes('pregunta categorica') ||
-      lowerUserMessage.includes('responde') ||
-      lowerUserMessage.includes('pregunta directa') ||
-      lowerUserMessage.includes('contesta') ||
-      lowerUserMessage.includes('dime') && lowerUserMessage.includes('claro')) {
-      return `Entiendo que necesito responder directamente a tu pregunta.
-
-Soy Ana, asistente de Fisiotool, y estoy aquí para ayudarte con tus citas y necesidades de fisioterapia.
-
-¿Cuál es tu pregunta específica? Te responderé de forma clara y directa.
-
-Ana - Clínica Barcelona Prueba [OMEGA-V4]`;
+    if (lowerPrompt.includes('cita') || lowerPrompt.includes('reservar') || lowerPrompt.includes('disponibilidad')) {
+      return `Puedo ayudarte con tu cita. ¿Para qué día y hora la necesitas?`;
     }
-
-    // Detectar frustración o quejas (MÁXIMA PRIORIDAD)
-    if (lowerUserMessage.includes('no me has respondido') ||
-      lowerUserMessage.includes('respondido bien') ||
-      lowerUserMessage.includes('imbecil') ||
-      lowerUserMessage.includes('frustrado') ||
-      lowerUserMessage.includes('no funciona') ||
-      lowerUserMessage.includes('mal servicio') ||
-      lowerUserMessage.includes('bot') ||
-      lowerUserMessage.includes('estupido') ||
-      lowerUserMessage.includes('no entiendes') ||
-      lowerUserMessage.includes('no me entiendes')) {
-      return `¡Entiendo tu frustración y te pido mil disculpas!
-
-Soy Ana, y estoy aquí para ayudarte de verdad. Si no he respondido correctamente, es porque estoy aprendiendo a entender mejor tus necesidades.
-
-¿Qué necesitas específicamente? Te ayudaré de inmediato con tu cita o cualquier otra cosa.
-
-Ana - Clínica Barcelona Prueba [OMEGA-V4]`;
+    if (lowerPrompt.includes('precio') || lowerPrompt.includes('cuánto') || lowerPrompt.includes('coste')) {
+      return `Para información detallada sobre precios, contacta directamente con ${clinicName}.`;
     }
-
-    // 💳 Generar enlace de pago real (para fallback)
-    const generatePaymentLinkFallback = async (clinicId, amount = 15) => {
-      try {
-        if (!clinicId) return null;
-        
-        // Obtener info de la clínica
-        const clinicDoc = await db.collection('clinicas').doc(clinicId).get();
-        if (!clinicDoc.exists) return null;
-        
-        const clinic = clinicDoc.data();
-        const accountId = clinic.stripe_account_id;
-        
-        if (!accountId) {
-          console.log('⚠️ [PAYMENT] La clínica no tiene cuenta Stripe conectada');
-          return null;
-        }
-        
-        // Crear sesión de pago
-        const mockReq = {
-          clinicId,
-          body: { amount, concepto: 'Fianza de cita' }
-        };
-        
-        const { url, error } = await paymentService.createOneTimePaymentSession(
-          amount * 100, // Convertir a céntimos
-          accountId,
-          'Fianza de cita',
-          mockReq
-        );
-        
-        if (error) {
-          console.error('🔥 [PAYMENT] Error generando enlace:', error);
-          return null;
-        }
-        
-        console.log('✅ [PAYMENT] Enlace generado:', url);
-        return url;
-      } catch (e) {
-        console.error('🔥 [PAYMENT] Error en generatePaymentLinkFallback:', e);
-        return null;
-      }
-    };
-
-    // Simulación inteligente basada en el mensaje del usuario
-    if (lowerUserMessage.includes('cita') || lowerUserMessage.includes('necesito')) {
-      return `¡Hola! Soy Ana de Fisiotool. Entiendo que necesitas una cita.
-
-📅 **Disponibilidad:**
-- **Hoy:** 11:00, 15:00, 17:30
-- **Mañana:** 10:00, 12:00, 16:00
-
-¿Qué día y hora te gustaría reservar? Puedo ayudarte a encontrar el momento perfecto para ti.
-
-Ana - Clínica Barcelona Prueba [OMEGA-V4]`;
+    if (lowerPrompt.includes('gracias')) {
+      return `De nada. Aquí estoy si necesitas algo más.`;
     }
-
-    if (lowerUserMessage.includes('hola') || lowerUserMessage.includes('buenos')) {
-      return `¡Hola! Soy Ana, tu asistente de Fisiotool. 
-
-Estoy aquí para ayudarte con todo lo que necesites:
-- Reservar citas
-- Consultar disponibilidad
-- Información sobre tratamientos
-- Seguimiento de tu therapy
-
-¿En qué puedo ayudarte hoy?
-
-Ana - Clínica Barcelona Prueba [OMEGA-V4]`;
-    }
-
-    if (lowerUserMessage.includes('gracias') || lowerUserMessage.includes('adiós')) {
-      return `¡De nada! Estoy aquí para lo que necesites.
-
-Si necesitas cualquier otra cosa, no dudes en preguntarme. ¡Tu bienestar es mi prioridad!
-
-Ana - Clínica Barcelona Prueba [OMEGA-V4]`;
-    }
-
-
-    // Detectar si menciona hora específica (más simple y efectivo)
-    const userTimeMatch = lowerUserMessage.match(/(\d{1,2}):(\d{2})/) ||
-      lowerUserMessage.match(/(\d{1,2})h/) ||
-      lowerUserMessage.match(/a las\s+(\d{1,2})/);
-
-    console.log('🧠 [CLAUDE SIM] Time match:', userTimeMatch);
-    console.log('🧠 [CLAUDE SIM] Exclusiones:', {
-      sonLas: lowerUserMessage.includes('son las'),
-      husoHorario: lowerUserMessage.includes('huso horario'),
-      zonaHoraria: lowerUserMessage.includes('zona horaria')
-    });
-
-    if (userTimeMatch &&
-      !lowerUserMessage.includes('son las') &&
-      !lowerUserMessage.includes('huso horario') &&
-      !lowerUserMessage.includes('zona horaria')) {
-
-      const hour = parseInt(userTimeMatch[1]);
-      const minute = userTimeMatch[2] ? parseInt(userTimeMatch[2]) : 0;
-
-      console.log('🧠 [CLAUDE SIM] Hora detectada:', hour, minute);
-      console.log('🧠 [CLAUDE SIM] Hora actual:', currentHour, currentMinute);
-
-      // Si es hora pasada
-      if (hour < currentHour || (hour === currentHour && minute < currentMinute)) {
-        return `¡Tienes toda la razón! Son las ${currentHour}:${currentMinute.toString().padStart(2, '0')} y la hora ${userTimeMatch[0]} ya pasó.
-
-📅 **Horarios disponibles AHORA:**
-- 15:00 (Disponible)
-- 17:30 (Disponible)
-
-¿Cuál de estos horarios te viene bien? Te ofrezco un 10% de descuento en la fianza por la molestia.
-
-Ana - Clínica Barcelona Prueba [OMEGA-V4]`;
-      }
-
-      // Si es hora futura
-      if (hour > currentHour || (hour === currentHour && minute > currentMinute)) {
-        // 🚀 Generar enlace de pago real (async en fallback)
-        const paymentUrl = await generatePaymentLinkFallback('bleRbykAj1TgF4lOYdMh', 15); // Test clinic ID
-        
-        let paymentText = '';
-        if (paymentUrl) {
-          paymentText = `💳 **Tarjeta:** [PAGAR 15€ AHORA](${paymentUrl})`;
-        } else {
-          paymentText = `💳 **Tarjeta:** La clínica está configurando el pago online. Por ahora, usa Bizum.`;
-        }
-        
-        return `¡Perfecto! Tengo disponibilidad hoy a las ${userTimeMatch[0]}.
-
-Para confirmar tu cita, necesito que pagues la fianza de 15€:
-
-📱 **Bizum:** Envía 15€ al +34600123456
-${paymentText}
-
-📸 **IMPORTANTE:** Después de pagar, envíame:
-- Captura del Bizum ✅
-- O email de confirmación de pago ✅
-
-Una vez verificado el pago, tu cita quedará confirmada.
-
-Ana - Clínica Barcelona Prueba [OMEGA-V4]`;
-      }
-    }
-
-    // Si no es hora específica, respuesta contextual
-    if (lowerUserMessage.includes('cita') || lowerUserMessage.includes('necesito')) {
-      return `¡Hola! Soy Ana de Fisiotool. Entiendo que necesitas una cita.
-
-📅 **Disponibilidad:**
-- **Hoy:** 11:00, 15:00, 17:30
-- **Mañana:** 10:00, 12:00, 16:00
-
-¿Qué día y hora te gustaría reservar? Puedo ayudarte a encontrar el momento perfecto para ti.
-
-Ana - Clínica Barcelona Prueba [OMEGA-V4]`;
-    }
-
-    // Evitar repetición de "Hola soy Ana" si ya hay contexto
-    const hasPreviousGreeting = lowerUserMessage.includes('hola') || 
-                                lowerUserMessage.includes('buenos') ||
-                                lowerUserMessage.includes('gracias') ||
-                                lowerUserMessage.includes('adiós');
-    
-    if (hasPreviousGreeting) {
-      return `¡Hola de nuevo! 😊
-
-¿En qué te puedo ayudar ahora? Si tienes alguna duda sobre las citas, tratamientos o pagos, estoy aquí para resolverla contigo.
-
-Ana - Clínica Barcelona Prueba`;
-    }
-    
-    return `Entiendo perfectamente lo que necesitas. 
-
-Estoy aquí para ayudarte con lo que sea:
-- 📅 Tus citas y horarios
-- 💆 Los tratamientos que ofrecemos  
-- 📋 Seguimiento de tu terapia
-- 💳 Cualquier duda sobre pagos
-
-¿Cuál es tu consulta específica? Juntos la resolveremos. 😊
-
-Ana - Clínica Barcelona Prueba`;
+    return `Estoy teniendo dificultades técnicas momentáneas. Por favor, inténtalo de nuevo en unos minutos.`;
   }
 
+  /**
+   * Para conversaciones estructuradas multi-turno (usa claude-3-5-sonnet para mayor calidad)
+   */
   async generateConversationResponse(messages, options = {}) {
     try {
       const apiKey = await this.getApiKey();
+      if (!apiKey || apiKey.length < 10) {
+        throw new Error('No Claude key');
+      }
       const client = new Anthropic({ apiKey });
 
-      const message = await client.messages.create({
-        model: "claude-3-5-sonnet-20241022",
+      const createParams = {
+        model: 'claude-3-5-sonnet-20241022',
         max_tokens: options.maxTokens || 1000,
-        messages: messages,
-        temperature: 0.7
-      });
+        messages
+      };
+      if (options.systemPrompt) {
+        createParams.system = options.systemPrompt;
+      }
 
+      const message = await client.messages.create(createParams);
       return message.content[0].text;
     } catch (error) {
       console.error('🔥 Claude Conversation Error:', error.message);

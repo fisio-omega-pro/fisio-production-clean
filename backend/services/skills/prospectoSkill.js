@@ -9,7 +9,6 @@
 const { Skill } = require('../anaSkillEngine');
 const { registerCollectiveExperience } = require('../hiveMindService');
 const claudeService = require('../claudeService');
-const { initEnv } = require('../config/env');
 
 class ProspectoSkill extends Skill {
   constructor() {
@@ -111,7 +110,7 @@ TU ESTILO:
   }
 
   async execute(intent, entities, context) {
-    const { userName, userEmail } = context;
+    const { userName, userEmail, conversationHistory = [] } = context;
     const message = entities.message || '';
 
     const systemPrompt = this.getSystemPrompt();
@@ -150,44 +149,19 @@ Responde de forma natural, conversacional y específica a su pregunta. Máximo 1
     let outcome = 'informado';
 
     try {
-      console.log('🤖 [PROSPECTO] Generando respuesta con Claude...');
+      console.log(`🤖 [PROSPECTO] Generando respuesta | Historial: ${conversationHistory.length} msgs`);
+      // claudeService ya maneja fallback a Gemini internamente
       response = await claudeService.generateResponse(userPrompt, {
         systemPrompt,
-        maxTokens: 300,
-        temperature: 0.7
+        conversationHistory,
+        maxTokens: 300
       });
-      
-      console.log('✅ [PROSPECTO] Respuesta generada con Claude');
+      console.log('✅ [PROSPECTO] Respuesta generada');
       outcome = this.determineOutcome(intent, response);
-      
-    } catch (claudeError) {
-      console.error('🔥 [PROSPECTO] Error con Claude:', claudeError.message);
-      
-      try {
-        console.log('🤖 [PROSPECTO] Intentando con Gemini...');
-        const env = await initEnv();
-        const apiKey = env.GOOGLE_AI_KEY?.trim();
-        
-        if (apiKey) {
-          const { GoogleGenerativeAI } = require("@google/generative-ai");
-          const genAI = new GoogleGenerativeAI(apiKey);
-          const model = genAI.getGenerativeModel({ 
-            model: "gemini-2.0-flash-exp",
-            systemInstruction: systemPrompt
-          });
-          
-          const result = await model.generateContent(userPrompt);
-          response = result.response.text();
-          console.log('✅ [PROSPECTO] Respuesta generada con Gemini');
-          outcome = this.determineOutcome(intent, response);
-        } else {
-          throw new Error('No API key available');
-        }
-      } catch (geminiError) {
-        console.error('🔥 [PROSPECTO] Error con Gemini:', geminiError.message);
-        response = this.getFallbackResponse(intent, userName);
-        outcome = 'fallback_usado';
-      }
+    } catch (aiError) {
+      console.error('🔥 [PROSPECTO] Error IA:', aiError.message);
+      response = this.getFallbackResponse(intent, userName);
+      outcome = 'fallback_usado';
     }
 
     try {

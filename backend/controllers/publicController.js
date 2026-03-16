@@ -312,10 +312,22 @@ const anaProspectoChat = async (req, res) => {
     
     console.log('🎯 [ANA PROSPECTO] Intent clasificado:', classification.intentId, 'Confidence:', classification.confidence);
     
-    // Ejecutar skill
-    const result = await prospectoSkill.execute(classification.intentId, classification.entities, {
+    // Formatear historial de sesión para Claude
+    const sessionHistory = (session.history || []).slice(-12)
+      .map(msg => ({
+        role: msg.role === 'user' ? 'user' : 'assistant',
+        content: String(msg.content || msg.text || '')
+      }))
+      .filter(m => m.content.trim().length > 0);
+
+    // Ejecutar skill con historial conversacional
+    const result = await prospectoSkill.execute(classification.intentId, {
+      ...classification.entities,
+      message
+    }, {
       userName: userName || null,
-      userEmail: userEmail || null
+      userEmail: userEmail || null,
+      conversationHistory: sessionHistory
     });
     
     // Guardar en memoria

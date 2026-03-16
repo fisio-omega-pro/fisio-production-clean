@@ -8,7 +8,13 @@ const handleChat = async (req, res, next) => {
       const result = await anaService.consultLex(message);
       return res.json({ success: true, reply: result.reply });
     }
-    const result = await anaService.processMessage(req.clinicId, message);
+    // Extraer historial del frontend para contexto conversacional
+    const rawHistory = Array.isArray(req.body?.history) ? req.body.history : [];
+    const conversationHistory = rawHistory
+      .filter(m => m && m.role && m.content)
+      .map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: String(m.content) }))
+      .slice(-12);
+    const result = await anaService.processMessage(req.clinicId, message, conversationHistory);
     res.json({ success: true, reply: result.reply });
   } catch (error) { next(error); }
 };

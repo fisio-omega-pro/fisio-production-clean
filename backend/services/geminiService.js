@@ -20,20 +20,36 @@ class GeminiService {
         }
     }
 
-    async generateResponse(prompt) {
+    async generateResponse(prompt, options = {}) {
         try {
             const apiKey = await this.getApiKey();
             if (!apiKey) throw new Error('No Google AI API Key');
 
             const { initEnv } = require('../config/env');
             const env = await initEnv();
-            const modelName = env.GOOGLE_AI_MODEL || "gemini-2.5-flash";
+            const modelName = env.GOOGLE_AI_MODEL || "gemini-2.0-flash-exp";
             const genAI = new GoogleGenerativeAI(apiKey);
-            const model = genAI.getGenerativeModel({ model: modelName });
+
+            const modelConfig = { model: modelName };
+            if (options.systemPrompt) {
+                modelConfig.systemInstruction = options.systemPrompt;
+            }
+
+            const model = genAI.getGenerativeModel(modelConfig);
+
+            // Soporte para historial conversacional
+            if (options.conversationHistory && options.conversationHistory.length > 0) {
+                const history = options.conversationHistory.map(msg => ({
+                    role: msg.role === 'assistant' ? 'model' : 'user',
+                    parts: [{ text: String(msg.content) }]
+                }));
+                const chat = model.startChat({ history });
+                const result = await chat.sendMessage(prompt);
+                return result.response.text();
+            }
 
             const result = await model.generateContent(prompt);
-            const response = await result.response;
-            return response.text();
+            return result.response.text();
         } catch (error) {
             console.error('🔥 Gemini Error:', error.message);
             throw error;

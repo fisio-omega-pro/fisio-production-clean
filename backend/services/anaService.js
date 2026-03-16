@@ -16,31 +16,18 @@ const USE_SKILL_SYSTEM = true;
 
 const callAnaEngine = async (prompt, options = {}) => {
   try {
-    console.log("🤖 [ANA] Enviando prompt a Claude...");
-    const response = await claudeService.generateResponse(prompt, options);
-    console.log("🤖 [ANA] Respuesta de Claude:", response);
+    console.log('🤖 [ANA] Enviando prompt a IA...');
+    // Normalizar nombres de opciones (maxOutputTokens → maxTokens)
+    const normalizedOptions = {
+      ...options,
+      maxTokens: options.maxTokens || options.maxOutputTokens || 1000
+    };
+    delete normalizedOptions.maxOutputTokens;
+    const response = await claudeService.generateResponse(prompt, normalizedOptions);
     return response;
   } catch (error) {
-    console.error("🔥 [ANA] Error en Claude:", error.message);
-    // Fallback a Google AI si Claude falla
-    const env = await initEnv();
-    const apiKeyRaw = env.GOOGLE_AI_KEY;
-    const apiKey = apiKeyRaw ? apiKeyRaw.trim() : '';
-
-    if (!apiKey) {
-      return "Entiendo tu mensaje. Para ayudarte mejor con tu cita, ¿podrías darme más detalles sobre qué día y hora te gustaría?";
-    }
-
-    try {
-      const { GoogleGenerativeAI } = require("@google/generative-ai");
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const aiModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); // Gemini 2.5
-      const result = await aiModel.generateContent(prompt);
-      return result.response.text();
-    } catch (fallbackError) {
-      console.error("🔥 [ANA] Error en fallback:", fallbackError.message);
-      return "Entiendo tu mensaje. Para ayudarte mejor con tu cita, ¿podrías decirme qué día y hora te gustaría?";
-    }
+    console.error('🔥 [ANA] Error en callAnaEngine:', error.message);
+    return 'Estoy teniendo dificultades técnicas momentáneas. Por favor, inténtalo de nuevo en unos segundos.';
   }
 };
 
@@ -751,35 +738,43 @@ module.exports = {
   processIncomingEmail,
 
   consultLex: async (userMessage) => {
-    const fullPrompt = `${LEX_SYSTEM_PROMPT}\n\nCONSULTA DEL USUARIO: "${String(userMessage || '').trim()}"\n\nTu respuesta (pauta técnica, sin consejo vinculante):`;
     try {
-      const reply = await callAnaEngine(fullPrompt, { maxOutputTokens: 500 });
+      const reply = await claudeService.generateResponse(
+        String(userMessage || '').trim(),
+        { systemPrompt: LEX_SYSTEM_PROMPT, maxTokens: 500 }
+      );
       const trimmed = String(reply || '').trim();
-      return { reply: trimmed || "No pude generar una respuesta. Reformula la consulta." };
+      return { reply: trimmed || 'No pude generar una respuesta. Reformula la consulta.' };
     } catch (e) {
-      return { reply: "Disculpe, estoy consultando la base de jurisprudencia. Por favor, repítame la pregunta en un momento." };
+      return { reply: 'Disculpe, estoy consultando la base de jurisprudencia. Por favor, repítame la pregunta en un momento.' };
     }
   },
 
-  processMessage: async (clinicId, userMessage) => {
-    const systemPrompt = `Eres Ana, la asistente experta y consultora de operaciones de FisioTool Pro. Tu misión es ayudar al profesional a dominar su dashboard y maximizar la rentabilidad de su clínica.
+  processMessage: async (clinicId, userMessage, conversationHistory = []) => {
+    const dashboardSystemPrompt = `Eres Ana, asistente experta de operaciones de FisioTool Pro. Ayudas al fisioterapeuta a dominar su dashboard y maximizar su clínica.
 
 ${DASHBOARD_KNOWLEDGE}
 
-REGLAS DE ORO:
-1. PERSONALIDAD: Directa, profesional, autoritaria pero cordial. Eres una experta en el sistema.
-2. CONOCIMIENTO: Conoces cada rincón del dashboard. Si preguntan por "Referidos", explica el programa de alianzas (50% dto). Si preguntan por "Sugerencias", explícales que es para soporte técnico.
-3. CONCISIÓN: Máximo 2-3 frases. No divagues.
-4. ACCIÓN: Si mencionan un módulo, explica PARA QUÉ sirve y CÓMO ayuda a su negocio.
-5. NO INVENTAR: Si algo no está en el dashboard según DASHBOARD_KNOWLEDGE, indica que esa función no existe actualmente.`;
+REGLAS:
+1. Directa, profesional y cordial. Eres la experta en este sistema.
+2. Conoces cada módulo. Explica PARA QUÉ sirve y CÓMO ayuda al negocio.
+3. Concisa: máximo 2-3 frases por respuesta.
+4. Si algo no existe en DASHBOARD_KNOWLEDGE, dilo claramente.
+5. No repitas bienvenidas si ya hay conversación previa.`;
 
-    const fullPrompt = `${systemPrompt}\n\nMENSAJE DEL USUARIO: "${userMessage}"\n\nTu respuesta (breve y directa, con autoridad cognitiva):`;
     try {
-      const reply = await callAnaEngine(fullPrompt, { maxOutputTokens: 350 });
+      const reply = await claudeService.generateResponse(
+        String(userMessage || ''),
+        {
+          systemPrompt: dashboardSystemPrompt,
+          conversationHistory,
+          maxTokens: 400
+        }
+      );
       const trimmed = String(reply || '').trim();
-      return { reply: trimmed || "No pude generar una respuesta. Reformula la pregunta en una frase." };
+      return { reply: trimmed || 'No pude generar una respuesta. Reformula la pregunta.' };
     } catch (e) {
-      return { reply: "Mis sistemas están experimentando saturación. Por favor, vuelve a intentarlo en un momento." };
+      return { reply: 'Mis sistemas están experimentando saturación. Por favor, vuelve a intentarlo en un momento.' };
     }
   },
 
@@ -804,9 +799,8 @@ REGLAS:
     }
   },
 
-  // --- 🤖 ANA CHAT PÚBLICO (para pacientes) ---
+  // --- 🤖 ANA CHAT PÚBLICO (para pacientes) - Arquitectura AI-First v3 ---
   generatePatientResponse: async ({ message, clinicName, clinicId, history = [], patientEmail, userName, userEmail, userPhone }) => {
-    const lowerMessage = String(message || '').toLowerCase();
     
     // 🚀 IDENTIFICACIÓN MEJORADA - Buscar paciente existente primero
     let emailToUse = userEmail || patientEmail;
@@ -856,642 +850,104 @@ REGLAS:
       });
     }
 
-    // 🚀 OBTENER INFORMACIÓN DEL EQUIPO Y PACIENTE
-    const teamInfo = await getTeamInfo(clinicId);
-    const patientHistory = emailToUse ? await getPatientHistory(clinicId, emailToUse) : { isRecurrent: false, history: [] };
-    
-    // Usar el nombre del historial si no lo tenemos
-    if (!effectiveUserName && patientHistory.patientName) {
-      effectiveUserName = patientHistory.patientName;
-    }
-    
-    // 🧠 NUEVO SISTEMA DE SKILLS (v2.0)
-    // Intentar usar el sistema de skills primero
-    if (USE_SKILL_SYSTEM) {
-      try {
-        console.log('🤖 [SKILL SYSTEM] Procesando mensaje...');
-        
-        // Obtener o crear sesión de memoria - USAR EMAIL COMO IDENTIFICADOR PRINCIPAL
-        // Esto asegura que la misma persona tenga la misma sesión en WhatsApp y PWA
-        const userIdentifier = emailToUse || phoneToUse || 'anonymous';
-        console.log(`🔑 [SESSION] Identificador de usuario: ${userIdentifier}`);
-        
-        const session = await getOrCreateSession(clinicId, userIdentifier, 'chat');
-        
-        // Preparar contexto enriquecido
-        const context = {
-          clinicId,
-          clinicName: clinicName || 'la clínica',
-          userName: effectiveUserName,
-          userEmail: emailToUse,
-          userPhone: userPhone,
-          isRecurrent: patientHistory.isRecurrent,
-          teamCount: teamInfo.count,
-          team: teamInfo.specialists,
-          sessionId: session.sessionId,
-          isNewSession: session.isNew
-        };
-        
-        // PROCESAR CON SKILL ENGINE
-        const skillResult = await processWithSkills(message, context, session.history);
-        
-        console.log(`✅ [SKILL SYSTEM] Skill: ${skillResult.skillUsed}, Intent: ${skillResult.intentDetected}, Confidence: ${skillResult.confidence}`);
-        
-        // Guardar en memoria conversacional
-        await addMessage(session.sessionId, 'user', message, {
-          skill: skillResult.skillUsed,
-          intent: skillResult.intentDetected
-        });
-        
-        await addMessage(session.sessionId, 'assistant', skillResult.text, {
-          skill: skillResult.skillUsed,
-          intent: skillResult.intentDetected,
-          confidence: skillResult.confidence
-        });
-        
-        // Si la confianza es alta (>0.7), usar respuesta del skill
-        if (skillResult.confidence >= 0.7) {
-          return skillResult.text;
-        }
-        
-        // Si confianza media, intentar mejorar con contexto adicional
-        if (skillResult.confidence >= 0.5) {
-          // El skill ya dio una respuesta decente, la usamos
-          return skillResult.text;
-        }
-        
-        // Si confianza baja, continuar con sistema legacy como fallback
-        console.log('⚠️ [SKILL SYSTEM] Confidence baja, usando fallback legacy');
-        
-      } catch (skillError) {
-        console.error('🔥 [SKILL SYSTEM] Error:', skillError.message);
-        console.log('⚠️ [SKILL SYSTEM] Fallback a sistema legacy');
-      }
-    }
-    
-    // 🧠 SISTEMA LEGACY (como fallback)
-    // Solo se ejecuta si el skill system falla o tiene baja confianza
+    // === FASE 2: CARGA DE CONTEXTO EN PARALELO ===
+    const [cfgResult, teamResult, patHistResult, todaySlotsResult, tomorrowSlotsResult] = await Promise.allSettled([
+      getClinicConfiguration(clinicId),
+      getTeamInfo(clinicId),
+      emailToUse ? getPatientHistory(clinicId, emailToUse) : Promise.resolve({ isRecurrent: false, history: [] }),
+      getAvailableTimeSlots(clinicId, 'hoy'),
+      getAvailableTimeSlots(clinicId, 'mañana')
+    ]);
 
-    // 🎯 SALUDO INTELIGENTE PARA MULTI-CLÍNICAS CON HIVE MIND
-    if (lowerMessage.includes('hola') || lowerMessage.includes('buenos') || lowerMessage.includes('saludo') || history.length === 0) {
-      const anaName = (await getClinicConfiguration(clinicId))?.ana_profile?.name || 'Ana';
+    const config        = cfgResult.status        === 'fulfilled' ? (cfgResult.value        || {}) : {};
+    const team          = teamResult.status        === 'fulfilled' ? (teamResult.value        || { count: 0, specialists: [] }) : { count: 0, specialists: [] };
+    const patHist       = patHistResult.status     === 'fulfilled' ? (patHistResult.value     || { isRecurrent: false, history: [] }) : { isRecurrent: false, history: [] };
+    const todaySlots    = todaySlotsResult.status  === 'fulfilled' ? (todaySlotsResult.value  || []) : [];
+    const tomorrowSlots = tomorrowSlotsResult.status === 'fulfilled' ? (tomorrowSlotsResult.value || []) : [];
 
-      // 🧠 HIVE MIND: Obtener predicción colectiva para este contexto
-      const collectivePrediction = await getCollectivePrediction({
-        keywords: ['saludo', 'bienvenida', 'nuevo_paciente'],
-        scenario: 'patient_greeting',
-        clinic_size: teamInfo.count
-      }, clinicId);
+    if (!effectiveUserName && patHist.patientName) effectiveUserName = patHist.patientName;
 
-      let baseResponse = '';
+    // === FASE 3: SESIÓN CONVERSACIONAL ===
+    const userIdentifier = emailToUse || phoneToUse || 'anonymous';
+    console.log(`🔑 [SESSION] Identificador: ${userIdentifier}`);
+    const session = await getOrCreateSession(clinicId, userIdentifier, 'chat');
+    const sessionHistory = (session.history || []).slice(-12);
 
-      if (teamInfo.count > 0) {
-        const specialistsList = teamInfo.specialists.slice(0, 3).map(s => `- ${s.name} (${s.specialty})`).join('\n');
-        const moreText = teamInfo.count > 3 ? `\n- Y ${teamInfo.count - 3} especialistas más` : '';
+    // === FASE 4: CONSTRUIR SYSTEM PROMPT RICO CON DATOS REALES ===
+    const anaName = config?.ana_profile?.name || 'Ana';
+    const actualClinicName = config?.nombre_clinica || clinicName || 'la clínica';
 
-        if (patientHistory.isRecurrent) {
-          baseResponse = `¡Hola ${effectiveUserName}! Te veo en nuestro sistema. 
-          
-En ${clinicName} tenemos ${teamInfo.count} especialistas:
-${specialistsList}${moreText}
+    const fmtSlots = (slots) => {
+      if (!slots || slots.length === 0) return 'Sin disponibilidad';
+      const shown = slots.slice(0, 8).map(s =>
+        `${s.hora}${s.especialista && s.especialista !== 'Disponible' ? ` (${s.especialista})` : ''}`
+      ).join(', ');
+      return slots.length > 8 ? `${shown} y ${slots.length - 8} más` : shown;
+    };
 
-Tu última cita fue con ${patientHistory.history[0]?.specialist || 'tu especialista'} el ${patientHistory.history[0]?.date}.
-¿Te gustaría continuar con el mismo especialista o prefieres conocer a otro?`;
+    const teamText = team.count > 0
+      ? `\nEQUIPO DISPONIBLE: ${team.specialists.slice(0, 5).map(s => `${s.name}${s.specialty ? ` - ${s.specialty}` : ''}`).join(', ')}`
+      : '';
 
-          // 🧠 HIVE MIND: Registrar experiencia de paciente recurrente
-          await registerHiveExperience(clinicId, 'patient_greeting',
-            ['paciente_recurrente', 'historial_disponible'],
-            'saludo_personalizado_con_historial',
-            'success', 0.9);
-        } else {
-          baseResponse = `Hola, soy ${anaName} de ${clinicName}. 
+    const lastAppt = patHist.history?.[0];
+    const patientCtx = patHist.isRecurrent && effectiveUserName
+      ? `\nPACIENTE RECURRENTE: ${effectiveUserName}. Última cita: ${lastAppt?.date || 'pasada'} con ${lastAppt?.specialist || 'el especialista'}.`
+      : effectiveUserName ? `\nPACIENTE: ${effectiveUserName}` : '';
 
-En nuestra clínica tenemos ${teamInfo.count} especialistas:
-${specialistsList}${moreText}
+    const systemPrompt = `Eres ${anaName}, asistente IA de ${actualClinicName}. Gestionas citas, resuelves dudas y atiendes a los pacientes de forma natural y humana.${patientCtx}${teamText}
+DISPONIBILIDAD REAL HOY: ${fmtSlots(todaySlots)}
+DISPONIBILIDAD REAL MAÑANA: ${fmtSlots(tomorrowSlots)}
+CONFIGURACIÓN DE LA CLÍNICA:
+- Horario: ${config?.horario?.apertura || '09:00'} - ${config?.horario?.cierre_final || config?.horario?.cierre || '20:00'}
+- Duración cita: ${config?.duracion_cita || 45} min
+- Precio sesión: ${config?.precio_sesion || 50}€ | Fianza para reservar: ${config?.fianza_cita || 20}€
+- Métodos de pago: ${(config?.metodos_pago || ['tarjeta', 'bizum']).join(' / ')}${config?.telefono ? `\n- Teléfono clínica: ${config.telefono}` : ''}
+REGLAS CRÍTICAS:
+1. Eres un asistente humano y natural. Habla como persona, no como bot.
+2. NO te repitas ni uses frases enlatadas. Cada respuesta debe ser única al contexto.
+3. Si ya has saludado en el historial, NO vuelvas a presentarte. Ve directamente al tema.
+4. USA SOLO la disponibilidad REAL listada arriba. Nunca inventes horarios.
+5. Si no hay disponibilidad hoy/mañana, dilo con franqueza y ofrece consultar otra fecha.
+6. Para confirmar cita: valida horario disponible → indica método de pago con importe exacto → espera confirmación de pago.
+7. Respuestas cortas y directas (máx 4 oraciones). Sin firmas ni etiquetas al final.
+8. Si el paciente es recurrente, trátalo con familiaridad natural.
+9. No des diagnósticos ni consejos médicos. Para eso está el fisioterapeuta.`;
 
-¿Con qué especialista te gustaría tu cita? O si prefieres, dime qué tratamiento necesitas y te recomiendo el mejor especialista para ti.`;
+    // === FASE 5: HISTORIAL CONVERSACIONAL FORMATEADO ===
+    const conversationMessages = sessionHistory
+      .map(msg => ({
+        role: msg.role === 'user' ? 'user' : 'assistant',
+        content: String(msg.content || msg.text || '')
+      }))
+      .filter(m => m.content.trim().length > 0);
 
-          // 🧠 HIVE MIND: Registrar experiencia de nuevo paciente
-          await registerHiveExperience(clinicId, 'patient_greeting',
-            ['nuevo_paciente', 'presentacion_equipo'],
-            'saludo_con_presentacion_equipo',
-            'success', 0.8);
-        }
-
-        // 🧠 HIVE MIND: Si hay predicción colectiva, mejorar respuesta
-        if (collectivePrediction && collectivePrediction.prediction) {
-          baseResponse += `\n\n💡 ${collectivePrediction.prediction}`;
-        }
-
-        baseResponse += `\n\n${anaName} - ${clinicName}`;
-        return baseResponse;
-      }
-
-      return `Hola, soy ${anaName} de ${clinicName}. 
-
-¿En qué puedo ayudarte hoy? Puedo gestionar citas, pagos y responder tus dudas.
-
-${anaName} - ${clinicName}`;
-    }
-
-    // 🚀 PRIMERO: Sistema híbrido inteligente
+    // === FASE 6: LLAMADA Única A LA IA (Claude → Gemini fallback) ===
+    let response = '';
     try {
-      const hybridResult = await hybridAnaService.processMessage(message, {
-        clinicId,
-        clinicName,
-        userName: effectiveUserName,
-        history
+      console.log(`🤖 [ANA PACIENTE] Llamando IA | Historial: ${conversationMessages.length} msgs | Clínica: ${actualClinicName}`);
+      response = await claudeService.generateResponse(message, {
+        systemPrompt,
+        conversationHistory: conversationMessages,
+        maxTokens: 450
       });
-
-      if (hybridResult && (hybridResult.response || hybridResult.text)) {
-        return hybridResult.response || hybridResult.text;
-      }
-
-      console.log(`🤖 [HYBRID] Response from: ${hybridResult.source}`);
-      console.log('🔥 [ANA SERVICE] Hybrid result completo:', hybridResult);
-      console.log('🔥 [ANA SERVICE] Tipo:', typeof hybridResult);
-
-      // Si Claude dio una respuesta de alta confianza, usarla
-      if (hybridResult.source === 'claude' && hybridResult.confidence === 'high') {
-        return hybridResult.response;
-      }
-
-      // Si fue de reglas, usarla siempre
-      if (hybridResult.source === 'rules') {
-        return hybridResult.response;
-      }
-
-      // Si Claude dio respuesta, usarla (ESTO ES LO NUEVO)
-      if (hybridResult.source === 'claude') {
-        return hybridResult.response;
-      }
-
-      console.log('🤖 [HYBRID] No response from hybrid, using fallback');
-    } catch (error) {
-      console.error('🔥 [HYBRID] Error, fallback to existing logic:', error.message);
-    }
-
-    // Get clinic configuration for intelligent responses
-    const clinicConfig = await getClinicConfiguration(clinicId);
-
-    // El sistema híbrido ya maneja la bienvenida. 
-    // Continuamos con el resto de la lógica legacy si es necesario.
-
-
-    // Si ya tiene la app o pregunta después de dar datos
-    if (lowerMessage.includes('gracias') || lowerMessage.includes('app descargada') ||
-      lowerMessage.includes('ya tengo la app') || lowerMessage.includes('desde la app')) {
-
-      const anaName = clinicConfig?.ana_profile?.name || 'Ana';
-
-      return `Perfecto! Ahora puedo ayudarte de forma completa. 
-
-Puedo gestionar:
-- Citas según horarios de ${clinicConfig?.horario?.apertura || '09:00'} a ${clinicConfig?.horario?.cierre || '20:00'}
-- Pagos automáticos con fianza de ${clinicConfig?.fianza_cita || 20}€
-- Seguimientos post-tratamiento
-
-¿En qué te puedo ayudar?
-
-${anaName} - ${clinicName}`;
-    }
-
-    // Handle short clarification questions
-    if (lowerMessage === 'como?' || lowerMessage === 'como' || lowerMessage === '¿como?' ||
-      lowerMessage === 'que?' || lowerMessage === 'que' || lowerMessage === '¿que?') {
-      const anaName = clinicConfig?.ana_profile?.name || 'Ana';
-      return `Soy ${anaName}, asistente de ${clinicName}.
-
-Puedo ayudarte con:
-- 📅 Reservar citas
-- 💳 Procesar pagos
-- 📋 Consultar disponibilidad
-- ℹ️ Explicar cómo funciona
-
-¿Qué necesitas saber?
-
-${anaName} - ${clinicName}`;
-    }
-
-    // Handle payment explanation requests
-    if (lowerMessage.includes('explicar') || lowerMessage.includes('novedoso') ||
-      lowerMessage.includes('cómo actua') || lowerMessage.includes('cómo funciona') ||
-      lowerMessage.includes('entiendo') || lowerMessage.includes('dudas')) {
-      const anaName = clinicConfig?.ana_profile?.name || 'Ana';
-      return `Claro, te explico cómo funciona:
-
-📋 **Proceso de reserva:**
-1. **Confirmas la hora** ✅
-2. **Pagas la fianza** (20€) 💳
-3. **Envías justificante** 📸
-4. **Tu cita queda confirmada** 🎯
-
-💳 **Opciones de pago:**
-- **Bizum:** Envía 20€ al +34654654654
-- **Tarjeta:** Enlace online seguro
-
-📸 **IMPORTANTE:** Después de pagar, envía:
-- Captura del Bizum ✅
-- O email de confirmación de Stripe ✅
-
-🎯 **La fianza se descuenta del total de la sesión.**
-
-¿Qué método de pago prefieres usar?
-
-${anaName} - ${clinicName}`;
-    }
-
-    // Handle user complaints and frustration
-    if (lowerMessage.includes('flipas') || lowerMessage.includes('porqueria') ||
-      lowerMessage.includes('chatbot') || lowerMessage.includes('no terminas') ||
-      lowerMessage.includes('frases') || lowerMessage.includes('incompletas') ||
-      lowerMessage.includes('bloqueada') || lowerMessage.includes('mal servicio')) {
-      const anaName = clinicConfig?.ana_profile?.name || 'Ana';
-      return `Entiendo tu frustración y te pido disculpas. Soy ${anaName}, asistente de ${clinicName}.
-
-Estoy aquí para ayudarte con tus citas y pagos. Si algo no funciona correctamente, por favor dime exactamente qué necesitas y te ayudaré de inmediato.
-
-¿En qué puedo ayudarte ahora?
-
-${anaName} - ${clinicName}`;
-    }
-
-    // Handle next availability requests
-    if (lowerMessage.includes('proxima') || lowerMessage.includes('próxima') ||
-      lowerMessage.includes('cuando') && lowerMessage.includes('disponibilidad') ||
-      lowerMessage.includes('tendrás') && lowerMessage.includes('disponibilidad')) {
-
-      // Check today first
-      const todaySlots = await getAvailableTimeSlots(clinicId, 'hoy');
-      if (todaySlots.length > 0) {
-        const slotsList = todaySlots.slice(0, 3).map(slot => `${slot.hora} (${slot.especialista || 'Disponible'})`).join(', ');
-        const anaName = clinicConfig?.ana_profile?.name || 'Ana';
-        return `Tengo disponibilidad inmediata hoy:
-
-${slotsList}
-
-¿Cuál prefieres?
-
-${anaName} - ${clinicName}`;
-      }
-
-      // Check tomorrow
-      const tomorrowSlots = await getAvailableTimeSlots(clinicId, 'mañana');
-      if (tomorrowSlots.length > 0) {
-        const slotsList = tomorrowSlots.slice(0, 3).map(slot => `${slot.hora} (${slot.especialista || 'Disponible'})`).join(', ');
-        const anaName = clinicConfig?.ana_profile?.name || 'Ana';
-        return `No tengo disponibilidad hoy, pero sí mañana:
-
-${slotsList}
-
-¿Cuál prefieres?
-
-${anaName} - ${clinicName}`;
-      }
-
-      // Check next few days
-      const anaName = clinicConfig?.ana_profile?.name || 'Ana';
-      return `Lo siento, no tengo disponibilidad inmediata. 
-
-Por favor, dime qué día te vendría bien y buscaré opciones para ti.
-
-${anaName} - ${clinicName}`;
-    }
-
-    // Handle explicit "mañana" requests
-    if (lowerMessage.includes('mañana') && (lowerMessage.includes('hueco') || lowerMessage.includes('disponibilidad') || lowerMessage.includes('cita'))) {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowStr = `${tomorrow.getDate().toString().padStart(2, '0')}/${(tomorrow.getMonth() + 1).toString().padStart(2, '0')}/${tomorrow.getFullYear()}`;
-
-      // Get available slots for tomorrow
-      const availableSlots = await getAvailableTimeSlots(clinicId, 'mañana');
-
-      if (availableSlots.length > 0) {
-        const slotsList = availableSlots.slice(0, 5).map(slot => `${slot.hora} (${slot.especialista || 'Disponible'})`).join(', ');
-        const moreText = availableSlots.length > 5 ? ` y ${availableSlots.length - 5} más` : '';
-
-        const anaName = clinicConfig?.ana_profile?.name || 'Ana';
-        return `¡Perfecto! Tengo disponibilidad mañana.
-
-Horarios disponibles:
-${slotsList}${moreText}
-
-¿Cuál prefieres?
-
-${anaName} - ${clinicName}`;
-      } else {
-        const anaName = clinicConfig?.ana_profile?.name || 'Ana';
-        return `Lo siento, no tengo disponibilidad mañana.
-
-¿Te gustaría consultar otro día?
-
-${anaName} - ${clinicName}`;
-      }
-    }
-
-    // Handle time confirmation (when user responds with time after seeing options)
-    if (lowerMessage.match(/^(\d{1,2})h?$/i) || lowerMessage.match(/^(\d{1,2}):(\d{2})$/i) ||
-      lowerMessage.includes('a las') && lowerMessage.match(/(\d{1,2})h?/i) ||
-      lowerMessage.includes('las') && lowerMessage.match(/(\d{1,2})h?/i) ||
-      lowerMessage.includes('genial') && lowerMessage.match(/(\d{1,2})h?/i)) {
-
-      // Find ALL time mentions in the message
-      const allTimeMatches = lowerMessage.match(/(\d{1,2})h?|(\d{1,2}):(\d{2})/g) || [];
-
-      // For contextual responses like "me quedo con la 11", find the LAST mentioned time
-      let requestedTime = null;
-      if (allTimeMatches.length > 0) {
-        const lastMatch = allTimeMatches[allTimeMatches.length - 1];
-        const timeParts = lastMatch.match(/(\d{1,2})h?|(\d{1,2}):(\d{2})/);
-        const hour = timeParts[1] || timeParts[2];
-        const minute = timeParts[3] || '00';
-        requestedTime = `${hour}:${minute}`;
-      }
-
-      if (!requestedTime) {
-        // Fallback to first match if no specific logic
-        const timeMatch = lowerMessage.match(/(\d{1,2})h?|(\d{1,2}):(\d{2})/i);
-        const hour = timeMatch[1] || timeMatch[2];
-        const minute = timeMatch[3] || '00';
-        requestedTime = `${hour}:${minute}`;
-      }
-
-      // Assume today for time confirmation
-      const today = new Date();
-      const todayStr = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
-
-      // Check availability
-      const availability = await checkAvailability(clinicId, todayStr, requestedTime);
-
-      if (availability.available) {
-        const clinicConfig = await getClinicConfiguration(clinicId);
-        const anaName = clinicConfig?.ana_profile?.name || 'Ana';
-
-        let paymentOptions = `¡Perfecto! Tengo disponibilidad hoy a las ${requestedTime}.\n\n`;
-        paymentOptions += `Para confirmar, paga la fianza de ${clinicConfig?.fianza_cita || 20}€:\n\n`;
-
-        const paymentMethods = clinicConfig?.metodos_pago || ['tarjeta', 'bizum'];
-
-        if (paymentMethods.includes('bizum')) {
-          const clinicPhone = clinicConfig?.telefono || 'el número de teléfono de la clínica';
-          paymentOptions += `📱 **Bizum:** Envía ${clinicConfig?.fianza_cita || 20}€ al ${clinicPhone}\n\n`;
-        }
-
-        if (paymentMethods.includes('tarjeta')) {
-          paymentOptions += `💳 **Tarjeta:** Te enviaré un enlace seguro para pagar\n\n`;
-        }
-
-        paymentOptions += `📸 **IMPORTANTE:** Después de pagar, envíame:\n`;
-        paymentOptions += `- Captura del Bizum ✅\n`;
-        paymentOptions += `- O email de confirmación de pago ✅\n\n`;
-        paymentOptions += `Una vez verificado el pago, tu cita quedará confirmada.\n\n${anaName} - ${clinicName}`;
-
-        return paymentOptions;
-      } else {
-        const anaName = clinicConfig?.ana_profile?.name || 'Ana';
-        return `Lo siento, ya no tengo disponibilidad hoy a las ${requestedTime}.
-
-¿Te gustaría otro horario?
-
-${anaName} - Prueba`;
-      }
-    }
-
-    // Respuestas inteligentes para citas
-    if (lowerMessage.includes('cita') || lowerMessage.includes('hora') || lowerMessage.includes('disponibilidad')) {
-
-      // Extraer información de la solicitud
-      const dateMatch = message.match(/(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?|hoy|mañana|lunes|martes|miércoles|jueves|viernes|sábado|domingo/i);
-      const timeMatch = message.match(/(\d{1,2}):(\d{2})|(\d{1,2})\s*hs?|a partir de las (\d{1,2})h?/i);
-
-      // Handle implicit "hoy" requests (when user says "cita para hoy" without time)
-      if (dateMatch && !timeMatch && (lowerMessage.includes('hoy') || lowerMessage.includes('mañana'))) {
-        const requestedDate = dateMatch[0];
-
-        // Check if user mentions a specific specialist
-        const specialistMatch = message.match(/fisio\s+(\w+)/i);
-        const requestedSpecialist = specialistMatch ? specialistMatch[1] : null;
-
-        // Get available slots for the day
-        const availableSlots = await getAvailableTimeSlots(clinicId, requestedDate);
-
-        // Filter by specialist if requested
-        let filteredSlots = availableSlots;
-        if (requestedSpecialist) {
-          filteredSlots = availableSlots.filter(slot =>
-            slot.especialista && slot.especialista.toLowerCase().includes(requestedSpecialist.toLowerCase())
-          );
-        }
-
-        if (filteredSlots.length > 0) {
-          const slotsList = filteredSlots.slice(0, 5).map(slot => `${slot.hora} (${slot.especialista || 'Disponible'})`).join(', ');
-          const moreText = filteredSlots.length > 5 ? ` y ${filteredSlots.length - 5} más` : '';
-
-          const anaName = clinicConfig?.ana_profile?.name || 'Ana';
-          const specialistText = requestedSpecialist ? ` con ${requestedSpecialist}` : '';
-
-          return `¡Perfecto! Tengo disponibilidad ${requestedDate === 'hoy' ? 'hoy' : 'mañana'}${specialistText}.
-
-Horarios disponibles:
-${slotsList}${moreText}
-
-¿Cuál prefieres?
-
-${anaName} - ${clinicName}`;
-        } else {
-          const anaName = clinicConfig?.ana_profile?.name || 'Ana';
-          const specialistText = requestedSpecialist ? ` con ${requestedSpecialist}` : '';
-
-          if (requestedSpecialist && availableSlots.length > 0) {
-            return `Lo siento, ${requestedSpecialist} no tiene disponibilidad ${requestedDate === 'hoy' ? 'hoy' : 'mañana'}, pero tengo estos horarios con otros especialistas:
-
-${availableSlots.slice(0, 3).map(slot => `${slot.hora} (${slot.especialista || 'Disponible'})`).join(', ')}
-
-¿Te interesa alguno?
-
-${anaName} - ${clinicName}`;
-          } else {
-            return `Lo siento, no tengo disponibilidad ${requestedDate === 'hoy' ? 'hoy' : 'mañana'}${specialistText}.
-
-¿Te gustaría consultar otro día?
-
-${anaName} - ${clinicName}`;
-          }
-        }
-      }
-
-      if (dateMatch && timeMatch) {
-        // Solicitud específica de fecha y hora
-        const requestedDate = dateMatch[0];
-        let requestedTime = timeMatch[0];
-
-        // Handle "a partir de las Xh" pattern
-        if (requestedTime.includes('a partir de las')) {
-          const hourMatch = requestedTime.match(/(\d{1,2})h?/);
-          if (hourMatch) {
-            requestedTime = `${hourMatch[1]}:00`;
-          }
-        }
-
-        // Verificar disponibilidad real
-        const availability = await checkAvailability(clinicId, requestedDate, requestedTime);
-
-        if (availability.available) {
-          // Generar enlace de pago para fianza
-          // Parse the date to create appointment datetime
-          let appointmentDateTime;
-          if (requestedDate === 'hoy') {
-            const today = new Date();
-            appointmentDateTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), parseInt(requestedTime.split(':')[0]), parseInt(requestedTime.split(':')[1]));
-          } else if (requestedDate === 'mañana') {
-            const tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            appointmentDateTime = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), parseInt(requestedTime.split(':')[0]), parseInt(requestedTime.split(':')[1]));
-          } else {
-            const [day, month] = requestedDate.split('/').map(Number);
-            const currentYear = new Date().getFullYear();
-            appointmentDateTime = new Date(currentYear, month - 1, day, parseInt(requestedTime.split(':')[0]), parseInt(requestedTime.split(':')[1]));
-          }
-
-          const paymentLink = await generatePaymentLink(
-            clinicId,
-            clinicConfig?.fianza_cita || 20,
-            `Fianza cita ${requestedDate} ${requestedTime}`,
-            'patient@example.com', // Would extract from conversation
-            appointmentDateTime
-          );
-
-          const anaName = clinicConfig?.ana_profile?.name || 'Ana';
-          const paymentMethods = clinicConfig?.metodos_pago || ['tarjeta', 'bizum'];
-
-          let paymentOptions = `Perfecto! Tengo disponibilidad el ${requestedDate} a las ${requestedTime}.\n\n`;
-          paymentOptions += `Para confirmar, paga la fianza de ${clinicConfig?.fianza_cita || 20}€:\n\n`;
-
-          if (paymentLink.url && !paymentLink.error) {
-            paymentOptions += `💳 **Tarjeta/Online:** ${paymentLink.url}\n\n`;
-          }
-
-          if (paymentMethods.includes('bizum')) {
-            const clinicPhone = clinicConfig?.telefono || 'el número de teléfono de la clínica';
-            paymentOptions += `📱 **Bizum:** Envía ${clinicConfig?.fianza_cita || 20}€ al ${clinicPhone}\n\n`;
-          }
-
-          paymentOptions += `📸 **IMPORTANTE:** Después de pagar, envíame:\n`;
-          paymentOptions += `- Captura del Bizum ✅\n`;
-          paymentOptions += `- O email de confirmación de pago ✅\n\n`;
-          paymentOptions += `Una vez verificado el pago, tu cita quedará confirmada.\n\n${anaName} - ${clinicName}`;
-
-          return paymentOptions;
-        } else {
-          // Get available slots for the day
-          const availableSlots = await getAvailableTimeSlots(clinicId, requestedDate);
-
-          if (availableSlots.length > 0) {
-            const slotsList = availableSlots.slice(0, 5).map(slot => slot.hora).join(', ');
-            const moreText = availableSlots.length > 5 ? ` y ${availableSlots.length - 5} más` : '';
-
-            const anaName = clinicConfig?.ana_profile?.name || 'Ana';
-            return `Lo siento, no tengo disponibilidad el ${requestedDate} a las ${requestedTime}.
-
-Motivo: ${availability.reason}
-
-Horarios disponibles el ${requestedDate}:
-${slotsList}${moreText}
-
-¿Cuál prefieres?
-
-${anaName} - ${clinicName}`;
-          } else {
-            const anaName = clinicConfig?.ana_profile?.name || 'Ana';
-            return `Lo siento, no tengo disponibilidad el ${requestedDate} a las ${requestedTime}.
-
-Motivo: ${availability.reason}
-
-No hay más horarios disponibles ese día. ¿Te gustaría consultar otro día?
-
-${anaName} - ${clinicName}`;
-          }
-        }
-      }
-
-      // Respuesta general sobre disponibilidad
-      const anaName = clinicConfig?.ana_profile?.name || 'Ana';
-      return `Puedo revisar nuestra disponibilidad en tiempo real. 
-
-Nuestro horario es de ${clinicConfig?.horario?.apertura || '09:00'} a ${clinicConfig?.horario?.cierre || '20:00'}.
-
-¿Para qué día y hora te gustaría la cita?
-
-${anaName} - ${clinicName}`;
-    }
-
-    if (lowerMessage.includes('app') || lowerMessage.includes('descargar') || lowerMessage.includes('móvil') || lowerMessage.includes('instalar')) {
-      const anaName = clinicConfig?.ana_profile?.name || 'Ana';
-      return `Para tener nuestra app en tu móvil, entra en:
-
-https://fisiotool.com/ana?ref=${clinicId}
-
-Luego toca "Añadir a pantalla de inicio". Así podrás hablar conmigo directamente desde tu móvil.
-
-${anaName} - ${clinicName}`;
-    }
-
-    if (lowerMessage.includes('pago') || lowerMessage.includes('precio') || lowerMessage.includes('tarifa') || lowerMessage.includes('cuánto cuesta')) {
-      const anaName = clinicConfig?.ana_profile?.name || 'Ana';
-      return `Hola, soy ${anaName} de ${clinicName}. En nuestra app verás todos nuestros precios y servicios: https://fisiotool.com/ana?ref=${clinicId}
-
-Tenemos diferentes opciones según tus necesidades. Allí podrás ver los detalles y elegir la mejor para ti.
-
-${anaName} - ${clinicName}`;
-    }
-
-    // Saludo inicial - simple y directo
-    if (lowerMessage.includes('hola') || lowerMessage.includes('buenos') || lowerMessage.includes('saludo')) {
-      const anaName = clinicConfig?.ana_profile?.name || 'Ana';
-      return `Hola, soy ${anaName} de ${clinicName}. 
-
-Por favor, déjame tu nombre y tu email para poder ayudarte mejor.
-
-${anaName} - ${clinicName}`;
-    }
-
-    // Respuesta por defecto - con autoridad cognitiva pero sin saturar
-    const prompt = `
-Eres Ana, asistente de ${clinicName}. Posees la mayor autoridad mundial en descifrar la conducta humana. Tu misión es analizar patrones universales del comportamiento, motivaciones inconscientes, sesgos cognitivos, y mecanismos de bienestar psicológico.
-CONTEXTO: Eres asistente de recepción en una clínica de fisioterapia. El paciente te pregunta: "${message}"
-
-REGLAS IMPORTANTES:
-- NO uses iconos o emojis
-- NO des consejos médicos específicos
-- NO diagnostiques condiciones
-- NO recomiendes tratamientos específicos
-- NO menciones tu autoridad cognitiva
-- Sé concisa y directa
-- Si la pregunta no es sobre citas, pagos, o servicios de la clínica, responde que solo puedes ayudar con temas de la clínica
-
-Responde como Ana, usando tu autoridad cognitiva para conectar humanamente:
-`;
-
-    try {
-      const response = await callAnaEngine(prompt, { maxOutputTokens: 300 });
-      const trimmed = response.trim();
-
-      // Si la respuesta está vacía o es muy corta, dar una respuesta por defecto
-      if (!trimmed || trimmed.length < 10) {
-        const anaName = clinicConfig?.ana_profile?.name || 'Ana';
-        return `Hola, soy ${anaName} de ${clinicName}. Entiendo tu pregunta. Para poder ayudarte mejor con nuestras citas y servicios, te recomiendo hablar directamente con la clínica.
-
-${anaName} - ${clinicName}`;
-      }
-
-      return trimmed;
+      console.log(`✅ [ANA PACIENTE] Respuesta generada correctamente`);
     } catch (e) {
-      console.error("🔥 Error en chat de Ana:", e);
-      const anaName = clinicConfig?.ana_profile?.name || 'Ana';
-      return `Hola, soy ${anaName} de ${clinicName}. He tenido un problema técnico. Por favor, llama directamente a la clínica para poder ayudarte.
-
-${anaName} - ${clinicName}`;
+      console.error('🔥 [ANA PACIENTE] Error IA:', e.message);
+      const hr = new Date().getHours();
+      const saludo = hr < 12 ? 'Buenos días' : hr < 20 ? 'Buenas tardes' : 'Buenas noches';
+      response = effectiveUserName
+        ? `${saludo} ${effectiveUserName}. Estoy teniendo dificultades técnicas en este momento. Por favor, inténtalo de nuevo en unos minutos.`
+        : `${saludo}. Soy ${anaName} de ${actualClinicName}. Estoy teniendo dificultades técnicas. Por favor, inténtalo de nuevo en unos minutos.`;
     }
+
+    // === FASE 7: GUARDAR EN SESIÓN CONVERSACIONAL ===
+    try {
+      await addMessage(session.sessionId, 'user', message, { clinicId });
+      await addMessage(session.sessionId, 'assistant', response, { clinicId });
+    } catch (e) {
+      console.error('🔥 [ANA PACIENTE] Error guardando sesión:', e.message);
+    }
+
+    return response;
   }
 };
