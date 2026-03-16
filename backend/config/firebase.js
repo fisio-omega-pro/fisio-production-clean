@@ -18,4 +18,5 @@ if (!admin.apps.length) {
 }
 const db = admin.firestore();
 const Timestamp = admin.firestore.Timestamp;
-module.exports = { db, Timestamp };
+const FieldValue = admin.firestore.FieldValue;
+module.exports = { db, Timestamp, FieldValue };

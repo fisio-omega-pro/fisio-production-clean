@@ -5,7 +5,7 @@
  * Ana recuerda el contexto completo de cada interacción.
  */
 
-const { db, Timestamp } = require('../config/firebase');
+const { db, Timestamp, FieldValue } = require('../config/firebase');
 
 class ConversationMemoryService {
   constructor() {
@@ -404,6 +404,3 @@ module.exports = {
   extractEntitiesFromHistory: (history) => memoryService.extractEntitiesFromHistory(history),
   detectImplicitIntent: (history) => memoryService.detectImplicitIntent(history)
 };
-
-// Importar FieldValue para operaciones
-const { FieldValue } = require('../config/firebase');
