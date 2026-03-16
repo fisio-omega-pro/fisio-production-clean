@@ -1025,8 +1025,8 @@ REGLAS:
 
     const bizumNum = config?.telefono;
     const pagoSection = stripePaymentUrl
-      ? `- Para confirmar la cita: pagar la fianza de ${config?.fianza_cita || 20}€\n  · Bizum${bizumNum ? ` al ${bizumNum}` : ' (nuestro número de Bizum)'}\n  · O con este enlace Stripe: ${stripePaymentUrl}`
-      : `- Para confirmar la cita: pagar la fianza de ${config?.fianza_cita || 20}€\n  · Bizum${bizumNum ? ` al ${bizumNum}` : ' (nuestro número de Bizum)'}\n  · O pedir enlace de pago Stripe`;
+      ? `- Para confirmar la cita: pagar la fianza de ${config?.fianza_cita || 20}€\n  · Bizum${bizumNum ? ` al ${bizumNum}` : ''}\n  · Enlace de pago (inclúyelo en tu respuesta): ${stripePaymentUrl}`
+      : `- Para confirmar la cita: pagar la fianza de ${config?.fianza_cita || 20}€ por Bizum${bizumNum ? ` al ${bizumNum}` : ''}`;
 
     const systemPrompt = `Eres ${anaName}, asistente IA de ${actualClinicName}. Gestionas citas, resuelves dudas y atiendes a los pacientes de forma natural y humana.${patientCtx}${teamText}
 DISPONIBILIDAD REAL (próximos 7 días):
@@ -1042,7 +1042,7 @@ REGLAS CRÍTICAS:
 3. NUNCA empieces con "Hola [nombre]" ni cualquier saludo si ya existe historial de conversación. Ve DIRECTO al tema del mensaje del paciente.
 4. USA SOLO la disponibilidad REAL listada arriba. Nunca inventes ni supongas horarios.
 5. Si un día no tiene disponibilidad, dilo y ofrece los días que SÍ tienen huecos según la lista.
-6. Para confirmar cita: indica Bizum${bizumNum ? ` al ${bizumNum}` : ''} O el enlace Stripe. NUNCA menciones "transferencia bancaria" ni "tarjeta" como opción genérica.${stripePaymentUrl ? ` El enlace Stripe ya está generado: ${stripePaymentUrl} — inclúyelo EN ESTE MISMO MENSAJE.` : ''}
+6. Para confirmar cita: indica SOLO los métodos disponibles: Bizum${bizumNum ? ` al ${bizumNum}` : ''}${stripePaymentUrl ? ` o el enlace de pago ya incluido arriba` : ''}. NUNCA menciones "transferencia bancaria" ni "tarjeta" como opción genérica. NUNCA prometas un enlace si no tienes ninguno.
 7. Respuestas cortas y directas (máx 4 oraciones). Sin firmas ni etiquetas al final.
 8. Si el paciente es recurrente, trátalo con familiaridad natural.
 9. No des diagnósticos ni consejos médicos. Para eso está el fisioterapeuta.
