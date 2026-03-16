@@ -240,7 +240,7 @@ const anaChat = async (req, res) => {
 
     // Generar respuesta con Ana
     const { history = [], userName, userEmail, userPhone } = req.body;
-    const response = await anaService.generatePatientResponse({
+    const result = await anaService.generatePatientResponse({
       message: String(message).trim(),
       clinicName: clinicData.nombre_clinica || clinicData.nombre || 'la clínica',
       clinicId,
@@ -250,12 +250,16 @@ const anaChat = async (req, res) => {
       userPhone
     });
 
+    const responseText = typeof result === 'string' ? result : result.response;
+    const paymentLink = typeof result === 'object' ? result.paymentLink : null;
+
     console.log('🚀 DEBUG: Ana result successfully generated');
-    console.log('🚀 DEBUG: Response preview:', typeof response === 'string' ? response.substring(0, 100) : 'NO_STRING');
+    console.log('🚀 DEBUG: Response preview:', responseText?.substring(0, 100));
 
     return res.json({
       success: true,
-      response
+      response: responseText,
+      ...(paymentLink ? { paymentLink } : {})
     });
   } catch (e) {
     console.error('🔥 [ANA CHAT] Full Error:', e);

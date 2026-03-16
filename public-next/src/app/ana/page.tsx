@@ -313,7 +313,8 @@ function AnaChatContent() {
         setMessages(prev => [...prev, {
           role: 'ana',
           text: data.reply || data.response,
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          ...(data.paymentLink ? { paymentLink: data.paymentLink } : {})
         }]);
       } else {
         throw new Error(data.error || 'Error en respuesta');
@@ -437,6 +438,16 @@ function AnaChatContent() {
               : 'bg-white text-gray-800 rounded-bl-sm shadow-sm'
               }`}>
               <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+              {msg.paymentLink && (
+                <a
+                  href={msg.paymentLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 flex items-center justify-center gap-2 bg-[#0086ea] text-white text-sm font-semibold py-2.5 px-4 rounded-xl active:scale-95 transition-all shadow-md"
+                >
+                  💳 Pagar ahora (15€)
+                </a>
+              )}
               <p className={`text-[10px] mt-2 flex items-center gap-1 ${msg.role === 'user' ? 'text-gray-500 justify-end' : 'text-gray-400'
                 }`}>
                 {new Date(msg.timestamp).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}

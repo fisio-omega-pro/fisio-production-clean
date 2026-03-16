@@ -942,11 +942,11 @@ REGLAS:
           }
         }
         
-        // Si encontramos el paciente, usar sus datos completos
+        // Si encontramos el paciente, usar sus datos — el nombre del request siempre tiene prioridad
         if (existingPatient) {
           emailToUse = existingPatient.email || emailToUse;
           phoneToUse = existingPatient.telefono || phoneToUse;
-          effectiveUserName = existingPatient.nombre || userName;
+          effectiveUserName = userName || existingPatient.nombre;
           console.log(`✅ [USER ID] Paciente encontrado: ${effectiveUserName} (${emailToUse})`);
         }
       } catch (error) {
@@ -1040,7 +1040,7 @@ REGLAS:
 
     const bizumNum = config?.telefono;
     const pagoSection = stripePaymentUrl
-      ? `- Para confirmar la cita: pagar la fianza de ${config?.fianza_cita || 20}€\n  · Bizum${bizumNum ? ` al ${bizumNum}` : ''}\n  · Enlace de pago (inclúyelo en tu respuesta): ${stripePaymentUrl}`
+      ? `- Para confirmar la cita: pagar la fianza de ${config?.fianza_cita || 20}€\n  · Bizum${bizumNum ? ` al ${bizumNum}` : ''}\n  · Pago con tarjeta: dile al paciente que use el botón "Pagar ahora" que aparecerá en el chat (NO copies ni menciones ninguna URL)`
       : `- Para confirmar la cita: pagar la fianza de ${config?.fianza_cita || 20}€ por Bizum${bizumNum ? ` al ${bizumNum}` : ''}`;
 
     const systemPrompt = `Eres ${anaName}, asistente IA de ${actualClinicName}. Gestionas citas, resuelves dudas y atiendes a los pacientes de forma natural y humana.${patientCtx}${teamText}
@@ -1057,7 +1057,7 @@ REGLAS CRÍTICAS:
 3. NUNCA empieces con "Hola [nombre]" ni cualquier saludo si ya existe historial de conversación. Ve DIRECTO al tema del mensaje del paciente.
 4. USA SOLO la disponibilidad REAL listada arriba. Nunca inventes ni supongas horarios.
 5. Si un día no tiene disponibilidad, dilo y ofrece los días que SÍ tienen huecos según la lista.
-6. Para confirmar cita: indica SOLO los métodos disponibles: Bizum${bizumNum ? ` al ${bizumNum}` : ''}${stripePaymentUrl ? ` o el enlace de pago ya incluido arriba` : ''}. NUNCA menciones "transferencia bancaria" ni "tarjeta" como opción genérica. NUNCA prometas un enlace si no tienes ninguno.
+6. Para confirmar cita: indica SOLO los métodos disponibles: Bizum${bizumNum ? ` al ${bizumNum}` : ''}${stripePaymentUrl ? ` o pago con tarjeta usando el botón del chat` : ''}. NUNCA menciones "transferencia bancaria". NUNCA copies ni pegues ninguna URL en tu respuesta.
 7. Respuestas cortas y directas (máx 4 oraciones). Sin firmas ni etiquetas al final.
 8. Si el paciente es recurrente, trátalo con familiaridad natural.
 9. No des diagnósticos ni consejos médicos. Para eso está el fisioterapeuta.
@@ -1159,6 +1159,6 @@ ${nameRule}`;
       console.error('🔥 [ANA PACIENTE] Error guardando sesión:', e.message);
     }
 
-    return response;
+    return { response, paymentLink: stripePaymentUrl || null };
   }
 };
