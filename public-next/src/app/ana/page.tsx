@@ -251,7 +251,8 @@ function AnaChatContent() {
             setMessages(prev => [...prev, {
               role: 'ana',
               text: "¡Por cierto! 📱 Te recomiendo instalar nuestra App para que siempre me tengas a mano en tu pantalla de inicio. Solo tienes que pulsar el botón azul de 'INSTALAR' que verás justo aquí arriba. ¡Es mucho más cómodo!",
-              timestamp: Date.now() + 1000
+              timestamp: Date.now() + 1000,
+              isInstallPrompt: true
             }]);
           }, 3000);
         }
@@ -297,7 +298,7 @@ function AnaChatContent() {
         body: JSON.stringify({
           message: messageToSend,
           clinicId,
-          history: messages,
+          history: messages.filter((m: any) => !m.isInstallPrompt),
           userName,
           userEmail,
           userPhone

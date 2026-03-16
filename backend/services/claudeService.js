@@ -32,20 +32,30 @@ class ClaudeService {
         console.log('🧪 No Claude Key. Using Gemini fallback.');
         return await geminiService.generateResponse(prompt, {
           systemPrompt: options.systemPrompt,
-          conversationHistory: options.conversationHistory
+          conversationHistory: this._sanitizeHistory(options.conversationHistory)
         });
       }
 
       console.log('🚀 Trying Claude API...');
       const client = new Anthropic({ apiKey });
 
-      // Construir array de mensajes con historial conversacional
-      const messages = [];
+      // Construir y sanitizar historial conversacional
+      // Las APIs requieren: empieza con 'user', roles alternos, sin consecutivos del mismo rol
+      const rawHistory = [];
       if (options.conversationHistory && options.conversationHistory.length > 0) {
         for (const msg of options.conversationHistory) {
-          if (msg.role && msg.content) {
-            messages.push({ role: msg.role, content: String(msg.content) });
+          if (msg.role && msg.content && String(msg.content).trim()) {
+            rawHistory.push({ role: msg.role, content: String(msg.content) });
           }
+        }
+      }
+      const messages = [];
+      for (const m of rawHistory) {
+        if (messages.length === 0 && m.role !== 'user') continue; // drop leading assistant
+        if (messages.length > 0 && messages[messages.length - 1].role === m.role) {
+          messages[messages.length - 1].content += ' ' + m.content; // merge consecutive
+        } else {
+          messages.push({ ...m });
         }
       }
       messages.push({ role: 'user', content: prompt });
@@ -69,13 +79,31 @@ class ClaudeService {
       try {
         return await geminiService.generateResponse(prompt, {
           systemPrompt: options.systemPrompt,
-          conversationHistory: options.conversationHistory
+          conversationHistory: this._sanitizeHistory(options.conversationHistory)
         });
       } catch (geminiError) {
         console.error('🔥 All AI Engines failed:', geminiError.message);
         return this._emergencyFallback(prompt, options);
       }
     }
+  }
+
+  /**
+   * Sanitiza el historial: elimina assistant iniciales y fusiona consecutivos del mismo rol.
+   */
+  _sanitizeHistory(conversationHistory) {
+    if (!Array.isArray(conversationHistory) || conversationHistory.length === 0) return [];
+    const result = [];
+    for (const m of conversationHistory) {
+      if (!m.role || !m.content || !String(m.content).trim()) continue;
+      if (result.length === 0 && m.role !== 'user') continue;
+      if (result.length > 0 && result[result.length - 1].role === m.role) {
+        result[result.length - 1].content += ' ' + String(m.content);
+      } else {
+        result.push({ role: m.role, content: String(m.content) });
+      }
+    }
+    return result;
   }
 
   /**
