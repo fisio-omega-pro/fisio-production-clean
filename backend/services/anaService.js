@@ -12,7 +12,7 @@ const { processWithSkills, getSkillEngine } = require('./anaSkills');
 const { getOrCreateSession, addMessage, getContextSummary, extractEntitiesFromHistory } = require('./conversationMemoryService');
 
 // Flag para activar/desactivar sistema de skills (para migración gradual)
-const USE_SKILL_SYSTEM = true;
+const USE_SKILL_SYSTEM = false; // Temporalmente desactivado para debug
 
 const callAnaEngine = async (prompt, options = {}) => {
   try {
