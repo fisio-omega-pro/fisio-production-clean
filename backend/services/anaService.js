@@ -188,10 +188,12 @@ Tip clave: Cuantos más pacientes importados al sistema, más efectiva es la pro
 📱 MÓDULO: APP DE LA CLÍNICA (PWA)
 ════════════════════════════════
 Qué es: Cada clínica tiene su propia app móvil personalizada con su nombre y logo. Sin App Store, sin coste extra.
-Cómo instalarla los pacientes: Escanear el QR del dashboard → se abre en el navegador → "Añadir a pantalla de inicio" → instalada en 10 segundos.
+Cómo instalarla los pacientes (2 vías):
+1. BOTÓN EN EL CHAT DE ANA: Cuando el paciente chatea con Ana en el móvil, aparece un botón "Descargar app" que instala la PWA directamente en su dispositivo. Es el método principal y más fácil.
+2. QR EN RECEPCIÓN: El dashboard genera un QR que el fisio puede imprimir y poner en la consulta. El paciente lo escanea con la cámara del móvil y se abre la app para instalar. Útil para captar pacientes presenciales.
 Qué pueden hacer los pacientes desde la app: Reservar citas, pagar fianzas, ver bonos, recibir notificaciones push, chatear con Ana.
 Funciona offline: Sí, la app funciona sin conexión para consultar información básica.
-Cómo activar notificaciones: Ajustes → App → Notificaciones Push → activar. Las notificaciones llegan directamente al móvil del paciente sin WhatsApp.
+Notificaciones push: Una vez instalada la app, Ana puede enviar mensajes directos al móvil del paciente sin WhatsApp ni email.
 
 ════════════════════════════════
 💰 MÓDULO: BALANCE
