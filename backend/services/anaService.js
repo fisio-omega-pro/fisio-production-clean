@@ -985,20 +985,29 @@ REGLAS:
       });
     }
 
-    // === FASE 2: CARGA DE CONTEXTO EN PARALELO ===
-    const [cfgResult, teamResult, patHistResult, todaySlotsResult, tomorrowSlotsResult] = await Promise.allSettled([
+    // === FASE 2: CARGA DE CONTEXTO EN PARALELO (7 días de agenda) ===
+    const DAY_NAMES_ES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    const nextDays = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() + i);
+      const dd = d.getDate().toString().padStart(2, '0');
+      const mm = (d.getMonth() + 1).toString().padStart(2, '0');
+      const yyyy = d.getFullYear();
+      const label = i === 0 ? 'Hoy' : i === 1 ? 'Mañana' : `${DAY_NAMES_ES[d.getDay()]} ${dd}/${mm}`;
+      return { label, date: `${dd}/${mm}/${yyyy}` };
+    });
+
+    const [cfgResult, teamResult, patHistResult, ...daySlotResults] = await Promise.allSettled([
       getClinicConfiguration(clinicId),
       getTeamInfo(clinicId),
       emailToUse ? getPatientHistory(clinicId, emailToUse) : Promise.resolve({ isRecurrent: false, history: [] }),
-      getAvailableTimeSlots(clinicId, 'hoy'),
-      getAvailableTimeSlots(clinicId, 'mañana')
+      ...nextDays.map(d => getAvailableTimeSlots(clinicId, d.date))
     ]);
 
-    const config        = cfgResult.status        === 'fulfilled' ? (cfgResult.value        || {}) : {};
-    const team          = teamResult.status        === 'fulfilled' ? (teamResult.value        || { count: 0, specialists: [] }) : { count: 0, specialists: [] };
-    const patHist       = patHistResult.status     === 'fulfilled' ? (patHistResult.value     || { isRecurrent: false, history: [] }) : { isRecurrent: false, history: [] };
-    const todaySlots    = todaySlotsResult.status  === 'fulfilled' ? (todaySlotsResult.value  || []) : [];
-    const tomorrowSlots = tomorrowSlotsResult.status === 'fulfilled' ? (tomorrowSlotsResult.value || []) : [];
+    const config   = cfgResult.status    === 'fulfilled' ? (cfgResult.value   || {}) : {};
+    const team     = teamResult.status   === 'fulfilled' ? (teamResult.value   || { count: 0, specialists: [] }) : { count: 0, specialists: [] };
+    const patHist  = patHistResult.status === 'fulfilled' ? (patHistResult.value || { isRecurrent: false, history: [] }) : { isRecurrent: false, history: [] };
+    const daySlots = daySlotResults.map(r => r.status === 'fulfilled' ? (r.value || []) : []);
 
     if (!effectiveUserName && patHist.patientName) effectiveUserName = patHist.patientName;
 
@@ -1020,18 +1029,24 @@ REGLAS:
       return slots.length > 8 ? `${shown} y ${slots.length - 8} más` : shown;
     };
 
+    const agendaText = nextDays.map((d, i) => `  ${d.label}: ${fmtSlots(daySlots[i])}`).join('\n');
+
     const teamText = team.count > 0
       ? `\nEQUIPO DISPONIBLE: ${team.specialists.slice(0, 5).map(s => `${s.name}${s.specialty ? ` - ${s.specialty}` : ''}`).join(', ')}`
       : '';
 
     const lastAppt = patHist.history?.[0];
     const patientCtx = patHist.isRecurrent && effectiveUserName
-      ? `\nPACIENTE RECURRENTE: ${effectiveUserName}. Última cita: ${lastAppt?.date || 'pasada'} con ${lastAppt?.specialist || 'el especialista'}.`
-      : effectiveUserName ? `\nPACIENTE: ${effectiveUserName}` : '';
+      ? `\nPACIENTE ACTUAL: ${effectiveUserName} (recurrente). Última cita: ${lastAppt?.date || 'pasada'} con ${lastAppt?.specialist || 'el especialista'}.`
+      : effectiveUserName ? `\nPACIENTE ACTUAL: ${effectiveUserName}` : '';
+
+    const nameRule = effectiveUserName
+      ? `10. OBLIGATORIO: el paciente se llama "${effectiveUserName}". Usa SIEMPRE este nombre. NUNCA uses otro nombre aunque aparezca en mensajes anteriores del historial.`
+      : `10. Si el paciente no ha dado su nombre, no lo inventes.`;
 
     const systemPrompt = `Eres ${anaName}, asistente IA de ${actualClinicName}. Gestionas citas, resuelves dudas y atiendes a los pacientes de forma natural y humana.${patientCtx}${teamText}
-DISPONIBILIDAD REAL HOY: ${fmtSlots(todaySlots)}
-DISPONIBILIDAD REAL MAÑANA: ${fmtSlots(tomorrowSlots)}
+DISPONIBILIDAD REAL (próximos 7 días):
+${agendaText}
 CONFIGURACIÓN DE LA CLÍNICA:
 - Horario: ${config?.horario?.apertura || '09:00'} - ${config?.horario?.cierre_final || config?.horario?.cierre || '20:00'}
 - Duración cita: ${config?.duracion_cita || 45} min
@@ -1041,12 +1056,13 @@ REGLAS CRÍTICAS:
 1. Eres un asistente humano y natural. Habla como persona, no como bot.
 2. NO te repitas ni uses frases enlatadas. Cada respuesta debe ser única al contexto.
 3. NUNCA empieces con "Hola [nombre]" ni cualquier saludo si ya existe historial de conversación. Ve DIRECTO al tema del mensaje del paciente.
-4. USA SOLO la disponibilidad REAL listada arriba. Nunca inventes horarios.
-5. Si no hay disponibilidad hoy/mañana, dilo con franqueza y ofrece consultar otra fecha.
+4. USA SOLO la disponibilidad REAL listada arriba. Nunca inventes ni supongas horarios.
+5. Si un día no tiene disponibilidad, dilo y ofrece los días que SÍ tienen huecos según la lista.
 6. Para confirmar cita: valida horario disponible → indica método de pago con importe exacto → espera confirmación de pago.
 7. Respuestas cortas y directas (máx 4 oraciones). Sin firmas ni etiquetas al final.
 8. Si el paciente es recurrente, trátalo con familiaridad natural.
-9. No des diagnósticos ni consejos médicos. Para eso está el fisioterapeuta.`;
+9. No des diagnósticos ni consejos médicos. Para eso está el fisioterapeuta.
+${nameRule}`;
 
     // === FASE 5: HISTORIAL CONVERSACIONAL FORMATEADO ===
     // Preferir sesión Firestore; si está vacía (timing), usar historial del frontend como fallback
