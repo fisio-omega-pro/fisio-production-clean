@@ -549,17 +549,13 @@ ${alternatives}
 const getAvailableTimeSlots = async (clinicId, requestedDate) => {
   try {
     const clinicConfig = await getClinicConfig(clinicId);
-    const horario = clinicConfig?.horario;
-    if (!horario) {
-      console.log(`🔍 [ANA] No horario config for clinic ${clinicId}`);
-      return [];
-    }
+    const horario = clinicConfig?.horario || {};
 
     const apertura    = horario.apertura    || '09:00';
     const cierre      = horario.cierre      || '14:00';
     const reapertura  = horario.reapertura  || '16:00';
     const cierreFinal = horario.cierre_final || '20:00';
-    const duracion    = clinicConfig?.duracion_cita || 60;
+    const duracion    = clinicConfig?.duracion_cita || 45;
 
     // Genera todos los slots posibles en un rango horario dado la duración
     const generateSlots = (start, end) => {
