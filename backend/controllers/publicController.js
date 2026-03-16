@@ -359,9 +359,26 @@ const anaProspectoChat = async (req, res) => {
   }
 };
 
+const healthCheck = async (req, res) => {
+  const checks = { firestore: false, claude: false, stripe: false };
+  try {
+    await db.collection('clinicas').limit(1).get();
+    checks.firestore = true;
+  } catch (_) {}
+  checks.claude = !!process.env.ANTHROPIC_API_KEY;
+  checks.stripe = !!process.env.STRIPE_SECRET_KEY;
+  const allOk = Object.values(checks).every(Boolean);
+  return res.status(allOk ? 200 : 503).json({
+    status: allOk ? 'ok' : 'degraded',
+    checks,
+    ts: new Date().toISOString()
+  });
+};
+
 module.exports = {
   submitCorporateLead,
   getClinicInfo,
+  healthCheck,
   anaChat,
   anaProspectoChat,
   getClinicLogo: async (req, res) => {

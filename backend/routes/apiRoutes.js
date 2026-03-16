@@ -44,6 +44,7 @@ router.post('/public/corporate-lead', ensureHandler(publicController.submitCorpo
 router.get('/public/logo/:clinicId', ensureHandler(publicController.getClinicLogo, 'getClinicLogo'));
 router.get('/public/ana-photo/:clinicId', ensureHandler(publicController.getAnaPhoto, 'getAnaPhoto'));
 router.get('/public/clinic-info', ensureHandler(publicController.getClinicInfo, 'getClinicInfo'));
+router.get('/health', ensureHandler(publicController.healthCheck, 'healthCheck'));
 router.post('/public/ana-chat', ensureHandler(publicController.anaChat, 'anaChat'));
 router.post('/public/ana-prospecto', ensureHandler(publicController.anaProspectoChat, 'anaProspectoChat'));
 // Stripe webhook (body RAW se configura en server.js antes de bodyParser.json)

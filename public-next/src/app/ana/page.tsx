@@ -28,21 +28,27 @@ function AnaChatContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Get clinicId from URL params - try multiple methods
+  // Get clinicId from URL params - tries multiple methods with validation and cache
   const getClinicId = () => {
+    const isValidId = (id: string) => id && id.length >= 15;
+
     // Method 1: useSearchParams (Next.js way)
     const fromSearchParams = searchParams.get('ref');
-    if (fromSearchParams) return fromSearchParams;
+    if (isValidId(fromSearchParams || '')) return fromSearchParams!;
 
     // Method 2: window.location (fallback)
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       const fromWindow = urlParams.get('ref');
-      if (fromWindow) return fromWindow;
+      if (isValidId(fromWindow || '')) return fromWindow!;
+
+      // Method 3: cached verified clinicId from a previous successful load
+      const cached = localStorage.getItem('ana_clinic_id');
+      if (isValidId(cached || '')) return cached!;
     }
 
-    // Method 3: hardcoded fallback for testing
-    return 'bleRbykAj1TgF4lOYdMh'; // Test clinic ID
+    // Method 4: hardcoded fallback for testing
+    return 'bleRbykAj1TgF4lOYdMh';
   };
 
   const clinicId = getClinicId();
@@ -116,6 +122,8 @@ function AnaChatContent() {
         if (response.ok) {
           const data = await response.json();
           if (data.success && data.data) {
+            // Cache the verified clinicId so future visits with truncated URLs still work
+            localStorage.setItem('ana_clinic_id', clinicId);
             setAnaProfile({
               name: data.data.ana_nombre || 'Ana',
               photo_url: data.data.ana_foto || null,
