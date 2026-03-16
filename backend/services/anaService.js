@@ -584,11 +584,23 @@ const getAvailableTimeSlots = async (clinicId, requestedDate) => {
       .get();
 
     const bookedHoras = new Set(bookedSnap.docs.map(doc => doc.data().hora).filter(Boolean));
-    console.log(`�️ [ANA] ${requestedDate}: ${allSlots.length} slots teóricos, ${bookedHoras.size} ocupados → ${allSlots.length - bookedHoras.size} libres`);
 
-    return allSlots
-      .filter(hora => !bookedHoras.has(hora))
-      .map(hora => ({ hora, disponible: true, duracion, especialista: 'Disponible' }));
+    // Para hoy: filtrar slots que ya han pasado (hora actual en Madrid, con 60 min de buffer)
+    const todayMadrid = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Madrid' }); // YYYY-MM-DD
+    let freeSlots = allSlots.filter(hora => !bookedHoras.has(hora));
+    if (requestedDate === todayMadrid) {
+      const madridTime = new Date().toLocaleTimeString('en-GB', { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit' });
+      const [nowH, nowM] = madridTime.split(':').map(Number);
+      const cutoffMinutes = nowH * 60 + nowM + 60; // no ofrecer slots con < 60 min de antelación
+      freeSlots = freeSlots.filter(hora => {
+        const [h, m] = hora.split(':').map(Number);
+        return (h * 60 + m) >= cutoffMinutes;
+      });
+      console.log(`⏰ [ANA] Hoy ${todayMadrid} ${madridTime} Madrid → solo slots desde ${Math.floor(cutoffMinutes/60)}:${String(cutoffMinutes%60).padStart(2,'0')}`);
+    }
+
+    console.log(`🗓️ [ANA] ${requestedDate}: ${allSlots.length} teóricos, ${bookedHoras.size} ocupados, ${freeSlots.length} libres`);
+    return freeSlots.map(hora => ({ hora, disponible: true, duracion, especialista: 'Disponible' }));
 
   } catch (e) {
     console.error('🔥 [ANA] Error reading agenda:', e);
