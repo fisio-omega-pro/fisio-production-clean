@@ -961,7 +961,7 @@ REGLAS:
       const mm = (d.getMonth() + 1).toString().padStart(2, '0');
       const yyyy = d.getFullYear();
       const label = i === 0 ? 'Hoy' : i === 1 ? 'Mañana' : `${DAY_NAMES_ES[d.getDay()]} ${dd}/${mm}`;
-      return { label, date: `${dd}/${mm}/${yyyy}` };
+      return { label, date: `${yyyy}-${mm}-${dd}` }; // YYYY-MM-DD: formato real en Firestore
     });
 
     const [cfgResult, teamResult, patHistResult, ...daySlotResults] = await Promise.allSettled([
