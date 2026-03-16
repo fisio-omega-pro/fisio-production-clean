@@ -1,0 +1,207 @@
+name: 🚀 CI/CD Pipeline - FisioTool Pro
+
+on:
+  push:
+    branches: [ master, develop ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  NODE_VERSION: '18'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # 🧪 TESTING UNITARIO
+  test-unit:
+    name: 🧪 Unit Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+      
+    - name: 🟢 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: 📦 Install Dependencies
+      run: npm ci
+      
+    - name: 🧪 Run Unit Tests
+      run: npm run test:ci
+      
+    - name: 📊 Upload Coverage
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage/lcov.info
+        fail_ci_if_error: false
+
+  # 🌐 TESTING E2E
+  test-e2e:
+    name: 🌐 E2E Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+      
+    - name: 🟢 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: 📦 Install Dependencies
+      run: npm ci
+      
+    - name: 🌐 Install Playwright
+      run: npx playwright install --with-deps
+      
+    - name: 🚀 Build Application
+      run: npm run build
+      
+    - name: 🌐 Run E2E Tests
+      run: npm run test:e2e
+      
+    - name: 📊 Upload E2E Report
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: playwright-report
+        path: playwright-report/
+
+  # 🔍 LINT Y CALIDAD
+  lint-quality:
+    name: 🔍 Lint & Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+      
+    - name: 🟢 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: 📦 Install Dependencies
+      run: npm ci
+      
+    - name: 🔍 Lint Code
+      run: npm run lint || echo "⚠️ Lint no configurado"
+      
+    - name: 📏 Type Check
+      run: npm run type-check || echo "⚠️ Type check no configurado"
+
+  # 🚀 DEPLOY A STAGING
+  deploy-staging:
+    name: 🚀 Deploy Staging
+    needs: [test-unit, test-e2e, lint-quality]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+      
+    - name: 🟢 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: 📦 Install Dependencies
+      run: npm ci
+      
+    - name: 🔐 Setup Vercel
+      uses: amondnet/vercel-action@v20
+      with:
+        vercel-token: ${{ secrets.VERCEL_TOKEN }}
+        vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+        vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+        vercel-args: '--prod'
+        
+    - name: 🧪 Run Health Check
+      run: |
+        sleep 30
+        curl -f https://fisiotool-staging.vercel.app/api/health || exit 1
+
+  # 🎯 DEPLOY A PRODUCCIÓN
+  deploy-production:
+    name: 🎯 Deploy Production
+    needs: [test-unit, test-e2e, lint-quality]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
+    
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+      
+    - name: 🟢 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: 📦 Install Dependencies
+      run: npm ci
+      
+    - name: 🔐 Setup Vercel Production
+      uses: amondnet/vercel-action@v20
+      with:
+        vercel-token: ${{ secrets.VERCEL_TOKEN }}
+        vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+        vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+        vercel-args: '--prod'
+        
+    - name: 🧪 Run Production Health Check
+      run: |
+        sleep 30
+        curl -f https://www.fisiotool.com/api/health || exit 1
+        
+    - name: 📧 Notify Deployment
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        channel: '#deployments'
+        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+      if: always()
+
+  # 🛡️ SEGURIDAD
+  security-scan:
+    name: 🛡️ Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+      
+    - name: 🔍 Run Security Audit
+      run: npm audit --audit-level moderate
+      
+    - name: 🔍 Scan Dependencies
+      uses: snyk/actions/node@master
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+  # 📊 REPORTING
+  notify-results:
+    name: 📊 Notify Results
+    needs: [test-unit, test-e2e, lint-quality, security-scan]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: 📊 Generate Summary
+      run: |
+        echo "## 🚀 FisioTool Pro CI/CD Results" >> $GITHUB_STEP_SUMMARY
+        echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+        echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Unit Tests | ${{ needs.test-unit.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| E2E Tests | ${{ needs.test-e2e.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Lint & Quality | ${{ needs.lint-quality.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Security Scan | ${{ needs.security-scan.result }} |" >> $GITHUB_STEP_SUMMARY

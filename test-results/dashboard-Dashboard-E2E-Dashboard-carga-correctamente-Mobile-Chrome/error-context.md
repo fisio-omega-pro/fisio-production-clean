@@ -1,0 +1,113 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - img [ref=e7]
+      - heading "Acceso Élite" [level=2] [ref=e9]
+      - paragraph [ref=e10]: Entra a tu centro de mando FisioTool Pro
+    - generic [ref=e11]:
+      - generic [ref=e12]:
+        - text: EMAIL PROFESIONAL
+        - generic [ref=e13]:
+          - img [ref=e14]
+          - textbox "doctor@tuclinica.com" [ref=e17]
+      - generic [ref=e18]:
+        - text: CONTRASEÑA
+        - generic [ref=e19]:
+          - img [ref=e20]
+          - textbox "••••••••" [ref=e23]
+          - button [ref=e24] [cursor=pointer]:
+            - img [ref=e25]
+      - link "¿Olvidaste tu contraseña?" [ref=e29] [cursor=pointer]:
+        - /url: /recuperar-contraseña
+      - button "INICIAR SESIÓN" [ref=e30] [cursor=pointer]:
+        - text: INICIAR SESIÓN
+        - img [ref=e31]
+    - generic [ref=e33]:
+      - text: ¿No tienes una cuenta Pro?
+      - link "Comienza aquí" [ref=e34] [cursor=pointer]:
+        - /url: /setup
+  - generic [active]:
+    - generic [ref=e37]:
+      - generic [ref=e38]:
+        - navigation [ref=e40]:
+          - button "previous" [disabled] [ref=e41]:
+            - img "previous" [ref=e42]
+          - generic [ref=e44]:
+            - generic [ref=e45]: 1/
+            - text: "1"
+          - button "next" [disabled] [ref=e46]:
+            - img "next" [ref=e47]
+        - generic [ref=e50]:
+          - img [ref=e51]
+          - generic "Latest available version is detected (16.1.6)." [ref=e53]: Next.js 16.1.6
+          - generic [ref=e54]: Turbopack
+      - dialog "Build Error" [ref=e56]:
+        - generic [ref=e59]:
+          - generic [ref=e60]:
+            - generic [ref=e61]:
+              - generic [ref=e63]: Build Error
+              - generic [ref=e64]:
+                - button "Copy Error Info" [ref=e65] [cursor=pointer]:
+                  - img [ref=e66]
+                - button "No related documentation found" [disabled] [ref=e68]:
+                  - img [ref=e69]
+                - button "Attach Node.js inspector" [ref=e71] [cursor=pointer]:
+                  - img [ref=e72]
+            - generic [ref=e81]: Parsing ecmascript source code failed
+          - generic [ref=e83]:
+            - generic [ref=e85]:
+              - img [ref=e87]
+              - generic [ref=e90]: ./Downloads/fisiotoolsaas/public-next/src/app/dashboard/modules/EquipoView.tsx (51:17)
+              - button "Open in editor" [ref=e91] [cursor=pointer]:
+                - img [ref=e93]
+            - generic [ref=e96]:
+              - generic [ref=e97]: Parsing ecmascript source code failed
+              - generic [ref=e98]: 49 |
+              - generic [ref=e99]: isSolo
+              - text: ","
+              - generic [ref=e100]: 50 |
+              - generic [ref=e101]: subscriptionStatus
+              - text: ", >"
+              - generic [ref=e102]: 51 |
+              - generic [ref=e103]: specialistId
+              - text: ":"
+              - generic [ref=e104]: currentUser
+              - text: "?.specialistId,"
+              - generic [ref=e105]: "|"
+              - text: ^
+              - generic [ref=e106]: 52 |
+              - generic [ref=e107]: equipoCount
+              - text: ","
+              - generic [ref=e108]: 53 |
+              - generic [ref=e109]: puedeAgregarMas
+              - text: ","
+              - generic [ref=e110]: 54 |
+              - generic [ref=e111]: estaEnLimite
+              - text: ","
+              - generic [ref=e112]: "Expected ';', '}' or <eof> Import traces: Client Component Browser: ./Downloads/fisiotoolsaas/public-next/src/app/dashboard/modules/EquipoView.tsx [Client Component Browser] ./Downloads/fisiotoolsaas/public-next/src/app/dashboard/page.tsx [Client Component Browser] ./Downloads/fisiotoolsaas/public-next/src/app/dashboard/page.tsx [Server Component] Client Component SSR: ./Downloads/fisiotoolsaas/public-next/src/app/dashboard/modules/EquipoView.tsx [Client Component SSR] ./Downloads/fisiotoolsaas/public-next/src/app/dashboard/page.tsx [Client Component SSR] ./Downloads/fisiotoolsaas/public-next/src/app/dashboard/page.tsx [Server Component]"
+        - generic [ref=e113]: "1"
+        - generic [ref=e114]: "2"
+    - generic [ref=e119] [cursor=pointer]:
+      - button "Open Next.js Dev Tools" [ref=e120]:
+        - img [ref=e121]
+      - button "Open issues overlay" [ref=e125]:
+        - generic [ref=e126]:
+          - generic [ref=e127]: "0"
+          - generic [ref=e128]: "1"
+        - generic [ref=e129]: Issue
+  - alert [ref=e130]
+  - dialog "Aviso de cookies":
+    - generic [ref=e131]:
+      - img [ref=e133]
+      - generic [ref=e135]:
+        - paragraph [ref=e136]:
+          - text: Utilizamos cookies técnicas necesarias para el funcionamiento y la seguridad de la plataforma. Las cookies de análisis solo se activan si aceptas.
+          - link "Política de cookies" [ref=e137] [cursor=pointer]:
+            - /url: /cookies/
+        - generic [ref=e138]:
+          - button "Rechazar no esenciales" [ref=e139] [cursor=pointer]
+          - button "Aceptar" [ref=e140] [cursor=pointer]
+```

@@ -1,0 +1,210 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [active]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - navigation [ref=e7]:
+          - button "previous" [disabled] [ref=e8]:
+            - img "previous" [ref=e9]
+          - generic [ref=e11]:
+            - generic [ref=e12]: 1/
+            - text: "1"
+          - button "next" [disabled] [ref=e13]:
+            - img "next" [ref=e14]
+        - generic [ref=e17]:
+          - img [ref=e18]
+          - generic "Latest available version is detected (16.1.6)." [ref=e20]: Next.js 16.1.6
+          - generic [ref=e21]: Turbopack
+      - dialog "Build Error" [ref=e23]:
+        - generic [ref=e26]:
+          - generic [ref=e27]:
+            - generic [ref=e28]:
+              - generic [ref=e30]: Build Error
+              - generic [ref=e31]:
+                - button "Copy Error Info" [ref=e32] [cursor=pointer]:
+                  - img [ref=e33]
+                - button "No related documentation found" [disabled] [ref=e35]:
+                  - img [ref=e36]
+                - button "Attach Node.js inspector" [ref=e38] [cursor=pointer]:
+                  - img [ref=e39]
+            - generic [ref=e48]: Parsing ecmascript source code failed
+          - generic [ref=e50]:
+            - generic [ref=e52]:
+              - img [ref=e54]
+              - generic [ref=e57]: ./Downloads/fisiotoolsaas/public-next/src/app/dashboard/modules/EquipoView.tsx (51:17)
+              - button "Open in editor" [ref=e58] [cursor=pointer]:
+                - img [ref=e60]
+            - generic [ref=e63]:
+              - generic [ref=e64]: Parsing ecmascript source code failed
+              - generic [ref=e65]: 49 |
+              - generic [ref=e66]: isSolo
+              - text: ","
+              - generic [ref=e67]: 50 |
+              - generic [ref=e68]: subscriptionStatus
+              - text: ", >"
+              - generic [ref=e69]: 51 |
+              - generic [ref=e70]: specialistId
+              - text: ":"
+              - generic [ref=e71]: currentUser
+              - text: "?.specialistId,"
+              - generic [ref=e72]: "|"
+              - text: ^
+              - generic [ref=e73]: 52 |
+              - generic [ref=e74]: equipoCount
+              - text: ","
+              - generic [ref=e75]: 53 |
+              - generic [ref=e76]: puedeAgregarMas
+              - text: ","
+              - generic [ref=e77]: 54 |
+              - generic [ref=e78]: estaEnLimite
+              - text: ","
+              - generic [ref=e79]: "Expected ';', '}' or <eof> Import traces: Client Component Browser: ./Downloads/fisiotoolsaas/public-next/src/app/dashboard/modules/EquipoView.tsx [Client Component Browser] ./Downloads/fisiotoolsaas/public-next/src/app/dashboard/page.tsx [Client Component Browser] ./Downloads/fisiotoolsaas/public-next/src/app/dashboard/page.tsx [Server Component] Client Component SSR: ./Downloads/fisiotoolsaas/public-next/src/app/dashboard/modules/EquipoView.tsx [Client Component SSR] ./Downloads/fisiotoolsaas/public-next/src/app/dashboard/page.tsx [Client Component SSR] ./Downloads/fisiotoolsaas/public-next/src/app/dashboard/page.tsx [Server Component]"
+        - generic [ref=e80]: "1"
+        - generic [ref=e81]: "2"
+    - generic [ref=e86] [cursor=pointer]:
+      - button "Open Next.js Dev Tools" [ref=e87]:
+        - img [ref=e88]
+      - button "Open issues overlay" [ref=e92]:
+        - generic [ref=e93]:
+          - generic [ref=e94]: "0"
+          - generic [ref=e95]: "1"
+        - generic [ref=e96]: Issue
+  - alert [ref=e97]
+  - generic [ref=e99]:
+    - generic [ref=e101]:
+      - img [ref=e103]
+      - generic [ref=e107]:
+        - heading "FISIOTOOL PRO" [level=2] [ref=e108]
+        - paragraph [ref=e109]: Configuración de Élite
+    - generic [ref=e115]:
+      - heading "Identidad Corporativa" [level=1] [ref=e116]
+      - paragraph [ref=e117]: Datos fiscales de la sede principal.
+      - generic [ref=e118]:
+        - generic [ref=e119]:
+          - generic [ref=e120]: Nombre Comercial
+          - generic [ref=e121]:
+            - img [ref=e123]
+            - 'textbox "Ej: Clínica Avanza" [ref=e127]'
+        - generic [ref=e128]:
+          - generic [ref=e129]: Dirección Fiscal
+          - generic [ref=e130]:
+            - generic [ref=e132]:
+              - img [ref=e134]
+              - textbox "Calle / Avenida" [ref=e137]
+            - textbox "Nº" [ref=e140]
+          - generic [ref=e141]:
+            - textbox "C.P." [ref=e143]
+            - textbox "Ciudad" [ref=e145]
+            - generic [ref=e146]:
+              - combobox [ref=e147]:
+                - option "Provincia" [selected]
+                - option "Álava"
+                - option "Albacete"
+                - option "Alicante"
+                - option "Almería"
+                - option "Asturias"
+                - option "Ávila"
+                - option "Badajoz"
+                - option "Barcelona"
+                - option "Burgos"
+                - option "Cáceres"
+                - option "Cádiz"
+                - option "Cantabria"
+                - option "Castellón"
+                - option "Ciudad Real"
+                - option "Córdoba"
+                - option "Cuenca"
+                - option "Girona"
+                - option "Granada"
+                - option "Guadalajara"
+                - option "Guipúzcoa"
+                - option "Huelva"
+                - option "Huesca"
+                - option "Jaén"
+                - option "La Rioja"
+                - option "Las Palmas"
+                - option "León"
+                - option "Lleida"
+                - option "Lugo"
+                - option "Madrid"
+                - option "Málaga"
+                - option "Murcia"
+                - option "Navarra"
+                - option "Ourense"
+                - option "Palencia"
+                - option "Pontevedra"
+                - option "Salamanca"
+                - option "Santa Cruz de Tenerife"
+                - option "Segovia"
+                - option "Sevilla"
+                - option "Soria"
+                - option "Tarragona"
+                - option "Teruel"
+                - option "Toledo"
+                - option "Valencia"
+                - option "Valladolid"
+                - option "Vizcaya"
+                - option "Zamora"
+                - option "Zaragoza"
+                - option "Ceuta"
+                - option "Melilla"
+              - generic:
+                - img
+        - generic [ref=e149]:
+          - generic [ref=e150]: Teléfono de Contacto
+          - generic [ref=e151]:
+            - generic [ref=e152]:
+              - combobox [ref=e153]:
+                - option "🇪🇸 +34" [selected]
+                - option "🇺🇸 +1"
+                - option "🇬🇧 +44"
+                - option "🇫🇷 +33"
+                - option "🇩🇪 +49"
+                - option "🇮🇹 +39"
+                - option "🇵🇹 +351"
+                - option "🇲🇽 +52"
+                - option "🇧🇷 +55"
+                - option "🇦🇷 +54"
+                - option "🇨🇴 +57"
+                - option "🇨🇱 +56"
+              - generic:
+                - img
+            - generic [ref=e155]:
+              - img [ref=e157]
+              - textbox "612 345 678" [ref=e159]
+        - generic [ref=e160]:
+          - generic [ref=e161]:
+            - generic [ref=e162]: Email Administrador
+            - generic [ref=e163]:
+              - img [ref=e165]
+              - textbox [ref=e168]
+          - generic [ref=e169]:
+            - generic [ref=e170]: Contraseña Maestra
+            - generic [ref=e171]:
+              - generic [ref=e172]:
+                - img [ref=e174]
+                - textbox [ref=e177]
+              - button [ref=e178] [cursor=pointer]:
+                - img [ref=e179]
+            - generic [ref=e187]:
+              - generic [ref=e188]: 8+ Caracteres
+              - generic [ref=e189]: ABC
+              - generic [ref=e190]: "123"
+              - generic [ref=e191]: "#@!"
+      - button "Siguiente Paso" [ref=e193] [cursor=pointer]:
+        - text: Siguiente Paso
+        - img [ref=e194]
+  - dialog "Aviso de cookies":
+    - generic [ref=e196]:
+      - img [ref=e198]
+      - generic [ref=e200]:
+        - paragraph [ref=e201]:
+          - text: Utilizamos cookies técnicas necesarias para el funcionamiento y la seguridad de la plataforma. Las cookies de análisis solo se activan si aceptas.
+          - link "Política de cookies" [ref=e202] [cursor=pointer]:
+            - /url: /cookies/
+        - generic [ref=e203]:
+          - button "Rechazar no esenciales" [ref=e204] [cursor=pointer]
+          - button "Aceptar" [ref=e205] [cursor=pointer]
+```

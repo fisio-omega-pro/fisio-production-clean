@@ -25,8 +25,10 @@ class GeminiService {
             const apiKey = await this.getApiKey();
             if (!apiKey) throw new Error('No Google AI API Key');
 
+            const { initEnv } = require('../config/env');
+            const env = await initEnv();
+            const modelName = env.GOOGLE_AI_MODEL || "gemini-2.5-flash";
             const genAI = new GoogleGenerativeAI(apiKey);
-            const modelName = process.env.GOOGLE_AI_MODEL || "gemini-1.5-flash";
             const model = genAI.getGenerativeModel({ model: modelName });
 
             const result = await model.generateContent(prompt);

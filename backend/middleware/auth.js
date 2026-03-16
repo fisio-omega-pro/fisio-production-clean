@@ -16,6 +16,11 @@ const verifyToken = async (req, res, next) => {
   }
   // ✅ Permitir rutas públicas (formularios landing, etc.)
   if (req.path.startsWith('/public/')) {
+    // Para rutas públicas, extraer clinicId del header si existe
+    const clinicId = req.headers['x-clinic-id'];
+    if (clinicId) {
+      req.clinicId = clinicId;
+    }
     return next();
   }
 

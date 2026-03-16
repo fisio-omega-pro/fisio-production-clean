@@ -42,7 +42,7 @@ async function initEnv() {
         PROJECT_ID: process.env.PROJECT_ID || 'fisiotool-pro-2026',
         FRONTEND_URL: secrets.FRONTEND_URL || process.env.FRONTEND_URL,
         GOOGLE_AI_KEY: secrets.GOOGLE_AI_KEY || process.env.GOOGLE_AI_KEY,
-        GOOGLE_AI_MODEL: process.env.GOOGLE_AI_MODEL || await getSecret('GOOGLE_AI_MODEL') || 'gemini-1.5-flash',
+        GOOGLE_AI_MODEL: process.env.GOOGLE_AI_MODEL || await getSecret('GOOGLE_AI_MODEL') || 'gemini-2.5-flash',
         JWT_SECRET: secrets.JWT_SECRET || process.env.JWT_SECRET || (() => { console.error('🔴 CRITICAL: JWT_SECRET no configurado.'); return 'fallback_secret_for_local_dev'; })(),
         // Stripe
         STRIPE_SK: stripeSk,

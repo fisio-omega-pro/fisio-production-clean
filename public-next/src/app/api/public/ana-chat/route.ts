@@ -18,7 +18,10 @@ export async function POST(request: NextRequest) {
 
     const response = await fetch(backendUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-Clinic-ID': clinicId
+      },
       body: JSON.stringify({ message, clinicId })
     });
 

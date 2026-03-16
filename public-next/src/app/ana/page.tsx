@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect, Suspense } from 'react';
-import { MessageCircle, Send, Clock, Calendar, Download, ArrowLeft, Phone, Video, MoreVertical } from 'lucide-react';
+import { MessageCircle, Send, Clock, Calendar, Download, ArrowLeft, Phone, Video, MoreVertical, Share2 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 // TypeScript declaration for PWA install prompt
@@ -39,20 +39,31 @@ function AnaChatContent() {
   const [userRegistered, setUserRegistered] = useState(false);
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
+  const [userPhone, setUserPhone] = useState('');
   const [showForm, setShowForm] = useState(true);
+  const [showiOSModal, setShowiOSModal] = useState(false);
 
   // 🏪 Cargar persistencia de sesión
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedName = localStorage.getItem(`ana_user_name_${clinicId}`);
       const savedEmail = localStorage.getItem(`ana_user_email_${clinicId}`);
-      const isRegistered = localStorage.getItem(`ana_registered_${clinicId}`) === 'true';
-
-      if (isRegistered && savedName && savedEmail) {
+      const savedPhone = localStorage.getItem(`ana_user_phone_${clinicId}`);
+      
+      // TEMPORALMENTE FORZAR A MOSTRAR FORMULARIO PARA NUEVOS USUARIOS DEL EMAIL
+      const urlParams = new URLSearchParams(window.location.search);
+      const fromEmail = urlParams.get('from') === 'email';
+      
+      if (savedName && savedEmail && !fromEmail) {
         setUserName(savedName);
         setUserEmail(savedEmail);
+        if (savedPhone) setUserPhone(savedPhone);
         setUserRegistered(true);
         setShowForm(false);
+      } else {
+        // Si viene del email o no está registrado, mostrar formulario
+        setShowForm(true);
+        setUserRegistered(false);
       }
     }
   }, [clinicId]);
@@ -62,7 +73,8 @@ function AnaChatContent() {
     name: 'Ana',
     photo_url: null,
     use_clinic_logo: false,
-    custom_color: '#075E54'
+    custom_color: '#075E54',
+    logo_url: null
   });
 
   const [isAppInstalled, setIsAppInstalled] = useState(false);
@@ -73,7 +85,9 @@ function AnaChatContent() {
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches
         || (window.navigator as any).standalone
         || document.referrer.includes('android-app://');
-      setIsAppInstalled(isStandalone);
+      // TEMPORALMENTE FORZADO A FALSE PARA TEST
+      setIsAppInstalled(false);
+      console.log('🔍 [DEBUG] isStandalone:', isStandalone, '→ isAppInstalled: false (forzado)');
     }
   }, []);
 
@@ -83,15 +97,16 @@ function AnaChatContent() {
       if (!clinicId) return;
 
       try {
-        const response = await fetch(`/api/public/clinic-info?clinicId=${clinicId}`);
+        const response = await fetch(`https://fisio-backend-omega-740657183492.europe-west1.run.app/api/public/clinic-info?clinicId=${clinicId}&t=${Date.now()}`);
         if (response.ok) {
           const data = await response.json();
           if (data.success && data.data) {
             setAnaProfile({
-              name: data.data.ana_name || 'Ana',
-              photo_url: data.data.ana_photo || null,
-              use_clinic_logo: data.data.ana_use_clinic_logo || false,
-              custom_color: data.data.ana_color || '#075E54'
+              name: data.data.ana_nombre || 'Ana',
+              photo_url: data.data.ana_foto || null,
+              use_clinic_logo: data.data.ana_usa_logo_clinica || false,
+              custom_color: data.data.ana_color || '#075E54',
+              logo_url: data.data.logo_url ? 'https://fisio-backend-omega-740657183492.europe-west1.run.app' + data.data.logo_url : null
             });
             setClinicName(data.data.nombre_clinica || data.data.nombre || 'la clínica');
           }
@@ -108,13 +123,13 @@ function AnaChatContent() {
     // 🔋 Registrar Service Worker para PWA (necesario para botón instalar)
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
-// .then(reg => console.log('✅ SW registrado:', reg.scope)) // ELIMINADO PARA PRODUCCIÓN
+        // .then(reg => console.log('✅ SW registrado:', reg.scope)) // ELIMINADO PARA PRODUCCIÓN
         .catch(err => console.error('🔥 Error SW:', err));
     }
 
     // PWA install prompt listener
     const handleBeforeInstallPrompt = (e: any) => {
-// console.log('📥 beforeinstallprompt detectado'); // ELIMINADO PARA PRODUCCIÓN
+      // console.log('📥 beforeinstallprompt detectado'); // ELIMINADO PARA PRODUCCIÓN
       e.preventDefault();
       window.deferredPrompt = e;
     };
@@ -145,7 +160,7 @@ function AnaChatContent() {
             // Update theme color and icons dynamically
             if (manifestData.icons && manifestData.icons.length > 0) {
               // Update PWA icons if needed
-// console.log('🎨 Updated PWA manifest with clinic logo:', manifestData.name); // ELIMINADO PARA PRODUCCIÓN
+              // console.log('🎨 Updated PWA manifest with clinic logo:', manifestData.name); // ELIMINADO PARA PRODUCCIÓN
             }
           }
         } catch (error) {
@@ -158,14 +173,19 @@ function AnaChatContent() {
   }, [clinicId]);
 
   const handleUserRegistration = async () => {
-    if (!userName.trim() || !userEmail.trim()) {
-      alert('Por favor, introduce tu nombre y email');
+    if (!userName.trim() || !userEmail.trim() || !userPhone.trim()) {
+      alert('Por favor, introduce tu nombre, email y teléfono');
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(userEmail)) {
       alert('Por favor, introduce un email válido');
+      return;
+    }
+
+    if (userPhone.trim().length < 9) {
+      alert('Por favor, introduce un teléfono válido');
       return;
     }
 
@@ -176,11 +196,12 @@ function AnaChatContent() {
     if (typeof window !== 'undefined') {
       localStorage.setItem(`ana_user_name_${clinicId}`, userName);
       localStorage.setItem(`ana_user_email_${clinicId}`, userEmail);
+      localStorage.setItem(`ana_user_phone_${clinicId}`, userPhone);
       localStorage.setItem(`ana_registered_${clinicId}`, 'true');
     }
 
     // Trigger initial welcome message from Ana via backend (SILENTLY)
-    const registrationMessage = `Hola, me llamo ${userName} y mi email es ${userEmail}. Me acabo de registrar.`;
+    const registrationMessage = `Hola, me llamo ${userName}, mi email es ${userEmail} y mi teléfono es ${userPhone}. Me acabo de registrar.`;
 
     setIsTyping(true);
 
@@ -191,7 +212,10 @@ function AnaChatContent() {
         body: JSON.stringify({
           message: registrationMessage,
           clinicId,
-          history: []
+          history: [],
+          userName,
+          userEmail,
+          userPhone
         })
       });
 
@@ -202,6 +226,17 @@ function AnaChatContent() {
           text: data.response,
           timestamp: Date.now()
         }]);
+
+        // 📱 MENSAJE PROACTIVO PARA INSTALAR PWA
+        if (!isAppInstalled) {
+          setTimeout(() => {
+            setMessages(prev => [...prev, {
+              role: 'ana',
+              text: "¡Por cierto! 📱 Te recomiendo instalar nuestra App para que siempre me tengas a mano en tu pantalla de inicio. Solo tienes que pulsar el botón azul de 'INSTALAR' que verás justo aquí arriba. ¡Es mucho más cómodo!",
+              timestamp: Date.now() + 1000
+            }]);
+          }, 3000);
+        }
       }
     } catch (e) {
       console.error('🔥 Error sending registration welcome:', e);
@@ -218,8 +253,8 @@ function AnaChatContent() {
   const sendMessage = async () => {
     if (!input.trim() || isTyping || !userRegistered) return;
 
-// console.log('🔍 [ANA] clinicId value:', clinicId); // ELIMINADO PARA PRODUCCIÓN
-// console.log('🔍 [ANA] input value:', input); // ELIMINADO PARA PRODUCCIÓN
+    // console.log('🔍 [ANA] clinicId value:', clinicId); // ELIMINADO PARA PRODUCCIÓN
+    // console.log('🔍 [ANA] input value:', input); // ELIMINADO PARA PRODUCCIÓN
 
     if (!clinicId) {
       console.error('🔥 [ANA] No clinicId found!');
@@ -238,24 +273,31 @@ function AnaChatContent() {
     setIsTyping(true);
 
     try {
-      const apiUrl = '/api/public/ana-chat';
-// console.log('🔍 [ANA] API URL:', apiUrl); // ELIMINADO PARA PRODUCCIÓN
-// console.log('🔍 [ANA] Sending payload:', JSON.stringify({ message: messageToSend, clinicId, history: messages }, null, 2)); // ELIMINADO PARA PRODUCCIÓN
+      const apiUrl = 'https://fisiotool.com/api/public/ana-chat';
+      // console.log('🔍 [ANA] API URL:', apiUrl); // ELIMINADO PARA PRODUCCIÓN
+      // console.log('🔍 [ANA] Sending payload:', JSON.stringify({ message: messageToSend, clinicId, history: messages }, null, 2)); // ELIMINADO PARA PRODUCCIÓN
 
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: messageToSend, clinicId, history: messages })
+        body: JSON.stringify({
+          message: messageToSend,
+          clinicId,
+          history: messages,
+          userName,
+          userEmail,
+          userPhone
+        })
       });
 
-// console.log('🔍 [ANA] Response status:', response.status); // ELIMINADO PARA PRODUCCIÓN
+      // console.log('🔍 [ANA] Response status:', response.status); // ELIMINADO PARA PRODUCCIÓN
       const data = await response.json();
-// console.log('🔍 [ANA] Response data:', data); // ELIMINADO PARA PRODUCCIÓN
+      // console.log('🔍 [ANA] Response data:', data); // ELIMINADO PARA PRODUCCIÓN
 
       if (data.success) {
         setMessages(prev => [...prev, {
           role: 'ana',
-          text: data.response,
+          text: data.reply || data.response,
           timestamp: Date.now()
         }]);
       } else {
@@ -272,8 +314,48 @@ function AnaChatContent() {
     setIsTyping(false);
   };
 
+  // 📱 Componente de Modal para iOS
+  const iOSInstructionsModal = () => (
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+      <div className="bg-white rounded-[32px] w-full max-w-md overflow-hidden shadow-2xl animate-in slide-in-from-bottom-10 duration-500">
+        <div className="p-8 text-center">
+          <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-6 text-blue-600">
+            <Share2 size={32} />
+          </div>
+          <h3 className="text-2xl font-black text-gray-900 mb-4 tracking-tight">INSTALAR EN IPHONE</h3>
+          <p className="text-gray-600 mb-8 leading-relaxed">
+            Sigue estos 3 pasos para tener la App en tu pantalla de inicio:
+          </p>
+
+          <div className="space-y-6 text-left mb-8">
+            <div className="flex items-start gap-4">
+              <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-600 shrink-0">1</div>
+              <p className="text-gray-700 pt-1">Toca el botón <strong>"Compartir"</strong> en la barra inferior (el cuadrado con la flecha <Share2 size={16} className="inline-block text-blue-500" />).</p>
+            </div>
+            <div className="flex items-start gap-4">
+              <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-600 shrink-0">2</div>
+              <p className="text-gray-700 pt-1">Desliza hacia abajo y toca en <strong>"Añadir a pantalla de inicio"</strong>.</p>
+            </div>
+            <div className="flex items-start gap-4">
+              <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-600 shrink-0">3</div>
+              <p className="text-gray-700 pt-1">Pulsa <strong>"Añadir"</strong> en la esquina superior derecha.</p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setShowiOSModal(false)}
+            className="w-full bg-[#0086ea] text-white py-4 rounded-2xl font-black uppercase tracking-widest text-sm shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
+          >
+            ENTENDIDO
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0a0b10] to-black flex flex-col">
+      {showiOSModal && iOSInstructionsModal()}
       {/* Header - WhatsApp Style with Ana's Photo */}
       <div className="bg-[#075e54] px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -283,10 +365,10 @@ function AnaChatContent() {
           >
             <ArrowLeft size={20} />
           </button>
-          <div>
-            <h1 className="text-white font-semibold">{anaProfile.name}</h1>
-            <p className="text-xs text-green-300">Asistente de {clinicName || 'la clínica'}</p>
-            <p className="text-xs text-green-200 flex items-center gap-1">
+          <div className="flex flex-col">
+            <h1 className="text-white font-semibold leading-tight">{anaProfile.name}</h1>
+            <p className="text-[10px] text-green-300 leading-tight">Asistente de {clinicName || 'la clínica'}</p>
+            <p className="text-[10px] text-green-200 flex items-center gap-1 leading-tight">
               <div className="w-2 h-2 bg-green-400 rounded-full"></div>
               En línea
             </p>
@@ -375,10 +457,10 @@ function AnaChatContent() {
                 className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-gray-800 placeholder-gray-500 focus:outline-none focus:border-blue-400"
               />
               <input
-                type="email"
-                value={userEmail}
-                onChange={(e) => setUserEmail(e.target.value)}
-                placeholder="Tu email"
+                type="tel"
+                value={userPhone}
+                onChange={(e) => setUserPhone(e.target.value)}
+                placeholder="Tu teléfono (WhatsApp)"
                 className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-gray-800 placeholder-gray-500 focus:outline-none focus:border-blue-400"
               />
               <button
@@ -392,8 +474,8 @@ function AnaChatContent() {
         </div>
       ) : (
         <div className="bg-[#f0f2f5] px-4 py-2 border-t border-gray-200">
-          {/* 📱 Botón de Instalación (Solo si no está instalada y usuario está registrado) */}
-          {userRegistered && !isAppInstalled && (
+          {/* 📱 Botón de Instalación (Siempre visible si no está instalada) */}
+          {!isAppInstalled && (
             <div className="mb-2">
               <button
                 onClick={() => {
@@ -413,7 +495,7 @@ function AnaChatContent() {
                   } else {
                     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
                     if (isIOS) {
-                      alert('✨ PARA INSTALAR EN IPHONE:\n\n1. Toca el botón "Compartir" (el cuadrado con la flecha ⬆️ abajo)\n2. Busca y toca "Añadir a pantalla de inicio"\n3. Pulsa "Añadir" ¡Y listo! 📱');
+                      setShowiOSModal(true);
                     } else {
                       alert('📱 Tu navegador ya tiene la App instalada o no soporta instalación automática.\n\nBusca los 3 puntos (⋮) en tu navegador y selecciona "Añadir a pantalla de inicio".');
                     }

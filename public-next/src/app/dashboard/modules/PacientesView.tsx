@@ -1,11 +1,38 @@
 'use client';
 import React, { useState, useMemo } from 'react';
-import { Search, Mic, Filter, UserPlus, Upload, Database, UserCheck, Activity, ChevronRight } from 'lucide-react';
+import { Search, Mic, Filter, UserPlus, Upload, Database, UserCheck, Activity, ChevronRight, Share2, Mail, Loader2, CheckCircle2 } from 'lucide-react';
 import { Paciente } from '../types';
 
 export const PacientesView = ({ pacientes, onDictate, onImport, onNewPatient }: any) => {
   const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState('todos');
+  const [inviting, setInviting] = useState<string | null>(null); // 'all' or patientId
+  const [inviteStatus, setInviteStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+
+  const handleInviteToApp = async (patientIds: string[] | 'all') => {
+    setInviting(typeof patientIds === 'string' ? patientIds : 'all');
+    try {
+      const res = await fetch('/api/dashboard/send-pwa-invitation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ patientIds })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setInviteStatus({
+          type: 'success',
+          message: `¡Invitación enviada! Se han enviado ${data.sent} correos correctamente.`
+        });
+      } else {
+        setInviteStatus({ type: 'error', message: data.error || 'Error al enviar invitaciones' });
+      }
+    } catch (err) {
+      setInviteStatus({ type: 'error', message: 'Error de conexión al enviar invitaciones' });
+    } finally {
+      setInviting(null);
+      setTimeout(() => setInviteStatus(null), 5000);
+    }
+  };
 
   const filtered = useMemo(() => {
     return pacientes.filter((p: Paciente) => {
@@ -17,7 +44,7 @@ export const PacientesView = ({ pacientes, onDictate, onImport, onNewPatient }: 
 
   return (
     <div className="flex flex-col gap-8 max-w-6xl mx-auto animate-in fade-in duration-700 h-full">
-      
+
       {/* HEADER AMIGABLE */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-white/5 pb-10">
         <div>
@@ -30,20 +57,34 @@ export const PacientesView = ({ pacientes, onDictate, onImport, onNewPatient }: 
             Gestiona la historia de tus pacientes. Ana organiza automáticamente los datos importados y procesa tus informes por voz.
           </p>
         </div>
-        <div className="flex gap-3">
-          <button 
+        <div className="flex flex-wrap gap-3">
+          {inviteStatus && (
+            <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border text-[10px] font-black uppercase tracking-widest animate-in slide-in-from-top-2 duration-300 ${inviteStatus.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
+              {inviteStatus.type === 'success' ? <CheckCircle2 size={14} /> : <Activity size={14} />}
+              {inviteStatus.message}
+            </div>
+          )}
+          <button
+            onClick={() => handleInviteToApp('all')}
+            disabled={!!inviting}
+            className="flex items-center gap-3 px-6 py-4 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all disabled:opacity-50"
+          >
+            {inviting === 'all' ? <Loader2 size={16} className="animate-spin text-blue-500" /> : <Mail size={16} className="text-blue-500" />}
+            INVITAR A TODOS A LA APP
+          </button>
+          <button
             onClick={onNewPatient}
             className="flex items-center gap-3 px-6 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-600/20 transition-all"
           >
             <UserPlus size={16} /> CREAR NUEVO PACIENTE
           </button>
-          <button 
+          <button
             onClick={onImport}
             className="flex items-center gap-3 px-6 py-4 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all"
           >
             <Upload size={16} className="text-blue-500" /> IMPORTAR DATOS
           </button>
-          <button 
+          <button
             onClick={onDictate}
             className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-2xl shadow-rose-900/20 transition-all"
           >
@@ -56,17 +97,17 @@ export const PacientesView = ({ pacientes, onDictate, onImport, onNewPatient }: 
       <div className="flex flex-col md:flex-row gap-4 items-center bg-white/[0.02] p-4 rounded-[32px] border border-white/5">
         <div className="relative flex-1 w-full group">
           <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-blue-500 transition-colors" size={20} />
-          <input 
-            type="text" 
-            placeholder="Buscar por nombre, teléfono o patología..." 
+          <input
+            type="text"
+            placeholder="Buscar por nombre, teléfono o patología..."
             className="w-full bg-black/40 border border-white/10 rounded-2xl py-4 pl-14 pr-6 text-white outline-none focus:border-blue-500/50 transition-all text-sm font-medium"
             value={search}
-            onChange={(e)=>setSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
           />
         </div>
         <div className="flex bg-black/40 p-1.5 rounded-2xl border border-white/10">
-          <button onClick={()=>setActiveFilter('todos')} className={`px-5 py-2 rounded-xl text-[10px] font-black transition-all ${activeFilter === 'todos' ? 'bg-white text-black shadow-lg' : 'text-gray-500 hover:text-white'}`}>TODOS</button>
-          <button onClick={()=>setActiveFilter('activos')} className={`px-5 py-2 rounded-xl text-[10px] font-black transition-all ${activeFilter === 'activos' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}>ACTIVOS</button>
+          <button onClick={() => setActiveFilter('todos')} className={`px-5 py-2 rounded-xl text-[10px] font-black transition-all ${activeFilter === 'todos' ? 'bg-white text-black shadow-lg' : 'text-gray-500 hover:text-white'}`}>TODOS</button>
+          <button onClick={() => setActiveFilter('activos')} className={`px-5 py-2 rounded-xl text-[10px] font-black transition-all ${activeFilter === 'activos' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}>ACTIVOS</button>
         </div>
       </div>
 
@@ -77,7 +118,7 @@ export const PacientesView = ({ pacientes, onDictate, onImport, onNewPatient }: 
           <div className="col-span-4">Contacto Directo</div>
           <div className="col-span-2 text-right">Estatus</div>
         </div>
-        
+
         <div className="overflow-y-auto flex-1 custom-scrollbar">
           {filtered.length === 0 ? (
             <div className="p-20 text-center flex flex-col items-center gap-4 opacity-20">
@@ -94,7 +135,7 @@ export const PacientesView = ({ pacientes, onDictate, onImport, onNewPatient }: 
                   <div>
                     <h4 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors uppercase tracking-tight">{p.nombre}</h4>
                     <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest flex items-center gap-2 mt-1">
-                       <Activity size={12} className="text-rose-500" /> {p.dolencia || 'Valoración pendiente'}
+                      <Activity size={12} className="text-rose-500" /> {p.dolencia || 'Valoración pendiente'}
                     </p>
                   </div>
                 </div>
@@ -104,7 +145,18 @@ export const PacientesView = ({ pacientes, onDictate, onImport, onNewPatient }: 
                   </div>
                   <p className="text-[10px] text-gray-500 font-mono italic">{p.email || 'sin-email@clinica.com'}</p>
                 </div>
-                <div className="col-span-2 text-right flex justify-end items-center gap-4">
+                <div className="col-span-2 text-right flex justify-end items-center gap-3">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleInviteToApp([p.id]);
+                    }}
+                    disabled={!!inviting}
+                    title="Enviar invitación a la App"
+                    className="p-2 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-blue-400 hover:border-blue-500/30 transition-all disabled:opacity-50"
+                  >
+                    {inviting === p.id ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />}
+                  </button>
                   <span className={`px-4 py-1.5 rounded-full text-[9px] font-black border ${p.status === 'ACTIVO' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-gray-700/10 text-gray-400 border-gray-600/20'}`}>
                     {p.status || 'ACTIVO'}
                   </span>

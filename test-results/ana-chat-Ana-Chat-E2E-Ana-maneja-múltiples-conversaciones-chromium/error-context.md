@@ -1,0 +1,46 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - img [ref=e7]
+      - heading "Acceso Élite" [level=2] [ref=e9]
+      - paragraph [ref=e10]: Entra a tu centro de mando FisioTool Pro
+    - generic [ref=e11]:
+      - generic [ref=e12]:
+        - text: EMAIL PROFESIONAL
+        - generic [ref=e13]:
+          - img [ref=e14]
+          - textbox "doctor@tuclinica.com" [ref=e17]
+      - generic [ref=e18]:
+        - text: CONTRASEÑA
+        - generic [ref=e19]:
+          - img [ref=e20]
+          - textbox "••••••••" [ref=e23]
+          - button [ref=e24] [cursor=pointer]:
+            - img [ref=e25]
+      - link "¿Olvidaste tu contraseña?" [ref=e29] [cursor=pointer]:
+        - /url: /recuperar-contraseña
+      - button "INICIAR SESIÓN" [ref=e30] [cursor=pointer]:
+        - text: INICIAR SESIÓN
+        - img [ref=e31]
+    - generic [ref=e33]:
+      - text: ¿No tienes una cuenta Pro?
+      - link "Comienza aquí" [ref=e34] [cursor=pointer]:
+        - /url: /setup
+  - button "Open Next.js Dev Tools" [ref=e40] [cursor=pointer]:
+    - img [ref=e41]
+  - alert [ref=e44]
+  - dialog "Aviso de cookies":
+    - generic [ref=e45]:
+      - img [ref=e47]
+      - generic [ref=e49]:
+        - paragraph [ref=e50]:
+          - text: Utilizamos cookies técnicas necesarias para el funcionamiento y la seguridad de la plataforma. Las cookies de análisis solo se activan si aceptas.
+          - link "Política de cookies" [ref=e51] [cursor=pointer]:
+            - /url: /cookies/
+        - generic [ref=e52]:
+          - button "Rechazar no esenciales" [ref=e53] [cursor=pointer]
+          - button "Aceptar" [ref=e54] [cursor=pointer]
+```

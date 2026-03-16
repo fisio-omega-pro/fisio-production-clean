@@ -1,0 +1,445 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for routes/apiRoutes.js</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../prettify.css" />
+    <link rel="stylesheet" href="../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../index.html">All files</a> / <a href="index.html">routes</a> apiRoutes.js</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>0/98</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>0/14</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>0/7</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>0/93</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line low'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a>
+<a name='L3'></a><a href='#L3'>3</a>
+<a name='L4'></a><a href='#L4'>4</a>
+<a name='L5'></a><a href='#L5'>5</a>
+<a name='L6'></a><a href='#L6'>6</a>
+<a name='L7'></a><a href='#L7'>7</a>
+<a name='L8'></a><a href='#L8'>8</a>
+<a name='L9'></a><a href='#L9'>9</a>
+<a name='L10'></a><a href='#L10'>10</a>
+<a name='L11'></a><a href='#L11'>11</a>
+<a name='L12'></a><a href='#L12'>12</a>
+<a name='L13'></a><a href='#L13'>13</a>
+<a name='L14'></a><a href='#L14'>14</a>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a>
+<a name='L19'></a><a href='#L19'>19</a>
+<a name='L20'></a><a href='#L20'>20</a>
+<a name='L21'></a><a href='#L21'>21</a>
+<a name='L22'></a><a href='#L22'>22</a>
+<a name='L23'></a><a href='#L23'>23</a>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a>
+<a name='L39'></a><a href='#L39'>39</a>
+<a name='L40'></a><a href='#L40'>40</a>
+<a name='L41'></a><a href='#L41'>41</a>
+<a name='L42'></a><a href='#L42'>42</a>
+<a name='L43'></a><a href='#L43'>43</a>
+<a name='L44'></a><a href='#L44'>44</a>
+<a name='L45'></a><a href='#L45'>45</a>
+<a name='L46'></a><a href='#L46'>46</a>
+<a name='L47'></a><a href='#L47'>47</a>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a>
+<a name='L59'></a><a href='#L59'>59</a>
+<a name='L60'></a><a href='#L60'>60</a>
+<a name='L61'></a><a href='#L61'>61</a>
+<a name='L62'></a><a href='#L62'>62</a>
+<a name='L63'></a><a href='#L63'>63</a>
+<a name='L64'></a><a href='#L64'>64</a>
+<a name='L65'></a><a href='#L65'>65</a>
+<a name='L66'></a><a href='#L66'>66</a>
+<a name='L67'></a><a href='#L67'>67</a>
+<a name='L68'></a><a href='#L68'>68</a>
+<a name='L69'></a><a href='#L69'>69</a>
+<a name='L70'></a><a href='#L70'>70</a>
+<a name='L71'></a><a href='#L71'>71</a>
+<a name='L72'></a><a href='#L72'>72</a>
+<a name='L73'></a><a href='#L73'>73</a>
+<a name='L74'></a><a href='#L74'>74</a>
+<a name='L75'></a><a href='#L75'>75</a>
+<a name='L76'></a><a href='#L76'>76</a>
+<a name='L77'></a><a href='#L77'>77</a>
+<a name='L78'></a><a href='#L78'>78</a>
+<a name='L79'></a><a href='#L79'>79</a>
+<a name='L80'></a><a href='#L80'>80</a>
+<a name='L81'></a><a href='#L81'>81</a>
+<a name='L82'></a><a href='#L82'>82</a>
+<a name='L83'></a><a href='#L83'>83</a>
+<a name='L84'></a><a href='#L84'>84</a>
+<a name='L85'></a><a href='#L85'>85</a>
+<a name='L86'></a><a href='#L86'>86</a>
+<a name='L87'></a><a href='#L87'>87</a>
+<a name='L88'></a><a href='#L88'>88</a>
+<a name='L89'></a><a href='#L89'>89</a>
+<a name='L90'></a><a href='#L90'>90</a>
+<a name='L91'></a><a href='#L91'>91</a>
+<a name='L92'></a><a href='#L92'>92</a>
+<a name='L93'></a><a href='#L93'>93</a>
+<a name='L94'></a><a href='#L94'>94</a>
+<a name='L95'></a><a href='#L95'>95</a>
+<a name='L96'></a><a href='#L96'>96</a>
+<a name='L97'></a><a href='#L97'>97</a>
+<a name='L98'></a><a href='#L98'>98</a>
+<a name='L99'></a><a href='#L99'>99</a>
+<a name='L100'></a><a href='#L100'>100</a>
+<a name='L101'></a><a href='#L101'>101</a>
+<a name='L102'></a><a href='#L102'>102</a>
+<a name='L103'></a><a href='#L103'>103</a>
+<a name='L104'></a><a href='#L104'>104</a>
+<a name='L105'></a><a href='#L105'>105</a>
+<a name='L106'></a><a href='#L106'>106</a>
+<a name='L107'></a><a href='#L107'>107</a>
+<a name='L108'></a><a href='#L108'>108</a>
+<a name='L109'></a><a href='#L109'>109</a>
+<a name='L110'></a><a href='#L110'>110</a>
+<a name='L111'></a><a href='#L111'>111</a>
+<a name='L112'></a><a href='#L112'>112</a>
+<a name='L113'></a><a href='#L113'>113</a>
+<a name='L114'></a><a href='#L114'>114</a>
+<a name='L115'></a><a href='#L115'>115</a>
+<a name='L116'></a><a href='#L116'>116</a>
+<a name='L117'></a><a href='#L117'>117</a>
+<a name='L118'></a><a href='#L118'>118</a>
+<a name='L119'></a><a href='#L119'>119</a>
+<a name='L120'></a><a href='#L120'>120</a>
+<a name='L121'></a><a href='#L121'>121</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">const express = <span class="cstat-no" title="statement not covered" >require('express');</span>
+const router = <span class="cstat-no" title="statement not covered" >express.Router();</span>
+const multer = <span class="cstat-no" title="statement not covered" >require('multer');</span>
+const upload = <span class="cstat-no" title="statement not covered" >multer({ storage: multer.memoryStorage() });</span>
+&nbsp;
+const clinicController = <span class="cstat-no" title="statement not covered" >require('../controllers/clinicController');</span>
+const adminController = <span class="cstat-no" title="statement not covered" >require('../controllers/adminController');</span>
+const chatController = <span class="cstat-no" title="statement not covered" >require('../controllers/chatController');</span>
+const publicController = <span class="cstat-no" title="statement not covered" >require('../controllers/publicController');</span>
+const auth = <span class="cstat-no" title="statement not covered" >require('../middleware/auth');</span>
+const { initEnv } = <span class="cstat-no" title="statement not covered" >require('../config/env');</span>
+&nbsp;
+const requireFoundryKey = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(r</span>eq, res, next) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >  initEnv()</span>
+    .then(<span class="fstat-no" title="function not covered" >(e</span>nv) =&gt; {
+      const expectedRaw = <span class="cstat-no" title="statement not covered" >String(env.ADMIN_FOUNDRY_KEY || '').trim();</span>
+      // Permitir rotación sin downtime: "NUEVA,ANTIGUA"
+      const expectedKeys = <span class="cstat-no" title="statement not covered" >expectedRaw</span>
+        .split(',')
+        .map(<span class="fstat-no" title="function not covered" >(s</span>) =&gt; <span class="cstat-no" title="statement not covered" >String(s || '').trim())</span>
+        .filter(Boolean);
+      const provided = <span class="cstat-no" title="statement not covered" >String(req.headers['x-foundry-key'] || '').trim();</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >      if (!provided) <span class="cstat-no" title="statement not covered" >return res.status(401).json({ error: 'No autorizado' });</span></span>
+      const hasRealKeyConfigured = <span class="cstat-no" title="statement not covered" >expectedKeys.length &gt; 0;</span>
+<span class="cstat-no" title="statement not covered" >      if (!hasRealKeyConfigured) <span class="cstat-no" title="statement not covered" >return res.status(503).json({ error: 'Foundry no configurado' });</span></span>
+<span class="cstat-no" title="statement not covered" >      if (!expectedKeys.includes(provided)) <span class="cstat-no" title="statement not covered" >return res.status(401).json({ error: 'No autorizado' });</span></span>
+<span class="cstat-no" title="statement not covered" >      return next();</span>
+    })
+    .catch(next);
+};
+&nbsp;
+const ensureHandler = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(f</span>n, name) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >  if (typeof fn === 'function') <span class="cstat-no" title="statement not covered" >return fn;</span></span>
+<span class="cstat-no" title="statement not covered" >  return <span class="fstat-no" title="function not covered" >(r</span>eq, res) =&gt; <span class="cstat-no" title="statement not covered" >res.status(501).json({ error: `Handler no disponible: ${name}` });</span></span>
+};
+&nbsp;
+// --- 🔓 RUTAS PÚBLICAS ---
+<span class="cstat-no" title="statement not covered" >router.post('/login', ensureHandler(clinicController.login, 'login'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/auth/forgot-password', ensureHandler(clinicController.forgotPassword, 'forgotPassword'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/auth/reset-password', ensureHandler(clinicController.resetPassword, 'resetPassword'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/register', ensureHandler(clinicController.register, 'register'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/public/corporate-lead', ensureHandler(publicController.submitCorporateLead, 'submitCorporateLead'));</span>
+<span class="cstat-no" title="statement not covered" >router.get('/public/logo/:clinicId', ensureHandler(publicController.getClinicLogo, 'getClinicLogo'));</span>
+<span class="cstat-no" title="statement not covered" >router.get('/public/clinic-info', ensureHandler(publicController.getClinicInfo, 'getClinicInfo'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/public/ana-chat', ensureHandler(publicController.anaChat, 'anaChat'));</span>
+// Stripe webhook (body RAW se configura en server.js antes de bodyParser.json)
+<span class="cstat-no" title="statement not covered" >router.post('/webhooks/stripe', ensureHandler(clinicController.handleStripeWebhook, 'handleStripeWebhook'));</span>
+&nbsp;
+// --- 🏛️ THE FOUNDRY (ADMIN) ---
+<span class="cstat-no" title="statement not covered" >router.get('/admin/stats-globales', requireFoundryKey, ensureHandler(adminController.getGlobalStats, 'getGlobalStats'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/admin/chat-legal', requireFoundryKey, ensureHandler(adminController.handleAdminChat, 'handleAdminChat'));</span>
+<span class="cstat-no" title="statement not covered" >router.get('/admin/ana-diagnose', requireFoundryKey, ensureHandler(adminController.diagnoseAna, 'diagnoseAna'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/admin/save-alert', requireFoundryKey, ensureHandler(adminController.saveAlert, 'saveAlert'));</span>
+<span class="cstat-no" title="statement not covered" >router.delete('/admin/delete-alert/:id', requireFoundryKey, ensureHandler(adminController.deleteAlert, 'deleteAlert'));</span>
+&nbsp;
+// 📧 ENDPOINTS DE EMAIL DE ANA
+<span class="cstat-no" title="statement not covered" >router.get('/admin/ana-inbox', requireFoundryKey, ensureHandler(adminController.getAnaInbox, 'getAnaInbox'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/admin/send-prospect-email', requireFoundryKey, ensureHandler(adminController.sendProspectEmail, 'sendProspectEmail'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/admin/trigger-email-check', requireFoundryKey, ensureHandler(adminController.triggerEmailCheck, 'triggerEmailCheck'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/admin/run-caza-autopilot', requireFoundryKey, ensureHandler(adminController.runCazaAutopilotNow, 'runCazaAutopilotNow'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/admin/run-recaptacion-autopilot', requireFoundryKey, ensureHandler(adminController.runRecaptacionAutopilotNow, 'runRecaptacionAutopilotNow'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/admin/run-deposit-reminders', requireFoundryKey, ensureHandler(adminController.runDepositRemindersNow, 'runDepositRemindersNow'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/admin/run-payment-reminders', requireFoundryKey, ensureHandler(clinicController.processPaymentReminders, 'processPaymentReminders'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/admin/run-appointment-reminders', requireFoundryKey, ensureHandler(clinicController.processAppointmentReminders, 'processAppointmentReminders'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/admin/campaign', requireFoundryKey, ensureHandler(adminController.setCampaign, 'setCampaign'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/admin/leads/:id/status', requireFoundryKey, ensureHandler(adminController.updateLeadStatus, 'updateLeadStatus'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/admin/scan-invoice', requireFoundryKey, upload.single('invoice'), ensureHandler(adminController.processInvoice, 'processInvoice'));</span>
+<span class="cstat-no" title="statement not covered" >router.get('/admin/expense-file/:id', requireFoundryKey, ensureHandler(adminController.getExpenseFile, 'getExpenseFile'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/admin/import-leads', requireFoundryKey, upload.single('file'), ensureHandler(adminController.importLeads, 'importLeads'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/admin/upload-contrato', requireFoundryKey, upload.single('contrato'), ensureHandler(adminController.uploadContrato, 'uploadContrato'));</span>
+<span class="cstat-no" title="statement not covered" >router.get('/admin/contratos/:id', requireFoundryKey, ensureHandler(adminController.getContrato, 'getContrato'));</span>
+&nbsp;
+// --- 🛡️ ZONA PRIVADA (TOKEN) ---
+<span class="cstat-no" title="statement not covered" >router.use(auth);</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >router.get('/dashboard/data', ensureHandler(clinicController.getDashboardData, 'getDashboardData'));</span>
+<span class="cstat-no" title="statement not covered" >router.get('/dashboard/patient-history', ensureHandler(clinicController.getPatientHistory, 'getPatientHistory'));</span>
+<span class="cstat-no" title="statement not covered" >router.get('/dashboard/referrals', ensureHandler(clinicController.getReferrals, 'getReferrals'));</span>
+<span class="cstat-no" title="statement not covered" >router.get('/dashboard/legal-status', ensureHandler(clinicController.getLegalStatus, 'getLegalStatus'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/dashboard/save-logo', ensureHandler(clinicController.saveLogo, 'saveLogo'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/dashboard/upload-logo', upload.single('logo'), ensureHandler(clinicController.uploadLogo, 'uploadLogo'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/dashboard/save-cobros', ensureHandler(clinicController.saveCobrosConfig, 'saveCobrosConfig'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/dashboard/appointment', ensureHandler(clinicController.createAppointment, 'createAppointment'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/dashboard/save-note', ensureHandler(clinicController.savePatientNote, 'savePatientNote'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/dashboard/save-paciente', ensureHandler(clinicController.savePaciente, 'savePaciente'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/dashboard/save-suggestion', ensureHandler(adminController.saveSuggestion, 'saveSuggestion'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/dashboard/create-ticket', ensureHandler(adminController.createTicket, 'createTicket'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/dashboard/update-settings', ensureHandler(adminController.updateSettings, 'updateSettings'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/dashboard/update-ana-config', ensureHandler(clinicController.updateAnaConfig, 'updateAnaConfig'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/dashboard/add-sede', ensureHandler(clinicController.addSede, 'addSede'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/dashboard/save-specialist', ensureHandler(clinicController.saveSpecialist, 'saveSpecialist'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/dashboard/upload-avatar', auth, upload.single('avatar'), ensureHandler(clinicController.uploadAvatar, 'uploadAvatar'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/dashboard/import-patients', ensureHandler(clinicController.importPatients, 'importPatients'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/dashboard/activate-bonos', ensureHandler(clinicController.activateBonos, 'activateBonos'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/dashboard/deactivate-bonos', ensureHandler(clinicController.deactivateBonos, 'deactivateBonos'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/dashboard/create-bono', ensureHandler(clinicController.createBono, 'createBono'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/dashboard/launch-campaign', ensureHandler(clinicController.launchCampaign, 'launchCampaign'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/dashboard/run-recaptacion', ensureHandler(clinicController.runRecaptacionNow, 'runRecaptacionNow'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/dashboard/stripe-connect', ensureHandler(clinicController.startStripeConnect, 'startStripeConnect'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/dashboard/stripe-verify', ensureHandler(clinicController.finalizeStripeConnect, 'finalizeStripeConnect'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/dashboard/upgrade-plan', <span class="fstat-no" title="function not covered" >(r</span>eq, res, next) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >  console.log('[ROUTE] upgrade-plan llamado');</span>
+<span class="cstat-no" title="statement not covered" >  ensureHandler(clinicController.createUpgradeSession, 'createUpgradeSession')(req, res, next);</span>
+});
+<span class="cstat-no" title="statement not covered" >router.post('/dashboard/cancel-subscription', ensureHandler(clinicController.cancelSubscription, 'cancelSubscription'));</span>
+<span class="cstat-no" title="statement not covered" >router.delete('/dashboard/delete-account', ensureHandler(clinicController.deleteAccount, 'deleteAccount'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/dashboard/cobrar-cita-bono', ensureHandler(clinicController.createCitaBonoCheckout, 'createCitaBonoCheckout'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/dashboard/upload-ana-photo', upload.single('file'), ensureHandler(clinicController.uploadAnaPhoto, 'uploadAnaPhoto'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/dashboard/create-block', ensureHandler(clinicController.createBlock, 'createBlock'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/dashboard/create-patient', ensureHandler(clinicController.createPatient, 'createPatient'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/dashboard/payment-verify', ensureHandler(clinicController.verifyPayment, 'verifyPayment'));</span>
+<span class="cstat-no" title="statement not covered" >router.post('/chat/dashboard', ensureHandler(chatController.handleChat, 'handleChat'));</span>
+&nbsp;
+// Health check endpoint
+<span class="cstat-no" title="statement not covered" >router.get('/health', <span class="fstat-no" title="function not covered" >(r</span>eq, res) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >  res.json({ status: 'OK', timestamp: new Date().toISOString() });</span>
+});
+&nbsp;
+<span class="cstat-no" title="statement not covered" >module.exports = router;</span>
+&nbsp;</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-03-03T17:52:53.058Z
+            </div>
+        <script src="../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../sorter.js"></script>
+        <script src="../block-navigation.js"></script>
+    </body>
+</html>
+    

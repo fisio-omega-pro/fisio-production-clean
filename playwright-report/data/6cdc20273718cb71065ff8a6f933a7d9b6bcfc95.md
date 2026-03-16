@@ -1,0 +1,79 @@
+# Page snapshot
+
+```yaml
+- generic:
+  - generic [active]:
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - navigation [ref=e6]:
+            - button "previous" [disabled] [ref=e7]:
+              - img "previous" [ref=e8]
+            - generic [ref=e10]:
+              - generic [ref=e11]: 1/
+              - text: "1"
+            - button "next" [disabled] [ref=e12]:
+              - img "next" [ref=e13]
+          - img
+        - generic [ref=e15]:
+          - generic [ref=e16]:
+            - img [ref=e17]
+            - generic "Latest available version is detected (16.1.6)." [ref=e19]: Next.js 16.1.6
+            - generic [ref=e20]: Turbopack
+          - img
+      - dialog "Build Error" [ref=e22]:
+        - generic [ref=e25]:
+          - generic [ref=e26]:
+            - generic [ref=e27]:
+              - generic [ref=e29]: Build Error
+              - generic [ref=e30]:
+                - button "Copy Error Info" [ref=e31] [cursor=pointer]:
+                  - img [ref=e32]
+                - button "No related documentation found" [disabled] [ref=e34]:
+                  - img [ref=e35]
+                - button "Attach Node.js inspector" [ref=e37] [cursor=pointer]:
+                  - img [ref=e38]
+            - generic [ref=e47]: Parsing ecmascript source code failed
+          - generic [ref=e49]:
+            - generic [ref=e51]:
+              - img [ref=e53]
+              - generic [ref=e56]: ./Downloads/fisiotoolsaas/public-next/src/app/dashboard/modules/EquipoView.tsx (51:17)
+              - button "Open in editor" [ref=e57] [cursor=pointer]:
+                - img [ref=e59]
+            - generic [ref=e62]:
+              - generic [ref=e63]: Parsing ecmascript source code failed
+              - generic [ref=e64]: 49 |
+              - generic [ref=e65]: isSolo
+              - text: ","
+              - generic [ref=e66]: 50 |
+              - generic [ref=e67]: subscriptionStatus
+              - text: ", >"
+              - generic [ref=e68]: 51 |
+              - generic [ref=e69]: specialistId
+              - text: ":"
+              - generic [ref=e70]: currentUser
+              - text: "?.specialistId,"
+              - generic [ref=e71]: "|"
+              - text: ^
+              - generic [ref=e72]: 52 |
+              - generic [ref=e73]: equipoCount
+              - text: ","
+              - generic [ref=e74]: 53 |
+              - generic [ref=e75]: puedeAgregarMas
+              - text: ","
+              - generic [ref=e76]: 54 |
+              - generic [ref=e77]: estaEnLimite
+              - text: ","
+              - generic [ref=e78]: "Expected ';', '}' or <eof> Import traces: Client Component Browser: ./Downloads/fisiotoolsaas/public-next/src/app/dashboard/modules/EquipoView.tsx [Client Component Browser] ./Downloads/fisiotoolsaas/public-next/src/app/dashboard/page.tsx [Client Component Browser] ./Downloads/fisiotoolsaas/public-next/src/app/dashboard/page.tsx [Server Component] Client Component SSR: ./Downloads/fisiotoolsaas/public-next/src/app/dashboard/modules/EquipoView.tsx [Client Component SSR] ./Downloads/fisiotoolsaas/public-next/src/app/dashboard/page.tsx [Client Component SSR] ./Downloads/fisiotoolsaas/public-next/src/app/dashboard/page.tsx [Server Component]"
+        - generic [ref=e79]: "1"
+        - generic [ref=e80]: "2"
+    - generic [ref=e85] [cursor=pointer]:
+      - button "Open Next.js Dev Tools" [ref=e86]:
+        - img [ref=e87]
+      - button "Open issues overlay" [ref=e91]:
+        - generic [ref=e92]:
+          - generic [ref=e93]: "0"
+          - generic [ref=e94]: "1"
+        - generic [ref=e95]: Issue
+  - alert [ref=e96]
+```

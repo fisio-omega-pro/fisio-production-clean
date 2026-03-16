@@ -1,0 +1,214 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e5]:
+      - img [ref=e7]
+      - generic [ref=e11]:
+        - heading "FISIOTOOL PRO" [level=2] [ref=e12]
+        - paragraph [ref=e13]: Configuración de Élite
+    - generic [ref=e19]:
+      - heading "Identidad Corporativa" [level=1] [ref=e20]
+      - paragraph [ref=e21]: Datos fiscales de la sede principal.
+      - generic [ref=e22]:
+        - generic [ref=e23]:
+          - generic [ref=e24]: Nombre Comercial
+          - generic [ref=e25]:
+            - img [ref=e27]
+            - 'textbox "Ej: Clínica Avanza" [ref=e31]'
+        - generic [ref=e32]:
+          - generic [ref=e33]: Dirección Fiscal
+          - generic [ref=e34]:
+            - generic [ref=e36]:
+              - img [ref=e38]
+              - textbox "Calle / Avenida" [ref=e41]
+            - textbox "Nº" [ref=e44]
+          - generic [ref=e45]:
+            - textbox "C.P." [ref=e47]
+            - textbox "Ciudad" [ref=e49]
+            - generic [ref=e50]:
+              - combobox [ref=e51]:
+                - option "Provincia" [selected]
+                - option "Álava"
+                - option "Albacete"
+                - option "Alicante"
+                - option "Almería"
+                - option "Asturias"
+                - option "Ávila"
+                - option "Badajoz"
+                - option "Barcelona"
+                - option "Burgos"
+                - option "Cáceres"
+                - option "Cádiz"
+                - option "Cantabria"
+                - option "Castellón"
+                - option "Ciudad Real"
+                - option "Córdoba"
+                - option "Cuenca"
+                - option "Girona"
+                - option "Granada"
+                - option "Guadalajara"
+                - option "Guipúzcoa"
+                - option "Huelva"
+                - option "Huesca"
+                - option "Jaén"
+                - option "La Rioja"
+                - option "Las Palmas"
+                - option "León"
+                - option "Lleida"
+                - option "Lugo"
+                - option "Madrid"
+                - option "Málaga"
+                - option "Murcia"
+                - option "Navarra"
+                - option "Ourense"
+                - option "Palencia"
+                - option "Pontevedra"
+                - option "Salamanca"
+                - option "Santa Cruz de Tenerife"
+                - option "Segovia"
+                - option "Sevilla"
+                - option "Soria"
+                - option "Tarragona"
+                - option "Teruel"
+                - option "Toledo"
+                - option "Valencia"
+                - option "Valladolid"
+                - option "Vizcaya"
+                - option "Zamora"
+                - option "Zaragoza"
+                - option "Ceuta"
+                - option "Melilla"
+              - generic:
+                - img
+        - generic [ref=e53]:
+          - generic [ref=e54]: Teléfono de Contacto
+          - generic [ref=e55]:
+            - generic [ref=e56]:
+              - combobox [ref=e57]:
+                - option "🇪🇸 +34" [selected]
+                - option "🇺🇸 +1"
+                - option "🇬🇧 +44"
+                - option "🇫🇷 +33"
+                - option "🇩🇪 +49"
+                - option "🇮🇹 +39"
+                - option "🇵🇹 +351"
+                - option "🇲🇽 +52"
+                - option "🇧🇷 +55"
+                - option "🇦🇷 +54"
+                - option "🇨🇴 +57"
+                - option "🇨🇱 +56"
+              - generic:
+                - img
+            - generic [ref=e59]:
+              - img [ref=e61]
+              - textbox "612 345 678" [ref=e63]
+        - generic [ref=e64]:
+          - generic [ref=e65]:
+            - generic [ref=e66]: Email Administrador
+            - generic [ref=e67]:
+              - img [ref=e69]
+              - textbox [ref=e72]
+          - generic [ref=e73]:
+            - generic [ref=e74]: Contraseña Maestra
+            - generic [ref=e75]:
+              - generic [ref=e76]:
+                - img [ref=e78]
+                - textbox [ref=e81]
+              - button [ref=e82] [cursor=pointer]:
+                - img [ref=e83]
+            - generic [ref=e91]:
+              - generic [ref=e92]: 8+ Caracteres
+              - generic [ref=e93]: ABC
+              - generic [ref=e94]: "123"
+              - generic [ref=e95]: "#@!"
+      - button "Siguiente Paso" [ref=e97] [cursor=pointer]:
+        - text: Siguiente Paso
+        - img [ref=e98]
+  - generic [active]:
+    - generic [ref=e102]:
+      - generic [ref=e103]:
+        - generic [ref=e104]:
+          - navigation [ref=e105]:
+            - button "previous" [disabled] [ref=e106]:
+              - img "previous" [ref=e107]
+            - generic [ref=e109]:
+              - generic [ref=e110]: 1/
+              - text: "1"
+            - button "next" [disabled] [ref=e111]:
+              - img "next" [ref=e112]
+          - img
+        - generic [ref=e114]:
+          - generic [ref=e115]:
+            - img [ref=e116]
+            - generic "Latest available version is detected (16.1.6)." [ref=e118]: Next.js 16.1.6
+            - generic [ref=e119]: Turbopack
+          - img
+      - dialog "Build Error" [ref=e121]:
+        - generic [ref=e124]:
+          - generic [ref=e125]:
+            - generic [ref=e126]:
+              - generic [ref=e128]: Build Error
+              - generic [ref=e129]:
+                - button "Copy Error Info" [ref=e130] [cursor=pointer]:
+                  - img [ref=e131]
+                - button "No related documentation found" [disabled] [ref=e133]:
+                  - img [ref=e134]
+                - button "Attach Node.js inspector" [ref=e136] [cursor=pointer]:
+                  - img [ref=e137]
+            - generic [ref=e149]: Parsing ecmascript source code failed
+          - generic [ref=e151]:
+            - generic [ref=e153]:
+              - img [ref=e155]
+              - generic [ref=e159]: ./Downloads/fisiotoolsaas/public-next/src/app/dashboard/modules/EquipoView.tsx (51:17)
+              - button "Open in editor" [ref=e160] [cursor=pointer]:
+                - img [ref=e162]
+            - generic [ref=e165]:
+              - generic [ref=e166]: Parsing ecmascript source code failed
+              - generic [ref=e167]: 49 |
+              - generic [ref=e168]: isSolo
+              - text: ","
+              - generic [ref=e169]: 50 |
+              - generic [ref=e170]: subscriptionStatus
+              - text: ", >"
+              - generic [ref=e171]: 51 |
+              - generic [ref=e172]: specialistId
+              - text: ":"
+              - generic [ref=e173]: currentUser
+              - text: "?.specialistId,"
+              - generic [ref=e174]: "|"
+              - text: ^
+              - generic [ref=e175]: 52 |
+              - generic [ref=e176]: equipoCount
+              - text: ","
+              - generic [ref=e177]: 53 |
+              - generic [ref=e178]: puedeAgregarMas
+              - text: ","
+              - generic [ref=e179]: 54 |
+              - generic [ref=e180]: estaEnLimite
+              - text: ","
+              - generic [ref=e181]: "Expected ';', '}' or <eof> Import traces: Client Component Browser: ./Downloads/fisiotoolsaas/public-next/src/app/dashboard/modules/EquipoView.tsx [Client Component Browser] ./Downloads/fisiotoolsaas/public-next/src/app/dashboard/page.tsx [Client Component Browser] ./Downloads/fisiotoolsaas/public-next/src/app/dashboard/page.tsx [Server Component] Client Component SSR: ./Downloads/fisiotoolsaas/public-next/src/app/dashboard/modules/EquipoView.tsx [Client Component SSR] ./Downloads/fisiotoolsaas/public-next/src/app/dashboard/page.tsx [Client Component SSR] ./Downloads/fisiotoolsaas/public-next/src/app/dashboard/page.tsx [Server Component]"
+        - generic [ref=e182]: "1"
+        - generic [ref=e183]: "2"
+    - generic [ref=e188] [cursor=pointer]:
+      - button "Open Next.js Dev Tools" [ref=e189]:
+        - img [ref=e190]
+      - button "Open issues overlay" [ref=e196]:
+        - generic [ref=e197]:
+          - generic [ref=e198]: "0"
+          - generic [ref=e199]: "1"
+        - generic [ref=e200]: Issue
+  - alert [ref=e201]
+  - dialog "Aviso de cookies":
+    - generic [ref=e202]:
+      - img [ref=e204]
+      - generic [ref=e206]:
+        - paragraph [ref=e207]:
+          - text: Utilizamos cookies técnicas necesarias para el funcionamiento y la seguridad de la plataforma. Las cookies de análisis solo se activan si aceptas.
+          - link "Política de cookies" [ref=e208]:
+            - /url: /cookies/
+        - generic [ref=e209]:
+          - button "Rechazar no esenciales" [ref=e210] [cursor=pointer]
+          - button "Aceptar" [ref=e211] [cursor=pointer]
+```

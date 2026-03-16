@@ -1909,6 +1909,83 @@ const uploadAnaPhoto = async (req, res, next) => {
 
 
 
+const sendPwaInvitation = async (req, res, next) => {
+  try {
+    const { patientIds } = req.body; // Array de IDs o 'all'
+    if (!patientIds) return res.status(400).json({ success: false, error: 'patientIds requerido' });
+
+    const clinicId = req.clinicId;
+    const clinicDoc = await db.collection('clinicas').doc(clinicId).get();
+    if (!clinicDoc.exists) return res.status(404).json({ success: false, error: 'Clínica no encontrada' });
+
+    const clinicData = clinicDoc.data();
+    const clinicName = clinicData.nombre_clinica || clinicData.nombre || 'Tu Clínica';
+    const { pwaInvitationTemplate } = require('../services/emailTemplates');
+    const { sendEmail } = require('../services/emailSenderService');
+    const pwaUrl = `https://fisiotool.com/ana?ref=${clinicId}`;
+
+    let patients = [];
+    if (patientIds === 'all') {
+      const snap = await db.collection('clinicas').doc(clinicId).collection('pacientes').get();
+      patients = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } else if (Array.isArray(patientIds)) {
+      for (const pid of patientIds) {
+        const pdoc = await db.collection('clinicas').doc(clinicId).collection('pacientes').doc(pid).get();
+        if (pdoc.exists) patients.push({ id: pdoc.id, ...pdoc.data() });
+      }
+    }
+
+    // Filtrar los que tienen email válido
+    console.log('🔍 [DEBUG] Total pacientes:', patients.length);
+    patients.forEach(p => {
+      console.log('🔍 [DEBUG] Paciente:', p.nombre, 'Email:', p.email, 'Válido:', /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.email));
+    });
+    
+    const validPatients = patients.filter(p => p.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.email));
+
+    if (validPatients.length === 0) {
+      return res.status(400).json({ success: false, error: 'No se encontraron pacientes con email válido' });
+    }
+
+    // Enviar emails (En paralelo pero controlado para no saturar)
+    const results = await Promise.all(validPatients.map(async (p) => {
+      try {
+        const html = pwaInvitationTemplate({
+          patientName: p.nombre,
+          clinicName,
+          pwaUrl,
+          logoUrl: clinicData.logo_url
+        });
+
+        const mailRes = await sendEmail({
+          to: p.email,
+          subject: `📱 Instala la App de ${clinicName}`,
+          html,
+          type: 'ANA',
+          clinicName
+        });
+        return { id: p.id, ok: mailRes.ok };
+      } catch (err) {
+        console.error(`❌ Error enviando mail a ${p.email}:`, err.message);
+        return { id: p.id, ok: false };
+      }
+    }));
+
+    const successfulCount = results.filter(r => r.ok).length;
+    await createAuditLog(clinicId, req.userId || clinicId, 'SEND_PWA_INVITATION', `${successfulCount} patients`);
+
+    return res.json({
+      success: true,
+      sent: successfulCount,
+      total: validPatients.length
+    });
+
+  } catch (e) {
+    console.error('🔥 Error en sendPwaInvitation:', e);
+    next(e);
+  }
+};
+
 // 🚨 EXPORTACIÓN DE FUNCIONES CONSOLIDADAS
 module.exports = {
   register,
@@ -1949,6 +2026,7 @@ module.exports = {
   updateAnaConfig,
   uploadAnaPhoto,
   createBlock,
-  createPatient
+  createPatient,
+  sendPwaInvitation
 };
 

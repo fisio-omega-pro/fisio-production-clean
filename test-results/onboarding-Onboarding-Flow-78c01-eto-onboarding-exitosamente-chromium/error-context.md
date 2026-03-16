@@ -1,0 +1,143 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e5]:
+      - img [ref=e7]
+      - generic [ref=e11]:
+        - heading "FISIOTOOL PRO" [level=2] [ref=e12]
+        - paragraph [ref=e13]: Configuración de Élite
+    - generic [ref=e19]:
+      - heading "Identidad Corporativa" [level=1] [ref=e20]
+      - paragraph [ref=e21]: Datos fiscales de la sede principal.
+      - generic [ref=e22]:
+        - generic [ref=e23]:
+          - generic [ref=e24]: Nombre Comercial
+          - generic [ref=e25]:
+            - img [ref=e27]
+            - 'textbox "Ej: Clínica Avanza" [ref=e31]'
+        - generic [ref=e32]:
+          - generic [ref=e33]: Dirección Fiscal
+          - generic [ref=e34]:
+            - generic [ref=e36]:
+              - img [ref=e38]
+              - textbox "Calle / Avenida" [ref=e41]
+            - textbox "Nº" [ref=e44]
+          - generic [ref=e45]:
+            - textbox "C.P." [ref=e47]
+            - textbox "Ciudad" [ref=e49]
+            - generic [ref=e50]:
+              - combobox [ref=e51]:
+                - option "Provincia" [selected]
+                - option "Álava"
+                - option "Albacete"
+                - option "Alicante"
+                - option "Almería"
+                - option "Asturias"
+                - option "Ávila"
+                - option "Badajoz"
+                - option "Barcelona"
+                - option "Burgos"
+                - option "Cáceres"
+                - option "Cádiz"
+                - option "Cantabria"
+                - option "Castellón"
+                - option "Ciudad Real"
+                - option "Córdoba"
+                - option "Cuenca"
+                - option "Girona"
+                - option "Granada"
+                - option "Guadalajara"
+                - option "Guipúzcoa"
+                - option "Huelva"
+                - option "Huesca"
+                - option "Jaén"
+                - option "La Rioja"
+                - option "Las Palmas"
+                - option "León"
+                - option "Lleida"
+                - option "Lugo"
+                - option "Madrid"
+                - option "Málaga"
+                - option "Murcia"
+                - option "Navarra"
+                - option "Ourense"
+                - option "Palencia"
+                - option "Pontevedra"
+                - option "Salamanca"
+                - option "Santa Cruz de Tenerife"
+                - option "Segovia"
+                - option "Sevilla"
+                - option "Soria"
+                - option "Tarragona"
+                - option "Teruel"
+                - option "Toledo"
+                - option "Valencia"
+                - option "Valladolid"
+                - option "Vizcaya"
+                - option "Zamora"
+                - option "Zaragoza"
+                - option "Ceuta"
+                - option "Melilla"
+              - generic:
+                - img
+        - generic [ref=e53]:
+          - generic [ref=e54]: Teléfono de Contacto
+          - generic [ref=e55]:
+            - generic [ref=e56]:
+              - combobox [ref=e57]:
+                - option "🇪🇸 +34" [selected]
+                - option "🇺🇸 +1"
+                - option "🇬🇧 +44"
+                - option "🇫🇷 +33"
+                - option "🇩🇪 +49"
+                - option "🇮🇹 +39"
+                - option "🇵🇹 +351"
+                - option "🇲🇽 +52"
+                - option "🇧🇷 +55"
+                - option "🇦🇷 +54"
+                - option "🇨🇴 +57"
+                - option "🇨🇱 +56"
+              - generic:
+                - img
+            - generic [ref=e59]:
+              - img [ref=e61]
+              - textbox "612 345 678" [ref=e63]
+        - generic [ref=e64]:
+          - generic [ref=e65]:
+            - generic [ref=e66]: Email Administrador
+            - generic [ref=e67]:
+              - img [ref=e69]
+              - textbox [ref=e72]
+          - generic [ref=e73]:
+            - generic [ref=e74]: Contraseña Maestra
+            - generic [ref=e75]:
+              - generic [ref=e76]:
+                - img [ref=e78]
+                - textbox [ref=e81]
+              - button [ref=e82] [cursor=pointer]:
+                - img [ref=e83]
+            - generic [ref=e91]:
+              - generic [ref=e92]: 8+ Caracteres
+              - generic [ref=e93]: ABC
+              - generic [ref=e94]: "123"
+              - generic [ref=e95]: "#@!"
+      - button "Siguiente Paso" [ref=e97] [cursor=pointer]:
+        - text: Siguiente Paso
+        - img [ref=e98]
+  - button "Open Next.js Dev Tools" [ref=e105] [cursor=pointer]:
+    - img [ref=e106]
+  - alert [ref=e109]
+  - dialog "Aviso de cookies":
+    - generic [ref=e110]:
+      - img [ref=e112]
+      - generic [ref=e114]:
+        - paragraph [ref=e115]:
+          - text: Utilizamos cookies técnicas necesarias para el funcionamiento y la seguridad de la plataforma. Las cookies de análisis solo se activan si aceptas.
+          - link "Política de cookies" [ref=e116] [cursor=pointer]:
+            - /url: /cookies/
+        - generic [ref=e117]:
+          - button "Rechazar no esenciales" [ref=e118] [cursor=pointer]
+          - button "Aceptar" [ref=e119] [cursor=pointer]
+```
