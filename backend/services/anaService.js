@@ -7,12 +7,12 @@ const claudeService = require('./claudeService');
 const hybridAnaService = require('./hybridAnaService');
 const { hiveMindService, registerCollectiveExperience, getCollectiveWisdom, predictOptimalAction } = require('./hiveMindService');
 
-// 🧠 NUEVO SISTEMA DE SKILLS - Temporalmente comentado para debug
-// const { processWithSkills, getSkillEngine } = require('./anaSkills');
-// const { getOrCreateSession, addMessage, getContextSummary, extractEntitiesFromHistory } = require('./conversationMemoryService');
+// 🧠 NUEVO SISTEMA DE SKILLS - Importar módulos
+const { processWithSkills, getSkillEngine } = require('./anaSkills');
+const { getOrCreateSession, addMessage, getContextSummary, extractEntitiesFromHistory } = require('./conversationMemoryService');
 
 // Flag para activar/desactivar sistema de skills (para migración gradual)
-const USE_SKILL_SYSTEM = false; // Temporalmente desactivado para debug
+const USE_SKILL_SYSTEM = true;
 
 const callAnaEngine = async (prompt, options = {}) => {
   try {
