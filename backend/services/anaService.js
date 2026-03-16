@@ -1008,8 +1008,9 @@ REGLAS:
       : `10. Si el paciente no ha dado su nombre, no lo inventes.`;
 
     // === GENERAR ENLACE DE PAGO STRIPE si el paciente está confirmando un slot ===
+    const rawHistory = Array.isArray(history) ? history : [];
     const isSelectingSlot = /\b\d{1,2}:\d{2}\b|a\s+las?\s+\d{1,2}\b/i.test(message)
-      && conversationMessages.some(m => m.role === 'assistant' && /\b\d{1,2}:\d{2}\b/.test(m.content));
+      && rawHistory.some(m => (m.role === 'ana' || m.role === 'assistant') && /\b\d{1,2}:\d{2}\b/.test(String(m.text || m.content || '')));
     let stripePaymentUrl = null;
     if (isSelectingSlot && emailToUse) {
       try {
