@@ -207,9 +207,15 @@ export default function DashboardOmega() {
 
   const handleBlockSchedule = async () => {
     if (isBlockingSchedule) return;
+    if (!blockData.date) { alert('❌ Selecciona un día para el bloqueo'); return; }
+    if (!blockData.allDay && (!blockData.startTime || !blockData.endTime)) { alert('❌ Indica la hora de inicio y fin'); return; }
+    if (!blockData.allDay && blockData.startTime >= blockData.endTime) { alert('❌ La hora de inicio debe ser anterior a la de fin'); return; }
     setIsBlockingSchedule(true);
     try {
-      await dashboardAPI.createBlock(blockData);
+      const payload = blockData.allDay
+        ? { ...blockData, startTime: '00:00', endTime: '23:59' }
+        : blockData;
+      await dashboardAPI.createBlock(payload);
       state.setModalType(null);
       setBlockData({ date: '', startTime: '09:00', endTime: '20:00', reason: '', allDay: false });
       state.refreshData();
