@@ -70,23 +70,23 @@ async function runSeguimientoForClinic(clinicId, options = {}) {
     const email = String(cita.email || '').trim().toLowerCase();
     const nombre = String(cita.nombre || 'paciente').trim();
 
-    if (!email || !email.includes('@')) continue;
-    if (cita.estado === 'cancelada') continue;
-
-    const sessionDate = formatDateEs(targetDate);
-    const subject = `${nombre}, ¿cómo te encuentras tras tu sesión?`;
-
-    const html = generateSeguimientoEmail({
-      patientName: nombre,
-      clinicName,
-      assistantName,
-      appUrl,
-      clinicPhone,
-      clinicEmail,
-      sessionDate
-    });
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) continue;
+    const estado = String(cita.estado || '').toLowerCase();
+    if (['cancelada', 'anulada', 'no_show', 'no-show', 'pendiente'].includes(estado)) continue;
 
     try {
+      const sessionDate = formatDateEs(targetDate);
+      const subject = `${nombre}, ¿cómo te encuentras tras tu sesión?`;
+
+      const html = generateSeguimientoEmail({
+        patientName: nombre,
+        clinicName,
+        assistantName,
+        appUrl,
+        clinicPhone,
+        clinicEmail,
+        sessionDate
+      });
       const r = await sendEmail({
         to: email,
         subject,

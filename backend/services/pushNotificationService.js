@@ -12,19 +12,24 @@ const { db, Timestamp } = require('../config/firebase');
 const { initEnv } = require('../config/env');
 
 let vapidInitialized = false;
+let vapidInitPromise = null; // Promise lock para evitar race condition en cold starts
 
 async function ensureVapid() {
   if (vapidInitialized) return;
-  const env = await initEnv();
-  if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY) {
-    throw new Error('VAPID keys not configured');
-  }
-  webpush.setVapidDetails(
-    'mailto:info@fisiotool.com',
-    env.VAPID_PUBLIC_KEY,
-    env.VAPID_PRIVATE_KEY
-  );
-  vapidInitialized = true;
+  if (vapidInitPromise) return vapidInitPromise; // Esperar a la inicialización en curso
+  vapidInitPromise = (async () => {
+    const env = await initEnv();
+    if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY) {
+      throw new Error('VAPID keys not configured in Secret Manager');
+    }
+    webpush.setVapidDetails(
+      'mailto:info@fisiotool.com',
+      env.VAPID_PUBLIC_KEY,
+      env.VAPID_PRIVATE_KEY
+    );
+    vapidInitialized = true;
+  })();
+  return vapidInitPromise;
 }
 
 // Guardar suscripción push de un paciente
