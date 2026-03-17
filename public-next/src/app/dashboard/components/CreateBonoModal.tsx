@@ -65,23 +65,16 @@ export const CreateBonoModal: React.FC<CreateBonoModalProps> = ({
       });
       
       if (result.success) {
-        // Crear objeto de paciente temporal
         const pacienteCreado = {
           id: result.id || Date.now().toString(),
           nombre: newPaciente.nombre,
           email: newPaciente.email,
           telefono: newPaciente.telefono
         };
-        
-        // Seleccionar el paciente creado
         setSelectedPaciente(pacienteCreado);
-        
-        // Resetear formulario
         setNewPaciente({ nombre: '', email: '', telefono: '' });
         setShowCreatePaciente(false);
-        
-        // Añadir a la lista de pacientes (temporal, hasta que se recargue)
-        pacientes.push(pacienteCreado);
+        // No mutar el prop — el padre refresca la lista via onCreatePaciente → refreshData
       } else {
         setError(result.error || 'Error al crear el paciente');
       }

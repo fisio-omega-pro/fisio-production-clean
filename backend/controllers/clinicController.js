@@ -1052,6 +1052,9 @@ const importPatients = async (req, res, next) => {
 
 const activateBonos = async (req, res, next) => {
   try {
+    const doc = await db.collection('clinicas').doc(req.clinicId).get();
+    if (!doc.exists) return res.status(404).json({ success: false, error: 'Clínica no encontrada' });
+    if (doc.data()?.config_ia?.acepta_bonos === true) return res.json({ success: true, alreadyActive: true });
     await db.collection('clinicas').doc(req.clinicId).update({
       'config_ia.acepta_bonos': true,
       'config_ia.bonos_updated_at': Timestamp.now(),
@@ -1064,6 +1067,9 @@ const activateBonos = async (req, res, next) => {
 
 const deactivateBonos = async (req, res, next) => {
   try {
+    const doc = await db.collection('clinicas').doc(req.clinicId).get();
+    if (!doc.exists) return res.status(404).json({ success: false, error: 'Clínica no encontrada' });
+    if (!doc.data()?.config_ia?.acepta_bonos) return res.json({ success: true, alreadyInactive: true });
     await db.collection('clinicas').doc(req.clinicId).update({
       'config_ia.acepta_bonos': false,
       'config_ia.bonos_updated_at': Timestamp.now(),
@@ -1081,6 +1087,8 @@ const createBono = async (req, res, next) => {
     const sesionesTotales = Number(bono.sesiones_totales || 0);
     const fechaVencimiento = String(bono.fecha_vencimiento || '').trim() || null;
     const generarPago = bono.generar_pago !== false; // Por defecto generar pago
+    const enviarEmail = bono.enviar_email !== false;  // Fix: leer del body, no variable local
+    const enviarApp   = !!bono.enviar_app;
 
     if (!pacienteId || !sesionesTotales) {
       return res.status(400).json({
@@ -1099,7 +1107,9 @@ const createBono = async (req, res, next) => {
     }
 
     const paciente = pacienteDoc.data();
-    const precioBono = Number(req.clinicData?.config_ia?.precio_bono_5 || 225);
+    // Fix precio: proporcional al número de sesiones (precio_bono_5 es la unidad base de 5 sesiones)
+    const precioPor5 = Number(req.clinicData?.config_ia?.precio_bono_5 || 225);
+    const precioBono = Math.round((sesionesTotales / 5) * precioPor5 * 100) / 100;
 
     // Crear el bono asociado al paciente
     const bonoRef = await db.collection('bonos').add({
@@ -1155,32 +1165,42 @@ const createBono = async (req, res, next) => {
             pago_url: pagoUrl
           });
 
-          // ENVIAR EMAIL REAL SI SE SOLICITA
+          // ENVIAR EMAIL SI SE SOLICITA
           if (enviarEmail && paciente.email) {
             try {
-              console.log(`📧 [BONO] Enviando email real a ${paciente.email}`);
-
-              // Importar servicio de email real
-              const { sendBonoEmailPRUEBA } = require('../services/emailServicePRUEBA');
-
-              const emailResult = await sendBonoEmailPRUEBA({
+              const { sendEmail } = require('../services/emailSenderService');
+              const clinicName = req.clinicData?.nombre_clinica || req.clinicData?.nombre || 'Tu Clínica';
+              await sendEmail({
                 to: paciente.email,
-                pacienteNombre: paciente.nombre,
-                sesiones: sesionesTotales,
-                precio: precioBono,
-                pagoUrl: pagoUrl
+                subject: `Tu bono de ${sesionesTotales} sesiones está listo – ${clinicName}`,
+                html: `<p>Hola ${paciente.nombre},</p>
+<p>Tu bono de <strong>${sesionesTotales} sesiones</strong> (€${precioBono}) ha sido creado en ${clinicName}.</p>
+<p><a href="${pagoUrl}" style="background:#2563eb;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">Pagar ahora</a></p>
+<p>Una vez completado el pago, tu bono quedará activo de inmediato.</p>
+<p>Gracias,<br>${clinicName}</p>`,
+                type: 'ANA',
+                clinicName
               });
-
-              if (emailResult.success) {
-                console.log('✅ Email real enviado exitosamente');
-                console.log(`   Message ID: ${emailResult.messageId}`);
-              } else {
-                console.error('❌ Error enviando email real:', emailResult.error);
-              }
-
             } catch (emailError) {
-              console.error('❌ Error en servicio de email:', emailError.message);
+              console.error('[BONO] Error enviando email:', emailError.message);
               // No fallar la creación del bono si falla el email
+            }
+          }
+
+          // ENVIAR PUSH SI SE SOLICITA
+          if (enviarApp) {
+            try {
+              const { sendPushToPatient } = require('../services/pushNotificationService');
+              const clinicName = req.clinicData?.nombre_clinica || req.clinicData?.nombre || 'Tu Clínica';
+              await sendPushToPatient({
+                clinicId: req.clinicId,
+                email: paciente.email,
+                title: `🎫 Bono listo – ${clinicName}`,
+                body: `Hola ${paciente.nombre}, tu bono de ${sesionesTotales} sesiones está listo. Paga ahora para activarlo.`,
+                url: pagoUrl
+              });
+            } catch (pushErr) {
+              console.error('[BONO] Error enviando push:', pushErr.message);
             }
           }
         } else {

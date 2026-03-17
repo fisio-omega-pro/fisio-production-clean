@@ -32,6 +32,7 @@ interface BonosProps {
   onDeactivate?: () => Promise<void>;
   onCreateBono: (bono: any) => Promise<void>;
   onCreatePaciente: (paciente: any) => Promise<{success: boolean, id?: string, error?: string}>;
+  onGoToAna?: () => void;
 }
 
 export const BonosView: React.FC<BonosProps> = ({ 
@@ -41,7 +42,8 @@ export const BonosView: React.FC<BonosProps> = ({
   onActivate, 
   onDeactivate, 
   onCreateBono,
-  onCreatePaciente
+  onCreatePaciente,
+  onGoToAna
 }) => {
   const [isActivating, setIsActivating] = useState(false);
   const [isDeactivating, setIsDeactivating] = useState(false);
@@ -92,16 +94,26 @@ export const BonosView: React.FC<BonosProps> = ({
 
   const handleActivate = async () => {
     setIsActivating(true);
-    await onActivate();
-    setIsActivating(false);
+    try {
+      await onActivate();
+    } catch (e) {
+      console.error('[Bonos] Error activando:', e);
+    } finally {
+      setIsActivating(false);
+    }
   };
 
   const handleDeactivate = async () => {
     if (!onDeactivate) return;
     if (!confirm('¿Desactivar el módulo de bonos? Los bonos ya emitidos seguirán visibles pero no podrás emitir nuevos hasta volver a activarlo.')) return;
     setIsDeactivating(true);
-    await onDeactivate();
-    setIsDeactivating(false);
+    try {
+      await onDeactivate();
+    } catch (e) {
+      console.error('[Bonos] Error desactivando:', e);
+    } finally {
+      setIsDeactivating(false);
+    }
   };
 
   const handleCreateBono = async (bono: any) => {
@@ -197,29 +209,34 @@ export const BonosView: React.FC<BonosProps> = ({
           <StatCard 
             icon={<Euro className="w-6 h-6 text-purple-500" />}
             title="Valor Total"
-            value={`€${bonos.reduce((acc, b) => acc + (b.precio || 0), 0).toFixed(2)}`}
+            value={`€${bonos.filter(b => b.status === 'ACTIVO').reduce((acc, b) => acc + (b.precio || 0), 0).toFixed(2)}`}
             subtitle="En bonos activos"
           />
         </div>
 
         {/* Acciones Inteligentes con Ana */}
-        <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-2xl p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
-                <Star className="w-5 h-5 text-yellow-500" />
-                Asistente IA - Ana
-              </h3>
-              <p className="text-gray-300 text-sm">
-                Ana puede contactar a pacientes con bonos para agendar citas automáticamente
-              </p>
+        {onGoToAna && (
+          <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-2xl p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                  <Star className="w-5 h-5 text-yellow-500" />
+                  Asistente IA - Ana
+                </h3>
+                <p className="text-gray-300 text-sm">
+                  Ana puede contactar a pacientes con bonos para agendar citas automáticamente
+                </p>
+              </div>
+              <button
+                onClick={onGoToAna}
+                className="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
+              >
+                <Zap className="w-4 h-4" />
+                Configurar Ana
+              </button>
             </div>
-            <button className="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors flex items-center gap-2">
-              <Zap className="w-4 h-4" />
-              Activar Ana
-            </button>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Lista Detallada de Bonos */}
