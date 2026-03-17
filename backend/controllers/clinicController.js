@@ -983,6 +983,12 @@ const saveSpecialist = async (req, res, next) => {
     }
     const loginEmail = rawEmail || null;
     const isOwner = !req.specialistId;
+
+    // Staff solo puede actualizar su propio perfil, no crear nuevos ni editar a otros
+    if (!isOwner) {
+      if (!id) return res.status(403).json({ success: false, error: 'Solo el propietario puede añadir especialistas' });
+      if (id !== req.specialistId) return res.status(403).json({ success: false, error: 'Solo puedes editar tu propio perfil' });
+    }
     let sendPasswordSetupEmail = false;
 
     // 🚨 CONTROL DE LÍMITE Y PLAN
