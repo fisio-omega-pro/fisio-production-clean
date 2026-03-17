@@ -148,7 +148,7 @@ const createSubscriptionSession = async (clinicId, email, plan = 'solo', req, op
 };
 
 // Cobro de cita o bono: pago único con transferencia a la cuenta Connect del profesional (comisión 0)
-const createOneTimePaymentSession = async (amountCents, stripeAccountIdPro, concepto, req) => {
+const createOneTimePaymentSession = async (amountCents, stripeAccountIdPro, concepto, req, extraMetadata = {}) => {
   const stripe = await getStripe();
   const frontendBase = await getFrontendBase(req);
   if (!stripe) return { url: null, error: 'Stripe no configurado' };
@@ -169,10 +169,11 @@ const createOneTimePaymentSession = async (amountCents, stripeAccountIdPro, conc
         transfer_data: { destination: stripeAccountIdPro },
         application_fee_amount: 0,
       },
+      metadata: extraMetadata,
       success_url: `${frontendBase}/dashboard?pago=ok`,
       cancel_url: `${frontendBase}/dashboard?pago=cancelado`,
     });
-    return { url: session.url };
+    return { url: session.url, sessionId: session.id };
   } catch (e) {
     console.warn('⚠️ [PAYMENT] createOneTimePaymentSession:', e?.message || e);
     return { url: null, error: e?.message || 'Error al crear sesión de pago' };

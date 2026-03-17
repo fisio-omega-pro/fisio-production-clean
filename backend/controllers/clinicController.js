@@ -1087,14 +1087,18 @@ const createBono = async (req, res, next) => {
     const sesionesTotales = Number(bono.sesiones_totales || 0);
     const fechaVencimiento = String(bono.fecha_vencimiento || '').trim() || null;
     const generarPago = bono.generar_pago !== false; // Por defecto generar pago
-    const enviarEmail = bono.enviar_email !== false;  // Fix: leer del body, no variable local
+    const enviarEmail = bono.enviar_email !== false;
     const enviarApp   = !!bono.enviar_app;
+    const SESIONES_VALIDAS = [5, 10, 15, 20];
 
     if (!pacienteId || !sesionesTotales) {
-      return res.status(400).json({
-        success: false,
-        error: 'paciente_id y sesiones_totales son requeridos'
-      });
+      return res.status(400).json({ success: false, error: 'paciente_id y sesiones_totales son requeridos' });
+    }
+    if (!SESIONES_VALIDAS.includes(sesionesTotales)) {
+      return res.status(400).json({ success: false, error: `sesiones_totales debe ser uno de: ${SESIONES_VALIDAS.join(', ')}` });
+    }
+    if (!req.clinicData?.config_ia?.acepta_bonos) {
+      return res.status(403).json({ success: false, error: 'El módulo de bonos no está activado para esta clínica' });
     }
 
     // Verificar que el paciente existe
@@ -1153,7 +1157,8 @@ const createBono = async (req, res, next) => {
           amountCents,
           stripeAccountId,
           concepto,
-          req
+          req,
+          { bono_id: bonoRef.id, clinic_id: req.clinicId, type: 'bono' }
         );
 
         if (pagoResult.url) {
@@ -1592,19 +1597,48 @@ const handleStripeWebhook = async (req, res, next) => {
 
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object;
-      const clinicId = String(session?.metadata?.clinic_id || '').trim();
-      if (clinicId) {
-        const plan = String(session?.metadata?.plan || '').trim() || null;
-        const updates = {
-          subscription_active: true,
-          stripe_customer_id: session.customer || null,
-          stripe_subscription_id: session.subscription || null,
-          stripe_subscription_status: 'active',
-          ...(plan ? { plan } : {}),
-          updated_at: Timestamp.now()
-        };
-        await db.collection('clinicas').doc(clinicId).set(updates, { merge: true });
-        await createAuditLog(clinicId, clinicId, 'STRIPE_CHECKOUT_COMPLETED', String(session.id || ''));
+      const sessionType = String(session?.metadata?.type || '').trim();
+
+      // 🎫 ACTIVAR BONO si el pago era para un bono
+      if (sessionType === 'bono') {
+        const bonoId = String(session?.metadata?.bono_id || '').trim();
+        const bonoClinicId = String(session?.metadata?.clinic_id || '').trim();
+        if (bonoId) {
+          try {
+            const bonoDoc = await db.collection('bonos').doc(bonoId).get();
+            if (bonoDoc.exists && bonoDoc.data().status === 'PENDIENTE_DE_PAGO') {
+              const bonoData = bonoDoc.data();
+              await db.collection('bonos').doc(bonoId).update({
+                status: 'ACTIVO',
+                sesiones_restantes: bonoData.sesiones_totales,
+                pago_completado: true,
+                pago_completado_at: Timestamp.now(),
+                stripe_session_id: session.id || null,
+                updated_at: Timestamp.now()
+              });
+              await createAuditLog(bonoClinicId || 'system', 'stripe_webhook', 'BONO_PAGADO_ACTIVADO', bonoId);
+              console.log(`✅ [WEBHOOK] Bono ${bonoId} activado tras pago. Sesiones: ${bonoData.sesiones_totales}`);
+            }
+          } catch (bonoErr) {
+            console.error(`❌ [WEBHOOK] Error activando bono ${bonoId}:`, bonoErr.message);
+          }
+        }
+      } else {
+        // 🏥 Suscripción de clínica
+        const clinicId = String(session?.metadata?.clinic_id || '').trim();
+        if (clinicId) {
+          const plan = String(session?.metadata?.plan || '').trim() || null;
+          const updates = {
+            subscription_active: true,
+            stripe_customer_id: session.customer || null,
+            stripe_subscription_id: session.subscription || null,
+            stripe_subscription_status: 'active',
+            ...(plan ? { plan } : {}),
+            updated_at: Timestamp.now()
+          };
+          await db.collection('clinicas').doc(clinicId).set(updates, { merge: true });
+          await createAuditLog(clinicId, clinicId, 'STRIPE_CHECKOUT_COMPLETED', String(session.id || ''));
+        }
       }
     }
 
