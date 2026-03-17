@@ -63,6 +63,7 @@ router.post('/admin/send-prospect-email', requireFoundryKey, ensureHandler(admin
 router.post('/admin/trigger-email-check', requireFoundryKey, ensureHandler(adminController.triggerEmailCheck, 'triggerEmailCheck'));
 router.post('/admin/run-caza-autopilot', requireFoundryKey, ensureHandler(adminController.runCazaAutopilotNow, 'runCazaAutopilotNow'));
 router.post('/admin/run-recaptacion-autopilot', requireFoundryKey, ensureHandler(adminController.runRecaptacionAutopilotNow, 'runRecaptacionAutopilotNow'));
+router.post('/admin/run-seguimiento-autopilot', requireFoundryKey, ensureHandler(adminController.runSeguimientoAutopilotNow, 'runSeguimientoAutopilotNow'));
 router.post('/admin/run-deposit-reminders', requireFoundryKey, ensureHandler(adminController.runDepositRemindersNow, 'runDepositRemindersNow'));
 router.post('/admin/run-payment-reminders', requireFoundryKey, ensureHandler(clinicController.processPaymentReminders, 'processPaymentReminders'));
 router.post('/admin/run-appointment-reminders', requireFoundryKey, ensureHandler(clinicController.processAppointmentReminders, 'processAppointmentReminders'));

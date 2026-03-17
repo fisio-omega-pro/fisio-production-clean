@@ -710,6 +710,19 @@ const runRecaptacionAutopilotNow = async (req, res) => {
   }
 };
 
+// --- 🩺 SEGUIMIENTO POST-TRATAMIENTO: AUTOPILOTO GLOBAL ---
+const runSeguimientoAutopilotNow = async (req, res) => {
+  try {
+    const { runSeguimientoAutopilot } = require('../services/seguimientoPostTratamientoService');
+    const maxClinics = Number(req.body?.maxClinics || 50);
+    const maxPerRun = Number(req.body?.maxPerRun || 10);
+    const r = await runSeguimientoAutopilot({ maxClinics, maxPerRun });
+    return res.json({ success: true, ...r });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: e.message });
+  }
+};
+
 // --- ⏳ FIANZA: RECORDATORIO 1H ANTES (quiet hours) ---
 const runDepositRemindersNow = async (req, res) => {
   try {
@@ -755,6 +768,7 @@ module.exports = {
   getExpenseFile,
   runCazaAutopilotNow,
   runRecaptacionAutopilotNow,
+  runSeguimientoAutopilotNow,
   runDepositRemindersNow,
   handleIncomingResponse: async (req, res) => {
     try {
