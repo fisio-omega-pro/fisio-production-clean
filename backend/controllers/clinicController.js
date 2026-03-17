@@ -897,7 +897,12 @@ const saveSpecialist = async (req, res, next) => {
   try {
     const specialist = req.body?.specialist || req.body || {};
     const id = String(specialist.id || '').trim();
-    const loginEmail = String(specialist.login_email || specialist.loginEmail || '').trim().toLowerCase() || null;
+    const rawEmail = String(specialist.login_email || specialist.loginEmail || '').trim().toLowerCase() || null;
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (rawEmail && !EMAIL_RE.test(rawEmail)) {
+      return res.status(400).json({ success: false, error: 'El email de acceso no tiene un formato válido' });
+    }
+    const loginEmail = rawEmail || null;
     const isOwner = !req.specialistId;
     let sendPasswordSetupEmail = false;
 
