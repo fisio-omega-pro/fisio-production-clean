@@ -872,10 +872,14 @@ module.exports = {
   },
 
   processMessage: async (clinicId, userMessage, conversationHistory = []) => {
-    // Inyectar estado real de la clínica para que Ana sepa si la campaña está activa
+    // Inyectar estado real de la clínica — con timeout para no bloquear a Ana si Firestore tarda
     let clinicStateBlock = '';
     try {
-      const clinicDoc = await db.collection('clinicas').doc(clinicId).get();
+      const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000));
+      const clinicDoc = await Promise.race([
+        db.collection('clinicas').doc(clinicId).get(),
+        timeout
+      ]);
       if (clinicDoc.exists) {
         const cd = clinicDoc.data() || {};
         const cazaActivo = !!cd.config_ia?.modo_caza_activo;
@@ -886,7 +890,7 @@ ESTADO ACTUAL DE ESTA CLÍNICA:
 - Campaña de recuperación de inactivos: ${cazaActivo ? '✅ ACTIVA — Ana está enviando emails diarios de recaptación' : '⏸ PAUSADA — El fisio puede activarla desde Balance → "Activar campaña"'}
 - Seguimiento post-tratamiento (48h): ${seguimientoActivo ? '✅ ACTIVO — Ana envía email de seguimiento 48h después de cada sesión' : '⏸ PAUSADO — El fisio puede activarlo desde Ana Config → toggle "Seguimiento Post-Tratamiento"'}`;
       }
-    } catch (_) {}
+    } catch (_) {} // timeout o error — Ana responde igualmente sin estado real
 
     const dashboardSystemPrompt = `Eres Ana, asistente experta de operaciones de FisioTool Pro. Ayudas al fisioterapeuta a dominar su dashboard y maximizar su clínica.
 

@@ -1,11 +1,30 @@
 'use client';
-import React from 'react';
-import { TrendingUp, PieChart, Sparkles, Zap, Rocket, AlertCircle, Users } from 'lucide-react';
+import React, { useState } from 'react';
+import { TrendingUp, PieChart, Sparkles, Zap, Rocket, AlertCircle, Users, Loader2 } from 'lucide-react';
 
 export const FinanzasView = ({ balance, pacientes = [], onActivateCampaign, onStopCampaign, clinicData, onGoToImport }: any) => {
   const isHunting = clinicData?.config_ia?.modo_caza_activo;
   const hasPatients = Array.isArray(pacientes) && pacientes.length > 0;
   const canActivateCampaign = hasPatients && !isHunting;
+  const [campaignLoading, setCampaignLoading] = useState(false);
+  const [campaignError, setCampaignError] = useState<string | null>(null);
+
+  const handleCampaignToggle = async () => {
+    if (campaignLoading) return;
+    setCampaignLoading(true);
+    setCampaignError(null);
+    try {
+      if (isHunting) {
+        await onStopCampaign();
+      } else if (canActivateCampaign) {
+        await onActivateCampaign();
+      }
+    } catch (e: any) {
+      setCampaignError(e?.message || 'Error al cambiar el estado de la campaña');
+    } finally {
+      setCampaignLoading(false);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-10 animate-in fade-in duration-700">
@@ -65,17 +84,21 @@ export const FinanzasView = ({ balance, pacientes = [], onActivateCampaign, onSt
         {/* Toggle ON / OFF */}
         <div className="flex flex-col items-center gap-3 shrink-0">
           <button
-            onClick={isHunting ? onStopCampaign : (canActivateCampaign ? onActivateCampaign : undefined)}
-            disabled={!isHunting && !canActivateCampaign}
+            onClick={handleCampaignToggle}
+            disabled={campaignLoading || (!isHunting && !canActivateCampaign)}
             className={`flex items-center gap-2 px-6 py-4 rounded-xl font-bold text-sm transition-all ${
-              isHunting
-                ? 'bg-green-500/20 text-green-300 border border-green-500/40 hover:bg-red-500/20 hover:text-red-300 hover:border-red-500/40 group'
-                : hasPatients
-                  ? 'bg-blue-600 text-white hover:bg-blue-500'
-                  : 'bg-white/5 text-gray-500 border border-white/10 cursor-not-allowed'
+              campaignLoading
+                ? 'bg-white/5 text-gray-400 border border-white/10 cursor-wait'
+                : isHunting
+                  ? 'bg-green-500/20 text-green-300 border border-green-500/40 hover:bg-red-500/20 hover:text-red-300 hover:border-red-500/40 group'
+                  : hasPatients
+                    ? 'bg-blue-600 text-white hover:bg-blue-500'
+                    : 'bg-white/5 text-gray-500 border border-white/10 cursor-not-allowed'
             }`}
           >
-            {isHunting ? (
+            {campaignLoading ? (
+              <><Loader2 size={18} className="animate-spin" /> Procesando...</>
+            ) : isHunting ? (
               <>
                 <Zap size={18} className="animate-pulse group-hover:hidden" />
                 <span className="group-hover:hidden">Campaña activa</span>
@@ -88,8 +111,11 @@ export const FinanzasView = ({ balance, pacientes = [], onActivateCampaign, onSt
               </>
             )}
           </button>
-          {isHunting && (
+          {isHunting && !campaignLoading && (
             <p className="text-[10px] text-gray-500 text-center">Pasa el cursor para detener</p>
+          )}
+          {campaignError && (
+            <p className="text-[10px] text-red-400 text-center max-w-[160px]">{campaignError}</p>
           )}
         </div>
       </div>

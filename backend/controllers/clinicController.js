@@ -1230,6 +1230,11 @@ const createBono = async (req, res, next) => {
 
 const launchCampaign = async (req, res, next) => {
   try {
+    const doc = await db.collection('clinicas').doc(req.clinicId).get();
+    if (!doc.exists) return res.status(404).json({ success: false, error: 'Clínica no encontrada' });
+    if (doc.data()?.config_ia?.modo_caza_activo === true) {
+      return res.json({ success: true, alreadyActive: true }); // idempotente
+    }
     await db.collection('clinicas').doc(req.clinicId).update({
       'config_ia.modo_caza_activo': true,
       updated_at: Timestamp.now()
@@ -1241,6 +1246,11 @@ const launchCampaign = async (req, res, next) => {
 
 const stopCampaign = async (req, res, next) => {
   try {
+    const doc = await db.collection('clinicas').doc(req.clinicId).get();
+    if (!doc.exists) return res.status(404).json({ success: false, error: 'Clínica no encontrada' });
+    if (doc.data()?.config_ia?.modo_caza_activo === false || !doc.data()?.config_ia?.modo_caza_activo) {
+      return res.json({ success: true, alreadyStopped: true }); // idempotente
+    }
     await db.collection('clinicas').doc(req.clinicId).update({
       'config_ia.modo_caza_activo': false,
       updated_at: Timestamp.now()
