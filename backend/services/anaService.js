@@ -871,37 +871,86 @@ module.exports = {
   },
 
   processMessage: async (clinicId, userMessage, conversationHistory = []) => {
-    // Inyectar estado real de la clínica — con timeout para no bloquear a Ana si Firestore tarda
+    // Carga paralela de contexto real con timeout global de 3s
     let clinicStateBlock = '';
     try {
-      const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000));
-      const clinicDoc = await Promise.race([
-        db.collection('clinicas').doc(clinicId).get(),
-        timeout
+      const todayMadrid = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Madrid' }); // YYYY-MM-DD
+
+      const withTimeout = (promise, ms = 3000) =>
+        Promise.race([promise, new Promise((_, r) => setTimeout(() => r(new Error('timeout')), ms))]);
+
+      const [clinicResult, equipoResult, pacientesResult, citasHoyResult] = await Promise.allSettled([
+        withTimeout(db.collection('clinicas').doc(clinicId).get()),
+        withTimeout(db.collection('clinicas').doc(clinicId).collection('equipo').get()),
+        withTimeout(db.collection('pacientes').where('clinic_id', '==', clinicId).count().get()),
+        withTimeout(db.collection('citas').where('clinic_id', '==', clinicId).where('fecha', '==', todayMadrid).get()),
       ]);
-      if (clinicDoc.exists) {
-        const cd = clinicDoc.data() || {};
-        const cazaActivo = !!cd.config_ia?.modo_caza_activo;
-        const seguimientoActivo = !!cd.config_ia?.seguimiento_activo;
-        clinicStateBlock = `
 
-ESTADO ACTUAL DE ESTA CLÍNICA:
-- Campaña de recuperación de inactivos: ${cazaActivo ? '✅ ACTIVA — Ana está enviando emails diarios de recaptación' : '⏸ PAUSADA — El fisio puede activarla desde Balance → "Activar campaña"'}
-- Seguimiento post-tratamiento (48h): ${seguimientoActivo ? '✅ ACTIVO — Ana envía email de seguimiento 48h después de cada sesión' : '⏸ PAUSADO — El fisio puede activarlo desde Ana Config → toggle "Seguimiento Post-Tratamiento"'}`;
-      }
-    } catch (_) {} // timeout o error — Ana responde igualmente sin estado real
+      const cd = clinicResult.status === 'fulfilled' && clinicResult.value?.exists
+        ? (clinicResult.value.data() || {})
+        : {};
 
-    const dashboardSystemPrompt = `Eres Ana, asistente experta de operaciones de FisioTool Pro. Ayudas al fisioterapeuta a dominar su dashboard y maximizar su clínica.
+      const equipoDocs = equipoResult.status === 'fulfilled' ? equipoResult.value.docs || [] : [];
+      const equipoCount = equipoDocs.length;
+      const equipoNames = equipoDocs.map(d => d.data()?.nombre || 'Especialista').join(', ');
+
+      const pacientesCount = pacientesResult.status === 'fulfilled'
+        ? (pacientesResult.value?.data()?.count ?? '?')
+        : '?';
+
+      const citasHoyDocs = citasHoyResult.status === 'fulfilled' ? citasHoyResult.value.docs || [] : [];
+      const citasHoyCount = citasHoyDocs.length;
+      const citasHoyDetalle = citasHoyDocs
+        .map(d => { const c = d.data(); return `${c.hora || '?'} – ${c.nombre || 'Paciente'} (${c.estado || 'pendiente'})`; })
+        .join(', ') || 'Sin citas';
+
+      const plan = String(cd.plan || 'solo').toLowerCase();
+      const cazaActivo = !!cd.config_ia?.modo_caza_activo;
+      const seguimientoActivo = !!cd.config_ia?.seguimiento_activo;
+      const stripeOk = !!(cd.stripe_account_id && cd.stripe_status === 'active');
+      const precioSesion = cd.config_ia?.precio || cd.precio_sesion || 50;
+      const fianza = cd.config_ia?.fianza || cd.fianza_cita || 20;
+      const horario = cd.horario
+        ? `${cd.horario.apertura || '09:00'} – ${cd.horario.cierre_final || cd.horario.cierre || '20:00'}`
+        : '09:00 – 20:00';
+      const nombreClinica = cd.nombre_clinica || cd.nombre || 'Tu clínica';
+
+      // Setup pendiente
+      const pendingSetup = [];
+      if (!cd.logo_url && !cd.logo_path) pendingSetup.push('subir logo');
+      if (!cd.stripe_account_id) pendingSetup.push('conectar Stripe en Pagos');
+      if (pacientesCount === 0 || pacientesCount === '0') pendingSetup.push('importar pacientes en Pacientes → Importar');
+
+      clinicStateBlock = `
+
+═══════════════════════════════
+📊 ESTADO REAL DE ${nombreClinica.toUpperCase()}
+═══════════════════════════════
+- Plan activo: ${plan.toUpperCase()}
+- Equipo: ${equipoCount} especialista${equipoCount !== 1 ? 's' : ''}${equipoCount > 0 ? ` (${equipoNames})` : ' — aún sin equipo añadido'}
+- Pacientes en base de datos: ${pacientesCount}
+- Citas hoy (${todayMadrid}): ${citasHoyCount} → ${citasHoyDetalle}
+- Stripe: ${stripeOk ? '✅ Conectado y activo (cobro de fianzas habilitado)' : '⚠️ NO conectado — ir a Pagos → Conectar Stripe'}
+- Precio sesión: ${precioSesion}€ | Fianza: ${fianza}€
+- Horario: ${horario}
+- Campaña reactivación inactivos: ${cazaActivo ? '✅ ACTIVA' : '⏸ PAUSADA — activar en Balance → "Activar campaña"'}
+- Seguimiento post-tratamiento 48h: ${seguimientoActivo ? '✅ ACTIVO' : '⏸ PAUSADO — activar en Ana Config'}
+${pendingSetup.length > 0 ? `- ⚠️ Setup pendiente: ${pendingSetup.join(' | ')}` : '- ✅ Setup completo'}`;
+    } catch (_) {}
+
+    const dashboardSystemPrompt = `Eres Ana, asistente experta de operaciones de FisioTool Pro. Ayudas al fisioterapeuta a dominar su dashboard y maximizar el rendimiento de su clínica.
 
 ${DASHBOARD_KNOWLEDGE}${clinicStateBlock}
 
 REGLAS:
 1. Directa, profesional y cordial. Eres la experta en este sistema.
-2. Conoces cada módulo. Explica PARA QUÉ sirve y CÓMO ayuda al negocio.
-3. Concisa: máximo 2-3 frases por respuesta.
+2. Conoces cada módulo a fondo. Explica PARA QUÉ sirve y CÓMO impacta en el negocio.
+3. Concisa: 2-4 frases por respuesta. Si el fisio pide más detalle, amplía.
 4. Si algo no existe en DASHBOARD_KNOWLEDGE, dilo claramente.
 5. No repitas bienvenidas si ya hay conversación previa.
-6. Si el fisio pregunta por el estado de una función (campaña, seguimiento), responde con el estado real de SU clínica.`;
+6. Cuando el fisio pregunta por el estado de su clínica, usa SIEMPRE los datos reales del bloque "ESTADO REAL" de arriba.
+7. Si detectas setup pendiente, menciónalo de forma proactiva cuando sea relevante.
+8. Nunca inventes datos. Si un valor es '?', indica que no pudiste cargarlo y sugiere refrescar.`;
 
     try {
       const reply = await claudeService.generateResponse(
@@ -909,13 +958,14 @@ REGLAS:
         {
           systemPrompt: dashboardSystemPrompt,
           conversationHistory,
-          maxTokens: 400
+          maxTokens: 500
         }
       );
       const trimmed = String(reply || '').trim();
       return { reply: trimmed || 'No pude generar una respuesta. Reformula la pregunta.' };
     } catch (e) {
-      return { reply: 'Mis sistemas están experimentando saturación. Por favor, vuelve a intentarlo en un momento.' };
+      console.error('🔥 [ANA DASHBOARD] Error IA:', e.message);
+      return { reply: 'Mis sistemas están experimentando saturación momentánea. Por favor, vuelve a intentarlo en unos segundos.' };
     }
   },
 

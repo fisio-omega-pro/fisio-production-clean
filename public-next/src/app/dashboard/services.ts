@@ -277,6 +277,16 @@ class DashboardService {
       body: JSON.stringify(config)
     });
   }
+
+  public async sendChatMessage(
+    message: string,
+    history: Array<{ role: 'user' | 'assistant'; content: string }>
+  ): Promise<{ reply: string }> {
+    return this.request<{ success: boolean; reply: string }>('/api/chat/dashboard', {
+      method: 'POST',
+      body: JSON.stringify({ message, history })
+    });
+  }
 }
 
 export const dashboardAPI = DashboardService.getInstance();
