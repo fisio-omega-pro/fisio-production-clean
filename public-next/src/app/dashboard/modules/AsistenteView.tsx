@@ -168,8 +168,8 @@ export const AsistenteView = () => {
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === 'ana' ? 'justify-start' : 'justify-end'}`}>
             {m.role === 'ana' && (
-              <div className="w-6 h-6 rounded-md bg-blue-600/20 flex items-center justify-center mr-2 mt-1 shrink-0">
-                <Bot size={12} className="text-blue-400" />
+              <div className={`w-6 h-6 rounded-md flex items-center justify-center mr-2 mt-1 shrink-0 ${mode === 'lex' ? 'bg-amber-600/20' : 'bg-blue-600/20'}`}>
+                {mode === 'lex' ? <Scale size={12} className="text-amber-400" /> : <Bot size={12} className="text-blue-400" />}
               </div>
             )}
             <div className={`max-w-[82%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed space-y-0.5 ${
