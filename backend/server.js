@@ -148,10 +148,21 @@ async function initialize(options = {}) {
     standardHeaders: 'draft-7',
     legacyHeaders: false,
   });
+  // Límite estricto para endpoints de IA (Claude/Gemini son caros)
+  const aiLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minuto
+    limit: 20,
+    message: { error: 'Demasiadas peticiones al asistente. Espera un momento.' },
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+  });
   app.use('/api', apiLimiter);
   app.use('/api/login', authLimiter);
   app.use('/api/register', authLimiter);
   app.use('/api/auth/forgot-password', authLimiter);
+  app.use('/api/public/ana-chat', aiLimiter);
+  app.use('/api/public/ana-prospecto', aiLimiter);
+  app.use('/api/chat', aiLimiter);
 
   // 📋 Log de peticiones (método, ruta, IP, status, duración) — sin cuerpos ni tokens
   app.use((req, res, next) => {

@@ -223,6 +223,7 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
   const getBlockForHour = (hour: string) => {
     const hourNum = Number(String(hour || '').split(':')[0] || '0');
     return bloqueosForDate.find((b) => {
+      if (b.allDay) return true;
       const startHour = Number(String(b.startTime || '').split(':')[0] || '0');
       const endHour = Number(String(b.endTime || '').split(':')[0] || '0');
       return hourNum >= startHour && hourNum < endHour;
