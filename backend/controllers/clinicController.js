@@ -1177,6 +1177,7 @@ const importPatients = async (req, res, next) => {
 
 const activateBonos = async (req, res, next) => {
   try {
+    if (req.specialistId) return res.status(403).json({ success: false, error: 'Solo el propietario puede gestionar los bonos' });
     const doc = await db.collection('clinicas').doc(req.clinicId).get();
     if (!doc.exists) return res.status(404).json({ success: false, error: 'Clínica no encontrada' });
     if (doc.data()?.config_ia?.acepta_bonos === true) return res.json({ success: true, alreadyActive: true });
@@ -1192,6 +1193,7 @@ const activateBonos = async (req, res, next) => {
 
 const deactivateBonos = async (req, res, next) => {
   try {
+    if (req.specialistId) return res.status(403).json({ success: false, error: 'Solo el propietario puede gestionar los bonos' });
     const doc = await db.collection('clinicas').doc(req.clinicId).get();
     if (!doc.exists) return res.status(404).json({ success: false, error: 'Clínica no encontrada' });
     if (!doc.data()?.config_ia?.acepta_bonos) return res.json({ success: true, alreadyInactive: true });
@@ -1558,6 +1560,13 @@ const deleteAccount = async (req, res, next) => {
 
     if (!clinicDoc.exists) return res.status(404).json({ success: false, error: 'Clínica no encontrada' });
     const clinicData = clinicDoc.data() || {};
+
+    // Doble confirmación: el email enviado debe coincidir con el de la cuenta
+    const confirmEmail = String(req.body?.confirmEmail || '').toLowerCase().trim();
+    if (!confirmEmail) return res.status(400).json({ success: false, error: 'confirmEmail es obligatorio para eliminar la cuenta' });
+    if (confirmEmail !== String(clinicData.email || '').toLowerCase().trim()) {
+      return res.status(400).json({ success: false, error: 'El email de confirmación no coincide con el de la cuenta' });
+    }
 
     console.log(`🗑️  Iniciando borrado total de cuenta: ${clinicId} (${clinicData.email})`);
 

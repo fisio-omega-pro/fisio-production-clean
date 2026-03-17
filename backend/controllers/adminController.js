@@ -317,19 +317,31 @@ const createTicket = async (req, res) => {
 };
 
 // --- ⚙️ AJUSTES DE PERFIL (Punto 12) ---
-const updateSettings = async (req, res) => {
+const updateSettings = async (req, res, next) => {
   try {
-    const { nombre, email, es_multiclinica } = req.body;
+    if (req.specialistId) return res.status(403).json({ success: false, error: 'Solo el propietario puede modificar la configuración' });
+
+    const nombre = String(req.body?.nombre || '').trim();
+    const email = String(req.body?.email || '').toLowerCase().trim();
+    const es_multiclinica = req.body?.es_multiclinica;
+
+    if (!nombre) return res.status(400).json({ success: false, error: 'El nombre de la clínica es obligatorio' });
+    if (nombre.length > 100) return res.status(400).json({ success: false, error: 'El nombre no puede superar 100 caracteres' });
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    if (!email || !emailRegex.test(email)) return res.status(400).json({ success: false, error: 'El email no tiene un formato válido' });
+    if (email.length > 120) return res.status(400).json({ success: false, error: 'El email no puede superar 120 caracteres' });
+
     const upd = {
       nombre_clinica: nombre,
-      email: String(email || '').toLowerCase().trim(),
+      email,
       updated_at: Timestamp.now()
     };
     if (es_multiclinica !== undefined) upd.es_multiclinica = !!es_multiclinica;
 
     await db.collection('clinicas').doc(req.clinicId).update(upd);
     res.json({ success: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { next(e); }
 };
 
 const handleAdminChat = async (req, res) => {
