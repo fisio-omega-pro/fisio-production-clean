@@ -64,8 +64,7 @@ export default function FoundryPage() {
   const getFoundryKey = (override?: string) => {
     if (override) return override;
     if (pass) return pass;
-    // Preferimos sessionStorage para reducir persistencia accidental.
-    return sessionStorage.getItem('foundryKey') || localStorage.getItem('foundryKey') || '';
+    return sessionStorage.getItem('foundryKey') || '';
   };
 
   // --- AUTENTICACIÓN ---
@@ -78,7 +77,8 @@ export default function FoundryPage() {
       });
       if (!res.ok) return alert("ACCESO DENEGADO");
       try { sessionStorage.setItem('foundryKey', key); } catch {}
-      // Compatibilidad: si ya existía guardado en localStorage de antes, lo dejamos.
+      try { localStorage.removeItem('foundryKey'); } catch {}
+      // Foundry key se almacena solo en sessionStorage (se borra al cerrar pestaña).
       setIsAuthorized(true);
       loadData(key);
     } catch (e) { alert("Error de conexión"); }

@@ -23,7 +23,7 @@ const runFoundryTasks = async () => {
         const { initEnv } = require('../config/env');
         const env = await initEnv();
         const to = String(env.ADMIN_EMAIL || 'fisiotoolsaas@gmail.com').trim();
-        await sendEmail(to, `⚠️ ALERTA: ${alert.title}`, `Plazo legal: Quedan ${diffDays} días para ${alert.title}.`, 'INFO');
+        await sendEmail({ to, subject: `⚠️ ALERTA LLC: ${alert.title}`, text: `Plazo legal: Quedan ${diffDays} días para completar: ${alert.title}.`, type: 'INFO' });
       }
     }
   } catch (e) { console.error("Error LLC:", e.message); }

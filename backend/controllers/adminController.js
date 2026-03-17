@@ -352,11 +352,15 @@ const updateSettings = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
-const handleAdminChat = async (req, res) => {
+const MAX_LEX_LEN = 2000;
+const handleAdminChat = async (req, res, next) => {
   try {
-    const { reply } = await anaService.consultLex(req.body.message);
+    const message = String(req.body?.message || '').trim();
+    if (!message) return res.status(400).json({ success: false, error: 'message requerido' });
+    if (message.length > MAX_LEX_LEN) return res.status(400).json({ success: false, error: `Mensaje demasiado largo (max ${MAX_LEX_LEN})` });
+    const { reply } = await anaService.consultLex(message);
     res.json({ success: true, reply });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { next(e); }
 };
 
 const diagnoseAna = async (req, res) => {
@@ -393,13 +397,15 @@ const diagnoseAna = async (req, res) => {
   } catch (e) { return res.status(500).json({ ok: false, error: e.message }); }
 };
 
-const saveAlert = async (req, res) => {
+const saveAlert = async (req, res, next) => {
   try {
     const b = req.body || {};
     const title = String(b.title || b.titulo || '').trim();
     const date = String(b.date || b.fecha || '').trim(); // YYYY-MM-DD
     const tipo = String(b.tipo || 'fiscal').trim();
     if (!title || !date) return res.status(400).json({ success: false, error: 'title y date requeridos' });
+    if (title.length > 200) return res.status(400).json({ success: false, error: 'Título demasiado largo (max 200)' });
+    if (tipo.length > 50) return res.status(400).json({ success: false, error: 'Tipo demasiado largo (max 50)' });
     const d = new Date(date);
     if (Number.isNaN(d.getTime())) return res.status(400).json({ success: false, error: 'date inválida' });
 
@@ -505,7 +511,8 @@ const getExpenseFile = async (req, res) => {
 };
 
 // --- 🎯 MODO CAZA: IMPORTAR LEADS DESDE CSV ---
-const importLeads = async (req, res) => {
+const MAX_LEADS_IMPORT = 10000;
+const importLeads = async (req, res, next) => {
   try {
     const leadType = String(req.body?.leadType || '').trim().toLowerCase() || 'videntes';
     const file = req.file;
@@ -513,6 +520,9 @@ const importLeads = async (req, res) => {
     const csvText = file.buffer.toString('utf8');
     const rows = parseCsv(csvText);
     if (!rows.length) return res.json({ success: true, imported: 0 });
+    if (rows.length > MAX_LEADS_IMPORT) {
+      return res.status(400).json({ success: false, error: `No se pueden importar más de ${MAX_LEADS_IMPORT} leads a la vez` });
+    }
 
     const now = Timestamp.now();
     const col = db.collection('leads');
@@ -545,7 +555,6 @@ const importLeads = async (req, res) => {
           canal: 'email',
           ultima_accion: '',
           source: 'csv',
-          raw: row,
           created_at: now,
           updated_at: now,
         });
@@ -555,9 +564,7 @@ const importLeads = async (req, res) => {
     }
 
     return res.json({ success: true, imported });
-  } catch (e) {
-    return res.status(500).json({ success: false, error: e.message });
-  }
+  } catch (e) { next(e); }
 };
 
 // --- 🎯 MODO CAZA: CONTROL DE CAMPAÑA (persistente) ---
@@ -649,9 +656,14 @@ const getAnaInbox = async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 };
 
-const sendProspectEmail = async (req, res) => {
+const sendProspectEmail = async (req, res, next) => {
   try {
     const { to, leadInfo, leadId, angle } = req.body;
+    const _emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    const toClean = String(to || '').trim().toLowerCase();
+    if (!toClean || !_emailRe.test(toClean)) {
+      return res.status(400).json({ success: false, error: 'Email destinatario inválido' });
+    }
     const { sendEmail } = require('../services/emailSenderService');
 
     // Generar email con IA
@@ -663,14 +675,14 @@ const sendProspectEmail = async (req, res) => {
     });
 
     // Enviar
-    const sendResult = await sendEmail({ to, subject: 'Te presento FisioTool Pro', text: emailBody, type: 'ANA' });
+    const sendResult = await sendEmail({ to: toClean, subject: 'Te presento FisioTool Pro', text: emailBody, type: 'ANA' });
     if (!sendResult || sendResult.ok !== true) {
       return res.status(400).json({ success: false, error: sendResult?.reason || sendResult?.error || 'No se pudo enviar el email' });
     }
 
     // Guardar en historial
     await db.collection('ana_sent_emails').add({
-      to,
+      to: toClean,
       subject: 'Te presento FisioTool Pro',
       body: emailBody,
       leadInfo,
@@ -694,7 +706,7 @@ const sendProspectEmail = async (req, res) => {
     } catch (_) { }
 
     res.json({ success: true, preview: emailBody });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { next(e); }
 };
 
 const triggerEmailCheck = async (req, res) => {
