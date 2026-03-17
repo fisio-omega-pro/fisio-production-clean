@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { CreditCard, Loader2, Shield, AlertCircle, ExternalLink, CheckCircle } from 'lucide-react';
 import { Modal } from '../Modal';
 import { ActionButton } from '../Atoms';
+import { dashboardAPI } from '../../services';
 
 interface StripeModalProps {
   isOpen: boolean;
@@ -12,58 +13,35 @@ interface StripeModalProps {
   userEmail?: string;
 }
 
-export const StripeModal = ({ isOpen, onClose, clinicId, configStatus, userEmail }: StripeModalProps) => {
+export const StripeModal = ({ isOpen, onClose, clinicId, configStatus }: StripeModalProps) => {
   const [isConnecting, setIsConnecting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleConnectStripe = async () => {
+    if (!clinicId?.trim()) {
+      setError('No se encontró el ID de la clínica. Recarga la página.');
+      return;
+    }
     setIsConnecting(true);
+    setError(null);
     try {
-      const token = localStorage.getItem('fisio_token');
-// console.log('🔍 [STRIPE] Token:', token ? 'exists' : 'missing'); // ELIMINADO PARA PRODUCCIÓN
-// console.log('🔍 [STRIPE] ClinicId:', clinicId); // ELIMINADO PARA PRODUCCIÓN
-// console.log('🔍 [STRIPE] ClinicId type:', typeof clinicId); // ELIMINADO PARA PRODUCCIÓN
-// console.log('🔍 [STRIPE] API URL:', `${process.env.NEXT_PUBLIC_API_BASE_URL}/vincular-banco-profesional`); // ELIMINADO PARA PRODUCCIÓN
-
-      // Validar clinicId
-      if (!clinicId || clinicId.trim() === '') {
-        console.error('🔥 [STRIPE] ClinicId is empty!');
-        alert('Error: No se encontró el ID de la clínica. Recarga la página e inténtalo de nuevo.');
-        setIsConnecting(false);
-        return;
-      }
-
-      // Obtener email del usuario actual
-      const userEmailFinal = userEmail || 'fisio@app.fisiotool.com';
-
-      // Forzar uso de ruta existente mientras se resuelve Connect
-// console.log('🔄 [STRIPE] Usando ruta existente mientras se configura Connect...'); // ELIMINADO PARA PRODUCCIÓN
-      const response = await fetch('/api/dashboard/stripe-connect', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` })
-        },
-        body: JSON.stringify({ clinicId: clinicId.trim() })
-      });
-
-// console.log('🔍 [STRIPE] Response status:', response.status); // ELIMINADO PARA PRODUCCIÓN
-      const data = await response.json();
-// console.log('🔍 [STRIPE] Response data:', data); // ELIMINADO PARA PRODUCCIÓN
-
-      if (data.success && data.url) {
-        // Redirigir a Stripe Connect
-        window.location.href = data.url;
+      const url = await dashboardAPI.connectStripe();
+      if (url) {
+        window.location.href = url;
       } else {
-        // Error específico de Connect no configurado
-        if (data.error?.includes('signed up for Connect')) {
-          alert('⚠️ CONFIGURACIÓN STRIPE CONNECT\n\nTu cuenta Stripe necesita activar "Connect" para procesar pagos.\n\nPasos:\n1. Ve a dashboard.stripe.com\n2. Busca "Connect" en menú lateral\n3. Activa Stripe Connect\n4. Vuelve a intentar\n\nSoporte: ayuda@fisiotool.com');
-        } else {
-          alert(`Error: ${data.error || 'Error al conectar con Stripe'}`);
-        }
+        setError('Stripe no devolvió una URL de conexión. Inténtalo de nuevo.');
       }
-    } catch (error) {
-      console.error('Error connecting Stripe:', error);
-      alert('Error al conectar con Stripe. Inténtalo de nuevo.');
+    } catch (e: any) {
+      const msg = String(e?.message || '');
+      if (msg.includes('403')) {
+        setError('Solo el propietario puede conectar Stripe.');
+      } else if (msg.includes('signed up for Connect') || msg.includes('Connect')) {
+        setError('Tu cuenta Stripe necesita activar "Connect". Ve a dashboard.stripe.com → Connect y actívalo, luego vuelve a intentar.');
+      } else if (msg.includes('503')) {
+        setError('Stripe no está configurado en el servidor. Contacta con soporte: ayuda@fisiotool.com');
+      } else {
+        setError(msg || 'Error al conectar con Stripe. Inténtalo de nuevo.');
+      }
     } finally {
       setIsConnecting(false);
     }
@@ -133,6 +111,13 @@ export const StripeModal = ({ isOpen, onClose, clinicId, configStatus, userEmail
                 4. Vuelve automáticamente aquí
               </p>
             </div>
+
+            {error && (
+              <div className="flex items-start gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs leading-relaxed">
+                <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
+                <span>{error}</span>
+              </div>
+            )}
 
             <ActionButton
               onClick={handleConnectStripe}

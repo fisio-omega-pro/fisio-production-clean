@@ -173,8 +173,13 @@ class DashboardService {
     if (!res?.success) throw new Error('No se pudo subir el logo.');
   }
   public async useDefaultLogo(): Promise<void> { await this.request('/api/dashboard/save-logo', { method: 'POST', body: JSON.stringify({ publicUrl: 'https://via.placeholder.com/150' }) }); }
-  public async connectStripe(): Promise<string> { const res = await this.request<{ url: string }>('/api/dashboard/stripe-connect/', { method: 'POST' }); return res.url; }
+  public async connectStripe(): Promise<string> { const res = await this.request<{ success: boolean; url: string }>('/api/dashboard/stripe-connect', { method: 'POST' }); return res.url; }
   public async verifyStripe(): Promise<void> { await this.request('/api/dashboard/stripe-verify', { method: 'POST' }); }
+  public async saveCobrosConfig(bizumNumber: string): Promise<void> {
+    const phone = bizumNumber.trim().replace(/\s/g, '');
+    if (phone && !/^(\+34)?[6789]\d{8}$/.test(phone)) throw new Error('Número de teléfono no válido (debe ser español, 9 dígitos)');
+    await this.request('/api/dashboard/save-cobros', { method: 'POST', body: JSON.stringify({ bizumNumber: phone }) });
+  }
   public async verifySubscription(sessionId?: string): Promise<void> {
     await this.request('/api/dashboard/payment-verify', {
       method: 'POST',

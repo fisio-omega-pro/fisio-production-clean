@@ -929,8 +929,11 @@ const uploadLogo = async (req, res, next) => {
 
 const saveCobrosConfig = async (req, res, next) => {
   try {
-    const bizumNumber = String(req.body?.bizumNumber || '').trim();
-    if (!bizumNumber) return res.status(400).json({ success: false, error: 'bizumNumber requerido' });
+    if (req.specialistId) return res.status(403).json({ success: false, error: 'Solo el propietario puede configurar los cobros' });
+    const bizumNumber = String(req.body?.bizumNumber ?? '').trim().replace(/\s/g, '');
+    if (bizumNumber && !/^(\+34)?[6789]\d{8}$/.test(bizumNumber)) {
+      return res.status(400).json({ success: false, error: 'Número de teléfono no válido (debe ser español, 9 dígitos)' });
+    }
     await db.collection('clinicas').doc(req.clinicId).set({
       config_pagos: { bizum: bizumNumber },
       updated_at: Timestamp.now()
@@ -1415,6 +1418,7 @@ const runRecaptacionNow = async (req, res, next) => {
 
 const startStripeConnect = async (req, res, next) => {
   try {
+    if (req.specialistId) return res.status(403).json({ success: false, error: 'Solo el propietario puede conectar Stripe' });
     const { initEnv } = require('../config/env');
     const env = await initEnv();
     const sk = String(env.STRIPE_SK || '').trim();
@@ -1463,6 +1467,7 @@ const startStripeConnect = async (req, res, next) => {
 
 const finalizeStripeConnect = async (req, res, next) => {
   try {
+    if (req.specialistId) return res.status(403).json({ success: false, error: 'Solo el propietario puede verificar Stripe' });
     const { initEnv } = require('../config/env');
     const env = await initEnv();
     const sk = String(env.STRIPE_SK || '').trim();

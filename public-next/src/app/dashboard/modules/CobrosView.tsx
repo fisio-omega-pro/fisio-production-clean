@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { CreditCard, Smartphone, CheckCircle2, AlertCircle, ChevronRight, Loader2, Save } from 'lucide-react';
+import { CreditCard, Smartphone, CheckCircle2, AlertCircle, ChevronRight, Loader2, Save, CheckCircle } from 'lucide-react';
 import { InputField } from '../components/Atoms';
 import { dashboardAPI } from '../services';
-import { API_BASE_URL } from '@/lib/apiBase';
 
 interface CobrosProps {
   hasStripe: boolean;
@@ -11,9 +10,11 @@ interface CobrosProps {
 
 export const CobrosView: React.FC<CobrosProps> = ({ hasStripe, clinicData }) => {
   const [loading, setLoading] = useState(false);
-  const [bizum, setBizum] = useState(clinicData?.config_pagos?.bizum || "");
+  const [bizum, setBizum] = useState(clinicData?.config_pagos?.bizum || '');
   const [savingBizum, setSavingBizum] = useState(false);
   const [stripeError, setStripeError] = useState<string | null>(null);
+  const [bizumError, setBizumError] = useState<string | null>(null);
+  const [bizumOk, setBizumOk] = useState(false);
 
   const handleConnectStripe = async () => {
     setLoading(true);
@@ -21,29 +22,23 @@ export const CobrosView: React.FC<CobrosProps> = ({ hasStripe, clinicData }) => 
     try {
       const url = await dashboardAPI.connectStripe();
       window.location.href = url;
-    } catch (e) { 
-      const msg = (e as any)?.message || 'No se pudo conectar Stripe.';
-      setStripeError(msg);
-      setLoading(false); // 🚨 Corregido: false en lugar de null
+    } catch (e: any) {
+      const msg = String(e?.message || 'No se pudo conectar Stripe.');
+      setStripeError(msg.includes('403') ? 'Solo el propietario puede conectar Stripe.' : msg);
+      setLoading(false);
     }
   };
 
   const saveBizum = async () => {
+    setBizumError(null);
+    setBizumOk(false);
     setSavingBizum(true);
     try {
-      const token = localStorage.getItem('fisio_token');
-      const res = await fetch(`${API_BASE_URL}/api/dashboard/save-cobros`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json', 
-          'Authorization': `Bearer ${token}` 
-        },
-        body: JSON.stringify({ bizumNumber: bizum })
-      });
-      if (res.ok) alert("✅ Bizum configurado correctamente.");
-      else throw new Error();
-    } catch (e) { 
-      alert("Error al guardar"); 
+      await dashboardAPI.saveCobrosConfig(bizum);
+      setBizumOk(true);
+      setTimeout(() => setBizumOk(false), 3000);
+    } catch (e: any) {
+      setBizumError(String(e?.message || 'Error al guardar el número de Bizum.'));
     } finally {
       setSavingBizum(false);
     }
@@ -101,7 +96,7 @@ export const CobrosView: React.FC<CobrosProps> = ({ hasStripe, clinicData }) => 
               <InputField 
                 placeholder="Nº de Teléfono para Bizum" 
                 value={bizum} 
-                onChange={(v) => setBizum(v)}
+                onChange={(v) => { setBizum(v); setBizumError(null); setBizumOk(false); }}
                 style={{ marginBottom: 0 }}
               />
             </div>
@@ -113,6 +108,16 @@ export const CobrosView: React.FC<CobrosProps> = ({ hasStripe, clinicData }) => 
               {savingBizum ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
             </button>
           </div>
+          {bizumError && (
+            <div className="flex items-center gap-2 mt-2 text-[11px] text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">
+              <AlertCircle size={12} className="shrink-0" />{bizumError}
+            </div>
+          )}
+          {bizumOk && (
+            <div className="flex items-center gap-2 mt-2 text-[11px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-3 py-2">
+              <CheckCircle size={12} className="shrink-0" />Bizum configurado correctamente.
+            </div>
+          )}
         </div>
 
       </div>
