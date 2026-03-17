@@ -277,9 +277,35 @@ Tiempo de respuesta: El equipo responde en menos de 24h en días laborables.
 ════════════════════════════════
 🏢 MÓDULO: MIS CLÍNICAS (Multi-sede)
 ════════════════════════════════
-Disponible en plan Professional y Enterprise. Permite gestionar varias sedes desde un único dashboard.
+Disponible en plan Business y Corporate. Permite gestionar varias sedes desde un único dashboard.
 Cómo añadir sede: Mis Clínicas → Nueva sede → configurar horarios y equipo independiente para cada una.
 Cada sede tiene su propia Ana, su propia agenda y su propio sistema de pagos.
+
+════════════════════════════════
+💬 MÓDULO: CONSULTORÍA ANA (este chat)
+════════════════════════════════
+Qué es: Este mismo chat donde el fisio habla conmigo (Ana) para aprender a usar el dashboard y obtener datos reales de su clínica.
+Qué puedo responder: Estado de la campaña, citas de hoy, número de pacientes, estado de Stripe, setup pendiente, cómo usar cualquier módulo, pasos exactos para configurar cualquier función.
+Diferencia con el chat de pacientes: Este chat es para el fisio (dueño/staff). El chat de pacientes está disponible públicamente en la URL de la clínica.
+Tip clave: Puedes preguntarme en cualquier momento "¿cuál es el estado de mi clínica?" y te daré un resumen completo con datos reales.
+
+════════════════════════════════
+⚖️ MÓDULO: LEX (Asesor Legal IA)
+════════════════════════════════
+Qué es: Asesor jurídico especializado en fisioterapia en España. Consulta sobre fiscalidad (IVA, IRPF, trimestres), RGPD para clínicas, contratos laborales para fisioterapeutas, autónomo vs SL, etc.
+Cómo acceder: En el módulo Consultoría hay un botón "Consultar a Lex". Lex responde en segundos con orientación legal precisa.
+Importante: Lex da orientación técnica y legal, pero siempre recomienda revisar con un profesional para casos específicos.
+Ideal para: Dudas sobre si las sesiones de fisio llevan IVA (exentas bajo art. 20.1 LIVA si son rehabilitadoras), modelos trimestrales, RGPD para historiales clínicos, contratar a un fisio por cuenta ajena.
+
+════════════════════════════════
+💼 PLANES Y PRECIOS
+════════════════════════════════
+- SOLO (1 especialista): Para fisios independientes. 1 fisioterapeuta, todas las funciones de IA.
+- TEAM (hasta 3 especialistas): Para clínicas pequeñas. Agenda multi-especialista, filtros por fisio.
+- BUSINESS (hasta 5 especialistas + multi-sede): Para clínicas medianas. Gestión de múltiples sedes.
+- CORPORATE (ilimitado): Para grupos de clínicas. Sin límite de especialistas ni sedes.
+Cómo hacer upgrade: Plan → Actualizar plan → seleccionar nuevo plan → pago inmediato por Stripe.
+El upgrade es instantáneo: Al pagar, las funciones nuevas se activan de inmediato.
 `;
 
 const LEX_SYSTEM_PROMPT = `

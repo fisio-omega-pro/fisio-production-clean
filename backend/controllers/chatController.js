@@ -31,8 +31,10 @@ const handleChat = async (req, res, next) => {
 
 const handleWebChat = async (req, res, next) => {
   try {
-    // La ruta de bypass de voz e invidentes
-    const result = await anaService.processMessage(null, req.body.message);
+    const message = String(req.body?.message || '').trim();
+    if (!message) return res.status(400).json({ success: false, error: 'Mensaje requerido' });
+    if (message.length > 1000) return res.status(400).json({ success: false, error: 'Mensaje demasiado largo' });
+    const result = await anaService.processMessage(null, message);
     res.json({ success: true, reply: result.reply });
   } catch (error) { next(error); }
 };
