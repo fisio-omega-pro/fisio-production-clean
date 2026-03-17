@@ -100,6 +100,7 @@ router.post('/dashboard/deactivate-bonos', ensureHandler(clinicController.deacti
 router.post('/dashboard/create-bono', ensureHandler(clinicController.createBono, 'createBono'));
 router.post('/dashboard/launch-campaign', ensureHandler(clinicController.launchCampaign, 'launchCampaign'));
 router.post('/dashboard/run-recaptacion', ensureHandler(clinicController.runRecaptacionNow, 'runRecaptacionNow'));
+router.post('/dashboard/run-seguimiento', ensureHandler(clinicController.runSeguimientoNow, 'runSeguimientoNow'));
 router.post('/dashboard/stripe-connect', ensureHandler(clinicController.startStripeConnect, 'startStripeConnect'));
 router.post('/dashboard/stripe-verify', ensureHandler(clinicController.finalizeStripeConnect, 'finalizeStripeConnect'));
 router.post('/dashboard/upgrade-plan', (req, res, next) => {

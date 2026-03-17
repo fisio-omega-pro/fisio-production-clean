@@ -109,6 +109,14 @@ class DashboardService {
     return { sent: Number((res as any).sent || 0) };
   }
 
+  public async runSeguimiento(maxPerRun = 10, targetDate?: string): Promise<{ sent: number; date?: string }> {
+    const res = await this.request<{ success: boolean; sent?: number; date?: string; error?: string }>(
+      '/api/dashboard/run-seguimiento',
+      { method: 'POST', body: JSON.stringify({ maxPerRun, ...(targetDate ? { targetDate } : {}) }) }
+    );
+    return { sent: Number((res as any).sent || 0), date: (res as any).date };
+  }
+
   public async getReferrals(): Promise<{ code: string; count: number; referred: any[] }> {
     const res = await this.request<{ success: boolean; code: string; count: number; referred: any[] }>(
       '/api/dashboard/referrals'

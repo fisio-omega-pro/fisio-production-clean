@@ -27,7 +27,8 @@ export const AnaConfigView = ({ clinicData, onUpdated }: AnaConfigProps) => {
         welcome: clinicData?.ana_welcome || '¡Hola! Soy Ana, tu asistente virtual de FisioTool Pro. Estoy aquí para ayudarte con tus citas, dudas y gestionar tu salud. ¿En qué puedo apoyarte hoy?',
         photo: clinicData?.ana_photo_path ? `/api/public/ana-photo/${clinicData.id}/` : (clinicData?.ana_photo || ''),
         useClinicLogo: clinicData?.ana_use_clinic_logo !== undefined ? clinicData.ana_use_clinic_logo : !!clinicData?.logo_url, // Activar por defecto si hay logo
-        prospectionEmail: clinicData?.email_contacto || ''
+        prospectionEmail: clinicData?.email_contacto || '',
+        seguimientoActivo: clinicData?.config_ia?.seguimiento_activo || false
     });
 
     const [saving, setSaving] = useState(false);
@@ -68,7 +69,8 @@ export const AnaConfigView = ({ clinicData, onUpdated }: AnaConfigProps) => {
                 welcome: clinicData.ana_welcome || '¡Hola! Soy Ana, tu asistente virtual de FisioTool Pro. Estoy aquí para ayudarte con tus citas, dudas y gestionar tu salud. ¿En qué puedo apoyarte hoy?',
                 photo: clinicData.ana_photo_path ? `/api/public/ana-photo/${clinicData.id}/` : (clinicData.ana_photo || ''),
                 useClinicLogo: clinicData.ana_use_clinic_logo !== undefined ? clinicData.ana_use_clinic_logo : !!clinicData.logo_url,
-                prospectionEmail: clinicData.email_contacto || ''
+                prospectionEmail: clinicData.email_contacto || '',
+                seguimientoActivo: clinicData.config_ia?.seguimiento_activo || false
             });
         }
     }, [clinicData]);
@@ -254,6 +256,32 @@ export const AnaConfigView = ({ clinicData, onUpdated }: AnaConfigProps) => {
                                     💡 Email opcional para remitente personalizado. Si no configuras nada, usaremos nuestro sistema
                                     inteligente "[Tu Clínica] via FisioTool" para máxima profesionalidad y deliverabilidad.
                                 </p>
+                            </div>
+
+                            {/* Seguimiento Post-Tratamiento */}
+                            <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex-1 pr-4">
+                                        <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                                            🩺 Seguimiento Post-Tratamiento
+                                        </h4>
+                                        <p className="text-[10px] text-gray-400 mt-1">
+                                            Ana enviará un email personalizado a cada paciente 48h después de su sesión preguntando cómo se encuentra y ofreciendo reservar la próxima cita.
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={() => setConfig({ ...config, seguimientoActivo: !config.seguimientoActivo })}
+                                        className={`relative w-12 h-6 rounded-full transition-all flex-shrink-0 ${config.seguimientoActivo ? 'bg-green-500' : 'bg-white/10'}`}
+                                    >
+                                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${config.seguimientoActivo ? 'left-7' : 'left-1'}`} />
+                                    </button>
+                                </div>
+                                {config.seguimientoActivo && (
+                                    <div className="mt-3 flex items-center gap-2 p-2 bg-green-500/10 border border-green-500/20 rounded-xl">
+                                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse flex-shrink-0" />
+                                        <span className="text-[10px] text-green-300">Activo — Ana hará seguimiento automático 48h post-sesión</span>
+                                    </div>
+                                )}
                             </div>
 
                             <div>

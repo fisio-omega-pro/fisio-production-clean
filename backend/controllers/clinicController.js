@@ -1832,7 +1832,7 @@ const processAppointmentReminders = async (req, res) => {
 
 const updateAnaConfig = async (req, res, next) => {
   try {
-    const { name, color, welcome, photo, useClinicLogo, prospectionEmail } = req.body;
+    const { name, color, welcome, photo, useClinicLogo, prospectionEmail, seguimientoActivo } = req.body;
     const FieldValue = admin.firestore.FieldValue;
 
     // Determine photo fields to save
@@ -1859,6 +1859,7 @@ const updateAnaConfig = async (req, res, next) => {
       ana_welcome: String(welcome || '').trim(),
       ana_use_clinic_logo: !!useClinicLogo,
       email_contacto: prospectionEmail ? String(prospectionEmail).trim().toLowerCase() : null,
+      'config_ia.seguimiento_activo': !!seguimientoActivo,
       updated_at: Timestamp.now(),
       ...photoFields
     });
@@ -2008,6 +2009,16 @@ const sendPwaInvitation = async (req, res, next) => {
 };
 
 // 🚨 EXPORTACIÓN DE FUNCIONES CONSOLIDADAS
+const runSeguimientoNow = async (req, res, next) => {
+  try {
+    const { runSeguimientoForClinic } = require('../services/seguimientoPostTratamientoService');
+    const maxPerRun = Number(req.body?.maxPerRun || 10);
+    const targetDate = req.body?.targetDate || undefined; // opcional: forzar una fecha concreta
+    const r = await runSeguimientoForClinic(req.clinicId, { maxPerRun, targetDate });
+    return res.json({ success: true, ...r });
+  } catch (e) { next(e); }
+};
+
 module.exports = {
   register,
   login,
@@ -2048,6 +2059,7 @@ module.exports = {
   uploadAnaPhoto,
   createBlock,
   createPatient,
-  sendPwaInvitation
+  sendPwaInvitation,
+  runSeguimientoNow
 };
 
