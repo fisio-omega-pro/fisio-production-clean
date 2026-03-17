@@ -117,6 +117,8 @@ router.delete('/dashboard/delete-account', ensureHandler(clinicController.delete
 router.post('/dashboard/cobrar-cita-bono', ensureHandler(clinicController.createCitaBonoCheckout, 'createCitaBonoCheckout'));
 router.post('/dashboard/upload-ana-photo', upload.single('file'), ensureHandler(clinicController.uploadAnaPhoto, 'uploadAnaPhoto'));
 router.post('/dashboard/create-block', ensureHandler(clinicController.createBlock, 'createBlock'));
+router.delete('/dashboard/block/:id', ensureHandler(clinicController.deleteBlock, 'deleteBlock'));
+router.delete('/dashboard/specialist/:id', ensureHandler(clinicController.deleteSpecialist, 'deleteSpecialist'));
 router.post('/dashboard/create-patient', ensureHandler(clinicController.createPatient, 'createPatient'));
 router.post('/dashboard/payment-verify', ensureHandler(clinicController.verifyPayment, 'verifyPayment'));
 router.post('/dashboard/send-pwa-invitation', ensureHandler(clinicController.sendPwaInvitation, 'sendPwaInvitation'));

@@ -711,6 +711,44 @@ const getLegalStatus = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
+// --- ELIMINAR BLOQUEO ---
+const deleteBlock = async (req, res, next) => {
+  try {
+    const blockId = String(req.params.id || '').trim();
+    if (!blockId) return res.status(400).json({ success: false, error: 'id de bloqueo requerido' });
+    const ref = db.collection('bloqueos').doc(blockId);
+    const doc = await ref.get();
+    if (!doc.exists) return res.status(404).json({ success: false, error: 'Bloqueo no encontrado' });
+    if (String(doc.data().clinic_id || '') !== String(req.clinicId || '')) {
+      return res.status(403).json({ success: false, error: 'No autorizado' });
+    }
+    await ref.delete();
+    await createAuditLog(req.clinicId, req.userId || req.clinicId, 'DELETE_BLOCK', blockId);
+    return res.json({ success: true });
+  } catch (e) { next(e); }
+};
+
+// --- ELIMINAR ESPECIALISTA ---
+const deleteSpecialist = async (req, res, next) => {
+  try {
+    const specialistId = String(req.params.id || '').trim();
+    if (!specialistId) return res.status(400).json({ success: false, error: 'id de especialista requerido' });
+    if (req.specialistId) return res.status(403).json({ success: false, error: 'Solo el propietario puede eliminar especialistas' });
+    const ref = db.collection('clinicas').doc(req.clinicId).collection('equipo').doc(specialistId);
+    const doc = await ref.get();
+    if (!doc.exists) return res.status(404).json({ success: false, error: 'Especialista no encontrado' });
+    if (doc.data().isOwner) return res.status(400).json({ success: false, error: 'No se puede eliminar al propietario' });
+    await ref.delete();
+    // Si quedan ≤1 especialistas, desactivar es_multiclinica
+    const remaining = await db.collection('clinicas').doc(req.clinicId).collection('equipo').get();
+    if (remaining.size <= 1) {
+      await db.collection('clinicas').doc(req.clinicId).update({ es_multiclinica: false, updated_at: Timestamp.now() });
+    }
+    await createAuditLog(req.clinicId, req.userId || req.clinicId, 'DELETE_SPECIALIST', specialistId);
+    return res.json({ success: true });
+  } catch (e) { next(e); }
+};
+
 // --- ACTUALIZAR CITA (estado, pagado) ---
 const updateAppointment = async (req, res, next) => {
   try {
@@ -2201,6 +2239,8 @@ module.exports = {
   updateAnaConfig,
   uploadAnaPhoto,
   updateAppointment,
+  deleteBlock,
+  deleteSpecialist,
   createBlock,
   createPatient,
   sendPwaInvitation,

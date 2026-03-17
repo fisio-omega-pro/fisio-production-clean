@@ -209,6 +209,12 @@ class DashboardService {
       body: JSON.stringify(updates)
     });
   }
+  public async deleteBlock(id: string): Promise<void> {
+    await this.request(`/api/dashboard/block/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  }
+  public async deleteSpecialist(id: string): Promise<void> {
+    await this.request(`/api/dashboard/specialist/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  }
   public async getPatientHistory(phone: string): Promise<{ paciente: any; historial: any[] }> {
     const res = await this.request<{ success: boolean; paciente: any; historial: any[] }>(
       `/api/dashboard/patient-history?phone=${encodeURIComponent(phone)}`

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Users, Plus, Crown, ShieldCheck, Settings, Calendar, ArrowUpRight, UserCheck, Building2 } from 'lucide-react';
+import { Users, Plus, Crown, ShieldCheck, Settings, Calendar, ArrowUpRight, UserCheck, Building2, Trash2 } from 'lucide-react';
 import { Especialista } from '../types';
 import { getSubscriptionStatus } from '@/lib/subscriptionStatus';
 
@@ -12,6 +12,7 @@ interface EquipoProps {
   currentPlan: string;
   onViewCalendar: (id: string) => void;
   onEditMember: (member: Especialista) => void;
+  onDeleteMember?: (member: Especialista) => void;
   onUpgrade: () => void;
   clinicData?: any;
   upgradeLoading?: boolean;
@@ -24,6 +25,7 @@ export const EquipoView: React.FC<EquipoProps> = ({
   currentPlan, 
   onViewCalendar, 
   onEditMember, 
+  onDeleteMember,
   onUpgrade,
   clinicData,
   upgradeLoading
@@ -343,14 +345,18 @@ export const EquipoView: React.FC<EquipoProps> = ({
                   {member.especialidad}
                 </p>
 
-                <div className="grid grid-cols-2 gap-2 w-full">
+                <div className={`grid gap-2 w-full ${!isStaff && !member.isOwner && onDeleteMember ? 'grid-cols-3' : 'grid-cols-2'}`}>
                   <button onClick={() => onViewCalendar(member.id)} className="flex items-center justify-center gap-2 py-3 bg-white text-black rounded-xl font-bold text-[10px] hover:bg-blue-600 hover:text-white transition-all">
                     <Calendar size={12} /> AGENDA
                   </button>
-                  {/* 🚨 BOTÓN DE EDICIÓN CONECTADO */}
                   <button onClick={() => onEditMember(member)} className="flex items-center justify-center gap-2 py-3 bg-white/5 text-gray-400 rounded-xl font-bold text-[10px] hover:text-white transition-all">
                     <Settings size={12} /> EDITAR
                   </button>
+                  {!isStaff && !member.isOwner && onDeleteMember && (
+                    <button onClick={() => onDeleteMember(member)} className="flex items-center justify-center gap-2 py-3 bg-red-500/10 text-red-500 rounded-xl font-bold text-[10px] hover:bg-red-500/20 transition-all">
+                      <Trash2 size={12} /> BORRAR
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

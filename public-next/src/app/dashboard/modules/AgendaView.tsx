@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Users, Clock, Filter, CheckCircle2, AlertCircle, CalendarDays } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Users, Clock, Filter, CheckCircle2, AlertCircle, CalendarDays, Trash2 } from 'lucide-react';
 import { Especialista } from '../types';
 
 interface AgendaProps {
@@ -14,10 +14,11 @@ interface AgendaProps {
   onBlockSchedule: () => void;
   onNewAppointment: (data: any) => void;
   onEventClick: (event: any) => void;
+  onDeleteBlock?: (id: string) => void;
   clinicData: { es_multiclinica?: boolean }; // Added clinicData
 }
 
-export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda, bloqueos, horario, onBlockSchedule, onNewAppointment, onEventClick, clinicData, initialSpecId }) => {
+export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda, bloqueos, horario, onBlockSchedule, onNewAppointment, onEventClick, onDeleteBlock, clinicData, initialSpecId }) => {
   const isStaff = !!(currentUser?.specialistId);
   const staffSpecId = currentUser?.specialistId || '';
   const [viewMode, setViewMode] = useState<'dia' | 'semana' | 'mes'>('dia');
@@ -217,6 +218,15 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
     const slotDate = new Date(`${dateStr}T${hourStr}:00`);
     // Margen de 5 minutos
     return slotDate.getTime() < (now.getTime() - 5 * 60 * 1000);
+  };
+
+  const getBlockForHour = (hour: string) => {
+    const hourNum = Number(String(hour || '').split(':')[0] || '0');
+    return bloqueosForDate.find((b) => {
+      const startHour = Number(String(b.startTime || '').split(':')[0] || '0');
+      const endHour = Number(String(b.endTime || '').split(':')[0] || '0');
+      return hourNum >= startHour && hourNum < endHour;
+    }) || null;
   };
 
   const isHourBlocked = (hour: string) => {
@@ -491,8 +501,13 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
 
                       {/* Bloqueos del día */}
                       {dayBloqueos.map(bloqueo => (
-                        <div key={bloqueo.id} className="text-[7px] p-1 rounded mb-1 bg-red-500/20 text-red-500">
-                          🚫 {bloqueo.reason || 'Bloqueado'}
+                        <div key={bloqueo.id} className="text-[7px] p-1 rounded mb-1 bg-red-500/20 text-red-500 flex items-center justify-between gap-1">
+                          <span>🚫 {bloqueo.reason || 'Bloqueado'}</span>
+                          {!isStaff && onDeleteBlock && (
+                            <button onClick={(e) => { e.stopPropagation(); onDeleteBlock(bloqueo.id); }} className="hover:text-white transition">
+                              <Trash2 size={8} />
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -610,9 +625,10 @@ export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda,
                             {isBlocked ? (
                               <div className="flex items-center gap-2 px-4 py-2 rounded-2xl border border-red-500/30 bg-red-500/10 text-red-500">
                                 <AlertCircle size={12} />
-                                <span className="text-[9px] font-black uppercase tracking-tighter">
-                                  BLOQUEADO
-                                </span>
+                                <span className="text-[9px] font-black uppercase tracking-tighter">BLOQUEADO</span>
+                                {!isStaff && onDeleteBlock && (() => { const blk = getBlockForHour(h); return blk ? (
+                                  <button onClick={(e) => { e.stopPropagation(); onDeleteBlock(blk.id); }} className="ml-1 hover:text-white transition" title="Eliminar bloqueo"><Trash2 size={10} /></button>
+                                ) : null; })()}
                               </div>
                             ) : isBooked ? (
                               <div className={`flex items-center gap-2 px-4 py-2 rounded-2xl border ${isPaid ? 'bg-green-500/10 border-green-500/30 text-green-500' : 'bg-orange-500/10 border-orange-500/30 text-orange-500'}`}>

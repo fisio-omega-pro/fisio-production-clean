@@ -3,7 +3,7 @@ export type TabId = 'home' | 'agenda' | 'pacientes' | 'finanzas' | 'bonos' | 'eq
 export type ModalType = 'voz' | 'bloqueo' | 'equipo' | 'sede' | 'welcome' | 'cita' | 'importar' | 'reactivacion' | 'editar_perfil' | 'upgrade' | 'nuevo_bono' | 'logo_upload' | 'stripe_connect' | 'nuevo_paciente' | null;
 export interface NavItemConfig { id: TabId; label: string; icon: LucideIcon; accent?: boolean; }
 export interface Bono { id: string; paciente_nombre: string; sesiones_totales: number; sesiones_restantes: number; fecha_vencimiento: string; status: 'activo' | 'agotado'; }
-export interface Especialista { id: string; nombre: string; especialidad: string; activo?: boolean; avatarUrl?: string; login_email?: string; }
+export interface Especialista { id: string; nombre: string; especialidad: string; activo?: boolean; avatarUrl?: string; login_email?: string; isOwner?: boolean; }
 export interface AgendaProps {
   currentUser: { specialistId: string | null; isOwner: boolean; email?: string };
   equipo: Especialista[];
