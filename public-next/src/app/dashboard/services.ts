@@ -101,6 +101,10 @@ class DashboardService {
     await this.request('/api/dashboard/launch-campaign', { method: 'POST' });
   }
 
+  public async stopCampaign(): Promise<void> {
+    await this.request('/api/dashboard/stop-campaign', { method: 'POST' });
+  }
+
   public async runRecaptacion(maxPerRun = 5): Promise<{ sent: number }> {
     const res = await this.request<{ success: boolean; sent?: number; clinics?: number; error?: string }>(
       '/api/dashboard/run-recaptacion',

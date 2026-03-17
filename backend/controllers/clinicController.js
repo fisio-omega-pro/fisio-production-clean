@@ -1239,6 +1239,17 @@ const launchCampaign = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
+const stopCampaign = async (req, res, next) => {
+  try {
+    await db.collection('clinicas').doc(req.clinicId).update({
+      'config_ia.modo_caza_activo': false,
+      updated_at: Timestamp.now()
+    });
+    await createAuditLog(req.clinicId, req.userId || req.clinicId, 'STOP_CAMPAIGN', req.clinicId);
+    return res.json({ success: true });
+  } catch (e) { next(e); }
+};
+
 // Ejecutar recaptación ahora (para pruebas/operativa)
 const runRecaptacionNow = async (req, res, next) => {
   try {
@@ -2060,6 +2071,7 @@ module.exports = {
   createBlock,
   createPatient,
   sendPwaInvitation,
-  runSeguimientoNow
+  runSeguimientoNow,
+  stopCampaign
 };
 

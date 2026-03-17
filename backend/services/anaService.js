@@ -196,12 +196,20 @@ Funciona offline: Sí, la app funciona sin conexión para consultar información
 Notificaciones push: Una vez instalada la app, Ana puede enviar mensajes directos al móvil del paciente sin WhatsApp ni email.
 
 ════════════════════════════════
-💰 MÓDULO: BALANCE
+💰 MÓDULO: BALANCE / RENDIMIENTO
 ════════════════════════════════
-Qué es: Centro de control financiero de la clínica.
-Qué muestra: Ingresos del mes, gastos, ROI, comparativa mensual, previsión, desglose por especialista.
+Qué es: Centro de control financiero y de captación de la clínica.
+Qué muestra: Balance real del mes, proyección, ROI de IA, y el panel de recuperación de pacientes inactivos.
 Exportar para contabilidad: Balance → Exportar CSV → compatible con cualquier software de contabilidad.
 Tip clave: El gráfico de ROI muestra exactamente cuánto dinero recupera el fisio gracias a las fianzas y a la reducción de no-shows.
+
+🎯 CAMPAÑA DE RECUPERACIÓN DE PACIENTES (dentro de Balance):
+- Qué hace: Ana envía emails automáticos cada día a las 10:00h a los pacientes que llevan más de 30 días sin venir, invitándoles a retomar el tratamiento.
+- Si tienen la app (PWA), también reciben una notificación push en el móvil.
+- Cómo ACTIVARLA: En el módulo Balance, botón "Activar campaña" (azul). Solo disponible si hay pacientes importados.
+- Cómo DESACTIVARLA: Con la campaña activa, el mismo botón muestra "Campaña activa" en verde. Al pasar el cursor cambia a "Detener campaña" en rojo — hacer clic para pausarla.
+- La campaña se puede activar y desactivar cuantas veces se quiera. Ana respeta siempre el estado actual.
+- Cuando está activa: aparece el badge verde "Activa" junto al título y el texto de confirmación de envíos.
 
 ════════════════════════════════
 🎫 MÓDULO: BONOS
@@ -864,16 +872,33 @@ module.exports = {
   },
 
   processMessage: async (clinicId, userMessage, conversationHistory = []) => {
+    // Inyectar estado real de la clínica para que Ana sepa si la campaña está activa
+    let clinicStateBlock = '';
+    try {
+      const clinicDoc = await db.collection('clinicas').doc(clinicId).get();
+      if (clinicDoc.exists) {
+        const cd = clinicDoc.data() || {};
+        const cazaActivo = !!cd.config_ia?.modo_caza_activo;
+        const seguimientoActivo = !!cd.config_ia?.seguimiento_activo;
+        clinicStateBlock = `
+
+ESTADO ACTUAL DE ESTA CLÍNICA:
+- Campaña de recuperación de inactivos: ${cazaActivo ? '✅ ACTIVA — Ana está enviando emails diarios de recaptación' : '⏸ PAUSADA — El fisio puede activarla desde Balance → "Activar campaña"'}
+- Seguimiento post-tratamiento (48h): ${seguimientoActivo ? '✅ ACTIVO — Ana envía email de seguimiento 48h después de cada sesión' : '⏸ PAUSADO — El fisio puede activarlo desde Ana Config → toggle "Seguimiento Post-Tratamiento"'}`;
+      }
+    } catch (_) {}
+
     const dashboardSystemPrompt = `Eres Ana, asistente experta de operaciones de FisioTool Pro. Ayudas al fisioterapeuta a dominar su dashboard y maximizar su clínica.
 
-${DASHBOARD_KNOWLEDGE}
+${DASHBOARD_KNOWLEDGE}${clinicStateBlock}
 
 REGLAS:
 1. Directa, profesional y cordial. Eres la experta en este sistema.
 2. Conoces cada módulo. Explica PARA QUÉ sirve y CÓMO ayuda al negocio.
 3. Concisa: máximo 2-3 frases por respuesta.
 4. Si algo no existe en DASHBOARD_KNOWLEDGE, dilo claramente.
-5. No repitas bienvenidas si ya hay conversación previa.`;
+5. No repitas bienvenidas si ya hay conversación previa.
+6. Si el fisio pregunta por el estado de una función (campaña, seguimiento), responde con el estado real de SU clínica.`;
 
     try {
       const reply = await claudeService.generateResponse(
