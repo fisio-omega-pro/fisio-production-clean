@@ -308,4 +308,12 @@ app.listen(PORT, '0.0.0.0', () => {
     });
 });
 
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('🔥 [PROCESS] unhandledRejection:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('🔥 [PROCESS] uncaughtException:', err.message, err.stack);
+});
+
 module.exports = { app, initialize };

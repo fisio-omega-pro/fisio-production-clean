@@ -708,36 +708,28 @@ const getLegalStatus = async (req, res, next) => {
 // --- DASHBOARD: OPERACIONES REALES (sin stubs) ---
 const createBlock = async (req, res, next) => {
   try {
-    const { clinicId } = req.params;
+    const clinicId = req.clinicId;
     const blockData = req.body;
 
-    // Validar datos requeridos
+    if (!clinicId) return res.status(401).json({ success: false, error: 'No autorizado' });
     if (!blockData.date || !blockData.startTime || !blockData.endTime) {
-      return res.status(400).json({ error: 'Fecha y horas son requeridas' });
+      return res.status(400).json({ success: false, error: 'date, startTime y endTime son requeridos' });
     }
 
     const blockRef = await db.collection('bloqueos').add({
-      clinicId,
-      date: blockData.date,
-      startTime: blockData.startTime,
-      endTime: blockData.endTime,
-      reason: blockData.reason || 'Bloqueado',
-      allDay: blockData.allDay || false,
+      clinic_id: clinicId,
+      date: String(blockData.date).trim(),
+      startTime: String(blockData.startTime).trim(),
+      endTime: String(blockData.endTime).trim(),
+      reason: String(blockData.reason || 'Bloqueado').trim(),
+      allDay: !!blockData.allDay,
       created_at: Timestamp.now()
     });
 
-    await createAuditLog(clinicId, req.user?.uid || 'unknown', 'CREATE_BLOCK', blockRef.id);
+    await createAuditLog(clinicId, req.userId || req.clinicId, 'CREATE_BLOCK', blockRef.id);
 
-    res.status(201).json({
-      success: true,
-      id: blockRef.id,
-      message: 'Bloqueo creado exitosamente'
-    });
-
-  } catch (e) {
-    console.error('Error creating block:', e);
-    res.status(500).json({ error: 'Error al crear bloqueo' });
-  }
+    res.status(201).json({ success: true, id: blockRef.id });
+  } catch (e) { next(e); }
 };
 
 // Crear nuevo paciente
@@ -781,7 +773,7 @@ const createPatient = async (req, res, next) => {
     });
 
     // Crear log de auditoría
-    await createAuditLog(clinicId, req.user?.uid || 'unknown', 'CREATE_PATIENT', patientRef.id);
+    await createAuditLog(clinicId, req.userId || req.clinicId, 'CREATE_PATIENT', patientRef.id);
 
     res.status(201).json({
       success: true,
