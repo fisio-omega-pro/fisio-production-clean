@@ -1833,15 +1833,34 @@ const processAppointmentReminders = async (req, res) => {
 const updateAnaConfig = async (req, res, next) => {
   try {
     const { name, color, welcome, photo, useClinicLogo, prospectionEmail } = req.body;
+    const FieldValue = admin.firestore.FieldValue;
+
+    // Determine photo fields to save
+    // isProxyUrl = photo already uploaded via uploadAnaPhoto (ana_photo_path already set)
+    const isProxyUrl = String(photo || '').includes('/api/public/ana-photo/');
+    const hasExternalUrl = !!photo && !isProxyUrl;
+    const shouldClearPhoto = !photo || !!useClinicLogo;
+
+    let photoFields;
+    if (shouldClearPhoto) {
+      // User removed photo or switched to clinic logo — clear everything
+      photoFields = { ana_photo: null, ana_photo_path: FieldValue.delete(), ana_photo_v: FieldValue.delete() };
+    } else if (isProxyUrl) {
+      // Photo was uploaded via uploadAnaPhoto — ana_photo_path already correct, don't touch it
+      photoFields = { ana_photo: null };
+    } else {
+      // External/legacy URL saved directly
+      photoFields = { ana_photo: photo };
+    }
 
     await db.collection('clinicas').doc(req.clinicId).update({
       ana_name: String(name || 'Ana').trim(),
       ana_color: String(color || '#075E54').trim(),
       ana_welcome: String(welcome || '').trim(),
-      ana_photo: photo || null,
       ana_use_clinic_logo: !!useClinicLogo,
-      email_contacto: prospectionEmail ? String(prospectionEmail).trim().toLowerCase() : null, // Email opcional
-      updated_at: Timestamp.now()
+      email_contacto: prospectionEmail ? String(prospectionEmail).trim().toLowerCase() : null,
+      updated_at: Timestamp.now(),
+      ...photoFields
     });
     await createAuditLog(req.clinicId, req.userId || req.clinicId, 'UPDATE_ANA_CONFIG', req.clinicId);
     res.json({ success: true });

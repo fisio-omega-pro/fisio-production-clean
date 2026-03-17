@@ -121,17 +121,20 @@ function AnaChatContent() {
         const response = await fetch(`https://fisio-backend-omega-740657183492.europe-west1.run.app/api/public/clinic-info?clinicId=${clinicId}&t=${Date.now()}`);
         if (response.ok) {
           const data = await response.json();
-          if (data.success && data.data) {
+          const d = data?.data;
+          if (data.success && d) {
             // Cache the verified clinicId so future visits with truncated URLs still work
             localStorage.setItem('ana_clinic_id', clinicId);
-            setAnaProfile({
-              name: data.data.ana_nombre || 'Ana',
-              photo_url: data.data.ana_foto || null,
-              use_clinic_logo: data.data.ana_usa_logo_clinica || false,
-              custom_color: data.data.ana_color || '#075E54',
-              logo_url: data.data.logo_url ? 'https://fisio-backend-omega-740657183492.europe-west1.run.app' + data.data.logo_url : null
-            });
-            setClinicName(data.data.nombre_clinica || data.data.nombre || 'la clínica');
+            setAnaProfile(prev => ({
+              name: d.ana_nombre || prev.name || 'Ana',
+              photo_url: d.ana_foto || prev.photo_url || null,
+              use_clinic_logo: d.ana_usa_logo_clinica ?? prev.use_clinic_logo ?? false,
+              custom_color: d.ana_color || prev.custom_color || '#075E54',
+              logo_url: d.logo_url
+                ? 'https://fisio-backend-omega-740657183492.europe-west1.run.app' + d.logo_url
+                : (prev.logo_url || null)
+            }));
+            setClinicName(prev => d.nombre_clinica || d.nombre || prev || 'la clínica');
           }
         }
       } catch (error) {
