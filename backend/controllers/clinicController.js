@@ -1405,6 +1405,7 @@ const createBono = async (req, res, next) => {
 
 const launchCampaign = async (req, res, next) => {
   try {
+    if (req.specialistId) return res.status(403).json({ success: false, error: 'Solo el propietario puede gestionar las campañas' });
     const doc = await db.collection('clinicas').doc(req.clinicId).get();
     if (!doc.exists) return res.status(404).json({ success: false, error: 'Clínica no encontrada' });
     if (doc.data()?.config_ia?.modo_caza_activo === true) {
@@ -1421,6 +1422,7 @@ const launchCampaign = async (req, res, next) => {
 
 const stopCampaign = async (req, res, next) => {
   try {
+    if (req.specialistId) return res.status(403).json({ success: false, error: 'Solo el propietario puede gestionar las campañas' });
     const doc = await db.collection('clinicas').doc(req.clinicId).get();
     if (!doc.exists) return res.status(404).json({ success: false, error: 'Clínica no encontrada' });
     if (doc.data()?.config_ia?.modo_caza_activo === false || !doc.data()?.config_ia?.modo_caza_activo) {
@@ -1438,6 +1440,7 @@ const stopCampaign = async (req, res, next) => {
 // Ejecutar recaptación ahora (para pruebas/operativa)
 const runRecaptacionNow = async (req, res, next) => {
   try {
+    if (req.specialistId) return res.status(403).json({ success: false, error: 'Solo el propietario puede ejecutar la recaptación' });
     const { runRecaptacionForClinic } = require('../services/recaptacionAutopilotService');
     const maxPerRun = Number(req.body?.maxPerRun || 5);
     const r = await runRecaptacionForClinic(req.clinicId, { maxPerRun });
@@ -2192,10 +2195,16 @@ const uploadAnaPhoto = async (req, res, next) => {
 
 
 
+const MAX_PWA_BATCH = 500;
+
 const sendPwaInvitation = async (req, res, next) => {
   try {
-    const { patientIds } = req.body; // Array de IDs o 'all'
+    if (req.specialistId) return res.status(403).json({ success: false, error: 'Solo el propietario puede enviar invitaciones masivas' });
+    const { patientIds } = req.body;
     if (!patientIds) return res.status(400).json({ success: false, error: 'patientIds requerido' });
+    if (Array.isArray(patientIds) && patientIds.length > MAX_PWA_BATCH) {
+      return res.status(400).json({ success: false, error: `Máximo ${MAX_PWA_BATCH} invitaciones por envio` });
+    }
 
     const clinicId = req.clinicId;
     const clinicDoc = await db.collection('clinicas').doc(clinicId).get();
@@ -2209,21 +2218,23 @@ const sendPwaInvitation = async (req, res, next) => {
 
     let patients = [];
     if (patientIds === 'all') {
-      const snap = await db.collection('clinicas').doc(clinicId).collection('pacientes').get();
+      const snap = await db.collection('pacientes')
+        .where('clinic_id', '==', clinicId)
+        .limit(MAX_PWA_BATCH)
+        .get();
       patients = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } else if (Array.isArray(patientIds)) {
-      for (const pid of patientIds) {
-        const pdoc = await db.collection('clinicas').doc(clinicId).collection('pacientes').doc(pid).get();
-        if (pdoc.exists) patients.push({ id: pdoc.id, ...pdoc.data() });
-      }
+      const fetches = patientIds.map(pid =>
+        db.collection('pacientes').doc(String(pid).trim()).get()
+      );
+      const docs = await Promise.all(fetches);
+      docs.forEach(pdoc => {
+        if (pdoc.exists && String(pdoc.data().clinic_id || '') === String(clinicId)) {
+          patients.push({ id: pdoc.id, ...pdoc.data() });
+        }
+      });
     }
 
-    // Filtrar los que tienen email válido
-    console.log('🔍 [DEBUG] Total pacientes:', patients.length);
-    patients.forEach(p => {
-      console.log('🔍 [DEBUG] Paciente:', p.nombre, 'Email:', p.email, 'Válido:', /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.email));
-    });
-    
     const validPatients = patients.filter(p => p.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.email));
 
     if (validPatients.length === 0) {
@@ -2272,6 +2283,7 @@ const sendPwaInvitation = async (req, res, next) => {
 // 🚨 EXPORTACIÓN DE FUNCIONES CONSOLIDADAS
 const runSeguimientoNow = async (req, res, next) => {
   try {
+    if (req.specialistId) return res.status(403).json({ success: false, error: 'Solo el propietario puede ejecutar el seguimiento' });
     const { runSeguimientoForClinic } = require('../services/seguimientoPostTratamientoService');
     const maxPerRun = Number(req.body?.maxPerRun || 10);
     const targetDate = req.body?.targetDate || undefined; // opcional: forzar una fecha concreta

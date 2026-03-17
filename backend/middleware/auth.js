@@ -41,6 +41,7 @@ const verifyToken = async (req, res, next) => {
       }
       req.clinicId = decoded.clinicId;
       req.specialistId = decoded.specialistId || null;
+      req.userId = decoded.userId || decoded.uid || decoded.specialistId || decoded.clinicId;
       next();
     });
 

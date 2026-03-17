@@ -173,6 +173,15 @@ async function initialize(options = {}) {
   app.use('/api/chat', aiLimiter);
   app.use('/api/dashboard/create-ticket', ticketLimiter);
   app.use('/api/dashboard/save-suggestion', ticketLimiter);
+  // Límite anti-spam para invitaciones PWA (envían emails masivos)
+  const pwaInvitationLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    limit: 3,
+    message: { error: 'Límite de invitaciones alcanzado. Espera 1 hora antes de volver a enviar.' },
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+  });
+  app.use('/api/dashboard/send-pwa-invitation', pwaInvitationLimiter);
 
   // 📋 Log de peticiones (método, ruta, IP, status, duración) — sin cuerpos ni tokens
   app.use((req, res, next) => {
