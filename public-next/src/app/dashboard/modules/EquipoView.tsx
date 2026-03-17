@@ -295,15 +295,11 @@ export const EquipoView: React.FC<EquipoProps> = ({
 
         {!isStaff && (
           <button
-            onClick={async () => {
-              // Loading inmediato
+            onClick={async (e: React.MouseEvent<HTMLButtonElement>) => {
               if (isSolo || upgradeLoading) {
-                // Mostrar loading instantáneo
-                const button = event?.currentTarget;
-                if (button) {
-                  button.textContent = 'Conectando con Stripe...';
-                  button.disabled = true;
-                }
+                const button = e.currentTarget;
+                button.textContent = 'Conectando con Stripe...';
+                button.disabled = true;
               }
               onUpgrade();
             }}
