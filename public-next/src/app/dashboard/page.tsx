@@ -81,6 +81,8 @@ export default function DashboardOmega() {
   const [isCreatingAppt, setIsCreatingAppt] = useState(false);
   const [apptError, setApptError] = useState<string | null>(null);
   const [isBlockingSchedule, setIsBlockingSchedule] = useState(false);
+  const [blockError, setBlockError] = useState<string | null>(null);
+  const [pendingDeleteBlockId, setPendingDeleteBlockId] = useState<string | null>(null);
 
   // Refs para modales
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -207,21 +209,19 @@ export default function DashboardOmega() {
 
   const handleBlockSchedule = async () => {
     if (isBlockingSchedule) return;
-    if (!blockData.date) { alert('❌ Selecciona un día para el bloqueo'); return; }
-    if (!blockData.allDay && (!blockData.startTime || !blockData.endTime)) { alert('❌ Indica la hora de inicio y fin'); return; }
-    if (!blockData.allDay && blockData.startTime >= blockData.endTime) { alert('❌ La hora de inicio debe ser anterior a la de fin'); return; }
+    setBlockError(null);
+    if (!blockData.date) { setBlockError('Selecciona un día para el bloqueo'); return; }
+    if (!blockData.allDay && (!blockData.startTime || !blockData.endTime)) { setBlockError('Indica la hora de inicio y fin'); return; }
+    if (!blockData.allDay && blockData.startTime >= blockData.endTime) { setBlockError('La hora de inicio debe ser anterior a la de fin'); return; }
     setIsBlockingSchedule(true);
     try {
-      const payload = blockData.allDay
-        ? { ...blockData, startTime: '00:00', endTime: '23:59' }
-        : blockData;
-      await dashboardAPI.createBlock(payload);
+      await dashboardAPI.createBlock(blockData);
       state.setModalType(null);
       setBlockData({ date: '', startTime: '09:00', endTime: '20:00', reason: '', allDay: false });
+      setBlockError(null);
       state.refreshData();
     } catch (error: any) {
-      console.error('Error creating block:', error);
-      alert(`❌ Error al bloquear horario: ${error.message || 'Inténtalo de nuevo'}`);
+      setBlockError(error.message || 'Error al bloquear horario. Inténtalo de nuevo.');
     } finally {
       setIsBlockingSchedule(false);
     }
@@ -279,7 +279,7 @@ export default function DashboardOmega() {
 
     switch (state.activeTab) {
       case 'home': return <HomeView clinicId={state.clinicId} configStatus={state.configStatus} clinicData={state.clinicData} onRefresh={state.refreshData} onGoToAsistente={() => state.setActiveTab('config_ana')} />;
-      case 'agenda': return <AgendaView clinicData={state.clinicData} currentUser={state.currentUser} equipo={state.equipo} agenda={state.agenda} bloqueos={state.bloqueos} horario={state.clinicData.horario || { apertura: '08:00', cierre: '14:00', reapertura: '16:00', cierre_final: '21:00' }} onBlockSchedule={() => state.setModalType('bloqueo')} onNewAppointment={(d: any) => { setApptData({ ...apptData, fecha: d.date, hora: d.time, docId: d.specialistId || '' }); state.setModalType('cita'); }} onEventClick={state.setSelectedEvent} onDeleteBlock={async (id) => { if (!confirm('¿Eliminar este bloqueo?')) return; try { await dashboardAPI.deleteBlock(id); state.refreshData(); } catch (e: any) { alert(`❌ ${e.message}`); } }} initialSpecId={agendaSpecId} />;
+      case 'agenda': return <AgendaView clinicData={state.clinicData} currentUser={state.currentUser} equipo={state.equipo} agenda={state.agenda} bloqueos={state.bloqueos} horario={state.clinicData.horario || { apertura: '08:00', cierre: '14:00', reapertura: '16:00', cierre_final: '21:00' }} onBlockSchedule={() => state.setModalType('bloqueo')} onNewAppointment={(d: any) => { setApptData({ ...apptData, fecha: d.date, hora: d.time, docId: d.specialistId || '' }); state.setModalType('cita'); }} onEventClick={state.setSelectedEvent} onDeleteBlock={(id) => setPendingDeleteBlockId(id)} initialSpecId={agendaSpecId} />;
       case 'pacientes': return <PacientesView pacientes={state.pacientes} onDictate={() => state.setModalType('voz')} onImport={() => state.setModalType('importar')} onNewPatient={() => state.setModalType('nuevo_paciente')} />;
       case 'finanzas': return <FinanzasView balance={state.balance} pacientes={state.pacientes} onActivateCampaign={async () => { await dashboardAPI.launchCampaign(); state.refreshData(); }} onStopCampaign={async () => { await dashboardAPI.stopCampaign(); state.refreshData(); }} clinicData={state.clinicData} onGoToImport={() => { state.setActiveTab('pacientes'); state.setModalType('importar'); }} />;
       case 'bonos': return <BonosView
@@ -468,7 +468,23 @@ export default function DashboardOmega() {
 
       {/* --- REGISTRO INTEGRAL DE MODALES --- */}
       <AppointmentModal isOpen={state.modalType === 'cita'} onClose={() => { state.setModalType(null); setApptError(null); }} data={apptData} setData={setApptData} onSubmit={handleCreateAppt} isSubmitting={isCreatingAppt} submitError={apptError} />
-      <BlockModal isOpen={state.modalType === 'bloqueo'} onClose={() => state.setModalType(null)} data={blockData} setData={setBlockData} onSubmit={handleBlockSchedule} isSubmitting={isBlockingSchedule} />
+      <BlockModal isOpen={state.modalType === 'bloqueo'} onClose={() => { state.setModalType(null); setBlockError(null); }} data={blockData} setData={setBlockData} onSubmit={handleBlockSchedule} isSubmitting={isBlockingSchedule} submitError={blockError} />
+
+      {/* Confirmación inline de eliminación de bloqueo */}
+      {pendingDeleteBlockId && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-6 pointer-events-none">
+          <div className="bg-[#0a0a0c] border border-red-500/30 rounded-[32px] p-6 flex items-center gap-6 shadow-2xl pointer-events-auto max-w-md w-full">
+            <div className="flex-1">
+              <p className="text-sm font-bold text-white">¿Eliminar este bloqueo?</p>
+              <p className="text-xs text-gray-500 mt-0.5">Esta acción no se puede deshacer.</p>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setPendingDeleteBlockId(null)} className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-gray-400 hover:text-white transition">Cancelar</button>
+              <button onClick={async () => { const id = pendingDeleteBlockId; setPendingDeleteBlockId(null); try { await dashboardAPI.deleteBlock(id); state.refreshData(); } catch (e: any) { setBlockError(e.message || 'Error al eliminar el bloqueo'); } }} className="px-4 py-2 rounded-xl bg-red-500/20 border border-red-500/40 text-xs font-bold text-red-400 hover:bg-red-500 hover:text-white transition">Eliminar</button>
+            </div>
+          </div>
+        </div>
+      )}
       <EditProfileModal
         isOpen={state.modalType === 'editar_perfil'}
         onClose={() => { state.setModalType(null); setSaveSpecialistError(null); }}

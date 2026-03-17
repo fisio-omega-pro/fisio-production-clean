@@ -11,9 +11,10 @@ interface BlockModalProps {
   setData: (data: any) => void;
   onSubmit: () => void;
   isSubmitting?: boolean;
+  submitError?: string | null;
 }
 
-export const BlockModal = ({ isOpen, onClose, data, setData, onSubmit, isSubmitting }: BlockModalProps) => {
+export const BlockModal = ({ isOpen, onClose, data, setData, onSubmit, isSubmitting, submitError = null }: BlockModalProps) => {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Bloqueo Quirúrgico">
       <div className="flex flex-col gap-4">
@@ -53,9 +54,15 @@ export const BlockModal = ({ isOpen, onClose, data, setData, onSubmit, isSubmitt
           placeholder="Formación, Asuntos Propios..." 
           value={data.reason} 
           onChange={(v) => setData({...data, reason: v})} 
+          disabled={isSubmitting}
         />
-        <ActionButton variant="danger" onClick={onSubmit} fullWidth disabled={isSubmitting}>
-          {isSubmitting ? 'Guardando...' : 'ACTIVAR BLOQUEO'}
+        {submitError && (
+          <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-3 text-red-400 text-xs font-medium flex items-center gap-2">
+            ⚠️ {submitError}
+          </div>
+        )}
+        <ActionButton variant="danger" onClick={isSubmitting ? undefined : onSubmit} fullWidth disabled={isSubmitting}>
+          {isSubmitting ? <><Clock size={14} className="animate-spin mr-2" />Guardando...</> : 'ACTIVAR BLOQUEO'}
         </ActionButton>
       </div>
     </Modal>

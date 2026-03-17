@@ -277,6 +277,10 @@ const resetPassword = async (req, res, next) => {
 };
 
 // 2. CREAR CITA
+const FECHA_RE = /^\d{4}-\d{2}-\d{2}$/;
+const HORA_RE = /^\d{2}:\d{2}$/;
+const ALLOWED_ESTADOS_CREATE = ['pendiente', 'confirmada'];
+
 const createAppointment = async (req, res, next) => {
   try {
     const d = req.body || {};
@@ -286,6 +290,16 @@ const createAppointment = async (req, res, next) => {
     if (!specialistId || specialistId === 'null') specialistId = 'admin';
 
     if (!fecha || !hora) return res.status(400).json({ success: false, error: 'fecha y hora requeridos' });
+    if (!FECHA_RE.test(fecha)) return res.status(400).json({ success: false, error: 'Formato de fecha inválido (YYYY-MM-DD)' });
+    if (!HORA_RE.test(hora)) return res.status(400).json({ success: false, error: 'Formato de hora inválido (HH:MM)' });
+
+    const nombre = String(d.nombre || '').trim();
+    const telefono = String(d.telefono || '').trim();
+    const email = String(d.email || '').trim().toLowerCase();
+    if (!nombre) return res.status(400).json({ success: false, error: 'El nombre del paciente es obligatorio' });
+    if (nombre.length > 120) return res.status(400).json({ success: false, error: 'Nombre demasiado largo (max 120)' });
+    if (telefono.length > 30) return res.status(400).json({ success: false, error: 'Teléfono demasiado largo (max 30)' });
+    if (email.length > 120) return res.status(400).json({ success: false, error: 'Email demasiado largo (max 120)' });
 
     // 🕒 VALIDACIÓN: No permitir citas en el pasado
     const now = new Date();
@@ -333,15 +347,17 @@ const createAppointment = async (req, res, next) => {
       return res.status(409).json({ success: false, error: msg, conflict: true });
     }
 
+    const estado = ALLOWED_ESTADOS_CREATE.includes(String(d.estado || '').toLowerCase()) ? String(d.estado).toLowerCase() : 'pendiente';
+
     const payload = {
       clinic_id: req.clinicId,
-      nombre: String(d.nombre || '').trim() || 'Paciente',
-      telefono: String(d.telefono || '').trim() || '',
-      email: String(d.email || '').trim() || '',
+      nombre: nombre || 'Paciente',
+      telefono: telefono || '',
+      email: email || '',
       fecha,
       hora,
       specialist_id: specialistId,
-      estado: String(d.estado || 'pendiente'),
+      estado,
       pagado: !!d.pagado,
       created_at: Timestamp.now(),
       updated_at: Timestamp.now()
@@ -718,6 +734,7 @@ const getLegalStatus = async (req, res, next) => {
 // --- ELIMINAR BLOQUEO ---
 const deleteBlock = async (req, res, next) => {
   try {
+    if (req.specialistId) return res.status(403).json({ success: false, error: 'Solo el propietario puede eliminar bloqueos' });
     const blockId = String(req.params.id || '').trim();
     if (!blockId) return res.status(400).json({ success: false, error: 'id de bloqueo requerido' });
     const ref = db.collection('bloqueos').doc(blockId);
@@ -779,7 +796,11 @@ const updateAppointment = async (req, res, next) => {
       updates.estado = estado;
     }
     if (req.body?.pagado !== undefined) updates.pagado = !!req.body.pagado;
-    if (req.body?.notas !== undefined) updates.notas = String(req.body.notas || '').trim();
+    if (req.body?.notas !== undefined) {
+      const notas = String(req.body.notas || '').trim();
+      if (notas.length > 1000) return res.status(400).json({ success: false, error: 'Las notas no pueden superar 1000 caracteres' });
+      updates.notas = notas;
+    }
 
     await citaRef.update(updates);
     await createAuditLog(req.clinicId, req.userId || req.clinicId, 'UPDATE_APPOINTMENT', citaId);
@@ -790,21 +811,36 @@ const updateAppointment = async (req, res, next) => {
 // --- DASHBOARD: OPERACIONES REALES (sin stubs) ---
 const createBlock = async (req, res, next) => {
   try {
+    if (req.specialistId) return res.status(403).json({ success: false, error: 'Solo el propietario puede bloquear el horario' });
     const clinicId = req.clinicId;
     const blockData = req.body;
 
     if (!clinicId) return res.status(401).json({ success: false, error: 'No autorizado' });
-    if (!blockData.date || !blockData.startTime || !blockData.endTime) {
-      return res.status(400).json({ success: false, error: 'date, startTime y endTime son requeridos' });
+    const bDate = String(blockData.date || '').trim();
+    if (!bDate) return res.status(400).json({ success: false, error: 'La fecha es obligatoria' });
+    if (!FECHA_RE.test(bDate)) return res.status(400).json({ success: false, error: 'Formato de fecha inválido (YYYY-MM-DD)' });
+
+    const allDay = !!blockData.allDay;
+    const startTime = allDay ? '00:00' : String(blockData.startTime || '').trim();
+    const endTime = allDay ? '23:59' : String(blockData.endTime || '').trim();
+
+    if (!allDay) {
+      if (!HORA_RE.test(startTime) || !HORA_RE.test(endTime)) {
+        return res.status(400).json({ success: false, error: 'Formato de hora inválido (HH:MM)' });
+      }
+      if (startTime >= endTime) {
+        return res.status(400).json({ success: false, error: 'La hora de inicio debe ser anterior a la de fin' });
+      }
     }
+    const reason = String(blockData.reason || 'Bloqueado').trim().slice(0, 200);
 
     const blockRef = await db.collection('bloqueos').add({
       clinic_id: clinicId,
-      date: String(blockData.date).trim(),
-      startTime: String(blockData.startTime).trim(),
-      endTime: String(blockData.endTime).trim(),
-      reason: String(blockData.reason || 'Bloqueado').trim(),
-      allDay: !!blockData.allDay,
+      date: bDate,
+      startTime,
+      endTime,
+      reason,
+      allDay,
       created_at: Timestamp.now()
     });
 
