@@ -92,9 +92,13 @@ const createSubscriptionSession = async (clinicId, email, plan = 'solo', req, op
     metadata: { clinic_id: clinicId, plan: normalized },
   };
   if (allowTrial) subscriptionData.trial_period_days = 30;
-  if (normalized === 'solo' && options.referrerStripeCustomerId) {
-    subscriptionData.discounts = [{ coupon: referralCoupon }];
+  if (options.referrerStripeCustomerId) {
+    // Siempre guardar referente para que el referidor cobre su 50% independientemente del plan
     subscriptionData.metadata.referente_id_stripe = options.referrerStripeCustomerId;
+    // El referido solo recibe descuento si es plan solo (multiclinica paga tarifa completa)
+    if (normalized === 'solo') {
+      subscriptionData.discounts = [{ coupon: referralCoupon }];
+    }
   }
 
   const baseSessionParams = {

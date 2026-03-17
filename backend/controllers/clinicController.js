@@ -659,6 +659,10 @@ const getReferrals = async (req, res, next) => {
     if (!clinicDoc.exists) return res.status(404).json({ success: false, error: 'Clínica no encontrada' });
     const data = clinicDoc.data() || {};
     const code = String(data.referral_code || '').trim().toUpperCase();
+    const couponMonth = String(data.referral_coupon_month || '').trim();
+    const nowDate = new Date();
+    const currentMonth = `${nowDate.getFullYear()}-${String(nowDate.getMonth() + 1).padStart(2, '0')}`;
+    const discountActiveThisMonth = couponMonth === currentMonth;
     const referredSnap = await db.collection('clinicas').where('referred_by_clinic_id', '==', req.clinicId).limit(50).get();
     const referred = referredSnap.docs.map((d) => {
       const x = d.data() || {};
@@ -670,7 +674,7 @@ const getReferrals = async (req, res, next) => {
         created_at: x.created_at || null,
       };
     });
-    return res.json({ success: true, code, count: referredSnap.size || 0, referred });
+    return res.json({ success: true, code, count: referredSnap.size || 0, referred, discountActiveThisMonth });
   } catch (e) { next(e); }
 };
 
@@ -1771,6 +1775,7 @@ const handleStripeWebhook = async (req, res, next) => {
     }
 
     // Referidos: al pagar una factura de suscripción, si el metadata tiene referente_id_stripe, aplicar cupón al referente
+    // Deduplicación mensual: máximo 1 descuento por mes por referidor, pero se renueva cada mes si hay nuevos referidos
     if (event.type === 'invoice.paid') {
       const factura = event.data.object;
       if (factura.subscription && factura.amount_paid > 0) {
@@ -1781,10 +1786,30 @@ const handleStripeWebhook = async (req, res, next) => {
           if (refCustomerId) {
             const env = await initEnvRef();
             const coupon = String(env.STRIPE_REFERRAL_COUPON || 'REFERRAL50').trim();
-            const list = await stripe.subscriptions.list({ customer: refCustomerId, status: 'active', limit: 1 });
-            if (list.data.length > 0) {
-              await stripe.subscriptions.update(list.data[0].id, { coupon });
-              await createAuditLog('system', 'stripe_webhook', 'REFERRAL_COUPON_APPLIED', refCustomerId);
+            const nowDate = new Date();
+            const currentMonth = `${nowDate.getFullYear()}-${String(nowDate.getMonth() + 1).padStart(2, '0')}`;
+
+            // Buscar la clínica referidora por stripe_customer_id para control de deduplicación
+            const refClinicSnap = await db.collection('clinicas')
+              .where('stripe_customer_id', '==', refCustomerId).limit(1).get();
+            const refClinicDoc = refClinicSnap.empty ? null : refClinicSnap.docs[0];
+            const lastAppliedMonth = refClinicDoc ? String(refClinicDoc.data()?.referral_coupon_month || '').trim() : '';
+
+            if (lastAppliedMonth === currentMonth) {
+              // Ya se aplicó este mes — no acumular
+              await createAuditLog('system', 'stripe_webhook', 'REFERRAL_COUPON_SKIPPED_DUPLICATE', refCustomerId);
+            } else {
+              const list = await stripe.subscriptions.list({ customer: refCustomerId, status: 'active', limit: 1 });
+              if (list.data.length > 0) {
+                await stripe.subscriptions.update(list.data[0].id, { coupon });
+                if (refClinicDoc) {
+                  await db.collection('clinicas').doc(refClinicDoc.id).update({
+                    referral_coupon_month: currentMonth,
+                    updated_at: Timestamp.now()
+                  });
+                }
+                await createAuditLog('system', 'stripe_webhook', 'REFERRAL_COUPON_APPLIED', refCustomerId);
+              }
             }
           }
         } catch (refErr) {

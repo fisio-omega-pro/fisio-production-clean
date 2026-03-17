@@ -1,12 +1,12 @@
 'use client';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Gift, Copy, Check, RefreshCw } from 'lucide-react';
+import { Gift, Copy, Check, RefreshCw, Sparkles, Clock } from 'lucide-react';
 import { dashboardAPI } from '../services';
 
 export const ReferidosView = () => {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [data, setData] = useState<{ code: string; count: number; referred: any[] } | null>(null);
+  const [data, setData] = useState<{ code: string; count: number; referred: any[]; discountActiveThisMonth?: boolean } | null>(null);
   const [copied, setCopied] = useState(false);
 
   const referralLink = useMemo(() => {
@@ -81,10 +81,31 @@ export const ReferidosView = () => {
           </div>
         )}
 
+        {/* Badge estado descuento este mes */}
+        {data && (
+          <div className={`flex items-center gap-3 rounded-2xl border px-5 py-3 mb-2 ${
+            data.discountActiveThisMonth
+              ? 'bg-green-500/10 border-green-500/30 text-green-400'
+              : 'bg-white/[0.03] border-white/10 text-gray-500'
+          }`}>
+            {data.discountActiveThisMonth
+              ? <Sparkles size={14} className="shrink-0" />
+              : <Clock size={14} className="shrink-0" />}
+            <span className="text-[11px] font-black uppercase tracking-widest">
+              {data.discountActiveThisMonth
+                ? '50% de descuento activo este mes'
+                : 'Sin descuento este mes — consigue 1 referido para activarlo'}
+            </span>
+          </div>
+        )}
+
         <div className="rounded-3xl border border-[#d4af37]/30 bg-[#d4af37]/5 p-6 mb-6">
-          <p className="text-[11px] font-black uppercase tracking-widest text-[#d4af37]">50% tú, 50% quien se registre</p>
+          <p className="text-[11px] font-black uppercase tracking-widest text-[#d4af37]">50% de descuento en tu factura</p>
           <p className="text-sm text-gray-300 mt-1">
-            Quien entre por tu enlace paga la mitad el primer mes y tú también recibes 50% de descuento ese mes. Comparte el enlace; no hace falta que peguen ningún código.
+            Consigue <strong>1 referido activo al mes</strong> y obtienes el <strong>50% de descuento en tu próxima factura</strong>. No se acumula — 10 referidos en un mes equivalen al mismo descuento que 1. Pero si metes 1 referido cada mes, tienes el 50% cada mes.
+          </p>
+          <p className="text-[11px] text-gray-500 mt-3">
+            Las primeras 50 clínicas registradas obtienen el primer mes gratis (solo plan individual).
           </p>
         </div>
 
