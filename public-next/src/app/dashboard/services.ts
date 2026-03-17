@@ -203,6 +203,12 @@ class DashboardService {
       body: JSON.stringify(d)
     });
   }
+  public async updateAppointment(id: string, updates: { estado?: string; pagado?: boolean; notas?: string }): Promise<void> {
+    await this.request(`/api/dashboard/appointment/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates)
+    });
+  }
   public async getPatientHistory(phone: string): Promise<{ paciente: any; historial: any[] }> {
     const res = await this.request<{ success: boolean; paciente: any; historial: any[] }>(
       `/api/dashboard/patient-history?phone=${encodeURIComponent(phone)}`

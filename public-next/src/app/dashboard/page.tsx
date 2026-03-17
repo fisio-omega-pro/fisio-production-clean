@@ -639,7 +639,7 @@ export default function DashboardOmega() {
         </div>
       </Modal>
 
-      {state.selectedEvent && <HistoryModal event={state.selectedEvent} onClose={() => state.setSelectedEvent(null)} />}
+      {state.selectedEvent && <HistoryModal event={state.selectedEvent} onClose={() => state.setSelectedEvent(null)} onRefresh={state.refreshData} />}
 
       {/* 🚀 LOADING GLOBAL PARA FEEDBACK INMEDIATO */}
       <div

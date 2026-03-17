@@ -711,6 +711,40 @@ const getLegalStatus = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
+// --- ACTUALIZAR CITA (estado, pagado) ---
+const updateAppointment = async (req, res, next) => {
+  try {
+    const citaId = String(req.params.id || req.body?.id || '').trim();
+    if (!citaId) return res.status(400).json({ success: false, error: 'id de cita requerido' });
+
+    const citaRef = db.collection('citas').doc(citaId);
+    const citaDoc = await citaRef.get();
+    if (!citaDoc.exists) return res.status(404).json({ success: false, error: 'Cita no encontrada' });
+
+    const cita = citaDoc.data();
+    if (String(cita.clinic_id || '') !== String(req.clinicId || '')) {
+      return res.status(403).json({ success: false, error: 'No autorizado' });
+    }
+
+    const ALLOWED_ESTADOS = ['pendiente', 'confirmada', 'pagada', 'anulada', 'no_show', 'cancelada'];
+    const updates = { updated_at: Timestamp.now() };
+
+    if (req.body?.estado !== undefined) {
+      const estado = String(req.body.estado).toLowerCase();
+      if (!ALLOWED_ESTADOS.includes(estado)) {
+        return res.status(400).json({ success: false, error: `estado debe ser uno de: ${ALLOWED_ESTADOS.join(', ')}` });
+      }
+      updates.estado = estado;
+    }
+    if (req.body?.pagado !== undefined) updates.pagado = !!req.body.pagado;
+    if (req.body?.notas !== undefined) updates.notas = String(req.body.notas || '').trim();
+
+    await citaRef.update(updates);
+    await createAuditLog(req.clinicId, req.userId || req.clinicId, 'UPDATE_APPOINTMENT', citaId);
+    return res.json({ success: true });
+  } catch (e) { next(e); }
+};
+
 // --- DASHBOARD: OPERACIONES REALES (sin stubs) ---
 const createBlock = async (req, res, next) => {
   try {
@@ -2166,6 +2200,7 @@ module.exports = {
   processAppointmentReminders,
   updateAnaConfig,
   uploadAnaPhoto,
+  updateAppointment,
   createBlock,
   createPatient,
   sendPwaInvitation,

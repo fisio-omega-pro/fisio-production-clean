@@ -88,6 +88,7 @@ router.post('/dashboard/save-logo', ensureHandler(clinicController.saveLogo, 'sa
 router.post('/dashboard/upload-logo', upload.single('logo'), ensureHandler(clinicController.uploadLogo, 'uploadLogo'));
 router.post('/dashboard/save-cobros', ensureHandler(clinicController.saveCobrosConfig, 'saveCobrosConfig'));
 router.post('/dashboard/appointment', ensureHandler(clinicController.createAppointment, 'createAppointment'));
+router.patch('/dashboard/appointment/:id', ensureHandler(clinicController.updateAppointment, 'updateAppointment'));
 router.post('/dashboard/save-note', ensureHandler(clinicController.savePatientNote, 'savePatientNote'));
 router.post('/dashboard/save-paciente', ensureHandler(clinicController.savePaciente, 'savePaciente'));
 router.post('/dashboard/save-suggestion', ensureHandler(adminController.saveSuggestion, 'saveSuggestion'));
