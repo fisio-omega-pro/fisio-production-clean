@@ -75,6 +75,9 @@ export default function DashboardOmega() {
   const [bonoData, setBonoData] = useState({ paciente_nombre: '', sesiones_totales: 10, fecha_vencimiento: '' });
   const [agendaSpecId, setAgendaSpecId] = useState<string | undefined>(undefined);
   const [upgradePlan, setUpgradePlan] = useState<'team' | 'corporate'>('team');
+  const [isSavingSpecialist, setIsSavingSpecialist] = useState(false);
+  const [saveSpecialistError, setSaveSpecialistError] = useState<string | null>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   // Refs para modales
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -450,81 +453,73 @@ export default function DashboardOmega() {
       <BlockModal isOpen={state.modalType === 'bloqueo'} onClose={() => state.setModalType(null)} data={blockData} setData={setBlockData} onSubmit={handleBlockSchedule} />
       <EditProfileModal
         isOpen={state.modalType === 'editar_perfil'}
-        onClose={() => state.setModalType(null)}
+        onClose={() => { state.setModalType(null); setSaveSpecialistError(null); }}
         member={state.memberToEdit}
         setMember={state.setMemberToEdit}
         canEditLoginEmail={state.currentUser?.isOwner}
         onSave={async () => {
-          if (!state.memberToEdit) return;
+          if (!state.memberToEdit || isSavingSpecialist) return;
+          setIsSavingSpecialist(true);
+          setSaveSpecialistError(null);
           try {
-            const result = await dashboardAPI.saveSpecialist({ ...state.memberToEdit, login_email: state.memberToEdit.login_email ?? '' });
-
-            // Éxito normal
+            await dashboardAPI.saveSpecialist({ ...state.memberToEdit, login_email: state.memberToEdit.login_email ?? '' });
             const isNew = !state.memberToEdit.id;
             state.setModalType(null);
-
-            // Refresh más robusto
-            await state.refreshData();
-
-            // Pequeña pausa para asegurar que los datos se actualicen
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            // Mostrar feedback de éxito mejorado
+            state.refreshData();
             if (isNew) {
-              alert('✅ Fisioterapeuta creado correctamente\n\nAhora puedes verlo en la sección Equipo con su foto y todos sus datos.');
+              alert('✅ Fisioterapeuta creado. En breve aparece en la sección Equipo.');
             } else {
-              alert('✅ Fisioterapeuta actualizado correctamente\n\nLos cambios han sido guardados y son visibles inmediatamente.');
+              alert('✅ Fisioterapeuta actualizado correctamente.');
             }
-
-            // Scroll a la sección de equipo
-            setTimeout(() => {
-              const equipoSection = document.querySelector('[data-tab="equipo"]');
-              if (equipoSection) {
-                equipoSection.scrollIntoView({ behavior: 'smooth' });
-              }
-            }, 500);
-
           } catch (e: any) {
             console.error('Error saving specialist:', e);
-
-            // Verificar si es error de límite alcanzado
-            if (e.message && e.message.includes('LÍMITE_ALCANZADO')) {
-              if (confirm('Has alcanzado el límite de 5 fisioterapeutas. Para añadir más, necesitas actualizar al plan Corporate (500€/mes).\n\n¿Deseas actualizar al plan Corporate ahora?')) {
+            if (e.message && (e.message.includes('LÍMITE_ALCANZADO') || e.message.includes('Corporate'))) {
+              if (confirm('Límite alcanzado (5 fisios). ¿Actualizar al plan Corporate (500€/mes)?')) {
                 const url = await dashboardAPI.upgradePlan('corporate');
                 if (url) window.location.href = url;
               }
+            } else if (e.message && (e.message.includes('plan Team') || e.message.includes('300€'))) {
+              if (confirm('Necesitas el plan Team para añadir más especialistas. ¿Actualizar ahora?')) {
+                const url = await dashboardAPI.upgradePlan('team');
+                if (url) window.location.href = url;
+              }
             } else {
-              alert(`❌ Error: ${e.message || 'Error al guardar el fisioterapeuta'}`);
+              setSaveSpecialistError(e.message || 'Error al guardar el fisioterapeuta');
             }
+          } finally {
+            setIsSavingSpecialist(false);
           }
         }}
         onUpload={async (file: File) => {
-          try {
-            // Temporalmente solo hacer preview sin subir al servidor
-            // console.log('📸 Foto seleccionada (subida temporalmente desactivada):', file.name); // ELIMINADO PARA PRODUCCIÓN
-
-            // Simular subida exitosa después de un delay
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            // Crear URL local para el preview
+          if (!state.memberToEdit?.id) {
             const localUrl = URL.createObjectURL(file);
-
-            // Actualizar el miembro con la URL local
-            if (state.memberToEdit) {
-              state.setMemberToEdit({
-                ...state.memberToEdit,
-                avatarUrl: localUrl
-              });
-            }
-
-            alert('✅ Foto cargada correctamente (preview local)');
-
-          } catch (error) {
+            state.setMemberToEdit({ ...state.memberToEdit!, avatarUrl: localUrl });
+            return;
+          }
+          setIsUploadingAvatar(true);
+          try {
+            const formData = new FormData();
+            formData.append('avatar', file);
+            formData.append('specialistId', state.memberToEdit.id);
+            const token = localStorage.getItem('fisio_token');
+            const res = await fetch(`${API_BASE_URL}/api/dashboard/upload-avatar`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${token || ''}` },
+              body: formData,
+            });
+            const data = await res.json();
+            if (!res.ok || !data.success) throw new Error(data.error || 'Error al subir la foto');
+            state.setMemberToEdit({ ...state.memberToEdit, avatarUrl: data.avatarUrl });
+          } catch (error: any) {
             console.error('Error uploading avatar:', error);
-            alert('❌ Error al subir la foto. Por favor, inténtalo de nuevo.');
+            setSaveSpecialistError(`Error foto: ${error.message}`);
+          } finally {
+            setIsUploadingAvatar(false);
           }
         }}
-        uploading={state.loading}
+        uploading={isUploadingAvatar}
+        saving={isSavingSpecialist}
+        saveError={saveSpecialistError}
       />
       <ImportModal isOpen={state.modalType === 'importar'} onClose={() => state.setModalType(null)} fileInputRef={fileInputRef} onFileSelect={(e) => e.target.files && state.handleImportFile(e.target.files[0])} isImporting={state.importing} />
       <LogoModal

@@ -30,9 +30,12 @@ export const useDashboardState = () => {
   const [memberToEdit, setMemberToEdit] = useState<Especialista | null>(null);
   const [importing, setImporting] = useState(false);
   const hasGreeted = useRef(false);
+  const isRefreshing = useRef(false);
 
   // 4. SINCRONIZACIÓN CON EL BACKEND
   const refreshData = useCallback(async () => {
+    if (isRefreshing.current) return;
+    isRefreshing.current = true;
     try {
       const data = await dashboardAPI.getDashboardData();
       if (data) {
@@ -63,6 +66,7 @@ export const useDashboardState = () => {
       console.error("❌ Fallo en sincronización:", err);
     } finally {
       setIsLoading(false);
+      isRefreshing.current = false;
     }
   }, []);
 

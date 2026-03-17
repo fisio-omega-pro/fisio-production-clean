@@ -909,11 +909,12 @@ const saveSpecialist = async (req, res, next) => {
     const isOwner = !req.specialistId;
     let sendPasswordSetupEmail = false;
 
-    // 🚨 CONTROL DE LÍMITE DE 5 FISIOS
+    // 🚨 CONTROL DE LÍMITE Y PLAN
+    let currentCount = 0;
     if (!id) { // Solo para nuevos especialistas
       const equipoRef = db.collection('clinicas').doc(req.clinicId).collection('equipo');
       const snapshot = await equipoRef.get();
-      const currentCount = snapshot.size;
+      currentCount = snapshot.size;
 
       if (currentCount >= 5) {
         return res.status(400).json({
@@ -923,6 +924,21 @@ const saveSpecialist = async (req, res, next) => {
           upgradeRequired: true,
           upgradePlan: 'corporate'
         });
+      }
+
+      // Verificar que el plan permite más de 1 especialista
+      if (currentCount >= 1) {
+        const clinicSnap = await db.collection('clinicas').doc(req.clinicId).get();
+        const clinicPlan = String(clinicSnap.data()?.plan || 'solo').toLowerCase();
+        const MULTI_PLANS = ['team', 'business', 'clinic', 'corporate'];
+        if (!MULTI_PLANS.includes(clinicPlan)) {
+          return res.status(403).json({
+            success: false,
+            error: 'Para añadir más de un especialista necesitas el plan Team (300€/mes).',
+            upgradeRequired: true,
+            upgradePlan: 'team'
+          });
+        }
       }
     }
 
@@ -979,6 +995,17 @@ const saveSpecialist = async (req, res, next) => {
         const result = await createResetRequest(loginEmail);
         if (result.ok && result.token) await sendResetEmail(loginEmail, result.token);
       } catch (e) { console.error('saveSpecialist: email configura contraseña', e.message); }
+    }
+
+    // 🏛️ Auto-activar es_multiclinica cuando se tiene ≥2 especialistas
+    if (!id && currentCount >= 1) {
+      try {
+        await db.collection('clinicas').doc(req.clinicId).update({
+          es_multiclinica: true,
+          updated_at: Timestamp.now()
+        });
+        console.log(`✅ [EQUIPO] es_multiclinica activado para clínica ${req.clinicId}`);
+      } catch (e) { console.error('[EQUIPO] Error activando es_multiclinica:', e.message); }
     }
 
     await createAuditLog(req.clinicId, req.userId || req.clinicId, 'UPSERT_SPECIALIST', finalId || 'new');

@@ -13,11 +13,13 @@ interface EditProfileProps {
   onSave: () => void;
   onUpload: (file: File) => Promise<void>;
   uploading: boolean;
+  saving?: boolean;
+  saveError?: string | null;
   /** Solo el jefe puede asignar email de acceso; los fisios no ven este campo */
   canEditLoginEmail?: boolean;
 }
 
-export const EditProfileModal = ({ isOpen, onClose, member, setMember, onSave, onUpload, uploading, canEditLoginEmail = true }: EditProfileProps) => {
+export const EditProfileModal = ({ isOpen, onClose, member, setMember, onSave, onUpload, uploading, saving = false, saveError = null, canEditLoginEmail = true }: EditProfileProps) => {
   const fileRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
 
@@ -113,8 +115,13 @@ export const EditProfileModal = ({ isOpen, onClose, member, setMember, onSave, o
           </div>
         )}
 
-        <ActionButton onClick={onSave} fullWidth style={{height: '55px'}}>
-          {uploading ? <Loader2 className="animate-spin" /> : <><Save size={16} className="mr-2"/> SINCRONIZAR ESPECIALISTA ➜</>}
+        {saveError && (
+          <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-3 text-red-400 text-xs font-medium">
+            ❌ {saveError}
+          </div>
+        )}
+        <ActionButton onClick={saving || uploading ? undefined : onSave} fullWidth style={{height: '55px', opacity: saving || uploading ? 0.6 : 1, cursor: saving || uploading ? 'not-allowed' : 'pointer'}}>
+          {saving ? <><Loader2 className="animate-spin mr-2" size={16}/>GUARDANDO...</> : uploading ? <Loader2 className="animate-spin" /> : <><Save size={16} className="mr-2"/> SINCRONIZAR ESPECIALISTA ➜</>}
         </ActionButton>
       </div>
     </Modal>
