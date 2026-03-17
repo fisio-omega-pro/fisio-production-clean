@@ -878,6 +878,7 @@ const createPatient = async (req, res, next) => {
 
 const saveLogo = async (req, res, next) => {
   try {
+    if (req.specialistId) return res.status(403).json({ success: false, error: 'Solo el propietario puede cambiar el logo' });
     const publicUrl = String(req.body?.publicUrl || '').trim();
     if (!publicUrl) return res.status(400).json({ success: false, error: 'publicUrl requerido' });
     await db.collection('clinicas').doc(req.clinicId).update({
@@ -1475,6 +1476,7 @@ const finalizeStripeConnect = async (req, res, next) => {
 
 const createUpgradeSession = async (req, res, next) => {
   try {
+    if (req.specialistId) return res.status(403).json({ success: false, error: 'Solo el propietario puede gestionar el plan' });
     const clinicDoc = await db.collection('clinicas').doc(req.clinicId).get();
     if (!clinicDoc.exists) return res.status(404).json({ success: false, error: 'Clínica no encontrada' });
 
@@ -1503,6 +1505,7 @@ const createUpgradeSession = async (req, res, next) => {
 // Darse de baja: cancela la suscripción al final del periodo (el usuario mantiene acceso hasta esa fecha)
 const cancelSubscription = async (req, res, next) => {
   try {
+    if (req.specialistId) return res.status(403).json({ success: false, error: 'Solo el propietario puede cancelar la suscripción' });
     const clinicDoc = await db.collection('clinicas').doc(req.clinicId).get();
     if (!clinicDoc.exists) return res.status(404).json({ success: false, error: 'Clínica no encontrada' });
     const clinic = clinicDoc.data() || {};
@@ -1526,6 +1529,9 @@ const cancelSubscription = async (req, res, next) => {
 // 🚨 OPERACIÓN CRÍTICA: BORRADO TOTAL DE CUENTA (Stripe + Firestore)
 const deleteAccount = async (req, res, next) => {
   try {
+    if (req.specialistId) {
+      return res.status(403).json({ success: false, error: 'Solo el propietario puede eliminar la cuenta' });
+    }
     const clinicId = req.clinicId;
     const clinicRef = db.collection('clinicas').doc(clinicId);
     const clinicDoc = await clinicRef.get();
