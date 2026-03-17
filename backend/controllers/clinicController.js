@@ -277,7 +277,7 @@ const resetPassword = async (req, res, next) => {
 };
 
 // 2. CREAR CITA
-const createAppointment = async (req, res) => {
+const createAppointment = async (req, res, next) => {
   try {
     const d = req.body || {};
     const fecha = String(d.fecha || '').trim();
