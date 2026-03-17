@@ -5,6 +5,19 @@ const { baseEmailHtml, escapeHtml } = require('../services/emailTemplates');
 const anaService = require('../services/anaService');
 const { getReadStream } = require('../services/storageService');
 
+// Singleton del motor de skills para Ana Prospecto (evita recrear en cada request)
+let _prospectoEngine = null;
+function getProspectoEngine() {
+  if (!_prospectoEngine) {
+    const ProspectoSkill = require('../services/skills/prospectoSkill');
+    const { SkillEngine } = require('../services/anaSkillEngine');
+    const engine = new SkillEngine();
+    engine.registerSkill(new ProspectoSkill());
+    _prospectoEngine = engine;
+  }
+  return _prospectoEngine;
+}
+
 function isValidEmail(email) {
   const s = String(email || '').trim();
   // Simple y robusto para formulario
@@ -305,20 +318,16 @@ const anaProspectoChat = async (req, res) => {
 
     console.log('🎯 [ANA PROSPECTO] Mensaje recibido:', message);
 
-    // Importar ProspectoSkill y SkillEngine
-    const ProspectoSkill = require('../services/skills/prospectoSkill');
-    const { SkillEngine } = require('../services/anaSkillEngine');
     const { getOrCreateSession, addMessage } = require('../services/conversationMemoryService');
-    
-    // Crear engine y registrar skill
-    const engine = new SkillEngine();
-    const prospectoSkill = new ProspectoSkill();
-    engine.registerSkill(prospectoSkill);
-    
+
+    // Usar el singleton del engine (no recrear en cada request)
+    const engine = getProspectoEngine();
+    const prospectoSkill = engine.skills.get('prospecto');
+
     // Crear sesión para el prospecto
     const userIdentifier = userEmail || `prospect_${Date.now()}`;
     const session = await getOrCreateSession('global_prospects', userIdentifier, 'web');
-    
+
     // Clasificar intent usando el engine
     const classification = await engine.classifyIntent(message, {
       lastIntent: session.context?.lastIntent,

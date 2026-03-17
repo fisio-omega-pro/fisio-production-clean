@@ -198,10 +198,18 @@ class DashboardService {
     return { cancel_at: res.cancel_at ?? null };
   }
   public async createAppointment(d: any): Promise<{ success: boolean; conflict?: boolean; error?: string }> {
-    return this.request<{ success: boolean; conflict?: boolean; error?: string }>('/api/dashboard/appointment', {
-      method: 'POST',
-      body: JSON.stringify(d)
-    });
+    try {
+      return await this.request<{ success: boolean; conflict?: boolean; error?: string }>('/api/dashboard/appointment', {
+        method: 'POST',
+        body: JSON.stringify(d)
+      });
+    } catch (e: any) {
+      const msg = String(e?.message || '');
+      if (msg.includes('409') || msg.toLowerCase().includes('exist') || msg.toLowerCase().includes('activa') || msg.toLowerCase().includes('conflict')) {
+        return { success: false, conflict: true, error: msg };
+      }
+      throw e;
+    }
   }
   public async updateAppointment(id: string, updates: { estado?: string; pagado?: boolean; notas?: string }): Promise<void> {
     await this.request(`/api/dashboard/appointment/${encodeURIComponent(id)}`, {
