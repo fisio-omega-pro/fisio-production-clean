@@ -1,6 +1,6 @@
 'use client'
 import React from 'react';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, Loader2 } from 'lucide-react';
 import { Modal } from '../Modal';
 import { ActionButton, InputField } from '../Atoms';
 
@@ -10,9 +10,11 @@ interface AppointmentModalProps {
   data: { nombre: string; telefono: string; email: string; fecha: string; hora: string; };
   setData: (data: any) => void;
   onSubmit: () => void;
+  isSubmitting?: boolean;
+  submitError?: string | null;
 }
 
-export const AppointmentModal = ({ isOpen, onClose, data, setData, onSubmit }: AppointmentModalProps) => {
+export const AppointmentModal = ({ isOpen, onClose, data, setData, onSubmit, isSubmitting = false, submitError = null }: AppointmentModalProps) => {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Agendar Cita en el Palacio">
       <div className="flex flex-col gap-5">
@@ -50,8 +52,13 @@ export const AppointmentModal = ({ isOpen, onClose, data, setData, onSubmit }: A
             onChange={(v) => setData({...data, hora: v})} 
           />
         </div>
-        <ActionButton onClick={onSubmit} fullWidth>
-          <UserPlus size={18} className="mr-2"/> CONFIRMAR CITA
+        {submitError && (
+          <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-3 text-red-400 text-xs font-medium">
+            ⚠️ {submitError}
+          </div>
+        )}
+        <ActionButton onClick={isSubmitting ? undefined : onSubmit} fullWidth style={{ opacity: isSubmitting ? 0.6 : 1, cursor: isSubmitting ? 'not-allowed' : 'pointer' }}>
+          {isSubmitting ? <><Loader2 size={18} className="animate-spin mr-2"/>AGENDANDO...</> : <><UserPlus size={18} className="mr-2"/> CONFIRMAR CITA</>}
         </ActionButton>
       </div>
     </Modal>

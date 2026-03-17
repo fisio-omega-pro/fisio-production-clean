@@ -78,6 +78,9 @@ export default function DashboardOmega() {
   const [isSavingSpecialist, setIsSavingSpecialist] = useState(false);
   const [saveSpecialistError, setSaveSpecialistError] = useState<string | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isCreatingAppt, setIsCreatingAppt] = useState(false);
+  const [apptError, setApptError] = useState<string | null>(null);
+  const [isBlockingSchedule, setIsBlockingSchedule] = useState(false);
 
   // Refs para modales
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -126,27 +129,31 @@ export default function DashboardOmega() {
   }, [state.activeTab, state.clinicData?.is_blind]);
 
   const handleCreateAppt = async () => {
+    if (isCreatingAppt) return;
+    setIsCreatingAppt(true);
+    setApptError(null);
     try {
       const response = await dashboardAPI.createAppointment(apptData);
-
       if (response.success) {
         state.setModalType(null);
         setApptData({ nombre: '', telefono: '', email: '', fecha: '', hora: '', docId: '' });
+        setApptError(null);
         state.refreshData();
       } else if (response.conflict) {
-        // Error de cita duplicada
-        alert('⚠️ Ya existe una cita agendada para esta fecha y hora. Por favor, selecciona otro horario.');
+        setApptError('Ya existe una cita activa para esta fecha y hora. Selecciona otro horario.');
       } else {
-        alert('❌ Error al crear la cita. Por favor, inténtalo de nuevo.');
+        setApptError(response.error || 'Error al crear la cita.');
       }
     } catch (error: any) {
       console.error('Error creating appointment:', error);
-
-      if (error.response?.status === 409) {
-        alert('⚠️ Ya existe una cita agendada para esta fecha y hora. Por favor, selecciona otro horario.');
+      const msg = error.message || 'Error al crear la cita';
+      if (msg.includes('409') || msg.includes('conflict') || msg.includes('existe')) {
+        setApptError('Horario ocupado. Selecciona otra fecha u hora.');
       } else {
-        alert('❌ Error al crear la cita. Por favor, inténtalo de nuevo.');
+        setApptError(msg);
       }
+    } finally {
+      setIsCreatingAppt(false);
     }
   };
 
@@ -199,13 +206,18 @@ export default function DashboardOmega() {
   };
 
   const handleBlockSchedule = async () => {
+    if (isBlockingSchedule) return;
+    setIsBlockingSchedule(true);
     try {
       await dashboardAPI.createBlock(blockData);
       state.setModalType(null);
       setBlockData({ date: '', startTime: '09:00', endTime: '20:00', reason: '', allDay: false });
       state.refreshData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating block:', error);
+      alert(`❌ Error al bloquear horario: ${error.message || 'Inténtalo de nuevo'}`);
+    } finally {
+      setIsBlockingSchedule(false);
     }
   };
 
@@ -449,7 +461,7 @@ export default function DashboardOmega() {
       )}
 
       {/* --- REGISTRO INTEGRAL DE MODALES --- */}
-      <AppointmentModal isOpen={state.modalType === 'cita'} onClose={() => state.setModalType(null)} data={apptData} setData={setApptData} onSubmit={handleCreateAppt} />
+      <AppointmentModal isOpen={state.modalType === 'cita'} onClose={() => { state.setModalType(null); setApptError(null); }} data={apptData} setData={setApptData} onSubmit={handleCreateAppt} isSubmitting={isCreatingAppt} submitError={apptError} />
       <BlockModal isOpen={state.modalType === 'bloqueo'} onClose={() => state.setModalType(null)} data={blockData} setData={setBlockData} onSubmit={handleBlockSchedule} />
       <EditProfileModal
         isOpen={state.modalType === 'editar_perfil'}

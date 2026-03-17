@@ -318,19 +318,19 @@ const createAppointment = async (req, res) => {
     }
     // Si NO es multiclínica, cualquier cita a esa hora en la clínica es un conflicto
 
-    const existingCitaQuery = await query.limit(1).get();
+    const existingCitaQuery = await query.limit(10).get();
+    const ESTADOS_ACTIVOS = ['pendiente', 'confirmada', 'pagada', 'no_pagada', 'en_curso'];
+    const activeConflict = existingCitaQuery.docs.find(doc => {
+      const estado = String(doc.data().estado || 'pendiente').toLowerCase();
+      return ESTADOS_ACTIVOS.includes(estado) || !['anulada', 'no_show', 'cancelada'].includes(estado);
+    });
 
-    if (!existingCitaQuery.empty) {
+    if (activeConflict) {
       const msg = isMultiClinic
-        ? 'Ya existe una cita agendada para este especialista en esta fecha y hora'
-        : 'Ya existe una cita agendada en esta fecha y hora (Modo Clínica Básica)';
-
+        ? 'Ya existe una cita activa para este especialista en esta fecha y hora'
+        : 'Ya existe una cita activa en esta fecha y hora';
       console.log(`🚨 [CONFLICT] ${msg}: ${fecha} ${hora}`);
-      return res.status(409).json({
-        success: false,
-        error: msg,
-        conflict: true
-      });
+      return res.status(409).json({ success: false, error: msg, conflict: true });
     }
 
     const payload = {
