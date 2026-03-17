@@ -198,6 +198,40 @@ function AnaChatContent() {
     }
   }, [clinicId]);
 
+  // 📱 Suscribir al paciente a Web Push (silencioso, sin interrumpir el flujo)
+  const subscribeToPush = async (email: string, nombre: string) => {
+    try {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') return;
+
+      const swReg = await navigator.serviceWorker.ready;
+      const BACKEND = 'https://fisio-backend-omega-740657183492.europe-west1.run.app';
+
+      const vapidRes = await fetch(`${BACKEND}/api/public/vapid-public-key`);
+      if (!vapidRes.ok) return;
+      const { publicKey } = await vapidRes.json();
+
+      // Convertir VAPID public key de base64url a Uint8Array
+      const padding = '='.repeat((4 - (publicKey.length % 4)) % 4);
+      const base64 = (publicKey + padding).replace(/-/g, '+').replace(/_/g, '/');
+      const rawKey = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+
+      const subscription = await swReg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: rawKey
+      });
+
+      await fetch(`${BACKEND}/api/public/push-subscribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription, clinicId, email, nombre })
+      });
+    } catch (e) {
+      console.warn('Push subscription failed (no bloqueante):', e);
+    }
+  };
+
   const handleUserRegistration = async () => {
     if (!userName.trim() || !userEmail.trim() || !userPhone.trim()) {
       alert('Por favor, introduce tu nombre, email y teléfono');
@@ -228,6 +262,9 @@ function AnaChatContent() {
       setCookie(`ana_email_${clinicId}`, userEmail);
       setCookie(`ana_phone_${clinicId}`, userPhone);
     }
+
+    // 📱 Suscribir silenciosamente a push notifications
+    subscribeToPush(userEmail.trim(), userName.trim());
 
     // Trigger initial welcome message from Ana via backend (SILENTLY)
     const registrationMessage = `Hola, me llamo ${userName}, mi email es ${userEmail} y mi teléfono es ${userPhone}. Me acabo de registrar.`;

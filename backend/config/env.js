@@ -57,7 +57,11 @@ async function initEnv() {
         GCS_BUCKET_NAME: await getSecret('GCS_BUCKET_NAME') || process.env.GCS_BUCKET_NAME || 'fisiotool-backend-uploads',
         ADMIN_FOUNDRY_KEY: secrets.ADMIN_FOUNDRY_KEY || process.env.ADMIN_FOUNDRY_KEY,
 
-        // 📧 Configuración de emails
+        // � Web Push / VAPID
+        VAPID_PUBLIC_KEY: await getSecret('VAPID_PUBLIC_KEY') || process.env.VAPID_PUBLIC_KEY || '',
+        VAPID_PRIVATE_KEY: await getSecret('VAPID_PRIVATE_KEY') || process.env.VAPID_PRIVATE_KEY || '',
+
+        // �📧 Configuración de emails
         ANA_MAIL: {
             user: await getSecret('EMAIL_USER_ANA') || process.env.EMAIL_USER_ANA,
             pass: await getSecret('EMAIL_PASS_ANA') || process.env.EMAIL_PASS_ANA

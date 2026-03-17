@@ -47,6 +47,8 @@ router.get('/public/clinic-info', ensureHandler(publicController.getClinicInfo, 
 router.get('/health', ensureHandler(publicController.healthCheck, 'healthCheck'));
 router.post('/public/ana-chat', ensureHandler(publicController.anaChat, 'anaChat'));
 router.post('/public/ana-prospecto', ensureHandler(publicController.anaProspectoChat, 'anaProspectoChat'));
+router.get('/public/vapid-public-key', ensureHandler(publicController.getVapidPublicKey, 'getVapidPublicKey'));
+router.post('/public/push-subscribe', ensureHandler(publicController.savePushSubscription, 'savePushSubscription'));
 // Stripe webhook (body RAW se configura en server.js antes de bodyParser.json)
 router.post('/webhooks/stripe', ensureHandler(clinicController.handleStripeWebhook, 'handleStripeWebhook'));
 

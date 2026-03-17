@@ -10,6 +10,7 @@
 const { db, Timestamp } = require('../config/firebase');
 const { sendEmail } = require('./emailSenderService');
 const { generateSeguimientoEmail } = require('./seguimientoEmailTemplate');
+const { sendPushToPatient } = require('./pushNotificationService');
 
 // Devuelve la fecha de hace N días en formato YYYY-MM-DD (Europe/Madrid)
 function dateNDaysAgo(n) {
@@ -93,6 +94,15 @@ async function runSeguimientoForClinic(clinicId, options = {}) {
         type: 'ANA',
         clinicName
       });
+
+      // Enviar push en paralelo (no bloqueante — falla silenciosamente)
+      sendPushToPatient({
+        clinicId,
+        email,
+        title: `${assistantName} de ${clinicName}`,
+        body: `${nombre}, ¿cómo te encuentras tras tu sesión? Cuéntame cómo sigues.`,
+        url: appUrl
+      }).catch(() => {});
 
       if (r?.ok === true) {
         // Marcar la cita como seguimiento enviado

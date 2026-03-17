@@ -2,6 +2,7 @@ const admin = require('firebase-admin');
 const { db, Timestamp } = require('../config/firebase');
 const { sendEmail } = require('./emailSenderService');
 const { generateRecaptacionEmail } = require('./recaptacionEmailTemplate');
+const { sendPushToPatient } = require('./pushNotificationService');
 
 const daysAgoIso = (days) => {
   const d = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
@@ -145,6 +146,15 @@ ${assistantName} - ${clinicName}
           last_recap_error: String(r?.reason || r?.error || 'fallo').slice(0, 180),
         });
       } else {
+        // Push notification en paralelo (no bloqueante)
+        sendPushToPatient({
+          clinicId,
+          email: to,
+          title: `${assistantName} de ${clinicName}`,
+          body: `${nombre}, te echamos de menos. ¿Volvemos a vernos pronto?`,
+          url: `https://fisiotool.com/ana?ref=${clinicId}`
+        }).catch(() => {});
+
         await db.collection('recaptacion_sent').add({
           clinic_id: clinicId,
           patient_id: locked.id,

@@ -415,6 +415,31 @@ module.exports = {
     }
   },
 
+  getVapidPublicKey: async (req, res) => {
+    try {
+      const { initEnv } = require('../config/env');
+      const env = await initEnv();
+      if (!env.VAPID_PUBLIC_KEY) return res.status(503).json({ error: 'Push not configured' });
+      return res.json({ publicKey: env.VAPID_PUBLIC_KEY });
+    } catch (e) {
+      return res.status(500).json({ error: e.message });
+    }
+  },
+
+  savePushSubscription: async (req, res) => {
+    try {
+      const { subscription, clinicId, email, nombre } = req.body;
+      if (!subscription || !clinicId || !email) {
+        return res.status(400).json({ error: 'subscription, clinicId y email son requeridos' });
+      }
+      const { savePushSubscription } = require('../services/pushNotificationService');
+      const r = await savePushSubscription({ clinicId, email, nombre, subscription });
+      return res.json(r);
+    } catch (e) {
+      return res.status(500).json({ error: e.message });
+    }
+  },
+
   getAnaPhoto: async (req, res) => {
     try {
       const clinicId = String(req.params.clinicId || '').trim();

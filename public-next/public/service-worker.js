@@ -120,14 +120,53 @@ function isStaticAsset(url) {
          url.pathname === '/' || url.pathname === '/ana';
 }
 
-// Push notifications support
+// ============================================
+// PUSH NOTIFICATIONS
+// ============================================
 self.addEventListener('push', (event) => {
-  const data = event.data?.json() || {};
+  let data = {};
+  try { data = event.data?.json() || {}; } catch (_) {}
+
+  const title = data.title || 'FisioTool Pro';
+  const options = {
+    body: data.body || 'Tienes un mensaje nuevo',
+    icon: data.icon || '/icons/icon-192.png',
+    badge: '/icons/icon-72.png',
+    image: data.image || undefined,
+    data: { url: data.url || '/ana', ...( data.data || {}) },
+    vibrate: [200, 100, 200],
+    requireInteraction: false,
+    actions: [
+      { action: 'open', title: 'Ver' },
+      { action: 'close', title: 'Cerrar' }
+    ]
+  };
+
   event.waitUntil(
-    self.registration.showNotification(data.title || 'FisioTool Pro', {
-      body: data.body || 'Nueva notificación',
-      icon: '/icons/icon-192.png',
-      badge: '/icons/icon-192.png'
+    self.registration.showNotification(title, options)
+  );
+});
+
+// Abrir URL al hacer click en la notificación
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  if (event.action === 'close') return;
+
+  const targetUrl = event.notification.data?.url || '/ana';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      // Si ya hay una ventana abierta, enfocarla y navegar
+      for (const client of list) {
+        if ('focus' in client) {
+          client.focus();
+          if ('navigate' in client) client.navigate(targetUrl);
+          return;
+        }
+      }
+      // Si no hay ventana, abrir una nueva
+      if (clients.openWindow) return clients.openWindow(targetUrl);
     })
   );
 });
