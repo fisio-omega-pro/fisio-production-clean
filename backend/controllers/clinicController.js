@@ -398,11 +398,11 @@ const createAppointment = async (req, res) => {
     }
 
     res.json({ success: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { next(e); }
 };
 
 // 3. GUARDAR NOTA DE PACIENTE (El punto más crítico para HIPAA)
-const savePatientNote = async (req, res) => {
+const savePatientNote = async (req, res, next) => {
   try {
     const body = req.body || {};
     const pid = String(body.patientId || body.p || '').trim();
@@ -432,7 +432,7 @@ const savePatientNote = async (req, res) => {
     // 🚨 LOG: Modificación de historial
     await createAuditLog(req.clinicId, req.userId || req.clinicId, 'MODIFY_PATIENT_RECORD', pid);
     res.json({ success: true });
-  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+  } catch (e) { next(e); }
 };
 
 // 3c. GUARDAR PACIENTE NUEVO (para creación desde bonos)
@@ -872,7 +872,7 @@ const createPatient = async (req, res, next) => {
 
   } catch (e) {
     console.error('Error creating patient:', e);
-    res.status(500).json({ error: 'Error al crear paciente' });
+    next(e);
   }
 };
 
