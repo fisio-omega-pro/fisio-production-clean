@@ -156,6 +156,14 @@ async function initialize(options = {}) {
     standardHeaders: 'draft-7',
     legacyHeaders: false,
   });
+  // Límite anti-spam para tickets y sugerencias (envían emails reales)
+  const ticketLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 5,
+    message: { error: 'Demasiados tickets enviados. Espera 15 minutos e inténtalo de nuevo.' },
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+  });
   app.use('/api', apiLimiter);
   app.use('/api/login', authLimiter);
   app.use('/api/register', authLimiter);
@@ -163,6 +171,8 @@ async function initialize(options = {}) {
   app.use('/api/public/ana-chat', aiLimiter);
   app.use('/api/public/ana-prospecto', aiLimiter);
   app.use('/api/chat', aiLimiter);
+  app.use('/api/dashboard/create-ticket', ticketLimiter);
+  app.use('/api/dashboard/save-suggestion', ticketLimiter);
 
   // 📋 Log de peticiones (método, ruta, IP, status, duración) — sin cuerpos ni tokens
   app.use((req, res, next) => {

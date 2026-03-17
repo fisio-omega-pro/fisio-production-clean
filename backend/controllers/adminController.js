@@ -3,6 +3,12 @@ const anaService = require('../services/anaService');
 const { scanInvoice } = require('../services/visionService');
 const { initEnv } = require('../config/env');
 
+const createAuditLog = async (clinicId, userId, action, resourceId) => {
+  try {
+    await db.collection('audit_logs').add({ clinicId, userId, action, resourceId, timestamp: Timestamp.now() });
+  } catch (_) { }
+};
+
 // --- helpers ---
 const detectDelimiter = (headerLine) => {
   const c = (headerLine.match(/,/g) || []).length;
@@ -231,30 +237,34 @@ const getGlobalStats = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
-// --- 💡 BUZÓN DE SUGERENCIAS (Punto 2) ---
-const saveSuggestion = async (req, res) => {
+// --- 💡 BUZÓN DE SUGERENCIAS ---
+const MAX_SUGGESTION_LEN = 1000;
+const saveSuggestion = async (req, res, next) => {
   try {
-    // Aceptar distintas shapes (robustez)
     const raw = (req.body && (req.body.text ?? req.body.mensaje ?? req.body.message)) ?? '';
     const text = String(raw || '').trim();
-    if (!text) return res.status(400).json({ success: false, error: 'texto requerido' });
+    if (!text) return res.status(400).json({ success: false, error: 'El texto es obligatorio' });
+    if (text.length > MAX_SUGGESTION_LEN) return res.status(400).json({ success: false, error: `La sugerencia no puede superar ${MAX_SUGGESTION_LEN} caracteres` });
     await db.collection('sugerencias').add({
       clinic_id: req.clinicId,
       mensaje: text,
       status: 'pendiente',
       fecha: Timestamp.now()
     });
+    await createAuditLog(req.clinicId, req.userId || req.clinicId, 'SUBMIT_SUGGESTION', req.clinicId);
     res.json({ success: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { next(e); }
 };
 
 // --- 🎫 TICKETS: consulta (Ana responde por email) o técnico (urgente a admin) ---
-const createTicket = async (req, res) => {
+const MAX_TICKET_LEN = 2000;
+const createTicket = async (req, res, next) => {
   try {
     const type = String(req.body?.type || req.body?.tipo || 'consulta').toLowerCase();
     const raw = req.body?.message ?? req.body?.mensaje ?? req.body?.text ?? '';
     const message = String(raw || '').trim();
-    if (!message) return res.status(400).json({ success: false, error: 'mensaje requerido' });
+    if (!message) return res.status(400).json({ success: false, error: 'El mensaje es obligatorio' });
+    if (message.length > MAX_TICKET_LEN) return res.status(400).json({ success: false, error: `El mensaje no puede superar ${MAX_TICKET_LEN} caracteres` });
     if (!['consulta', 'tecnico'].includes(type)) return res.status(400).json({ success: false, error: 'tipo debe ser consulta o tecnico' });
 
     const clinicDoc = await db.collection('clinicas').doc(req.clinicId).get();
@@ -309,11 +319,9 @@ const createTicket = async (req, res) => {
       });
     }
 
+    await createAuditLog(req.clinicId, req.userId || req.clinicId, `CREATE_TICKET_${type.toUpperCase()}`, ref.id);
     res.json({ success: true, ticketId: ref.id });
-  } catch (e) {
-    console.error('createTicket:', e);
-    res.status(500).json({ error: e.message });
-  }
+  } catch (e) { next(e); }
 };
 
 // --- ⚙️ AJUSTES DE PERFIL (Punto 12) ---

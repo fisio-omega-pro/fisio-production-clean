@@ -1,4 +1,4 @@
-import { Users, Calendar, PieChart, MessageSquare, Building2, CreditCard, Gift, Home, Lightbulb, MapPin, Ticket, Settings, Bot } from 'lucide-react';
+import { Users, Calendar, PieChart, MessageSquare, Building2, CreditCard, Gift, Home, Headphones, MapPin, Ticket, Settings, Bot } from 'lucide-react';
 import { NavItemConfig } from '../types';
 
 export const NAV_ITEMS: Record<string, NavItemConfig[]> = {
@@ -21,6 +21,6 @@ export const NAV_ITEMS: Record<string, NavItemConfig[]> = {
     { id: 'cobros', label: 'Pagos', icon: CreditCard },
     { id: 'referidos', label: 'Referidos', icon: Gift },
     { id: 'ajustes', label: 'Ajustes', icon: Settings },
-    { id: 'sugerencias', label: 'Sugerencias', icon: Lightbulb },
+    { id: 'sugerencias', label: 'Soporte Técnico', icon: Headphones },
   ]
 };

@@ -1,8 +1,11 @@
 'use client';
 import React, { useState } from 'react';
-import { Headphones, MessageCircle, Loader2, CheckCircle2, AlertTriangle, Mail, Sparkles } from 'lucide-react';
+import { Headphones, MessageCircle, Loader2, CheckCircle2, AlertTriangle, Mail, Sparkles, AlertCircle } from 'lucide-react';
 import { ActionButton } from '../components/Atoms';
 import { dashboardAPI } from '../services';
+
+const MAX_SUGGESTION_LEN = 1000;
+const MAX_TICKET_LEN = 2000;
 
 export const SoporteView = () => {
   const [text, setText] = useState('');
@@ -18,28 +21,16 @@ export const SoporteView = () => {
 
   const submitFeedback = async () => {
     const t = text.trim();
-    if (!t) return;
+    if (!t || t.length > MAX_SUGGESTION_LEN) return;
     setError(null);
     setLoading(true);
     try {
-// console.log('[SOPORTE] Enviando sugerencia...'); // ELIMINADO PARA PRODUCCIÓN
       await dashboardAPI.saveSuggestion(t);
-// console.log('[SOPORTE] Sugerencia enviada correctamente'); // ELIMINADO PARA PRODUCCIÓN
       setDone(true);
       setText('');
-      setTimeout(() => setDone(false), 3000);
+      setTimeout(() => setDone(false), 3500);
     } catch (e: any) {
-      console.error('[SOPORTE] Error enviando sugerencia:', e);
-      const errorMsg = e?.message || 'No se pudo enviar.';
-      
-      if (errorMsg.includes('Sesión expirada') || errorMsg.includes('No autenticado')) {
-        setError('Tu sesión ha expirado. Por favor, inicia sesión de nuevo.');
-        setTimeout(() => {
-          window.location.href = '/login';
-        }, 2000);
-      } else {
-        setError(errorMsg);
-      }
+      setError(e?.message || 'No se pudo enviar.');
     } finally {
       setLoading(false);
     }
@@ -47,28 +38,16 @@ export const SoporteView = () => {
 
   const submitTicket = async () => {
     const msg = ticketMessage.trim();
-    if (!msg) return;
+    if (!msg || msg.length > MAX_TICKET_LEN) return;
     setTicketError(null);
     setTicketLoading(true);
     try {
-// console.log(`[SOPORTE] Enviando ticket ${ticketType}...`); // ELIMINADO PARA PRODUCCIÓN
       await dashboardAPI.createTicket(ticketType, msg);
-// console.log(`[SOPORTE] Ticket ${ticketType} enviado correctamente`); // ELIMINADO PARA PRODUCCIÓN
       setTicketDone(true);
       setTicketMessage('');
-      setTimeout(() => setTicketDone(false), 4000);
+      setTimeout(() => setTicketDone(false), 5000);
     } catch (e: any) {
-      console.error('[SOPORTE] Error enviando ticket:', e);
-      const errorMsg = e?.message || 'No se pudo enviar el ticket.';
-      
-      if (errorMsg.includes('Sesión expirada') || errorMsg.includes('No autenticado')) {
-        setTicketError('Tu sesión ha expirado. Por favor, inicia sesión de nuevo.');
-        setTimeout(() => {
-          window.location.href = '/login';
-        }, 2000);
-      } else {
-        setTicketError(errorMsg);
-      }
+      setTicketError(e?.message || 'No se pudo enviar el ticket.');
     } finally {
       setTicketLoading(false);
     }
@@ -77,12 +56,12 @@ export const SoporteView = () => {
   return (
     <div className="flex flex-col gap-10 animate-in fade-in duration-700 max-w-3xl">
       <div className="border-b border-white/5 pb-8">
-        <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">Soporte y Sugerencias</h2>
+        <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">Soporte Técnico y Sugerencias</h2>
         <p className="text-gray-500 text-sm mt-2">
-          ¿Problemas técnicos? ¿Ideas para mejorar? Estamos aquí para ayudarte. Soporte profesional para tu clínica.
+          Si algo falla, queremos saberlo al instante para resolverlo. Si tienes ideas para mejorar FisioTool, las leemos todas y las priorizamos.
         </p>
         <p className="text-gray-400 text-sm mt-2">
-          <strong className="text-white">Problemas técnicos</strong> → Respuesta urgente del equipo. <strong className="text-white">Sugerencias</strong> → Leemos todas y las priorizamos.
+          <strong className="text-white">Problema técnico</strong> → alerta urgente al equipo, te respondemos lo antes posible. <strong className="text-white">Consulta</strong> → Ana te responde por email. <strong className="text-white">Sugerencia</strong> → va directa a nuestra hoja de ruta.
         </p>
       </div>
 
@@ -97,11 +76,11 @@ export const SoporteView = () => {
         </p>
 
         <div className="mb-4">
-          <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-2">Tipo de problema</label>
+          <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-2">Tipo</label>
           <div className="flex gap-3">
             <button
               type="button"
-              onClick={() => setTicketType('consulta')}
+              onClick={() => { setTicketType('consulta'); setTicketError(null); setTicketDone(false); }}
               className={`flex items-center gap-2 px-4 py-3 rounded-2xl border text-sm font-medium transition-all ${
                 ticketType === 'consulta'
                   ? 'bg-amber-500/20 border-amber-500/50 text-amber-400'
@@ -113,7 +92,7 @@ export const SoporteView = () => {
             </button>
             <button
               type="button"
-              onClick={() => setTicketType('tecnico')}
+              onClick={() => { setTicketType('tecnico'); setTicketError(null); setTicketDone(false); }}
               className={`flex items-center gap-2 px-4 py-3 rounded-2xl border text-sm font-medium transition-all ${
                 ticketType === 'tecnico'
                   ? 'bg-red-500/20 border-red-500/50 text-red-400'
@@ -127,34 +106,49 @@ export const SoporteView = () => {
         </div>
 
         {ticketError && (
-          <div className="mb-4 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-2xl p-4">{ticketError}</div>
+          <div className="mb-4 flex items-center gap-2 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-2xl p-4">
+            <AlertCircle size={13} />{ticketError}
+          </div>
         )}
         {ticketDone && (
           <div className="mb-4 text-xs text-green-400 bg-green-500/10 border border-green-500/20 rounded-2xl p-4 flex items-center gap-2">
             <CheckCircle2 size={16} />
             {ticketType === 'consulta'
               ? 'Consulta enviada. Revisa tu email: Ana te responderá pronto.'
-              : 'Ticket urgente recibido. El equipo técnico te contactará ASAP.'}
+              : 'Ticket urgente recibido. El equipo técnico te contactará lo antes posible.'}
           </div>
         )}
 
-        <textarea
-          className="w-full bg-black border border-white/10 rounded-2xl p-6 text-white text-sm outline-none focus:border-red-500/50 transition-all min-h-[140px] mb-6"
-          placeholder={
-            ticketType === 'consulta'
-              ? 'Ej: ¿Cómo cambio la hora de cierre los viernes?'
-              : 'Ej: Al guardar una cita me sale error 500 y no se guarda.'
-          }
-          value={ticketMessage}
-          onChange={(e) => setTicketMessage(e.target.value)}
-        />
+        <div className="relative mb-1">
+          <textarea
+            className={`w-full bg-black border rounded-2xl p-6 text-white text-sm outline-none transition-all min-h-[140px] ${
+              ticketMessage.length > MAX_TICKET_LEN * 0.9
+                ? 'border-amber-500/50 focus:border-amber-500'
+                : 'border-white/10 focus:border-red-500/50'
+            }`}
+            placeholder={
+              ticketType === 'consulta'
+                ? 'Ej: ¿Cómo cambio la hora de cierre los viernes?'
+                : 'Ej: Al guardar una cita me sale error 500 y no se guarda.'
+            }
+            value={ticketMessage}
+            onChange={(e) => setTicketMessage(e.target.value.slice(0, MAX_TICKET_LEN))}
+            maxLength={MAX_TICKET_LEN}
+          />
+        </div>
+        <div className="flex justify-between items-center mb-6">
+          <span className="text-[10px] text-gray-600">Describe el problema con el máximo detalle posible.</span>
+          <span className={`text-[10px] tabular-nums ${
+            ticketMessage.length > MAX_TICKET_LEN * 0.9 ? 'text-amber-500' : 'text-gray-600'
+          }`}>{ticketMessage.length}/{MAX_TICKET_LEN}</span>
+        </div>
         <ActionButton
           onClick={submitTicket}
-          disabled={ticketLoading || !ticketMessage.trim()}
+          disabled={ticketLoading || !ticketMessage.trim() || ticketMessage.trim().length > MAX_TICKET_LEN}
           fullWidth
           style={{ height: '52px' }}
         >
-          {ticketLoading ? <Loader2 className="animate-spin mx-auto" /> : ticketType === 'tecnico' ? '🚨 Enviar Ticket Urgente' : '📧 Enviar Consulta'}
+          {ticketLoading ? <Loader2 className="animate-spin mx-auto" /> : ticketType === 'tecnico' ? 'Enviar Ticket Urgente' : 'Enviar Consulta (Ana responde por email)'}
         </ActionButton>
       </div>
 
@@ -167,20 +161,36 @@ export const SoporteView = () => {
         <p className="text-sm text-gray-400 mb-4">
           ¿Echas algo en falta? ¿Alguna funcionalidad que te haría el día a día más fácil? <strong className="text-white">Tu feedback construye el futuro de FisioTool</strong>.
         </p>
-        {error && <div className="mb-4 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-2xl p-4">{error}</div>}
-        {done && (
-          <div className="mb-4 text-xs text-green-400 bg-green-500/10 border border-green-500/20 rounded-2xl p-4 flex items-center gap-2">
-            <CheckCircle2 size={16} /> Sugerencia recibida. Gracias por ayudarnos a mejorar.
+        {error && (
+          <div className="mb-4 flex items-center gap-2 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-2xl p-4">
+            <AlertCircle size={13} />{error}
           </div>
         )}
-        <textarea
-          className="w-full bg-black border border-white/10 rounded-2xl p-6 text-white text-sm outline-none focus:border-blue-500 transition-all min-h-[160px] mb-6"
-          placeholder="Ej: Sería útil poder exportar la agenda a PDF por semana..."
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-        />
-        <ActionButton onClick={submitFeedback} disabled={loading || !text.trim()} fullWidth style={{ height: '52px' }}>
-          {loading ? <Loader2 className="animate-spin mx-auto" /> : '💡 Enviar Sugerencia'}
+        {done && (
+          <div className="mb-4 text-xs text-green-400 bg-green-500/10 border border-green-500/20 rounded-2xl p-4 flex items-center gap-2">
+            <CheckCircle2 size={16} /> Sugerencia recibida. Gracias, la tendremos en cuenta.
+          </div>
+        )}
+        <div className="relative mb-1">
+          <textarea
+            className={`w-full bg-black border rounded-2xl p-6 text-white text-sm outline-none transition-all min-h-[160px] ${
+              text.length > MAX_SUGGESTION_LEN * 0.9
+                ? 'border-amber-500/50 focus:border-amber-500'
+                : 'border-white/10 focus:border-blue-500'
+            }`}
+            placeholder="Ej: Sería útil poder exportar la agenda a PDF por semana..."
+            value={text}
+            onChange={(e) => setText(e.target.value.slice(0, MAX_SUGGESTION_LEN))}
+            maxLength={MAX_SUGGESTION_LEN}
+          />
+        </div>
+        <div className="flex justify-end mb-6">
+          <span className={`text-[10px] tabular-nums ${
+            text.length > MAX_SUGGESTION_LEN * 0.9 ? 'text-amber-500' : 'text-gray-600'
+          }`}>{text.length}/{MAX_SUGGESTION_LEN}</span>
+        </div>
+        <ActionButton onClick={submitFeedback} disabled={loading || !text.trim() || text.trim().length > MAX_SUGGESTION_LEN} fullWidth style={{ height: '52px' }}>
+          {loading ? <Loader2 className="animate-spin mx-auto" /> : 'Enviar Sugerencia'}
         </ActionButton>
       </div>
     </div>
