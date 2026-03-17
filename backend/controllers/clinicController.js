@@ -628,13 +628,19 @@ const getDashboardData = async (req, res, next) => {
     console.log(`🔍 [DASHBOARD] hasSubscription: ${!!data.subscription_active} (${data.subscription_active})`);
     console.log(`🔍 [DASHBOARD] Pacientes count: ${pacientesSnap.size}`);
 
+    let pacientes = pacientesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (specialistId) {
+      const myPhones = new Set(agendaRaw.map(c => String(c.telefono || '').trim()).filter(Boolean));
+      pacientes = pacientes.filter(p => myPhones.has(String(p.telefono || '').trim()));
+    }
+
     res.json({
       success: true,
       data: {
         configStatus: { hasLogo: !!data.logo_url, hasStripe: data.stripe_status === 'active', hasSubscription: !!data.subscription_active },
         clinicData: { id: req.clinicId, ...safeClinic },
         equipo,
-        pacientes: pacientesSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+        pacientes,
         agenda: agendaRaw,
         bloqueos: bloqueosSnap.docs.map(d => ({ id: d.id, ...d.data() })),
         bonos: bonosSnap.docs.map(d => ({ id: d.id, ...d.data() })),
