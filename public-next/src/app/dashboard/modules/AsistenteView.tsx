@@ -1,17 +1,24 @@
 'use client';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Bot, Trash2, Sparkles } from 'lucide-react';
+import { Send, Bot, Trash2, Sparkles, Scale } from 'lucide-react';
 import { dashboardAPI } from '../services';
 
 const STORAGE_KEY = 'ana_dashboard_chat_v1';
 const MAX_CHARS = 1000;
-const WELCOME = 'Hola, soy Ana. Tengo acceso al estado real de tu clínica ahora mismo. Puedo decirte cuántos pacientes tienes, qué citas hay hoy, si Stripe está conectado y cómo sacar partido a cada módulo. ¿Por dónde empezamos?';
+const WELCOME_ANA = 'Hola, soy Ana. Tengo acceso al estado real de tu clínica ahora mismo. Puedo decirte cuántos pacientes tienes, qué citas hay hoy, si Stripe está conectado y cómo sacar partido a cada módulo. ¿Por dónde empezamos?';
+const WELCOME_LEX = 'Hola, soy Lex, asesor jurídico especializado en clínicas de fisioterapia en España. Puedo ayudarte con IVA, IRPF, RGPD, contratos, trimestres fiscales y cualquier duda legal relacionada con tu clínica. ¿Qué consulta tienes?';
 
-const SUGGESTIONS = [
+const SUGGESTIONS_ANA = [
   '¿Cuántos pacientes tengo y cuál es el estado de mi clínica?',
   '¿Cómo activo la campaña de reactivación de inactivos?',
   '¿Cómo importo mis pacientes desde Excel o CSV?',
   '¿Cómo conecto Stripe para cobrar fianzas automáticas?',
+];
+const SUGGESTIONS_LEX = [
+  '¿Las sesiones de fisioterapia están exentas de IVA?',
+  '¿Qué modelos fiscales debo presentar como autónomo?',
+  '¿Qué obligaciones RGPD tengo con los historiales clínicos?',
+  '¿Me conviene más ser autónomo o crear una SL?',
 ];
 
 type Msg = { role: 'user' | 'ana'; text: string; ts: number };
@@ -35,13 +42,14 @@ const renderMarkdown = (text: string) => {
 const loadFromStorage = (): Msg[] => {
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return [{ role: 'ana', text: WELCOME, ts: Date.now() }];
+    if (!raw) return [{ role: 'ana', text: WELCOME_ANA, ts: Date.now() }];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : [{ role: 'ana', text: WELCOME, ts: Date.now() }];
-  } catch { return [{ role: 'ana', text: WELCOME, ts: Date.now() }]; }
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : [{ role: 'ana', text: WELCOME_ANA, ts: Date.now() }];
+  } catch { return [{ role: 'ana', text: WELCOME_ANA, ts: Date.now() }]; }
 };
 
 export const AsistenteView = () => {
+  const [mode, setMode] = useState<'ana' | 'lex'>('ana');
   const [messages, setMessages] = useState<Msg[]>(loadFromStorage);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -65,6 +73,16 @@ export const AsistenteView = () => {
     []
   );
 
+  const switchMode = useCallback((newMode: 'ana' | 'lex') => {
+    if (newMode === mode) return;
+    setMode(newMode);
+    setError(null);
+    const welcome = newMode === 'lex' ? WELCOME_LEX : WELCOME_ANA;
+    const fresh: Msg[] = [{ role: 'ana', text: welcome, ts: Date.now() }];
+    setMessages(fresh);
+    try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(fresh)); } catch { }
+  }, [mode]);
+
   const handleSend = useCallback(async (overrideText?: string) => {
     const text = (overrideText ?? input).trim();
     if (!text || loading) return;
@@ -78,8 +96,10 @@ export const AsistenteView = () => {
     setError(null);
 
     try {
-      const history = buildHistory(messages);
-      const data = await dashboardAPI.sendChatMessage(text, history);
+      const history = mode === 'lex' ? [] : buildHistory(messages);
+      const data = mode === 'lex'
+        ? await dashboardAPI.sendChatMessage(text, [], 'lex')
+        : await dashboardAPI.sendChatMessage(text, history);
       setMessages(prev => [...prev, { role: 'ana', text: data.reply || 'No pude generar respuesta.', ts: Date.now() }]);
     } catch (e: any) {
       const errMsg = String(e?.message || '').toLowerCase();
@@ -94,20 +114,22 @@ export const AsistenteView = () => {
       setLoading(false);
       setTimeout(() => inputRef.current?.focus(), 50);
     }
-  }, [input, loading, messages, buildHistory]);
+  }, [input, loading, messages, mode, buildHistory]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
 
   const handleClear = () => {
-    const fresh: Msg[] = [{ role: 'ana', text: WELCOME, ts: Date.now() }];
+    const welcome = mode === 'lex' ? WELCOME_LEX : WELCOME_ANA;
+    const fresh: Msg[] = [{ role: 'ana', text: welcome, ts: Date.now() }];
     setMessages(fresh);
     setError(null);
     try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(fresh)); } catch { }
   };
 
   const showSuggestions = messages.length <= 1 && !loading;
+  const SUGGESTIONS = mode === 'lex' ? SUGGESTIONS_LEX : SUGGESTIONS_ANA;
   const charsLeft = MAX_CHARS - input.length;
 
   return (
@@ -115,17 +137,30 @@ export const AsistenteView = () => {
       {/* Header */}
       <div className="p-4 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shrink-0"><Bot size={17} color="#fff" /></div>
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${mode === 'lex' ? 'bg-amber-600' : 'bg-blue-600'}`}>
+            {mode === 'lex' ? <Scale size={17} color="#fff" /> : <Bot size={17} color="#fff" />}
+          </div>
           <div>
-            <span className="text-xs font-black text-white uppercase tracking-widest">Consultoría Ana</span>
-            <p className="text-[10px] text-gray-500 mt-0.5">Pregúntame sobre tu clínica, tus datos reales o cómo usar cualquier módulo.</p>
+            <span className="text-xs font-black text-white uppercase tracking-widest">{mode === 'lex' ? 'Lex · Asesor Legal' : 'Consultoría Ana'}</span>
+            <p className="text-[10px] text-gray-500 mt-0.5">{mode === 'lex' ? 'IVA, IRPF, RGPD, contratos y fiscalidad para tu clínica.' : 'Pregúntame sobre tu clínica, tus datos reales o cómo usar cualquier módulo.'}</p>
           </div>
         </div>
-        {messages.length > 1 && (
-          <button onClick={handleClear} title="Limpiar conversación" className="text-gray-600 hover:text-red-400 transition p-1 rounded-lg hover:bg-red-500/10">
-            <Trash2 size={14} />
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Toggle Ana / Lex */}
+          <div className="flex bg-white/5 rounded-lg p-0.5 gap-0.5">
+            <button onClick={() => switchMode('ana')} className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${mode === 'ana' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:text-gray-300'}`}>
+              <Bot size={10} className="inline mr-1" />Ana
+            </button>
+            <button onClick={() => switchMode('lex')} className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${mode === 'lex' ? 'bg-amber-600 text-white' : 'text-gray-500 hover:text-gray-300'}`}>
+              <Scale size={10} className="inline mr-1" />Lex
+            </button>
+          </div>
+          {messages.length > 1 && (
+            <button onClick={handleClear} title="Limpiar conversación" className="text-gray-600 hover:text-red-400 transition p-1 rounded-lg hover:bg-red-500/10">
+              <Trash2 size={14} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Messages */}
@@ -139,7 +174,7 @@ export const AsistenteView = () => {
             )}
             <div className={`max-w-[82%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed space-y-0.5 ${
               m.role === 'ana'
-                ? 'bg-white/[0.04] text-gray-200 rounded-tl-sm border border-white/5'
+                ? mode === 'lex' ? 'bg-amber-500/10 text-gray-200 rounded-tl-sm border border-amber-500/20' : 'bg-white/[0.04] text-gray-200 rounded-tl-sm border border-white/5'
                 : 'bg-blue-600 text-white rounded-tr-sm'
             }`}>
               {m.role === 'ana' ? renderMarkdown(m.text) : <span>{m.text}</span>}
@@ -150,11 +185,11 @@ export const AsistenteView = () => {
         {loading && (
           <div className="flex items-center gap-2 pl-8">
             <div className="flex gap-1">
-              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              <span className={`w-1.5 h-1.5 rounded-full animate-bounce ${mode === 'lex' ? 'bg-amber-500' : 'bg-blue-500'}`} style={{ animationDelay: '0ms' }} />
+              <span className={`w-1.5 h-1.5 rounded-full animate-bounce ${mode === 'lex' ? 'bg-amber-500' : 'bg-blue-500'}`} style={{ animationDelay: '150ms' }} />
+              <span className={`w-1.5 h-1.5 rounded-full animate-bounce ${mode === 'lex' ? 'bg-amber-500' : 'bg-blue-500'}`} style={{ animationDelay: '300ms' }} />
             </div>
-            <span className="text-blue-500 text-[10px] font-bold uppercase tracking-widest">Ana pensando…</span>
+            <span className={`text-[10px] font-bold uppercase tracking-widest ${mode === 'lex' ? 'text-amber-500' : 'text-blue-500'}`}>{mode === 'lex' ? 'Lex consultando…' : 'Ana pensando…'}</span>
           </div>
         )}
 

@@ -280,11 +280,12 @@ class DashboardService {
 
   public async sendChatMessage(
     message: string,
-    history: Array<{ role: 'user' | 'assistant'; content: string }>
+    history: Array<{ role: 'user' | 'assistant'; content: string }>,
+    agent?: string
   ): Promise<{ reply: string }> {
     return this.request<{ success: boolean; reply: string }>('/api/chat/dashboard', {
       method: 'POST',
-      body: JSON.stringify({ message, history })
+      body: JSON.stringify({ message, history, ...(agent ? { agent } : {}) })
     });
   }
 }
