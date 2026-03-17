@@ -1103,6 +1103,11 @@ const uploadAvatar = async (req, res, next) => {
       return res.status(400).json({ success: false, error: 'specialistId requerido' });
     }
 
+    // Staff solo puede subir su propio avatar
+    if (req.specialistId && req.specialistId !== specialistId) {
+      return res.status(403).json({ success: false, error: 'Solo puedes actualizar tu propio avatar' });
+    }
+
     if (!req.file) {
       return res.status(400).json({ success: false, error: 'Archivo no proporcionado' });
     }
@@ -2025,6 +2030,7 @@ const processAppointmentReminders = async (req, res) => {
 
 const updateAnaConfig = async (req, res, next) => {
   try {
+    if (req.specialistId) return res.status(403).json({ success: false, error: 'Solo el propietario puede configurar el asistente' });
     const { name, color, welcome, photo, useClinicLogo, prospectionEmail, seguimientoActivo } = req.body;
     const FieldValue = admin.firestore.FieldValue;
 
