@@ -9,6 +9,7 @@ interface AgendaProps {
   equipo: Especialista[];
   agenda: any[];
   bloqueos: any[];
+  initialSpecId?: string;
   horario: { apertura?: string; cierre?: string; reapertura?: string; cierre_final?: string };
   onBlockSchedule: () => void;
   onNewAppointment: (data: any) => void;
@@ -16,15 +17,16 @@ interface AgendaProps {
   clinicData: { es_multiclinica?: boolean }; // Added clinicData
 }
 
-export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda, bloqueos, horario, onBlockSchedule, onNewAppointment, onEventClick, clinicData }) => {
+export const AgendaView: React.FC<AgendaProps> = ({ currentUser, equipo, agenda, bloqueos, horario, onBlockSchedule, onNewAppointment, onEventClick, clinicData, initialSpecId }) => {
   const isStaff = !!(currentUser?.specialistId);
   const staffSpecId = currentUser?.specialistId || '';
   const [viewMode, setViewMode] = useState<'dia' | 'semana' | 'mes'>('dia');
   const [selectedSpec, setSelectedSpec] = useState<string>('all');
-  const isMultiClinic = !!clinicData?.es_multiclinica; // Defined isMultiClinic
+  const isMultiClinic = !!clinicData?.es_multiclinica;
   useEffect(() => {
     if (isStaff && staffSpecId) setSelectedSpec(staffSpecId);
-  }, [isStaff, staffSpecId]);
+    else if (initialSpecId) setSelectedSpec(initialSpecId);
+  }, [isStaff, staffSpecId, initialSpecId]);
   const [monthCursor, setMonthCursor] = useState(() => {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1);

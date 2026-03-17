@@ -998,19 +998,23 @@ const uploadAvatar = async (req, res, next) => {
       return res.status(400).json({ success: false, error: 'Archivo no proporcionado' });
     }
 
-    // Aquí deberías subir el archivo a un servicio de almacenamiento (Cloud Storage, S3, etc.)
-    // Por ahora, simularemos la subida y devolveremos una URL ficticia
-    const avatarUrl = `https://storage.googleapis.com/fisio-avatars/${specialistId}-${Date.now()}.jpg`;
+    if (req.file.size > 2 * 1024 * 1024) return res.status(400).json({ success: false, error: 'Imagen demasiado pesada (máx 2MB)' });
+    const allowed = new Set(['image/png', 'image/jpeg', 'image/webp']);
+    const ct = String(req.file.mimetype || '').toLowerCase();
+    if (!allowed.has(ct)) return res.status(400).json({ success: false, error: 'Formato no soportado (png/jpg/webp)' });
 
-    // Actualizar el especialista con la nueva URL del avatar
+    const ext = ct === 'image/png' ? 'png' : ct === 'image/webp' ? 'webp' : 'jpg';
+    const safeClinic = String(req.clinicId || '').replace(/[^a-zA-Z0-9_-]/g, '');
+    const filename = `avatars/${safeClinic}/${specialistId}-${Date.now()}.${ext}`;
+
+    const { uploadBuffer, BUCKET_NAME } = require('../services/storageService');
+    await uploadBuffer({ filename, buffer: req.file.buffer, contentType: ct, cacheControl: 'public, max-age=86400' });
+
+    const avatarUrl = `https://storage.googleapis.com/${BUCKET_NAME}/${filename}`;
+
     const equipoRef = db.collection('clinicas').doc(req.clinicId).collection('equipo');
-    await equipoRef.doc(specialistId).update({
-      avatarUrl,
-      updated_at: Timestamp.now()
-    });
-
+    await equipoRef.doc(specialistId).update({ avatarUrl, updated_at: Timestamp.now() });
     await createAuditLog(req.clinicId, req.userId || req.clinicId, 'UPLOAD_AVATAR', specialistId);
-
     res.json({ success: true, avatarUrl });
   } catch (e) { next(e); }
 };

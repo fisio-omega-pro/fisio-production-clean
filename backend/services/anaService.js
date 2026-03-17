@@ -36,7 +36,6 @@ const getTeamInfo = async (clinicId) => {
     const teamSnapshot = await db.collection('clinicas')
       .doc(clinicId)
       .collection('equipo')
-      .where('isOwner', '==', false)
       .get();
 
     if (teamSnapshot.empty) {
@@ -1039,7 +1038,10 @@ REGLAS:
     const agendaText = nextDays.map((d, i) => `  ${d.label}: ${fmtSlots(daySlots[i])}`).join('\n');
 
     const teamText = team.count > 0
-      ? `\nEQUIPO DISPONIBLE: ${team.specialists.slice(0, 5).map(s => `${s.name}${s.specialty ? ` - ${s.specialty}` : ''}`).join(', ')}`
+      ? `\nEQUIPO DISPONIBLE (${team.count} especialista${team.count > 1 ? 's' : ''}): ${team.specialists.slice(0, 5).map(s => `${s.name}${s.specialty ? ` - ${s.specialty}` : ''}`).join(', ')}`
+      : '';
+    const multiSpecialistRule = team.count > 1
+      ? `11. MULTI-ESPECIALISTA: Esta clínica tiene ${team.count} fisioterapeutas (${team.specialists.map(s => s.name).join(', ')}). Al inicio de cualquier gestión de cita, SIEMPRE pregunta al paciente con qué especialista prefiere tratarse. Si el paciente dice que le da igual, elige tú el que tenga el hueco que mejor encaje con el horario deseado por el paciente y confírmale el nombre.`
       : '';
 
     const lastAppt = patHist.history?.[0];
@@ -1090,7 +1092,7 @@ REGLAS CRÍTICAS:
 7. Respuestas cortas y directas (máx 4 oraciones). Sin firmas ni etiquetas al final.
 8. Si el paciente es recurrente, trátalo con familiaridad natural.
 9. No des diagnósticos ni consejos médicos. Para eso está el fisioterapeuta.
-${nameRule}`;
+${nameRule}${multiSpecialistRule ? `\n${multiSpecialistRule}` : ''}`;
 
     // === FASE 5: HISTORIAL CONVERSACIONAL FORMATEADO ===
     // Preferir sesión Firestore; si está vacía (timing), usar historial del frontend como fallback

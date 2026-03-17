@@ -251,17 +251,21 @@ class AgendaSkill extends Skill {
 
   async getAvailableSlots(clinicId, date) {
     try {
-      const snapshot = await db.collection('agenda')
+      const snapshot = await db.collection('citas')
         .where('clinic_id', '==', clinicId)
         .where('fecha', '==', date)
-        .where('estado', '==', 'disponible')
-        .orderBy('hora')
+        .where('estado', 'not-in', ['anulada', 'no_show', 'cancelada'])
         .get();
-      
-      return snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      const ocupadas = new Set(snapshot.docs.map(d => d.data().hora));
+      // Generar slots de 9:00 a 20:00 cada 45min
+      const slots = [];
+      for (let h = 9; h < 20; h++) {
+        for (const m of ['00', '30']) {
+          const hora = `${String(h).padStart(2,'0')}:${m}`;
+          if (!ocupadas.has(hora)) slots.push({ hora, disponible: true });
+        }
+      }
+      return slots;
     } catch (e) {
       console.error('Error getting slots:', e);
       return [];
@@ -270,15 +274,14 @@ class AgendaSkill extends Skill {
 
   async checkSlotAvailability(clinicId, date, time) {
     try {
-      const snapshot = await db.collection('agenda')
+      const snapshot = await db.collection('citas')
         .where('clinic_id', '==', clinicId)
         .where('fecha', '==', date)
         .where('hora', '==', time)
-        .where('estado', '==', 'disponible')
+        .where('estado', 'not-in', ['anulada', 'no_show', 'cancelada'])
         .limit(1)
         .get();
-      
-      return !snapshot.empty;
+      return snapshot.empty; // libre si no hay citas activas a esa hora
     } catch (e) {
       return false;
     }

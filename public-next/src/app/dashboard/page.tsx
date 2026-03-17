@@ -35,15 +35,24 @@ import { StripeModal } from './components/modals/StripeModal';
 import { NewPatientModal } from './components/modals/NewPatientModal';
 import { Crown, Loader2, Zap, Ticket, User, Building2, MapPin, Info } from 'lucide-react';
 
-// Planes que incluyen multi-sede (300€): al subir de nivel se activa automáticamente en el dashboard
 const PLANS_MULTI_CLINIC = ['team', 'business', 'corporate'];
+const STAFF_ALLOWED_TABS = ['agenda', 'equipo'];
 
 export default function DashboardOmega() {
   const state = useDashboardState();
   const plan = String(state.clinicData?.plan || 'solo').toLowerCase();
   const hasMultiClinicPlan = PLANS_MULTI_CLINIC.includes(plan);
-  // Mis Clínicas visible para todos: plan 100€ ve solo CTA "Añadir más clínicas"; plan 300€ ve la gestión completa.
-  const navItemsFiltered = React.useMemo(() => NAV_ITEMS, []);
+  const navItemsFiltered = React.useMemo(() => {
+    if (!state.currentUser?.isOwner) {
+      const filtered: typeof NAV_ITEMS = {};
+      for (const section of Object.keys(NAV_ITEMS)) {
+        const items = NAV_ITEMS[section].filter(item => STAFF_ALLOWED_TABS.includes(item.id));
+        if (items.length > 0) filtered[section] = items;
+      }
+      return filtered;
+    }
+    return NAV_ITEMS;
+  }, [state.currentUser?.isOwner]);
   const { isRecording, transcript, toggleRecording, setTranscript } = useVoiceAssistant(state.voiceEnabled);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const lastSpokenTab = useRef<string>('');
@@ -53,11 +62,18 @@ export default function DashboardOmega() {
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    if (!state.isLoading && !state.currentUser?.isOwner && !STAFF_ALLOWED_TABS.includes(state.activeTab)) {
+      state.setActiveTab('agenda');
+    }
+  }, [state.currentUser?.isOwner, state.isLoading, state.activeTab]);
+
   // DATOS DE FORMULARIOS
   const [apptData, setApptData] = useState({ nombre: '', telefono: '', email: '', fecha: '', hora: '', docId: '' });
   const [blockData, setBlockData] = useState({ date: '', startTime: '09:00', endTime: '20:00', reason: '', allDay: false });
   const [sedeData, setSedeData] = useState({ nombre: '', calle: '', cp: '', ciudad: '', provincia: '' });
   const [bonoData, setBonoData] = useState({ paciente_nombre: '', sesiones_totales: 10, fecha_vencimiento: '' });
+  const [agendaSpecId, setAgendaSpecId] = useState<string | undefined>(undefined);
   const [upgradePlan, setUpgradePlan] = useState<'team' | 'corporate'>('team');
 
   // Refs para modales
@@ -242,7 +258,7 @@ export default function DashboardOmega() {
 
     switch (state.activeTab) {
       case 'home': return <HomeView clinicId={state.clinicId} configStatus={state.configStatus} clinicData={state.clinicData} onRefresh={state.refreshData} onGoToAsistente={() => state.setActiveTab('config_ana')} />;
-      case 'agenda': return <AgendaView clinicData={state.clinicData} currentUser={state.currentUser} equipo={state.equipo} agenda={state.agenda} bloqueos={state.bloqueos} horario={state.clinicData.horario || { apertura: '08:00', cierre: '14:00', reapertura: '16:00', cierre_final: '21:00' }} onBlockSchedule={() => state.setModalType('bloqueo')} onNewAppointment={(d: any) => { setApptData({ ...apptData, fecha: d.date, hora: d.time, docId: d.specialistId || '' }); state.setModalType('cita'); }} onEventClick={state.setSelectedEvent} />;
+      case 'agenda': return <AgendaView clinicData={state.clinicData} currentUser={state.currentUser} equipo={state.equipo} agenda={state.agenda} bloqueos={state.bloqueos} horario={state.clinicData.horario || { apertura: '08:00', cierre: '14:00', reapertura: '16:00', cierre_final: '21:00' }} onBlockSchedule={() => state.setModalType('bloqueo')} onNewAppointment={(d: any) => { setApptData({ ...apptData, fecha: d.date, hora: d.time, docId: d.specialistId || '' }); state.setModalType('cita'); }} onEventClick={state.setSelectedEvent} initialSpecId={agendaSpecId} />;
       case 'pacientes': return <PacientesView pacientes={state.pacientes} onDictate={() => state.setModalType('voz')} onImport={() => state.setModalType('importar')} onNewPatient={() => state.setModalType('nuevo_paciente')} />;
       case 'finanzas': return <FinanzasView balance={state.balance} pacientes={state.pacientes} onActivateCampaign={async () => { await dashboardAPI.launchCampaign(); state.refreshData(); }} onStopCampaign={async () => { await dashboardAPI.stopCampaign(); state.refreshData(); }} clinicData={state.clinicData} onGoToImport={() => { state.setActiveTab('pacientes'); state.setModalType('importar'); }} />;
       case 'bonos': return <BonosView
@@ -264,7 +280,7 @@ export default function DashboardOmega() {
         }}
         onGoToAna={() => state.setActiveTab('config_ana')}
       />;
-      case 'equipo': return <EquipoView currentUser={state.currentUser} equipo={state.equipo} onAddMember={() => state.setModalType('editar_perfil')} currentPlan={state.clinicData.plan} onViewCalendar={() => state.setActiveTab('agenda')} onEditMember={(m) => { state.setMemberToEdit(m); state.setModalType('editar_perfil'); }} onUpgrade={async () => { const url = await dashboardAPI.upgradePlan('team'); if (url) window.location.href = url; }} clinicData={state.clinicData} upgradeLoading={upgradeLoading} />;
+      case 'equipo': return <EquipoView currentUser={state.currentUser} equipo={state.equipo} onAddMember={() => state.setModalType('editar_perfil')} currentPlan={state.clinicData.plan} onViewCalendar={(id: string) => { setAgendaSpecId(id); state.setActiveTab('agenda'); }} onEditMember={(m) => { state.setMemberToEdit(m); state.setModalType('editar_perfil'); }} onUpgrade={async () => { const url = await dashboardAPI.upgradePlan('team'); if (url) window.location.href = url; }} clinicData={state.clinicData} upgradeLoading={upgradeLoading} />;
       case 'sedes':
         return (
           <SedesView
