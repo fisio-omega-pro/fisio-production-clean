@@ -203,10 +203,21 @@ const getClinicInfo = async (req, res) => {
     if (!doc.exists) return res.status(404).json({ success: false, error: 'Clínica no encontrada' });
 
     const data = doc.data() || {};
+    const anaFoto = data.ana_photo_path
+      ? `/api/public/ana-photo/${ref}?v=${data.ana_photo_v || 0}`
+      : (data.ana_photo || null);
     return res.json({
       success: true,
-      nombre: data.nombre_clinica || data.nombre || '',
-      logo: data.logo_url || null
+      data: {
+        nombre_clinica: data.nombre_clinica || data.nombre || '',
+        nombre: data.nombre_clinica || data.nombre || '',
+        logo_url: data.logo_url || null,
+        ana_nombre: data.ana_name || 'Ana',
+        ana_color: data.ana_color || '#075E54',
+        ana_foto: anaFoto,
+        ana_usa_logo_clinica: !!data.ana_use_clinic_logo,
+        ana_welcome: data.ana_welcome || null
+      }
     });
   } catch (e) {
     return res.status(500).json({ success: false, error: e.message });
@@ -418,7 +429,7 @@ module.exports = {
       const ext = path.split('.').pop()?.toLowerCase();
       const contentType = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
       res.setHeader('Content-Type', contentType);
-      res.setHeader('Cache-Control', 'public, max-age=3600');
+      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
       const stream = getReadStream(path);
       stream.on('error', () => res.status(404).end());
       stream.pipe(res);

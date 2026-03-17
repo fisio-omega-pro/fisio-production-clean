@@ -1887,8 +1887,10 @@ const uploadAnaPhoto = async (req, res, next) => {
     const { BUCKET_NAME } = require('../services/storageService');
     const storageUrl = `https://storage.googleapis.com/${BUCKET_NAME}/${filename}`;
 
+    const photoVersion = Date.now();
     await db.collection('clinicas').doc(req.clinicId).update({
       ana_photo_path: filename,        // path en GCS (para servirlo vía proxy)
+      ana_photo_v: photoVersion,       // versión para cache-busting en URL
       ana_photo: null,                 // limpiar URL antigua
       ana_use_clinic_logo: false,
       updated_at: Timestamp.now()
