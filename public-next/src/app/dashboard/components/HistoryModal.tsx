@@ -10,6 +10,7 @@ export const HistoryModal = ({ event, onClose, onRefresh }: { event: any; onClos
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<'paid' | 'cancel' | null>(null);
   const [actionDone, setActionDone] = useState<string | null>(null);
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
 
   const title = String(event?.title || event?.nombre || 'Paciente');
   const initial = title.charAt(0).toUpperCase() || 'P';
@@ -41,14 +42,14 @@ export const HistoryModal = ({ event, onClose, onRefresh }: { event: any; onClos
 
   const handleCancel = async () => {
     if (!event?.id || actionLoading) return;
-    if (!confirm('¿Seguro que quieres cancelar esta cita?')) return;
     setActionLoading('cancel');
+    setConfirmingCancel(false);
     try {
       await dashboardAPI.updateAppointment(event.id, { estado: 'anulada' });
-      setActionDone('✅ Cita anulada correctamente');
+      setActionDone('Cita anulada correctamente');
       onRefresh?.();
     } catch (e: any) {
-      setActionDone(`❌ ${e.message || 'Error al cancelar'}`);
+      setActionDone(`Error: ${e.message || 'No se pudo anular'}`);
     } finally {
       setActionLoading(null);
     }
@@ -127,14 +128,24 @@ export const HistoryModal = ({ event, onClose, onRefresh }: { event: any; onClos
                   PAGADO
                 </button>
               )}
-              <button
-                onClick={handleCancel}
-                disabled={!!actionLoading}
-                className="py-3 rounded-xl bg-red-600/20 text-red-400 text-xs font-bold hover:bg-red-600/40 transition flex items-center justify-center gap-1 disabled:opacity-50"
-              >
-                {actionLoading === 'cancel' ? <Loader2 size={12} className="animate-spin"/> : <XCircle size={12}/>}
-                ANULAR
-              </button>
+              {confirmingCancel ? (
+                <div className="flex gap-1">
+                  <button onClick={() => setConfirmingCancel(false)} className="flex-1 py-3 rounded-xl bg-white/5 text-gray-400 text-[9px] font-bold hover:bg-white/10 transition">
+                    NO
+                  </button>
+                  <button onClick={handleCancel} disabled={!!actionLoading} className="flex-1 py-3 rounded-xl bg-red-600/60 text-white text-[9px] font-bold hover:bg-red-600 transition disabled:opacity-50">
+                    {actionLoading === 'cancel' ? <Loader2 size={10} className="animate-spin mx-auto"/> : 'SÍ'}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setConfirmingCancel(true)}
+                  disabled={!!actionLoading}
+                  className="py-3 rounded-xl bg-red-600/20 text-red-400 text-xs font-bold hover:bg-red-600/40 transition flex items-center justify-center gap-1 disabled:opacity-50"
+                >
+                  <XCircle size={12}/> ANULAR
+                </button>
+              )}
             </>
           )}
           {(isPaid || actionDone?.includes('✅')) && (

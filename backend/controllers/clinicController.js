@@ -417,6 +417,8 @@ const createAppointment = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
+const MAX_NOTE_LEN = 5000;
+
 // 3. GUARDAR NOTA DE PACIENTE (El punto más crítico para HIPAA)
 const savePatientNote = async (req, res, next) => {
   try {
@@ -424,6 +426,7 @@ const savePatientNote = async (req, res, next) => {
     const pid = String(body.patientId || body.p || '').trim();
     const text = String(body.content || body.c || '').trim();
     if (!pid || !text) return res.status(400).json({ success: false, error: 'patientId y content requeridos' });
+    if (text.length > MAX_NOTE_LEN) return res.status(400).json({ success: false, error: `El informe no puede superar ${MAX_NOTE_LEN} caracteres` });
 
     const patientRef = db.collection('pacientes').doc(pid);
     const patientDoc = await patientRef.get();
@@ -441,11 +444,13 @@ const savePatientNote = async (req, res, next) => {
 
     await patientRef.collection('notas').add({
       clinic_id: req.clinicId,
+      author_id: req.userId || req.clinicId,
+      author_specialist_id: req.specialistId || null,
       content: text,
       created_at: Timestamp.now()
     });
 
-    // 🚨 LOG: Modificación de historial
+    // 🚨 LOG: Modificación de historial clínico
     await createAuditLog(req.clinicId, req.userId || req.clinicId, 'MODIFY_PATIENT_RECORD', pid);
     res.json({ success: true });
   } catch (e) { next(e); }
@@ -456,57 +461,44 @@ const savePaciente = async (req, res, next) => {
   try {
     const paciente = req.body?.paciente || {};
     const nombre = String(paciente.nombre || '').trim();
-    const email = String(paciente.email || '').trim();
+    const email = String(paciente.email || '').trim().toLowerCase();
     const telefono = String(paciente.telefono || '').trim();
 
     if (!nombre || !email || !telefono) {
-      return res.status(400).json({
-        success: false,
-        error: 'nombre, email y teléfono son requeridos'
-      });
+      return res.status(400).json({ success: false, error: 'nombre, email y teléfono son requeridos' });
     }
+    if (nombre.length > 120) return res.status(400).json({ success: false, error: 'Nombre demasiado largo (max 120)' });
+    if (email.length > 120) return res.status(400).json({ success: false, error: 'Email demasiado largo (max 120)' });
+    if (telefono.length > 30) return res.status(400).json({ success: false, error: 'Teléfono demasiado largo (max 30)' });
 
-    // Verificar si ya existe un paciente con ese email o teléfono
     const existingSnapshot = await db.collection('pacientes')
       .where('clinic_id', '==', req.clinicId)
-      .where('email', '==', email.toLowerCase())
+      .where('email', '==', email)
       .limit(1)
       .get();
 
     if (!existingSnapshot.empty) {
-      return res.status(400).json({
-        success: false,
-        error: 'Ya existe un paciente con este email'
-      });
+      return res.status(409).json({ success: false, error: 'Ya existe un paciente con este email' });
     }
 
-    // Crear el nuevo paciente
     const pacienteRef = await db.collection('pacientes').add({
       clinic_id: req.clinicId,
-      nombre: nombre,
-      email: email.toLowerCase(),
-      telefono: telefono,
+      nombre,
+      email,
+      telefono,
       created_at: Timestamp.now(),
       updated_at: Timestamp.now(),
-      status: 'ACTIVE'
+      status: 'ACTIVO'
     });
 
-    await createAuditLog(req.clinicId, req.userId || req.clinicId, 'CREATE_PATIENTE', pacienteRef.id);
+    await createAuditLog(req.clinicId, req.userId || req.clinicId, 'CREATE_PATIENT', pacienteRef.id);
 
     return res.json({
       success: true,
       id: pacienteRef.id,
-      paciente: {
-        id: pacienteRef.id,
-        nombre: nombre,
-        email: email,
-        telefono: telefono
-      }
+      paciente: { id: pacienteRef.id, nombre, email, telefono }
     });
-  } catch (e) {
-    console.error('Error en savePaciente:', e);
-    next(e);
-  }
+  } catch (e) { next(e); }
 };
 
 // 3b. HISTORIAL CLÍNICO (para el modal de Agenda)
@@ -853,67 +845,59 @@ const createBlock = async (req, res, next) => {
 // Crear nuevo paciente
 const createPatient = async (req, res, next) => {
   try {
-    const clinicId = req.clinicId; // Corregido: viene del middleware auth, no de params
-    const patientData = req.body;
+    const clinicId = req.clinicId;
+    const d = req.body || {};
 
-    // Validar datos requeridos
-    if (!patientData.nombre || !patientData.telefono) {
-      return res.status(400).json({
-        error: 'Nombre y teléfono son obligatorios'
-      });
+    const nombre = String(d.nombre || '').trim();
+    const telefono = String(d.telefono || '').trim();
+    const email = String(d.email || '').trim().toLowerCase();
+    const dolencia = String(d.dolencia || '').trim().slice(0, 300);
+    const notas = String(d.notas || '').trim().slice(0, 1000);
+    const fechaInicio = String(d.fechaInicio || '').trim();
+    const edad = d.edad !== undefined && d.edad !== null ? Number(d.edad) : null;
+
+    if (!nombre || !telefono) {
+      return res.status(400).json({ success: false, error: 'Nombre y teléfono son obligatorios' });
+    }
+    if (nombre.length > 120) return res.status(400).json({ success: false, error: 'Nombre demasiado largo (max 120)' });
+    if (telefono.length > 30) return res.status(400).json({ success: false, error: 'Teléfono demasiado largo (max 30)' });
+    if (email.length > 120) return res.status(400).json({ success: false, error: 'Email demasiado largo (max 120)' });
+    if (edad !== null && (isNaN(edad) || edad < 0 || edad > 150)) {
+      return res.status(400).json({ success: false, error: 'Edad inválida (0-150)' });
     }
 
-    // Verificar si ya existe un paciente con el mismo teléfono
     const existingPatient = await db.collection('pacientes')
       .where('clinic_id', '==', clinicId)
-      .where('telefono', '==', patientData.telefono)
+      .where('telefono', '==', telefono)
+      .limit(1)
       .get();
 
     if (!existingPatient.empty) {
-      return res.status(409).json({
-        error: 'Ya existe un paciente con este número de teléfono'
-      });
+      return res.status(409).json({ success: false, error: 'Ya existe un paciente con este número de teléfono' });
     }
 
-    // Crear el paciente
     const patientRef = await db.collection('pacientes').add({
       clinic_id: clinicId,
-      nombre: patientData.nombre.trim(),
-      telefono: patientData.telefono.trim(),
-      email: patientData.email?.trim() || '',
-      edad: patientData.edad || null,
-      dolencia: patientData.dolencia?.trim() || '',
-      fechaInicio: patientData.fechaInicio || '',
-      notas: patientData.notas?.trim() || '',
+      nombre,
+      telefono,
+      email,
+      edad,
+      dolencia,
+      fechaInicio,
+      notas,
       status: 'ACTIVO',
       created_at: Timestamp.now(),
       updated_at: Timestamp.now()
     });
 
-    // Crear log de auditoría
     await createAuditLog(clinicId, req.userId || req.clinicId, 'CREATE_PATIENT', patientRef.id);
 
     res.status(201).json({
       success: true,
       id: patientRef.id,
-      message: 'Paciente creado exitosamente',
-      patient: {
-        id: patientRef.id,
-        nombre: patientData.nombre.trim(),
-        telefono: patientData.telefono.trim(),
-        email: patientData.email?.trim() || '',
-        edad: patientData.edad || null,
-        dolencia: patientData.dolencia?.trim() || '',
-        fechaInicio: patientData.fechaInicio || '',
-        notas: patientData.notas?.trim() || '',
-        status: 'ACTIVO'
-      }
+      patient: { id: patientRef.id, nombre, telefono, email, edad, dolencia, fechaInicio, notas, status: 'ACTIVO' }
     });
-
-  } catch (e) {
-    console.error('Error creating patient:', e);
-    next(e);
-  }
+  } catch (e) { next(e); }
 };
 
 const saveLogo = async (req, res, next) => {
@@ -1176,27 +1160,31 @@ const uploadAvatar = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
+const MAX_IMPORT_PATIENTS = 2000;
+
 const importPatients = async (req, res, next) => {
   try {
     const patients = Array.isArray(req.body?.patients) ? req.body.patients : [];
     if (!Array.isArray(patients) || patients.length === 0) {
       return res.status(400).json({ success: false, error: 'patients[] requerido' });
     }
+    if (patients.length > MAX_IMPORT_PATIENTS) {
+      return res.status(400).json({ success: false, error: `No se pueden importar más de ${MAX_IMPORT_PATIENTS} pacientes a la vez` });
+    }
 
     let written = 0;
-    // Firestore batch limit: 500
     for (let i = 0; i < patients.length; i += 400) {
       const chunk = patients.slice(i, i + 400);
       const batch = db.batch();
       chunk.forEach((p) => {
         const ref = db.collection('pacientes').doc();
         batch.set(ref, {
-          clinicId: req.clinicId,
-          nombre: String(p.nombre || p.name || p.contacto || 'Paciente').trim(),
-          telefono: String(p.telefono || p.phone || p.movil || '').trim(),
-          email: String(p.email || p.mail || '').trim().toLowerCase(),
-          dolencia: String(p.dolencia || p.observaciones || p.notas || 'Consulta inicial').trim(),
-          status: String(p.status || 'ACTIVO').toUpperCase(),
+          clinic_id: req.clinicId,
+          nombre: String(p.nombre || p.name || p.contacto || 'Paciente').trim().slice(0, 120),
+          telefono: String(p.telefono || p.phone || p.movil || '').trim().slice(0, 30),
+          email: String(p.email || p.mail || '').trim().toLowerCase().slice(0, 120),
+          dolencia: String(p.dolencia || p.observaciones || p.notas || 'Consulta inicial').trim().slice(0, 300),
+          status: 'ACTIVO',
           created_at: Timestamp.now(),
           updated_at: Timestamp.now()
         });
@@ -1205,7 +1193,6 @@ const importPatients = async (req, res, next) => {
       written += chunk.length;
     }
 
-    console.log(`✅ [IMPORT] Escritos ${written} pacientes con clinicId: ${req.clinicId}`);
     await createAuditLog(req.clinicId, req.userId || req.clinicId, 'IMPORT_PATIENTS', String(written));
     return res.json({ success: true, count: written });
   } catch (e) { next(e); }

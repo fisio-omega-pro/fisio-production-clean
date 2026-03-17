@@ -83,6 +83,8 @@ export default function DashboardOmega() {
   const [isBlockingSchedule, setIsBlockingSchedule] = useState(false);
   const [blockError, setBlockError] = useState<string | null>(null);
   const [pendingDeleteBlockId, setPendingDeleteBlockId] = useState<string | null>(null);
+  const [noteSaveError, setNoteSaveError] = useState<string | null>(null);
+  const [noteSaveDone, setNoteSaveDone] = useState(false);
 
   // Refs para modales
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -555,7 +557,7 @@ export default function DashboardOmega() {
         saving={isSavingSpecialist}
         saveError={saveSpecialistError}
       />
-      <ImportModal isOpen={state.modalType === 'importar'} onClose={() => state.setModalType(null)} fileInputRef={fileInputRef} onFileSelect={(e) => e.target.files && state.handleImportFile(e.target.files[0])} isImporting={state.importing} />
+      <ImportModal isOpen={state.modalType === 'importar'} onClose={() => { state.setModalType(null); state.setImportResult(null); }} fileInputRef={fileInputRef} onFileSelect={(e) => e.target.files && state.handleImportFile(e.target.files[0])} isImporting={state.importing} importResult={state.importResult} />
       <LogoModal
         isOpen={state.modalType === 'logo_upload'}
         onClose={() => state.setModalType(null)}
@@ -584,7 +586,7 @@ export default function DashboardOmega() {
       />
       <VoiceModal
         isOpen={state.modalType === 'voz'}
-        onClose={() => { state.setModalType(null); setTranscript(""); }}
+        onClose={() => { state.setModalType(null); setTranscript(""); setNoteSaveError(null); setNoteSaveDone(false); }}
         isRecording={isRecording}
         toggleRecording={toggleRecording}
         noteContent={state.noteContent}
@@ -593,16 +595,20 @@ export default function DashboardOmega() {
         selectedPatientId={state.selectedPatientId}
         setSelectedPatientId={state.setSelectedPatientId}
         onSave={async () => {
+          setNoteSaveError(null);
+          setNoteSaveDone(false);
           try {
             await state.handleSaveNote();
-            state.setModalType(null);
+            setNoteSaveDone(true);
             setTranscript("");
-            alert("✅ Informe guardado.");
-          } catch {
-            alert("Error al guardar informe.");
+            setTimeout(() => { state.setModalType(null); setNoteSaveDone(false); }, 1800);
+          } catch (e: any) {
+            setNoteSaveError(e?.message || 'Error al guardar el informe. Inténtalo de nuevo.');
           }
         }}
         loading={state.loading}
+        saveError={noteSaveError}
+        saveDone={noteSaveDone}
       />
 
       <Modal isOpen={state.modalType === 'nuevo_bono'} onClose={() => state.setModalType(null)} title="Emitir Bono de Sesiones">

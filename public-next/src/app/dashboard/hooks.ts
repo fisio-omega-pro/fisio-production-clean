@@ -29,6 +29,7 @@ export const useDashboardState = () => {
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [memberToEdit, setMemberToEdit] = useState<Especialista | null>(null);
   const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const hasGreeted = useRef(false);
   const isRefreshing = useRef(false);
 
@@ -78,6 +79,9 @@ export const useDashboardState = () => {
       setNoteContent("");
       setSelectedPatientId("");
       await refreshData();
+    } catch (e) {
+      setLoading(false);
+      throw e;
     } finally {
       setLoading(false);
     }
@@ -105,11 +109,11 @@ export const useDashboardState = () => {
             };
           });
           const count = await dashboardAPI.importPatients(mapped);
-          alert(`✅ Éxito: ${count} pacientes integrados.`);
+          setImportResult({ type: 'success', message: `${count} pacientes integrados correctamente.` });
           setModalType(null);
           refreshData();
-        } catch (e) {
-          alert("Error en procesado masivo.");
+        } catch (e: any) {
+          setImportResult({ type: 'error', message: e?.message || 'Error en el procesado masivo.' });
         } finally {
           setImporting(false);
         }
@@ -131,6 +135,7 @@ export const useDashboardState = () => {
     clinicId, setClinicId, loading, setLoading, voiceEnabled, setVoiceEnabled,
     noteContent, setNoteContent, selectedPatientId, setSelectedPatientId,
     selectedEvent, setSelectedEvent, memberToEdit, setMemberToEdit, importing,
+    importResult, setImportResult,
     refreshData, handleSaveNote, handleImportFile
   };
 };

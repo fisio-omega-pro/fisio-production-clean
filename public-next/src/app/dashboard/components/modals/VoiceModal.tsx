@@ -5,6 +5,8 @@ import { Modal } from '../Modal';
 import { ActionButton } from '../Atoms';
 import { Paciente } from '../../types';
 
+const MAX_NOTE_LEN = 5000;
+
 interface VoiceModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -17,9 +19,16 @@ interface VoiceModalProps {
   setSelectedPatientId: (val: string) => void;
   onSave: () => void;
   loading: boolean;
+  saveError?: string | null;
+  saveDone?: boolean;
 }
 
 export const VoiceModal = (props: VoiceModalProps) => {
+  const trimmed = props.noteContent.trim();
+  const isOverLimit = props.noteContent.length > MAX_NOTE_LEN;
+  const isNearLimit = props.noteContent.length > MAX_NOTE_LEN * 0.9;
+  const canSave = !props.loading && !!trimmed && !!props.selectedPatientId && !isOverLimit;
+
   return (
     <Modal isOpen={props.isOpen} onClose={props.onClose} title="Dictado Clínico Inteligente">
       <div className="flex flex-col gap-6">
@@ -35,11 +44,21 @@ export const VoiceModal = (props: VoiceModalProps) => {
           </button>
         </div>
 
-        <textarea 
-          value={props.noteContent}
-          onChange={(e) => props.setNoteContent(e.target.value)}
-          className="w-full h-40 bg-black/40 border border-white/10 rounded-2xl p-4 text-gray-300 text-sm outline-none focus:border-blue-500/50 transition-all"
-        />
+        <div className="relative">
+          <textarea 
+            value={props.noteContent}
+            onChange={(e) => props.setNoteContent(e.target.value.slice(0, MAX_NOTE_LEN))}
+            maxLength={MAX_NOTE_LEN}
+            className={`w-full h-40 bg-black/40 border rounded-2xl p-4 text-gray-300 text-sm outline-none transition-all ${
+              isOverLimit ? 'border-red-500/50 focus:border-red-500' :
+              isNearLimit ? 'border-amber-500/50 focus:border-amber-500' :
+              'border-white/10 focus:border-blue-500/50'
+            }`}
+          />
+          <span className={`absolute bottom-3 right-4 text-[9px] tabular-nums font-mono ${
+            isOverLimit ? 'text-red-400' : isNearLimit ? 'text-amber-400' : 'text-gray-600'
+          }`}>{props.noteContent.length}/{MAX_NOTE_LEN}</span>
+        </div>
 
         <select 
           value={props.selectedPatientId}
@@ -50,9 +69,20 @@ export const VoiceModal = (props: VoiceModalProps) => {
           {props.pacientes.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
         </select>
 
+        {props.saveError && (
+          <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-2xl p-3 flex items-center gap-2">
+            ⚠️ {props.saveError}
+          </div>
+        )}
+        {props.saveDone && (
+          <div className="text-xs text-green-400 bg-green-500/10 border border-green-500/20 rounded-2xl p-3">
+            ✅ Informe guardado correctamente en el expediente del paciente.
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-4">
           <button onClick={props.onClose} className="py-3 rounded-xl bg-white/5 text-gray-500 font-bold text-xs">DESCARTAR</button>
-          <ActionButton onClick={props.onSave} disabled={props.loading || !props.noteContent || !props.selectedPatientId}>
+          <ActionButton onClick={canSave ? props.onSave : undefined} disabled={!canSave} style={{ opacity: canSave ? 1 : 0.5 }}>
             {props.loading ? <Loader2 className="animate-spin mx-auto"/> : 'GUARDAR INFORME'}
           </ActionButton>
         </div>

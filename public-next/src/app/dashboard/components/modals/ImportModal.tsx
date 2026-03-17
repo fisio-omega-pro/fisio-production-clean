@@ -9,9 +9,10 @@ interface ImportModalProps {
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   onFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
   isImporting: boolean;
+  importResult?: { type: 'success' | 'error'; message: string } | null;
 }
 
-export const ImportModal = ({ isOpen, onClose, fileInputRef, onFileSelect, isImporting }: ImportModalProps) => {
+export const ImportModal = ({ isOpen, onClose, fileInputRef, onFileSelect, isImporting, importResult }: ImportModalProps) => {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Importación Inteligente de Pacientes">
       <div className="flex flex-col gap-6 py-4 font-sans">
@@ -48,6 +49,16 @@ export const ImportModal = ({ isOpen, onClose, fileInputRef, onFileSelect, isImp
           />
         </div>
 
+        {importResult && (
+          <div className={`flex items-center gap-2 px-4 py-3 rounded-2xl border text-xs font-bold ${
+            importResult.type === 'success'
+              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+              : 'bg-red-500/10 text-red-400 border-red-500/20'
+          }`}>
+            <AlertCircle size={12} />
+            {importResult.message}
+          </div>
+        )}
         <div className="flex items-center gap-2 justify-center text-gray-600">
            <AlertCircle size={12} />
            <p className="text-[9px] font-bold uppercase tracking-tighter">Cumplimiento GDPR garantizado durante el procesado</p>
