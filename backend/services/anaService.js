@@ -871,32 +871,34 @@ module.exports = {
   },
 
   processMessage: async (clinicId, userMessage, conversationHistory = []) => {
-    // Carga paralela de contexto real con timeout global de 3s
     let clinicStateBlock = '';
+    let anaDisplayName = 'Ana';
+
     try {
-      const todayMadrid = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Madrid' }); // YYYY-MM-DD
+      const todayMadrid = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Madrid' });
+      const withTimeout = (p, ms = 3000) => Promise.race([p, new Promise((_, r) => setTimeout(() => r(new Error('timeout')), ms))]);
+      const next7Days = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(); d.setDate(d.getDate() + i);
+        return d.toLocaleDateString('en-CA', { timeZone: 'Europe/Madrid' });
+      });
+      const weekEnd = next7Days[6];
 
-      const withTimeout = (promise, ms = 3000) =>
-        Promise.race([promise, new Promise((_, r) => setTimeout(() => r(new Error('timeout')), ms))]);
-
-      const [clinicResult, equipoResult, pacientesResult, citasHoyResult] = await Promise.allSettled([
+      const [clinicResult, equipoResult, pacientesResult, citasHoyResult, citasSemanResult, bonosResult] = await Promise.allSettled([
         withTimeout(db.collection('clinicas').doc(clinicId).get()),
         withTimeout(db.collection('clinicas').doc(clinicId).collection('equipo').get()),
         withTimeout(db.collection('pacientes').where('clinic_id', '==', clinicId).count().get()),
         withTimeout(db.collection('citas').where('clinic_id', '==', clinicId).where('fecha', '==', todayMadrid).get()),
+        withTimeout(db.collection('citas').where('clinic_id', '==', clinicId).where('fecha', '>=', todayMadrid).where('fecha', '<=', weekEnd).get()),
+        withTimeout(db.collection('bonos').where('clinic_id', '==', clinicId).where('sesiones_restantes', '>', 0).count().get()),
       ]);
 
-      const cd = clinicResult.status === 'fulfilled' && clinicResult.value?.exists
-        ? (clinicResult.value.data() || {})
-        : {};
+      const cd = clinicResult.status === 'fulfilled' && clinicResult.value?.exists ? (clinicResult.value.data() || {}) : {};
 
       const equipoDocs = equipoResult.status === 'fulfilled' ? equipoResult.value.docs || [] : [];
       const equipoCount = equipoDocs.length;
       const equipoNames = equipoDocs.map(d => d.data()?.nombre || 'Especialista').join(', ');
 
-      const pacientesCount = pacientesResult.status === 'fulfilled'
-        ? (pacientesResult.value?.data()?.count ?? '?')
-        : '?';
+      const pacientesCount = pacientesResult.status === 'fulfilled' ? (pacientesResult.value?.data()?.count ?? '?') : '?';
 
       const citasHoyDocs = citasHoyResult.status === 'fulfilled' ? citasHoyResult.value.docs || [] : [];
       const citasHoyCount = citasHoyDocs.length;
@@ -904,41 +906,55 @@ module.exports = {
         .map(d => { const c = d.data(); return `${c.hora || '?'} – ${c.nombre || 'Paciente'} (${c.estado || 'pendiente'})`; })
         .join(', ') || 'Sin citas';
 
+      const citasSemanDocs = citasSemanResult.status === 'fulfilled' ? citasSemanResult.value.docs || [] : [];
+      const citasByDay = {};
+      citasSemanDocs.forEach(d => { const f = d.data().fecha || ''; if (f) citasByDay[f] = (citasByDay[f] || 0) + 1; });
+      const semanaResumen = next7Days
+        .filter(d => d !== todayMadrid)
+        .map(d => { const n = citasByDay[d] || 0; return n > 0 ? `${d}: ${n} cita${n > 1 ? 's' : ''}` : null; })
+        .filter(Boolean).join(', ') || 'Sin citas los próximos días';
+
+      const bonosActivos = bonosResult.status === 'fulfilled' ? (bonosResult.value?.data()?.count ?? '?') : '?';
+
       const plan = String(cd.plan || 'solo').toLowerCase();
       const cazaActivo = !!cd.config_ia?.modo_caza_activo;
       const seguimientoActivo = !!cd.config_ia?.seguimiento_activo;
       const stripeOk = !!(cd.stripe_account_id && cd.stripe_status === 'active');
       const precioSesion = cd.config_ia?.precio || cd.precio_sesion || 50;
       const fianza = cd.config_ia?.fianza || cd.fianza_cita || 20;
+      const duracion = cd.duracion_cita || 45;
       const horario = cd.horario
         ? `${cd.horario.apertura || '09:00'} – ${cd.horario.cierre_final || cd.horario.cierre || '20:00'}`
         : '09:00 – 20:00';
       const nombreClinica = cd.nombre_clinica || cd.nombre || 'Tu clínica';
+      anaDisplayName = cd.ana_name || 'Ana';
 
-      // Setup pendiente
       const pendingSetup = [];
-      if (!cd.logo_url && !cd.logo_path) pendingSetup.push('subir logo');
-      if (!cd.stripe_account_id) pendingSetup.push('conectar Stripe en Pagos');
-      if (pacientesCount === 0 || pacientesCount === '0') pendingSetup.push('importar pacientes en Pacientes → Importar');
+      if (!cd.logo_url && !cd.logo_path) pendingSetup.push('subir logo (Inicio)');
+      if (!cd.stripe_account_id) pendingSetup.push('conectar Stripe (Pagos → Conectar Stripe)');
+      if (pacientesCount === 0 || pacientesCount === '0') pendingSetup.push('importar pacientes (Pacientes → Importar)');
+      if (!cd.horario?.apertura) pendingSetup.push('configurar horario (Ajustes)');
 
       clinicStateBlock = `
 
 ═══════════════════════════════
 📊 ESTADO REAL DE ${nombreClinica.toUpperCase()}
 ═══════════════════════════════
-- Plan activo: ${plan.toUpperCase()}
-- Equipo: ${equipoCount} especialista${equipoCount !== 1 ? 's' : ''}${equipoCount > 0 ? ` (${equipoNames})` : ' — aún sin equipo añadido'}
+- Plan activo: ${plan.toUpperCase()} | Asistente IA: ${anaDisplayName}
+- Equipo: ${equipoCount} especialista${equipoCount !== 1 ? 's' : ''}${equipoCount > 0 ? ` (${equipoNames})` : ' — sin equipo añadido aún'}
 - Pacientes en base de datos: ${pacientesCount}
-- Citas hoy (${todayMadrid}): ${citasHoyCount} → ${citasHoyDetalle}
+- Bonos activos (con sesiones restantes): ${bonosActivos}
+- Citas HOY (${todayMadrid}): ${citasHoyCount} → ${citasHoyDetalle}
+- Citas próximos 6 días: ${semanaResumen}
 - Stripe: ${stripeOk ? '✅ Conectado y activo (cobro de fianzas habilitado)' : '⚠️ NO conectado — ir a Pagos → Conectar Stripe'}
-- Precio sesión: ${precioSesion}€ | Fianza: ${fianza}€
+- Precio sesión: ${precioSesion}€ | Fianza: ${fianza}€ | Duración cita: ${duracion} min
 - Horario: ${horario}
 - Campaña reactivación inactivos: ${cazaActivo ? '✅ ACTIVA' : '⏸ PAUSADA — activar en Balance → "Activar campaña"'}
-- Seguimiento post-tratamiento 48h: ${seguimientoActivo ? '✅ ACTIVO' : '⏸ PAUSADO — activar en Ana Config'}
+- Seguimiento post-tratamiento 48h: ${seguimientoActivo ? '✅ ACTIVO' : '⏸ PAUSADO — activar en Asistente Config'}
 ${pendingSetup.length > 0 ? `- ⚠️ Setup pendiente: ${pendingSetup.join(' | ')}` : '- ✅ Setup completo'}`;
     } catch (_) {}
 
-    const dashboardSystemPrompt = `Eres Ana, asistente experta de operaciones de FisioTool Pro. Ayudas al fisioterapeuta a dominar su dashboard y maximizar el rendimiento de su clínica.
+    const dashboardSystemPrompt = `Eres ${anaDisplayName}, asistente experta de operaciones de FisioTool Pro. Ayudas al fisioterapeuta a dominar su dashboard y maximizar el rendimiento de su clínica.
 
 ${DASHBOARD_KNOWLEDGE}${clinicStateBlock}
 
@@ -955,14 +971,9 @@ REGLAS:
     try {
       const reply = await claudeService.generateResponse(
         String(userMessage || ''),
-        {
-          systemPrompt: dashboardSystemPrompt,
-          conversationHistory,
-          maxTokens: 500
-        }
+        { systemPrompt: dashboardSystemPrompt, conversationHistory, maxTokens: 500 }
       );
-      const trimmed = String(reply || '').trim();
-      return { reply: trimmed || 'No pude generar una respuesta. Reformula la pregunta.' };
+      return { reply: String(reply || '').trim() || 'No pude generar una respuesta. Reformula la pregunta.' };
     } catch (e) {
       console.error('🔥 [ANA DASHBOARD] Error IA:', e.message);
       return { reply: 'Mis sistemas están experimentando saturación momentánea. Por favor, vuelve a intentarlo en unos segundos.' };
