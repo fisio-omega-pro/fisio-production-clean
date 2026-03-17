@@ -468,7 +468,7 @@ export default function DashboardOmega() {
 
       {/* --- REGISTRO INTEGRAL DE MODALES --- */}
       <AppointmentModal isOpen={state.modalType === 'cita'} onClose={() => { state.setModalType(null); setApptError(null); }} data={apptData} setData={setApptData} onSubmit={handleCreateAppt} isSubmitting={isCreatingAppt} submitError={apptError} />
-      <BlockModal isOpen={state.modalType === 'bloqueo'} onClose={() => state.setModalType(null)} data={blockData} setData={setBlockData} onSubmit={handleBlockSchedule} />
+      <BlockModal isOpen={state.modalType === 'bloqueo'} onClose={() => state.setModalType(null)} data={blockData} setData={setBlockData} onSubmit={handleBlockSchedule} isSubmitting={isBlockingSchedule} />
       <EditProfileModal
         isOpen={state.modalType === 'editar_perfil'}
         onClose={() => { state.setModalType(null); setSaveSpecialistError(null); }}

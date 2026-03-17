@@ -10,9 +10,10 @@ interface BlockModalProps {
   data: { date: string; startTime: string; endTime: string; reason: string; allDay: boolean; };
   setData: (data: any) => void;
   onSubmit: () => void;
+  isSubmitting?: boolean;
 }
 
-export const BlockModal = ({ isOpen, onClose, data, setData, onSubmit }: BlockModalProps) => {
+export const BlockModal = ({ isOpen, onClose, data, setData, onSubmit, isSubmitting }: BlockModalProps) => {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Bloqueo Quirúrgico">
       <div className="flex flex-col gap-4">
@@ -53,8 +54,8 @@ export const BlockModal = ({ isOpen, onClose, data, setData, onSubmit }: BlockMo
           value={data.reason} 
           onChange={(v) => setData({...data, reason: v})} 
         />
-        <ActionButton variant="danger" onClick={onSubmit} fullWidth>
-          ACTIVAR BLOQUEO
+        <ActionButton variant="danger" onClick={onSubmit} fullWidth disabled={isSubmitting}>
+          {isSubmitting ? 'Guardando...' : 'ACTIVAR BLOQUEO'}
         </ActionButton>
       </div>
     </Modal>
