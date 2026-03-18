@@ -1,4 +1,3 @@
-/**
  * 🤖 ANA SKILL ENGINE - Sistema Modular de Inteligencia
  * 
  * Arquitectura:

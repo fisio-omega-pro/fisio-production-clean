@@ -66,17 +66,19 @@ async function sendWelcomeEmail({ email, nombre_clinica, contractNumber }) {
   const subject = 'Bienvenido a FisioTool Pro — guía rápida y contrato';
   const dashboardUrl = 'https://fisiotool.com/login';
 
+  const videoUrl = 'https://youtu.be/Bkb8aFPoLMU';
   const text =
     `Hola ${nombre_clinica},\n\n` +
     `Soy Ana, de FisioTool Pro.\n` +
     `Tu cuenta ya está creada y operativa.\n\n` +
     `Contrato de suscripción: ${contractNumber}\n\n` +
     `HOJA DE RUTA (5 minutos):\n` +
-    `1) Entra al dashboard: ${dashboardUrl}\n` +
-    `2) Configura cobros (Stripe/Bizum).\n` +
-    `3) Añade tu primer paciente.\n` +
-    `4) Crea tu primera cita.\n` +
-    `5) Habla con Ana dentro del dashboard.\n\n` +
+    `1) Vídeo de primeros pasos: ${videoUrl}\n` +
+    `2) Entra al dashboard: ${dashboardUrl}\n` +
+    `3) Configura cobros (Stripe/Bizum).\n` +
+    `4) Añade tu primer paciente.\n` +
+    `5) Crea tu primera cita.\n` +
+    `6) Habla con Ana dentro del dashboard.\n\n` +
     `Soporte: responde a este email.\n\n` +
     `— Ana · Directora de Operaciones\n`;
 
@@ -88,6 +90,12 @@ async function sendWelcomeEmail({ email, nombre_clinica, contractNumber }) {
     </div>
     <div style="height:14px"></div>
     <p class="p"><strong>Hoja de ruta (5 minutos):</strong></p>
+    <div style="height:10px"></div>
+    <a class="cta" href="${videoUrl}" target="_blank" style="background:#FF0000; color:#fff; display:inline-flex; align-items:center; gap:8px;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      Ver vídeo de primeros pasos
+    </a>
+    <div style="height:12px"></div>
     <ol class="p" style="padding-left:18px; margin-top:0">
       <li>Entra al dashboard: <a href="${dashboardUrl}">${escapeHtml(dashboardUrl)}</a></li>
       <li>Configura cobros (Stripe/Bizum) desde tu panel.</li>
