@@ -102,6 +102,7 @@ router.post('/dashboard/import-patients', ensureHandler(clinicController.importP
 router.post('/dashboard/activate-bonos', ensureHandler(clinicController.activateBonos, 'activateBonos'));
 router.post('/dashboard/deactivate-bonos', ensureHandler(clinicController.deactivateBonos, 'deactivateBonos'));
 router.post('/dashboard/create-bono', ensureHandler(clinicController.createBono, 'createBono'));
+router.post('/dashboard/contact-bonos-patients', ensureHandler(clinicController.contactBonosPatients, 'contactBonosPatients'));
 router.post('/dashboard/launch-campaign', ensureHandler(clinicController.launchCampaign, 'launchCampaign'));
 router.post('/dashboard/stop-campaign', ensureHandler(clinicController.stopCampaign, 'stopCampaign'));
 router.post('/dashboard/run-recaptacion', ensureHandler(clinicController.runRecaptacionNow, 'runRecaptacionNow'));
@@ -113,6 +114,7 @@ router.post('/dashboard/upgrade-plan', (req, res, next) => {
   ensureHandler(clinicController.createUpgradeSession, 'createUpgradeSession')(req, res, next);
 });
 router.post('/dashboard/cancel-subscription', ensureHandler(clinicController.cancelSubscription, 'cancelSubscription'));
+router.post('/dashboard/delete-account', ensureHandler(clinicController.deleteAccount, 'deleteAccount'));
 router.delete('/dashboard/delete-account', ensureHandler(clinicController.deleteAccount, 'deleteAccount'));
 router.post('/dashboard/cobrar-cita-bono', ensureHandler(clinicController.createCitaBonoCheckout, 'createCitaBonoCheckout'));
 router.post('/dashboard/upload-ana-photo', upload.single('file'), ensureHandler(clinicController.uploadAnaPhoto, 'uploadAnaPhoto'));

@@ -128,7 +128,10 @@ export default function LandingProfesional() {
   useEffect(() => {
     const handleKeys = (e: KeyboardEvent) => {
       // Evitar interferencia con lectores de pantalla
-      if (e.ctrlKey || e.altKey) return;
+      if (e.ctrlKey || e.altKey || e.metaKey) return;
+      // No capturar teclas si el foco está en un campo editable
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
 
       switch (e.key.toLowerCase()) {
         case ' ':
@@ -272,7 +275,7 @@ export default function LandingProfesional() {
   }
 
   return (
-    <div style={styles.page} role="application" aria-label="FisioTool Pro - Plataforma accesible para fisioterapeutas invidentes">
+    <div style={styles.page} role="main" aria-label="FisioTool Pro - Plataforma accesible para fisioterapeutas invidentes">
       {/* Barra de estado de voz */}
       <header style={styles.voiceBar} role="status" aria-live="polite" aria-atomic="true">
         <Volume2 size={24} aria-hidden="true" />

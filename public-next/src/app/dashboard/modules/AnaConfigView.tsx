@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
-import { Bot, CheckCircle2, Loader2, Palette, MessageSquare, Camera, Sparkles, Layout } from 'lucide-react';
+import { Bot, CheckCircle2, Loader2, Palette, MessageSquare, Camera, Sparkles, Layout, Mail, Users, Zap } from 'lucide-react';
 import { dashboardAPI } from '../services';
 
 interface AnaConfigProps {
@@ -28,7 +28,10 @@ export const AnaConfigView = ({ clinicData, onUpdated }: AnaConfigProps) => {
         photo: clinicData?.ana_photo_path ? `/api/public/ana-photo/${clinicData.id}/` : (clinicData?.ana_photo || ''),
         useClinicLogo: clinicData?.ana_use_clinic_logo !== undefined ? clinicData.ana_use_clinic_logo : !!clinicData?.logo_url, // Activar por defecto si hay logo
         prospectionEmail: clinicData?.email_contacto || '',
-        seguimientoActivo: clinicData?.config_ia?.seguimiento_activo || false
+        seguimientoActivo: clinicData?.config_ia?.seguimiento_activo || false,
+        // Nueva configuración para contacto automático de bonos
+        bonosAutoContact: clinicData?.config_ia?.bonos_auto_contact || false,
+        bonosMinSessions: clinicData?.config_ia?.bonos_min_sessions || 3
     });
 
     const [saving, setSaving] = useState(false);
@@ -36,6 +39,10 @@ export const AnaConfigView = ({ clinicData, onUpdated }: AnaConfigProps) => {
     const [error, setError] = useState<string | null>(null);
     const [uploadingPhoto, setUploadingPhoto] = useState(false);
     const photoInputRef = useRef<HTMLInputElement>(null);
+
+    // Estados para la nueva funcionalidad de contacto automático
+    const [contactingPatients, setContactingPatients] = useState(false);
+    const [contactResult, setContactResult] = useState<any>(null);
 
     // Mensaje optimizado para WhatsApp
     const whatsappOptimizedMessage = `🏥 *${clinicData?.nombre_clinica || 'Tu Clínica'}* 
@@ -87,6 +94,38 @@ export const AnaConfigView = ({ clinicData, onUpdated }: AnaConfigProps) => {
             setError(e.message || 'Error al guardar la configuración');
         } finally {
             setSaving(false);
+        }
+    };
+
+    // Nueva función para contacto automático de pacientes con bonos
+    const handleContactBonosPatients = async (contactAll = false) => {
+        setContactingPatients(true);
+        setContactResult(null);
+        setError(null);
+        try {
+            const response = await fetch('/api/dashboard/contact-bonos-patients', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('fisio_token')}`
+                },
+                body: JSON.stringify({
+                    minSessionsLeft: config.bonosMinSessions,
+                    contactAll
+                })
+            });
+
+            const result = await response.json();
+            setContactResult(result);
+            
+            if (result.success) {
+                setSaved(true);
+                setTimeout(() => setSaved(false), 4000);
+            }
+        } catch (e: any) {
+            setError(e.message || 'Error al contactar pacientes');
+        } finally {
+            setContactingPatients(false);
         }
     };
 
@@ -280,6 +319,86 @@ export const AnaConfigView = ({ clinicData, onUpdated }: AnaConfigProps) => {
                                     <div className="mt-3 flex items-center gap-2 p-2 bg-green-500/10 border border-green-500/20 rounded-xl">
                                         <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse flex-shrink-0" />
                                         <span className="text-[10px] text-green-300">Activo — Ana hará seguimiento automático 48h post-sesión</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* 🎯 NUEVA SECCIÓN: Contacto Automático de Bonos */}
+                            <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex-1 pr-4">
+                                        <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                                            <Zap size={16} className="text-yellow-500" />
+                                            Contacto Automático de Bonos
+                                        </h4>
+                                        <p className="text-[10px] text-gray-400 mt-1">
+                                            Ana contactará automáticamente a pacientes con bonos para agendar citas cuando les queden pocas sesiones.
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={() => setConfig({ ...config, bonosAutoContact: !config.bonosAutoContact })}
+                                        className={`relative w-12 h-6 rounded-full transition-all flex-shrink-0 ${config.bonosAutoContact ? 'bg-green-500' : 'bg-white/10'}`}
+                                    >
+                                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${config.bonosAutoContact ? 'left-7' : 'left-1'}`} />
+                                    </button>
+                                </div>
+
+                                {config.bonosAutoContact && (
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 block font-bold">
+                                                Contactar cuando queden ≤
+                                            </label>
+                                            <div className="flex items-center gap-3">
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    max="10"
+                                                    value={config.bonosMinSessions}
+                                                    onChange={(e) => setConfig({ ...config, bonosMinSessions: parseInt(e.target.value) || 3 })}
+                                                    className="w-20 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500/50 text-center"
+                                                />
+                                                <span className="text-[10px] text-gray-400">sesiones restantes</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex gap-3">
+                                            <button
+                                                onClick={() => handleContactBonosPatients(false)}
+                                                disabled={contactingPatients}
+                                                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                            >
+                                                {contactingPatients ? <Loader2 className="w-3 h-3 animate-spin" /> : <Mail className="w-3 h-3" />}
+                                                Contactar Ahora
+                                            </button>
+                                            <button
+                                                onClick={() => handleContactBonosPatients(true)}
+                                                disabled={contactingPatients}
+                                                className="px-4 py-2 bg-gray-700 text-white rounded-xl text-xs font-medium hover:bg-gray-600 transition-colors disabled:opacity-50"
+                                            >
+                                                Contactar a Todos
+                                            </button>
+                                        </div>
+
+                                        {contactResult && (
+                                            <div className={`p-3 rounded-xl text-xs ${
+                                                contactResult.success 
+                                                    ? 'bg-green-500/10 border border-green-500/20 text-green-300' 
+                                                    : 'bg-red-500/10 border border-red-500/20 text-red-300'
+                                            }`}>
+                                                <div className="font-medium mb-1">
+                                                    {contactResult.success ? '✅ Contacto realizado' : '❌ Error en contacto'}
+                                                </div>
+                                                <div className="text-[10px] opacity-80">
+                                                    {contactResult.message}
+                                                </div>
+                                                {contactResult.results && (
+                                                    <div className="mt-2 text-[9px]">
+                                                        Enviados: {contactResult.contacted} | Errores: {contactResult.errors}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>

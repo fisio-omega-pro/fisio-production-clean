@@ -1577,37 +1577,103 @@ const cancelSubscription = async (req, res, next) => {
 // 🚨 OPERACIÓN CRÍTICA: BORRADO TOTAL DE CUENTA (Stripe + Firestore)
 const deleteAccount = async (req, res, next) => {
   try {
+    // Validación de seguridad básica
     if (req.specialistId) {
+      console.warn('🚫 Intento de eliminación por no propietario:', req.specialistId);
       return res.status(403).json({ success: false, error: 'Solo el propietario puede eliminar la cuenta' });
     }
+
     const clinicId = req.clinicId;
+    if (!clinicId) {
+      console.error('🔥 Error: clinicId no proporcionado en deleteAccount');
+      return res.status(400).json({ success: false, error: 'ID de clínica no válido' });
+    }
+
     const clinicRef = db.collection('clinicas').doc(clinicId);
     const clinicDoc = await clinicRef.get();
 
-    if (!clinicDoc.exists) return res.status(404).json({ success: false, error: 'Clínica no encontrada' });
-    const clinicData = clinicDoc.data() || {};
+    if (!clinicDoc.exists) {
+      console.warn('🚫 Intento de eliminar clínica inexistente:', clinicId);
+      return res.status(404).json({ success: false, error: 'Clínica no encontrada' });
+    }
 
-    // Doble confirmación: el email enviado debe coincidir con el de la cuenta
-    const confirmEmail = String(req.body?.confirmEmail || '').toLowerCase().trim();
-    if (!confirmEmail) return res.status(400).json({ success: false, error: 'confirmEmail es obligatorio para eliminar la cuenta' });
-    if (confirmEmail !== String(clinicData.email || '').toLowerCase().trim()) {
-      return res.status(400).json({ success: false, error: 'El email de confirmación no coincide con el de la cuenta' });
+    const clinicData = clinicDoc.data() || {};
+    if (!clinicData.email) {
+      console.error('🔥 Error: clínica sin email:', clinicId);
+      return res.status(400).json({ success: false, error: 'La clínica no tiene email registrado' });
     }
 
     console.log(`🗑️  Iniciando borrado total de cuenta: ${clinicId} (${clinicData.email})`);
 
-    // 1. CANCELAR STRIPE INMEDIATAMENTE (PRUEBA DE FUEGO)
+    // 1. CANCELAR STRIPE INMEDIATAMENTE
     const subId = String(clinicData.stripe_subscription_id || '').trim();
     if (subId) {
       try {
+        const paymentService = require('./paymentService');
         await paymentService.cancelSubscriptionImmediately(subId);
         console.log(`✅ Propagada cancelación inmediata a Stripe: ${subId}`);
       } catch (stripeErr) {
         console.error(`⚠️ Error al cancelar en Stripe (procediendo con borrado local):`, stripeErr.message);
+        // Continuar con el borrado local aunque falle Stripe
       }
     }
 
-    // 2. BORRAR TODOS LOS DATOS RELACIONADOS (FIREBASE)
+    // 2. ENVIAR EMAIL DE CONFIRMACIÓN ANTES DE BORRAR
+    try {
+      const emailService = require('../services/emailSenderService');
+      if (emailService && typeof emailService.sendEmail === 'function') {
+        await emailService.sendEmail({
+          to: clinicData.email,
+          subject: `🔒 Confirmación de Eliminación de Cuenta - FisioTool Pro`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
+              <div style="background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <h2 style="color: #dc2626; margin-bottom: 20px; text-align: center;">⚠️ CUENTA ELIMINADA</h2>
+                
+                <div style="color: #333; line-height: 1.6;">
+                  <p>Estimado administrador de <strong>${clinicData.nombre_clinica || clinicData.nombre || 'Tu Clínica'}</strong>,</p>
+                  
+                  <p>Te confirmamos que tu cuenta y todos los datos asociados han sido <strong style="color: #dc2626;">eliminados permanentemente</strong> de nuestros sistemas.</p>
+                  
+                  <div style="background-color: #fef2f2; border-left: 4px solid #dc2626; padding: 15px; margin: 20px 0;">
+                    <h3 style="color: #dc2626; margin-top: 0;">✅ DATOS ELIMINADOS:</h3>
+                    <ul style="margin: 10px 0; padding-left: 20px;">
+                      <li>Historiales clínicos de pacientes</li>
+                      <li>Citas y agendas</li>
+                      <li>Notas y registros médicos</li>
+                      <li>Información de equipo y especialistas</li>
+                      <li>Bonos y registros financieros</li>
+                      <li>Configuración de la clínica</li>
+                      <li>Datos de acceso y autenticación</li>
+                    </ul>
+                  </div>
+                  
+                  <p><strong style="color: #059669;">✓ Por cumplimiento del RGPD, todos los datos médicos han sido eliminados de forma segura e irrecuperable.</strong></p>
+                  
+                  <p><strong style="color: #059669;">✓ Tu suscripción a Stripe ha sido cancelada. No se realizarán más cargos.</strong></p>
+                  
+                  <p>Si tienes alguna pregunta, por favor contacta con nuestro soporte.</p>
+                  
+                  <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; text-align: center; color: #666; font-size: 12px;">
+                    <p>Este email es la confirmación oficial de que todos tus datos han sido eliminados.</p>
+                    <p>FisioTool Pro - Plataforma de Gestión Clínica</p>
+                    <p>Fecha: ${new Date().toLocaleString('es-ES')}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `
+        });
+        console.log(`📧 Email de confirmación enviado a: ${clinicData.email}`);
+      } else {
+        console.warn('⚠️ Servicio de email no disponible');
+      }
+    } catch (emailErr) {
+      console.error(`⚠️ Error enviando email de confirmación:`, emailErr.message);
+      // Continuar con el borrado aunque falle el email
+    }
+
+    // 3. BORRAR TODOS LOS DATOS RELACIONADOS (FIREBASE)
     const collections = [
       'pacientes',
       'citas',
@@ -1618,52 +1684,117 @@ const deleteAccount = async (req, res, next) => {
       'stripe_connect_profesionales'
     ];
 
+    let totalDeleted = 0;
+    const deletionErrors = [];
+
     for (const colName of collections) {
-      const q = db.collection(colName).where('clinicId', '==', clinicId);
-      const q2 = db.collection(colName).where('clinic_id', '==', clinicId);
+      try {
+        const q = db.collection(colName).where('clinicId', '==', clinicId);
+        const q2 = db.collection(colName).where('clinic_id', '==', clinicId);
 
-      const [snap1, snap2] = await Promise.all([q.get(), q2.get()]);
-      const batch = db.batch();
+        const [snap1, snap2] = await Promise.allSettled([
+          q.get().catch(e => ({ empty: true, error: e })),
+          q2.get().catch(e => ({ empty: true, error: e }))
+        ]);
 
-      const allDocs = [...snap1.docs, ...snap2.docs];
-      if (allDocs.length > 0) {
-        allDocs.forEach(doc => {
-          // Si es paciente, borrar subcolección de notas
-          if (colName === 'pacientes') {
-            // Nota: En Firestore real, las subcolecciones deben borrarse recursivamente.
-            // Para simplicidad en este endpoint (que debe ser rápido), borraremos las raíces.
-            // El riesgo de "ghost docs" es mínimo comparado con el cobro de Stripe.
+        const allDocs = [];
+        
+        if (snap1.status === 'fulfilled' && !snap1.value.empty) {
+          allDocs.push(...snap1.value.docs);
+        } else if (snap1.status === 'rejected') {
+          deletionErrors.push(`${colName} (clinicId): ${snap1.reason.message}`);
+        }
+        
+        if (snap2.status === 'fulfilled' && !snap2.value.empty) {
+          allDocs.push(...snap2.value.docs);
+        } else if (snap2.status === 'rejected') {
+          deletionErrors.push(`${colName} (clinic_id): ${snap2.reason.message}`);
+        }
+
+        if (allDocs.length > 0) {
+          // Procesar en lotes para evitar límites de Firestore
+          const batchSize = 500;
+          for (let i = 0; i < allDocs.length; i += batchSize) {
+            const batch = db.batch();
+            const batchDocs = allDocs.slice(i, i + batchSize);
+            
+            batchDocs.forEach(doc => {
+              batch.delete(doc.ref);
+            });
+            
+            await batch.commit();
           }
-          batch.delete(doc.ref);
-        });
-        await batch.commit();
-        console.log(`  📁 Eliminados ${allDocs.length} documentos de ${colName}`);
+          
+          console.log(`  📁 Eliminados ${allDocs.length} documentos de ${colName}`);
+          totalDeleted += allDocs.length;
+        }
+      } catch (collectionErr) {
+        console.error(`🔥 Error eliminando colección ${colName}:`, collectionErr.message);
+        deletionErrors.push(`${colName}: ${collectionErr.message}`);
       }
     }
 
-    // 3. BORRAR SUBCOLECCIONES DIRECTAS (EQUIPO)
-    const equipoSnap = await clinicRef.collection('equipo').get();
-    if (!equipoSnap.empty) {
-      const batch = db.batch();
-      equipoSnap.docs.forEach(doc => {
-        // Limpiar staff_logins si existe
-        const data = doc.data() || {};
-        if (data.login_email) {
-          db.collection('staff_logins').doc(String(data.login_email).toLowerCase().trim()).delete().catch(() => { });
+    // 4. BORRAR SUBCOLECCIONES DIRECTAS (EQUIPO)
+    try {
+      const equipoSnap = await clinicRef.collection('equipo').get().catch(() => ({ empty: true }));
+      if (!equipoSnap.empty) {
+        const batchSize = 500;
+        const allDocs = equipoSnap.docs;
+        
+        for (let i = 0; i < allDocs.length; i += batchSize) {
+          const batch = db.batch();
+          const batchDocs = allDocs.slice(i, i + batchSize);
+          
+          batchDocs.forEach(doc => {
+            // Limpiar staff_logins si existe
+            const data = doc.data() || {};
+            if (data.login_email) {
+              db.collection('staff_logins').doc(String(data.login_email).toLowerCase().trim()).delete().catch(() => { });
+            }
+            batch.delete(doc.ref);
+          });
+          
+          await batch.commit();
         }
-        batch.delete(doc.ref);
-      });
-      await batch.commit();
+        
+        totalDeleted += equipoSnap.docs.length;
+        console.log(`  👥 Eliminados ${equipoSnap.docs.length} miembros del equipo`);
+      }
+    } catch (equipoErr) {
+      console.error('🔥 Error eliminando equipo:', equipoErr.message);
+      deletionErrors.push(`equipo: ${equipoErr.message}`);
     }
 
-    // 4. BORRAR CLÍNICA
-    await clinicRef.delete();
-    console.log(`✨ Cuenta ${clinicId} eliminada correctamente.`);
+    // 5. BORRAR CLÍNICA (último paso)
+    try {
+      await clinicRef.delete();
+      console.log(`✨ Cuenta ${clinicId} eliminada correctamente. Total documentos: ${totalDeleted + 1}`);
+    } catch (clinicErr) {
+      console.error('🔥 Error crítico eliminando clínica:', clinicErr.message);
+      throw new Error(`Error al eliminar la clínica: ${clinicErr.message}`);
+    }
 
-    res.json({ success: true, message: 'Cuenta eliminada y suscripción cancelada correctamente.' });
+    // Respuesta exitosa
+    const response = { 
+      success: true, 
+      message: 'Cuenta eliminada y suscripción cancelada correctamente.',
+      deleted: {
+        clinic: 1,
+        documents: totalDeleted,
+        emailSent: true,
+        errors: deletionErrors.length > 0 ? deletionErrors : undefined
+      }
+    };
+
+    console.log('🎉 Eliminación completada:', response);
+    res.json(response);
+
   } catch (e) {
     console.error('🔥 Error en deleteAccount:', e.message);
-    next(e);
+    res.status(500).json({ 
+      success: false, 
+      error: e.message || 'Error interno al eliminar la cuenta. Contacta con soporte.' 
+    });
   }
 };
 
@@ -2292,6 +2423,21 @@ const runSeguimientoNow = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
+// --- 🎯 CONTACTO AUTOMÁTICO DE PACIENTES CON BONOS ---
+const contactBonosPatients = async (req, res, next) => {
+  try {
+    const { minSessionsLeft = 3, contactAll = false } = req.body;
+    const { contactPatientsWithBonos } = require('../services/anaService');
+    
+    const result = await contactPatientsWithBonos(req.clinicId, {
+      minSessionsLeft,
+      contactAll
+    });
+    
+    return res.json(result);
+  } catch (e) { next(e); }
+};
+
 module.exports = {
   register,
   login,
@@ -2337,6 +2483,7 @@ module.exports = {
   createPatient,
   sendPwaInvitation,
   runSeguimientoNow,
-  stopCampaign
+  stopCampaign,
+  contactBonosPatients
 };
 

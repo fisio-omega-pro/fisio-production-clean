@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useMemo, useState } from 'react';
-import { User, Shield, Loader2, CheckCircle2, Ticket, CreditCard, AlertCircle, Lock } from 'lucide-react';
+import { User, Shield, Loader2, CheckCircle2, Ticket, CreditCard, AlertCircle, Lock, Trash2, AlertTriangle } from 'lucide-react';
 import { InputField, ActionButton } from '../components/Atoms';
 import { dashboardAPI } from '../services';
 import { useRouter } from 'next/navigation';
@@ -30,6 +30,12 @@ export const AjustesView = ({ clinicData, onUpdated }: { clinicData: any; onUpda
   const [cancelConfirm, setCancelConfirm] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
   const [subscriptionError, setSubscriptionError] = useState<string | null>(null);
+
+  // Estados para la eliminación completa de cuenta
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteSuccess, setDeleteSuccess] = useState(false);
 
   const hasSubscription = !!clinicData?.subscription_active;
   const cancelAtPeriodEnd = !!clinicData?.subscription_cancel_at_period_end;
@@ -94,6 +100,105 @@ export const AjustesView = ({ clinicData, onUpdated }: { clinicData: any; onUpda
       setBonosError(e?.message || 'No se pudo cambiar el estado de los bonos.');
     } finally {
       setBonosSaving(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!deleteConfirm) return;
+    
+    setDeleteError(null);
+    setDeleteLoading(true);
+    try {
+      // Validaciones de seguridad
+      const token = localStorage.getItem('fisio_token');
+      if (!token) {
+        throw new Error('No hay sesión activa. Por favor, inicia sesión nuevamente.');
+      }
+
+      // Obtener y validar el input de confirmación
+      const confirmationInput = document.querySelector('input[placeholder="Escribe ELIMINAR para confirmar"]') as HTMLInputElement;
+      if (!confirmationInput) {
+        throw new Error('Error de interfaz. Recarga la página e inténtalo nuevamente.');
+      }
+      
+      const confirmationText = confirmationInput.value?.trim();
+      if (confirmationText !== 'ELIMINAR') {
+        throw new Error('Debes escribir "ELIMINAR" exactamente para confirmar la eliminación de la cuenta.');
+      }
+      
+      // Validar datos de la clínica antes de proceder
+      if (!clinicData?.id || !clinicData?.email) {
+        throw new Error('Error en los datos de la clínica. Contacta con soporte.');
+      }
+      
+      console.log('🗑️ Iniciando eliminación de cuenta con ID:', clinicData.id);
+      
+      // Llamar al endpoint de eliminación completa
+      const response = await fetch('/api/dashboard/delete-account', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          clinicId: clinicData.id,
+          confirmEmail: clinicData.email
+        })
+      });
+
+      // Manejar diferentes tipos de respuestas de error
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        if (response.status === 403) {
+          throw new Error('No tienes permisos para eliminar esta cuenta. Solo el propietario puede hacerlo.');
+        } else if (response.status === 404) {
+          throw new Error('Clínica no encontrada. Es posible que ya haya sido eliminada.');
+        } else {
+          throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
+        }
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        console.log('✅ Cuenta eliminada exitosamente:', result.deleted);
+        setDeleteSuccess(true);
+        setDeleteConfirm(false);
+        
+        // Limpiar localStorage completamente
+        try {
+          localStorage.removeItem('fisio_token');
+          localStorage.removeItem('fisio_clinic_data');
+          localStorage.removeItem('fisio_user_data');
+        } catch (e) {
+          console.warn('Error limpiando localStorage:', e);
+        }
+        
+        // Redirigir al login después de 3 segundos
+        setTimeout(() => {
+          try {
+            router.push('/');
+          } catch (e) {
+            console.error('Error redirigiendo:', e);
+            window.location.href = '/';
+          }
+        }, 3000);
+      } else {
+        throw new Error(result.error || 'Error al eliminar la cuenta');
+      }
+    } catch (e: any) {
+      console.error('🔥 Error eliminando cuenta:', e);
+      setDeleteError(e?.message || 'No se pudo eliminar la cuenta. Por favor, contacta con soporte técnico.');
+      
+      // En caso de error crítico, limpiar estados de seguridad
+      if (e?.message?.includes('sesión') || e?.message?.includes('autenticación')) {
+        setTimeout(() => {
+          localStorage.removeItem('fisio_token');
+          router.push('/');
+        }, 2000);
+      }
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -315,6 +420,125 @@ export const AjustesView = ({ clinicData, onUpdated }: { clinicData: any; onUpda
             {bonosError && (
               <div className="mt-3 flex items-center gap-2 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-2xl p-3">
                 <AlertCircle size={12} />{bonosError}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* ── ELIMINACIÓN COMPLETA DE CUENTA (solo owner) ── */}
+        {isOwner && (
+          <section className="bg-white/[0.02] border border-red-500/20 rounded-[32px] p-8">
+            <h3 className="text-xs font-black text-red-500 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+              <Trash2 size={14} /> Eliminación Completa de Cuenta
+            </h3>
+            
+            {deleteSuccess ? (
+              <div className="flex flex-col gap-4 p-6 bg-green-500/10 border border-green-500/20 rounded-2xl">
+                <div className="flex items-center gap-3 text-green-400">
+                  <CheckCircle2 size={20} />
+                  <div>
+                    <h4 className="font-bold text-lg">Cuenta Eliminada Exitosamente</h4>
+                    <p className="text-sm opacity-80 mt-1">
+                      Todos tus datos han sido borrados permanentemente. Recibirás un email de confirmación.
+                    </p>
+                    <p className="text-xs opacity-60 mt-2">
+                      Serás redirigido a la página de inicio en 3 segundos...
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-start gap-3 p-4 bg-red-500/5 border border-red-500/20 rounded-2xl">
+                  <AlertTriangle size={16} className="text-red-400 flex-shrink-0 mt-0.5" />
+                  <div className="space-y-2">
+                    <p className="text-sm text-red-300 font-medium">
+                      <strong>ADVERTENCIA:</strong> Esta acción es irreversible y eliminará permanentemente:
+                    </p>
+                    <ul className="text-xs text-red-200 space-y-1 list-disc list-inside">
+                      <li>Todos los datos de pacientes (historiales clínicos, citas, notas)</li>
+                      <li>Información de la clínica y configuración</li>
+                      <li>Equipo y especialistas registrados</li>
+                      <li>Bonos y registros financieros</li>
+                      <li>Tu suscripción a Stripe será cancelada</li>
+                    </ul>
+                    <p className="text-xs text-red-300 mt-3">
+                      Por cumplimiento del RGPD, todos los datos médicos serán eliminados de forma segura e irrecuperable.
+                    </p>
+                  </div>
+                </div>
+
+                {!deleteConfirm ? (
+                  <button
+                    type="button"
+                    onClick={() => setDeleteConfirm(true)}
+                    className="w-fit px-6 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white text-[11px] font-black uppercase tracking-widest flex items-center gap-2 transition-all"
+                  >
+                    <Trash2 size={14} />
+                    ELIMINAR CUENTA COMPLETAMENTE
+                  </button>
+                ) : (
+                  <div className="flex flex-col gap-4 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl">
+                    <p className="text-sm text-red-300 font-medium">
+                      Esta acción es <strong>IRREVERSIBLE</strong>. ¿Estás absolutely seguro de que quieres eliminar tu cuenta y todos los datos asociados?
+                    </p>
+                    
+                    <div className="p-3 bg-black/20 rounded-xl">
+                      <p className="text-xs text-gray-300 mb-2">Para confirmar, escribe "<code className="bg-black/40 px-2 py-1 rounded text-red-400">ELIMINAR</code>"</p>
+                      <input
+                        type="text"
+                        placeholder="Escribe ELIMINAR para confirmar"
+                        className="w-full bg-black/40 border border-red-500/30 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-red-500/50"
+                        onInput={(e) => {
+                          try {
+                            const input = e.currentTarget;
+                            const value = input.value?.trim();
+                            if (value === 'ELIMINAR') {
+                              input.classList.add('border-green-500/50');
+                              input.classList.remove('border-red-500/30');
+                            } else {
+                              input.classList.add('border-red-500/30');
+                              input.classList.remove('border-green-500/50');
+                            }
+                          } catch (error) {
+                            console.error('Error en validación de input:', error);
+                          }
+                        }}
+                        disabled={deleteLoading}
+                      />
+                    </div>
+
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={handleDeleteAccount}
+                        disabled={deleteLoading || !clinicData?.id}
+                        className="px-4 py-2 rounded-xl bg-red-600 text-white text-[11px] font-black uppercase tracking-widest disabled:opacity-50 flex items-center gap-2"
+                      >
+                        {deleteLoading ? <Loader2 className="animate-spin" size={14} /> : <Trash2 size={14} />}
+                        Sí, eliminar todo permanentemente
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { 
+                          setDeleteConfirm(false); 
+                          setDeleteError(null); 
+                        }}
+                        disabled={deleteLoading}
+                        className="px-4 py-2 rounded-xl border border-white/10 text-gray-400 text-[11px] font-black uppercase tracking-widest hover:bg-white/5 disabled:opacity-50"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {deleteError && (
+                  <div className="flex items-center gap-2 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-2xl p-4">
+                    <AlertCircle size={14} />
+                    {deleteError}
+                  </div>
+                )}
               </div>
             )}
           </section>

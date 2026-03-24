@@ -6,6 +6,7 @@ const { scheduleAppointmentReminders } = require('./appointmentReminderService')
 const claudeService = require('./claudeService');
 const hybridAnaService = require('./hybridAnaService');
 const { hiveMindService, registerCollectiveExperience, getCollectiveWisdom, predictOptimalAction } = require('./hiveMindService');
+const emailSenderService = require('./emailSenderService');
 
 // 🧠 NUEVO SISTEMA DE SKILLS - Importar módulos
 const { processWithSkills, getSkillEngine } = require('./anaSkills');
@@ -1279,4 +1280,160 @@ ${nameRule}${multiSpecialistRule ? `\n${multiSpecialistRule}` : ''}`;
 
     return { response, paymentLink: stripePaymentUrl || null };
   }
+};
+
+// --- 🎯 NUEVA FUNCIONALIDAD: CONTACTO AUTOMÁTICO DE PACIENTES CON BONOS ---
+const contactPatientsWithBonos = async (clinicId, options = {}) => {
+  try {
+    console.log('🎯 [ANA BONOS] Iniciando contacto automático de pacientes con bonos...');
+    
+    const clinicConfig = await getClinicConfig(clinicId);
+    if (!clinicConfig) {
+      throw new Error('Configuración de clínica no encontrada');
+    }
+
+    // Obtener todos los bonos de la clínica
+    const bonosSnapshot = await db.collection('clinicas')
+      .doc(clinicId)
+      .collection('bonos')
+      .get();
+
+    if (bonosSnapshot.empty) {
+      return { success: false, message: 'No hay bonos registrados en la clínica' };
+    }
+
+    // Filtrar bonos según criterios
+    const { minSessionsLeft = 3, contactAll = false } = options;
+    const bonosToContact = [];
+
+    for (const bonoDoc of bonosSnapshot.docs) {
+      const bono = bonoDoc.data();
+      
+      // Solo contactar si el bono está activo
+      if (bono.status !== 'ACTIVO') continue;
+      
+      // Criterio de sesiones restantes
+      if (!contactAll && bono.sesiones_restantes > minSessionsLeft) continue;
+      
+      // Verificar que tenga email del paciente
+      if (!bono.paciente_email) continue;
+      
+      bonosToContact.push({
+        id: bonoDoc.id,
+        paciente_nombre: bono.paciente_nombre,
+        paciente_email: bono.paciente_email,
+        sesiones_restantes: bono.sesiones_restantes,
+        sesiones_totales: bono.sesiones_totales,
+        fecha_vencimiento: bono.fecha_vencimiento
+      });
+    }
+
+    if (bonosToContact.length === 0) {
+      return { success: false, message: 'No hay pacientes que cumplan los criterios de contacto' };
+    }
+
+    console.log(`📧 [ANA BONOS] Se contactará a ${bonosToContact.length} pacientes`);
+
+    // Generar mensaje personalizado con IA
+    const emailResults = [];
+    
+    for (const bono of bonosToContact) {
+      try {
+        // Construir prompt para la IA
+        const prompt = `Genera un email amigable y personalizado para ${bono.paciente_nombre} recordándole que tiene un bono de fisioterapia con ${bono.sesiones_restantes} sesiones restantes de ${bono.sesiones_totales}.
+
+Clínica: ${clinicConfig.nombre_clinica || 'FisioTool Pro'}
+${bono.fecha_vencimiento ? `El bono vence el: ${new Date(bono.fecha_vencimiento).toLocaleDateString('es-ES')}` : ''}
+
+Genera un email que:
+1. Sea amigable y motivador
+2. Recuerde las sesiones restantes
+3. Anime a agendar una cita
+4. Ofrezca ayuda para reservar
+5. Tenga un tono profesional pero cercano
+6. Incluya un llamado a la acción claro
+
+El email debe estar en español y ser conciso pero efectivo.`;
+
+        const emailContent = await callAnaEngine(prompt, { maxTokens: 300 });
+        
+        // Aquí se integraría con el servicio de email real
+        try {
+          // Usar el servicio de email real en lugar de solo simular
+          await emailSenderService.sendEmail({
+            to: bono.paciente_email,
+            subject: `Recordatorio de bono - ${clinicConfig.nombre_clinica || 'FisioTool Pro'}`,
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
+                <div style="background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                  <h2 style="color: #333; margin-bottom: 20px;">¡Hola ${bono.paciente_nombre}!</h2>
+                  <div style="color: #666; line-height: 1.6;">
+                    ${emailContent.replace(/\n/g, '<br>')}
+                  </div>
+                  <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+                    <p style="color: #999; font-size: 12px; margin: 0;">
+                      Enviado por ${clinicConfig.nombre_clinica || 'FisioTool Pro'}<br>
+                      Si no quieres recibir estos emails, contacta directamente con la clínica.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            `
+          });
+          
+          console.log(`📧 [ANA BONOS] Email enviado exitosamente a ${bono.paciente_email}`);
+        } catch (emailError) {
+          console.error(`🔥 [ANA BONOS] Error enviando email a ${bono.paciente_email}:`, emailError);
+          throw new Error(`Error al enviar email: ${emailError.message}`);
+        }
+        
+        emailResults.push({
+          paciente_email: bono.paciente_email,
+          paciente_nombre: bono.paciente_nombre,
+          status: 'sent',
+          content: emailContent
+        });
+        
+      } catch (error) {
+        console.error(`🔥 [ANA BONOS] Error generando email para ${bono.paciente_email}:`, error);
+        emailResults.push({
+          paciente_email: bono.paciente_email,
+          paciente_nombre: bono.paciente_nombre,
+          status: 'error',
+          error: error.message
+        });
+      }
+    }
+
+    return {
+      success: true,
+      contacted: emailResults.filter(r => r.status === 'sent').length,
+      errors: emailResults.filter(r => r.status === 'error').length,
+      results: emailResults,
+      message: `Se ha contactado a ${emailResults.filter(r => r.status === 'sent').length} pacientes correctamente`
+    };
+    
+  } catch (error) {
+    console.error('🔥 [ANA BONOS] Error en contacto automático:', error);
+    return { success: false, message: error.message };
+  }
+};
+
+module.exports = {
+  // Exportaciones existentes (mantener compatibilidad)
+  processCorporateLead,
+  handleChat,
+  handleWebChat,
+  getDashboardKnowledge: () => DASHBOARD_KNOWLEDGE,
+  getLexSystemPrompt: () => LEX_SYSTEM_PROMPT,
+  getClinicConfiguration,
+  checkAvailability,
+  getAvailableTimeSlots,
+  generatePaymentLink,
+  getTeamInfo,
+  getPatientHistory,
+  registerHiveExperience,
+  getCollectivePrediction,
+  // Nueva funcionalidad
+  contactPatientsWithBonos
 };

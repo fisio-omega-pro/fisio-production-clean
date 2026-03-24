@@ -133,7 +133,7 @@ export const AsistenteView = () => {
   const charsLeft = MAX_CHARS - input.length;
 
   return (
-    <div className="flex flex-col h-[75vh] max-w-4xl mx-auto bg-[#0a0a0c] border border-white/5 rounded-3xl overflow-hidden shadow-2xl">
+    <div className="flex flex-col h-[75vh] max-w-4xl mx-auto bg-[#0a0a0c] border border-white/5 rounded-3xl overflow-hidden shadow-2xl" role="region" aria-label={mode === 'lex' ? 'Chat con Lex, asesor legal' : 'Chat con Ana, asistente de clínica'}>
       {/* Header */}
       <div className="p-4 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -148,23 +148,23 @@ export const AsistenteView = () => {
         <div className="flex items-center gap-2">
           {/* Toggle Ana / Lex */}
           <div className="flex bg-white/5 rounded-lg p-0.5 gap-0.5">
-            <button onClick={() => switchMode('ana')} className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${mode === 'ana' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:text-gray-300'}`}>
-              <Bot size={10} className="inline mr-1" />Ana
+            <button onClick={() => switchMode('ana')} aria-pressed={mode === 'ana'} aria-label="Cambiar a Ana, asistente de clínica" className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${mode === 'ana' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:text-gray-300'}`}>
+              <Bot size={10} className="inline mr-1" aria-hidden="true" />Ana
             </button>
-            <button onClick={() => switchMode('lex')} className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${mode === 'lex' ? 'bg-amber-600 text-white' : 'text-gray-500 hover:text-gray-300'}`}>
-              <Scale size={10} className="inline mr-1" />Lex
+            <button onClick={() => switchMode('lex')} aria-pressed={mode === 'lex'} aria-label="Cambiar a Lex, asesor legal" className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${mode === 'lex' ? 'bg-amber-600 text-white' : 'text-gray-500 hover:text-gray-300'}`}>
+              <Scale size={10} className="inline mr-1" aria-hidden="true" />Lex
             </button>
           </div>
           {messages.length > 1 && (
-            <button onClick={handleClear} title="Limpiar conversación" className="text-gray-600 hover:text-red-400 transition p-1 rounded-lg hover:bg-red-500/10">
-              <Trash2 size={14} />
+            <button onClick={handleClear} title="Limpiar conversación" aria-label="Limpiar conversación" className="text-gray-600 hover:text-red-400 transition p-1 rounded-lg hover:bg-red-500/10">
+              <Trash2 size={14} aria-hidden="true" />
             </button>
           )}
         </div>
       </div>
 
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 space-y-3">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 space-y-3" role="log" aria-live="polite" aria-label="Historial de conversación">
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === 'ana' ? 'justify-start' : 'justify-end'}`}>
             {m.role === 'ana' && (
@@ -231,6 +231,7 @@ export const AsistenteView = () => {
               onChange={e => setInput(e.target.value.slice(0, MAX_CHARS))}
               onKeyDown={handleKeyDown}
               placeholder="Escribe tu pregunta… (Enter para enviar, Shift+Enter nueva línea)"
+              aria-label={`Escribe tu pregunta a ${mode === 'lex' ? 'Lex' : 'Ana'}`}
               rows={1}
               className="w-full bg-black border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white outline-none resize-none focus:border-blue-500/50 transition leading-relaxed"
               style={{ minHeight: '42px', maxHeight: '120px' }}
@@ -246,8 +247,9 @@ export const AsistenteView = () => {
             onClick={() => handleSend()}
             disabled={!input.trim() || loading || input.length > MAX_CHARS}
             className="bg-blue-600 p-2.5 rounded-xl text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-blue-500 transition shrink-0"
+            aria-label="Enviar mensaje"
           >
-            <Send size={16} />
+            <Send size={16} aria-hidden="true" />
           </button>
         </div>
       </div>

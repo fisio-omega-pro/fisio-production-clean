@@ -78,54 +78,59 @@ interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, '
   onChange?: (value: string) => void; // Forzamos a que devuelva un string, no un evento
 }
 
-export const InputField: React.FC<InputProps> = ({ label, icon, onChange, style, ...props }) => (
-  <div style={{ marginBottom: '15px', width: '100%' }}>
-    {/* 1. Renderizado del Label */}
-    {label && (
-      <label style={{ 
-        display: 'block', 
-        fontSize: '11px', 
-        fontWeight: 700, 
-        color: '#9ca3af', 
-        marginBottom: '6px', 
-        textTransform: 'uppercase', 
-        letterSpacing: '0.5px' 
-      }}>
-        {label}
-      </label>
-    )}
-    
-    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-      {/* 2. Renderizado del Icono */}
-      {icon && (
-        <div style={{ position: 'absolute', left: '12px', color: '#9ca3af', pointerEvents: 'none', display: 'flex' }}>
-          {icon}
-        </div>
+let _inputIdCounter = 0;
+export const InputField: React.FC<InputProps> = ({ label, icon, onChange, style, id, ...props }) => {
+  const inputId = id || (label ? `input-field-${++_inputIdCounter}` : undefined);
+  return (
+    <div style={{ marginBottom: '15px', width: '100%' }}>
+      {/* 1. Renderizado del Label */}
+      {label && (
+        <label htmlFor={inputId} style={{ 
+          display: 'block', 
+          fontSize: '11px', 
+          fontWeight: 700, 
+          color: '#9ca3af', 
+          marginBottom: '6px', 
+          textTransform: 'uppercase', 
+          letterSpacing: '0.5px' 
+        }}>
+          {label}
+        </label>
       )}
       
-      <input
-        {...props}
-        // 3. Interceptamos el evento para devolver solo el valor (Solución al error lógico)
-        onChange={(e) => onChange && onChange(e.target.value)}
-        style={{
-          width: '100%',
-          background: 'rgba(255,255,255,0.07)', // Fondo visible
-          border: '1px solid rgba(255,255,255,0.1)',
-          padding: '12px 16px',
-          paddingLeft: icon ? '40px' : '16px', // Espacio para el icono si existe
-          borderRadius: '10px',
-          color: '#fff',
-          outline: 'none',
-          fontSize: '14px',
-          colorScheme: 'dark', // 4. Solución al calendario invisible
-          ...style
-        }}
-        onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
-        onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)'}
-      />
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+        {/* 2. Renderizado del Icono */}
+        {icon && (
+          <div style={{ position: 'absolute', left: '12px', color: '#9ca3af', pointerEvents: 'none', display: 'flex' }} aria-hidden="true">
+            {icon}
+          </div>
+        )}
+        
+        <input
+          {...props}
+          id={inputId}
+          // 3. Interceptamos el evento para devolver solo el valor (Solución al error lógico)
+          onChange={(e) => onChange && onChange(e.target.value)}
+          style={{
+            width: '100%',
+            background: 'rgba(255,255,255,0.07)', // Fondo visible
+            border: '1px solid rgba(255,255,255,0.1)',
+            padding: '12px 16px',
+            paddingLeft: icon ? '40px' : '16px', // Espacio para el icono si existe
+            borderRadius: '10px',
+            color: '#fff',
+            outline: 'none',
+            fontSize: '14px',
+            colorScheme: 'dark', // 4. Solución al calendario invisible
+            ...style
+          }}
+          onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+          onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)'}
+        />
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // --- 4. BADGES (ETIQUETAS) ---
 export const StatusBadge: React.FC<{ status: string }> = ({ status }) => {

@@ -284,24 +284,27 @@ export default function OnboardingEpic() {
                 <p className="text-gray-400 text-sm mb-8">Datos fiscales de la sede principal.</p>
                 <div className="space-y-6">
                   <div>
-                    <Label>Nombre Comercial</Label>
-                    <Input icon={<Building2 size={16} />} placeholder="Ej: Clínica Avanza" value={formData.nombre} onChange={(v: string) => update('nombre', v)} error={errors.nombre} />
+                    <Label htmlFor="nombre">Nombre Comercial</Label>
+                    <Input id="nombre" icon={<Building2 size={16} />} placeholder="Ej: Clínica Avanza" aria-label="Nombre comercial de la clínica" value={formData.nombre} onChange={(v: string) => update('nombre', v)} error={errors.nombre} />
                   </div>
                   <div>
                     <Label>Dirección Fiscal</Label>
                     <div className="grid grid-cols-4 gap-3 mb-3">
                       <div className="col-span-3">
-                        <Input placeholder="Calle / Avenida" value={formData.calle} onChange={(v: string) => update('calle', v)} error={errors.calle} icon={<MapPin size={16} />} />
+                        <Input id="calle" placeholder="Calle / Avenida" aria-label="Calle o avenida" value={formData.calle} onChange={(v: string) => update('calle', v)} error={errors.calle} icon={<MapPin size={16} />} />
                       </div>
                       <div className="col-span-1">
-                        <Input placeholder="Nº" value={formData.numero} onChange={(v: string) => update('numero', v)} />
+                        <Input id="numero" placeholder="Nº" aria-label="Número de portal" value={formData.numero} onChange={(v: string) => update('numero', v)} />
                       </div>
                     </div>
                     <div className="grid grid-cols-3 gap-3">
-                      <Input placeholder="C.P." value={formData.cp} onChange={(v: string) => update('cp', v)} error={errors.cp} />
-                      <Input placeholder="Ciudad" value={formData.ciudad} onChange={(v: string) => update('ciudad', v)} error={errors.ciudad} />
+                      <Input id="cp" placeholder="C.P." aria-label="Código postal" value={formData.cp} onChange={(v: string) => update('cp', v)} error={errors.cp} />
+                      <Input id="ciudad" placeholder="Ciudad" aria-label="Ciudad" value={formData.ciudad} onChange={(v: string) => update('ciudad', v)} error={errors.ciudad} />
                       <div className="relative">
                         <select
+                          id="provincia"
+                          aria-label="Provincia"
+                          aria-invalid={!!errors.provincia}
                           className={`w-full bg-[#0a0b10] border ${errors.provincia ? 'border-red-500' : 'border-white/10'} rounded-xl text-sm text-white px-4 py-3 appearance-none focus:outline-none focus:ring-1 focus:ring-blue-500`}
                           value={formData.provincia}
                           onChange={e => update('provincia', e.target.value)}
@@ -319,6 +322,7 @@ export default function OnboardingEpic() {
                     <div className="flex gap-2">
                       <div className="relative shrink-0" style={{ width: '110px' }}>
                         <select
+                          aria-label="Prefijo telefónico del país"
                           className="w-full bg-[#0a0b10] border border-white/10 rounded-xl text-sm text-white px-3 py-3 appearance-none focus:outline-none focus:ring-1 focus:ring-blue-500"
                           value={formData.prefijo_telefono}
                           onChange={e => update('prefijo_telefono', e.target.value)}
@@ -328,34 +332,40 @@ export default function OnboardingEpic() {
                         <div className="absolute right-2 top-3.5 pointer-events-none text-gray-500"><ArrowRight size={12} className="rotate-90" /></div>
                       </div>
                       <div className="flex-1">
-                        <Input type="tel" icon={<Phone size={16} />} placeholder="612 345 678" value={formData.telefono} onChange={(v: string) => update('telefono', v)} error={errors.telefono} />
+                        <Input id="telefono" type="tel" icon={<Phone size={16} />} placeholder="612 345 678" aria-label="Número de teléfono" value={formData.telefono} onChange={(v: string) => update('telefono', v)} error={errors.telefono} />
                       </div>
                     </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                     <div>
-                      <Label>Email Administrador</Label>
-                      <Input type="email" icon={<Mail size={16} />} value={formData.email} onChange={(v: string) => update('email', v)} error={errors.email} />
+                      <Label htmlFor="email">Email Administrador</Label>
+                      <Input id="email" type="email" icon={<Mail size={16} />} aria-label="Email del administrador" value={formData.email} onChange={(v: string) => update('email', v)} error={errors.email} />
                     </div>
                     <div>
-                      <Label>Contraseña Maestra</Label>
+                      <Label htmlFor="password">Contraseña Maestra</Label>
                       <div className="relative mb-3">
-                        <Input type={showPass ? 'text' : 'password'} icon={<Lock size={16} />} value={formData.password} onChange={(v: string) => update('password', v)} error={errors.password} />
-                        <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-3 text-gray-500 hover:text-white">
-                          {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                        <Input id="password" type={showPass ? 'text' : 'password'} icon={<Lock size={16} />} aria-label="Contraseña maestra" value={formData.password} onChange={(v: string) => update('password', v)} error={errors.password} />
+                        <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-3 text-gray-500 hover:text-white" aria-label={showPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}>
+                          {showPass ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
                         </button>
                       </div>
-                      <div className="grid grid-cols-4 gap-1 mb-2">
-                        <div className={`h-1 rounded-full transition-all ${passCriteria.length ? 'bg-green-500' : 'bg-gray-700'}`} />
-                        <div className={`h-1 rounded-full transition-all ${passCriteria.upper ? 'bg-green-500' : 'bg-gray-700'}`} />
-                        <div className={`h-1 rounded-full transition-all ${passCriteria.number ? 'bg-green-500' : 'bg-gray-700'}`} />
-                        <div className={`h-1 rounded-full transition-all ${passCriteria.special ? 'bg-green-500' : 'bg-gray-700'}`} />
+                      <div className="grid grid-cols-4 gap-1 mb-2" role="group" aria-label={`Fuerza de contraseña: ${Object.values(passCriteria).filter(Boolean).length} de 4 criterios cumplidos`}>
+                        <div className={`h-1 rounded-full transition-all ${passCriteria.length ? 'bg-green-500' : 'bg-gray-700'}`} role="presentation" />
+                        <div className={`h-1 rounded-full transition-all ${passCriteria.upper ? 'bg-green-500' : 'bg-gray-700'}`} role="presentation" />
+                        <div className={`h-1 rounded-full transition-all ${passCriteria.number ? 'bg-green-500' : 'bg-gray-700'}`} role="presentation" />
+                        <div className={`h-1 rounded-full transition-all ${passCriteria.special ? 'bg-green-500' : 'bg-gray-700'}`} role="presentation" />
                       </div>
-                      <div className="flex justify-between text-[10px] text-gray-500 font-medium">
+                      <div className="flex justify-between text-[10px] text-gray-500 font-medium" aria-hidden="true">
                         <span className={passCriteria.length ? 'text-green-500' : ''}>8+ Caracteres</span>
                         <span className={passCriteria.upper ? 'text-green-500' : ''}>ABC</span>
                         <span className={passCriteria.number ? 'text-green-500' : ''}>123</span>
                         <span className={passCriteria.special ? 'text-green-500' : ''}>#@!</span>
+                      </div>
+                      <div className="sr-only" aria-live="polite">
+                        {passCriteria.length ? 'Longitud mínima cumplida.' : 'Necesitas al menos 8 caracteres.'}
+                        {passCriteria.upper ? ' Mayúscula cumplida.' : ' Necesitas una mayúscula.'}
+                        {passCriteria.number ? ' Número cumplido.' : ' Necesitas un número.'}
+                        {passCriteria.special ? ' Carácter especial cumplido.' : ' Necesitas un carácter especial.'}
                       </div>
                     </div>
                   </div>
@@ -379,35 +389,52 @@ export default function OnboardingEpic() {
                 <div className="bg-[#18181b] border border-white/5 rounded-2xl p-5 mb-6">
                   <div className="flex items-center gap-2 mb-4 text-xs font-bold text-blue-400 uppercase tracking-widest"><Clock size={14} /> Jornada Laboral</div>
                   <div className="grid grid-cols-2 gap-4">
-                    <div><Label>Apertura</Label><input type="time" className={timeInputClass} value={formData.apertura} onChange={e => update('apertura', e.target.value)} /></div>
-                    <div><Label>Cierre</Label><input type="time" className={timeInputClass} value={formData.cierre} onChange={e => update('cierre', e.target.value)} /></div>
+                    <div><Label htmlFor="apertura">Apertura</Label><input id="apertura" aria-label="Hora de apertura" type="time" className={timeInputClass} value={formData.apertura} onChange={e => update('apertura', e.target.value)} /></div>
+                    <div><Label htmlFor="cierre">Cierre</Label><input id="cierre" aria-label="Hora de cierre" type="time" className={timeInputClass} value={formData.cierre} onChange={e => update('cierre', e.target.value)} /></div>
                   </div>
                 </div>
-                <div onClick={() => update('hace_descanso', !formData.hace_descanso)} className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all mb-4 ${formData.hace_descanso ? 'bg-blue-900/10 border-blue-500/30' : 'bg-[#18181b] border-white/5'}`}>
+                <div
+                  role="checkbox"
+                  aria-checked={formData.hace_descanso}
+                  aria-label="Pausa mediodía: ¿cierras para comer?"
+                  tabIndex={0}
+                  onClick={() => update('hace_descanso', !formData.hace_descanso)}
+                  onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); update('hace_descanso', !formData.hace_descanso); } }}
+                  className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all mb-4 ${formData.hace_descanso ? 'bg-blue-900/10 border-blue-500/30' : 'bg-[#18181b] border-white/5'}`}
+                >
                   <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${formData.hace_descanso ? 'bg-blue-500 text-white' : 'bg-white/5 text-gray-400'}`}><PauseCircle size={18} /></div>
+                    <div className={`p-2 rounded-lg ${formData.hace_descanso ? 'bg-blue-500 text-white' : 'bg-white/5 text-gray-400'}`} aria-hidden="true"><PauseCircle size={18} /></div>
                     <div>
                       <div className={`text-sm font-bold ${formData.hace_descanso ? 'text-white' : 'text-gray-400'}`}>Pausa Mediodía</div>
                       <div className="text-[10px] text-gray-500">¿Cierras para comer?</div>
                     </div>
                   </div>
-                  <Switch active={formData.hace_descanso} />
+                  <Switch active={formData.hace_descanso} label="Pausa mediodía" />
                 </div>
                 <AnimatePresence>
                   {formData.hace_descanso && (
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden grid grid-cols-2 gap-4 mb-6 pl-2">
-                      <div><Label>Inicio</Label><input type="time" className={timeInputClassSmall} value={formData.descanso_inicio} onChange={e => update('descanso_inicio', e.target.value)} /></div>
-                      <div><Label>Fin</Label><input type="time" className={timeInputClassSmall} value={formData.descanso_fin} onChange={e => update('descanso_fin', e.target.value)} /></div>
+                      <div><Label htmlFor="descanso_inicio">Inicio</Label><input id="descanso_inicio" aria-label="Hora de inicio del descanso" type="time" className={timeInputClassSmall} value={formData.descanso_inicio} onChange={e => update('descanso_inicio', e.target.value)} /></div>
+                      <div><Label htmlFor="descanso_fin">Fin</Label><input id="descanso_fin" aria-label="Hora de fin del descanso" type="time" className={timeInputClassSmall} value={formData.descanso_fin} onChange={e => update('descanso_fin', e.target.value)} /></div>
                     </motion.div>
                   )}
                 </AnimatePresence>
                 <div className="h-px bg-white/5 w-full my-6" />
                 <Label>Triaje de Seguridad (Casos que NO atiendes)</Label>
                 <p className="text-xs text-gray-500 mb-4">Ana rechazará educadamente estos casos y te enviará un aviso.</p>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3" role="group" aria-label="Triaje de seguridad: casos que no atiendes">
                   {RED_FLAGS_OPTIONS.map(f => (
-                    <div key={f.id} onClick={() => toggleList('flags', f.id)} className={`p-3 rounded-xl border cursor-pointer transition-all flex flex-col items-center gap-2 text-center ${formData.flags.includes(f.id) ? 'bg-red-500/10 border-red-500/40 text-white' : 'bg-[#18181b] border-white/5 text-gray-400 hover:border-white/20'}`}>
-                      <f.icon size={20} className={formData.flags.includes(f.id) ? 'text-red-400' : 'text-gray-500'} />
+                    <div
+                      key={f.id}
+                      role="checkbox"
+                      aria-checked={formData.flags.includes(f.id)}
+                      aria-label={f.label}
+                      tabIndex={0}
+                      onClick={() => toggleList('flags', f.id)}
+                      onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleList('flags', f.id); } }}
+                      className={`p-3 rounded-xl border cursor-pointer transition-all flex flex-col items-center gap-2 text-center ${formData.flags.includes(f.id) ? 'bg-red-500/10 border-red-500/40 text-white' : 'bg-[#18181b] border-white/5 text-gray-400 hover:border-white/20'}`}
+                    >
+                      <f.icon size={20} className={formData.flags.includes(f.id) ? 'text-red-400' : 'text-gray-500'} aria-hidden="true" />
                       <span className="text-[10px] font-bold uppercase">{f.label}</span>
                     </div>
                   ))}
@@ -424,16 +451,25 @@ export default function OnboardingEpic() {
                 <h1 className="text-2xl font-bold mb-2">Facturación y Legal</h1>
                 <p className="text-gray-400 text-sm mb-8">Configura tus precios y formaliza el alta.</p>
                 <div className="grid grid-cols-2 gap-6 mb-8">
-                  <div><Label>Tarifa Estándar (€)</Label><Input type="number" value={formData.precio_sesion} onChange={(v: string) => update('precio_sesion', v)} /></div>
-                  <div><Label>Fianza Reserva (€)</Label><Input type="number" value={formData.fianza} onChange={(v: string) => update('fianza', v)} /><span className="text-[10px] text-blue-400 block mt-1">Recomendado: 15-20€</span></div>
+                  <div><Label htmlFor="precio_sesion">Tarifa Estándar (€)</Label><Input id="precio_sesion" type="number" aria-label="Tarifa estándar por sesión en euros" value={formData.precio_sesion} onChange={(v: string) => update('precio_sesion', v)} /></div>
+                  <div><Label htmlFor="fianza">Fianza Reserva (€)</Label><Input id="fianza" type="number" aria-label="Fianza de reserva en euros" value={formData.fianza} onChange={(v: string) => update('fianza', v)} /><span className="text-[10px] text-blue-400 block mt-1">Recomendado: 15-20€</span></div>
                 </div>
                 <Label>Métodos de Cobro Aceptados</Label>
-                <div className="grid grid-cols-3 gap-3 mb-8">
+                <div className="grid grid-cols-3 gap-3 mb-8" role="group" aria-label="Métodos de cobro aceptados">
                   {[{ id: 'Stripe', label: 'Tarjeta', icon: CreditCard, color: 'text-blue-400', border: 'border-blue-500/40', bg: 'bg-blue-500/10' }, { id: 'Bizum', label: 'Bizum', icon: Smartphone, color: 'text-pink-400', border: 'border-pink-500/40', bg: 'bg-pink-500/10' }, { id: 'Efectivo', label: 'Efectivo', icon: Banknote, color: 'text-green-400', border: 'border-green-500/40', bg: 'bg-green-500/10' }].map(m => {
                     const active = formData.metodos_pago.includes(m.id);
                     return (
-                      <div key={m.id} onClick={() => toggleList('metodos_pago', m.id)} className={`p-3 rounded-xl border cursor-pointer transition-all flex flex-col items-center gap-2 ${active ? `${m.bg} ${m.border} text-white` : 'bg-[#18181b] border-white/5 text-gray-500'}`}>
-                        <m.icon size={20} className={active ? m.color : 'text-gray-600'} />
+                      <div
+                        key={m.id}
+                        role="checkbox"
+                        aria-checked={active}
+                        aria-label={`Método de pago: ${m.label}`}
+                        tabIndex={0}
+                        onClick={() => toggleList('metodos_pago', m.id)}
+                        onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleList('metodos_pago', m.id); } }}
+                        className={`p-3 rounded-xl border cursor-pointer transition-all flex flex-col items-center gap-2 ${active ? `${m.bg} ${m.border} text-white` : 'bg-[#18181b] border-white/5 text-gray-500'}`}
+                      >
+                        <m.icon size={20} className={active ? m.color : 'text-gray-600'} aria-hidden="true" />
                         <span className="text-[11px] font-bold">{m.label}</span>
                       </div>
                     );
@@ -442,16 +478,24 @@ export default function OnboardingEpic() {
                 <div className={`border rounded-xl p-4 mb-8 transition-all ${formData.acepta_bonos ? 'border-green-500/30 bg-green-900/5' : 'border-white/5 bg-[#18181b]'}`}>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-3"><Ticket size={18} className={formData.acepta_bonos ? 'text-green-500' : 'text-gray-500'} /><span className="text-sm font-bold text-gray-200">Venta de Bonos</span></div>
-                    <Switch active={formData.acepta_bonos} onClick={() => update('acepta_bonos', !formData.acepta_bonos)} color="bg-green-500" />
+                    <Switch active={formData.acepta_bonos} onClick={() => update('acepta_bonos', !formData.acepta_bonos)} color="bg-green-500" label="Activar venta de bonos" />
                   </div>
-                  {formData.acepta_bonos && (<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-4"><Label>Precio Bono 5 Sesiones (€)</Label><Input type="number" value={formData.precio_bono_5} onChange={(v: string) => update('precio_bono_5', v)} /></motion.div>)}
+                  {formData.acepta_bonos && (<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-4"><Label htmlFor="precio_bono_5">Precio Bono 5 Sesiones (€)</Label><Input id="precio_bono_5" type="number" aria-label="Precio del bono de 5 sesiones en euros" value={formData.precio_bono_5} onChange={(v: string) => update('precio_bono_5', v)} /></motion.div>)}
                 </div>
                 <div className={`p-4 rounded-xl border ${errors.legal ? 'border-red-500/50 bg-red-900/10' : 'border-white/5 bg-[#18181b]'} flex items-start gap-4 mb-8`}>
                   <FileText size={20} className="text-gray-500 shrink-0 mt-0.5" />
                   <div>
                     <p className="text-[11px] text-gray-400 leading-relaxed mb-3">Acepto el Contrato de Encargado de Tratamiento (RGPD), la Política de Privacidad y confirmo que soy un profesional colegiado.</p>
-                    <div onClick={() => update('aceptacion_legal', !formData.aceptacion_legal)} className="flex items-center gap-3 cursor-pointer group">
-                      <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${formData.aceptacion_legal ? 'bg-blue-600 border-blue-600' : 'border-gray-600 group-hover:border-gray-400'}`}>{formData.aceptacion_legal && <Check size={14} className="text-white" />}</div>
+                    <div
+                      role="checkbox"
+                      aria-checked={formData.aceptacion_legal}
+                      aria-label="Acepto el contrato de encargado de tratamiento, la política de privacidad y confirmo que soy profesional colegiado"
+                      tabIndex={0}
+                      onClick={() => update('aceptacion_legal', !formData.aceptacion_legal)}
+                      onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); update('aceptacion_legal', !formData.aceptacion_legal); } }}
+                      className="flex items-center gap-3 cursor-pointer group"
+                    >
+                      <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${formData.aceptacion_legal ? 'bg-blue-600 border-blue-600' : 'border-gray-600 group-hover:border-gray-400'}`} aria-hidden="true">{formData.aceptacion_legal && <Check size={14} className="text-white" />}</div>
                       <span className={`text-xs font-bold ${formData.aceptacion_legal ? 'text-white' : 'text-gray-500 group-hover:text-gray-300'}`}>He leído y acepto los términos</span>
                     </div>
                   </div>
@@ -509,12 +553,12 @@ export default function OnboardingEpic() {
   );
 }
 
-const Label = ({ children }: { children: React.ReactNode }) => <span className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">{children}</span>;
+const Label = ({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) => <label htmlFor={htmlFor} className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">{children}</label>;
 
-const Input = ({ type = 'text', placeholder, value, onChange, icon, error }: any) => (
+const Input = ({ type = 'text', placeholder, value, onChange, icon, error, id, 'aria-label': ariaLabel }: any) => (
   <div className={`relative flex items-center bg-[#0a0b10] border rounded-xl transition-all group focus-within:border-blue-500/50 ${error ? 'border-red-500/50' : 'border-white/10'}`}>
-    {icon && <div className="absolute left-3 text-gray-500 group-focus-within:text-blue-400">{icon}</div>}
-    <input type={type} className={`w-full bg-transparent border-none text-sm text-white px-4 py-3 focus:outline-none placeholder:text-gray-700 ${icon ? 'pl-10' : ''}`} placeholder={placeholder} value={value == null ? '' : String(value)} onChange={e => onChange(e.target.value)} />
+    {icon && <div className="absolute left-3 text-gray-500 group-focus-within:text-blue-400" aria-hidden="true">{icon}</div>}
+    <input id={id} type={type} aria-label={ariaLabel || placeholder} aria-invalid={!!error} className={`w-full bg-transparent border-none text-sm text-white px-4 py-3 focus:outline-none placeholder:text-gray-700 ${icon ? 'pl-10' : ''}`} placeholder={placeholder} value={value == null ? '' : String(value)} onChange={e => onChange(e.target.value)} />
   </div>
 );
 
@@ -524,8 +568,16 @@ const Button = ({ children, onClick, disabled, variant = 'primary' }: any) => {
   return <button type="button" onClick={onClick} disabled={disabled} className={`${base} ${styles[variant]}`}>{children}</button>;
 };
 
-const Switch = ({ active, onClick, color = 'bg-blue-600' }: any) => (
-  <div onClick={onClick} className={`w-10 h-5 rounded-full relative cursor-pointer transition-colors ${active ? color : 'bg-gray-700'}`}>
+const Switch = ({ active, onClick, color = 'bg-blue-600', label }: any) => (
+  <div
+    role="switch"
+    aria-checked={!!active}
+    aria-label={label}
+    tabIndex={0}
+    onClick={onClick}
+    onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}
+    className={`w-10 h-5 rounded-full relative cursor-pointer transition-colors ${active ? color : 'bg-gray-700'}`}
+  >
     <div className={`w-3 h-3 bg-white rounded-full absolute top-1 transition-all ${active ? 'left-6' : 'left-1'}`} />
   </div>
 );
